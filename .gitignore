@@ -1,0 +1,8 @@
+node_modules
+package-lock.json
+.qwen/settings.json.orig
+!install.sh
+install*.sh*
+!install.sh
+# CocoIndex Code (ccc)
+/.cocoindex_code/

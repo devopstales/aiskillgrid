@@ -1,0 +1,11 @@
+{
+  "engram": {
+    "command": "docker",
+    "args": [
+      "run", "-i", "--rm",
+      "--name", "ai-mcp-engram-memory",
+      "-v", "mcp-engram-memory:/knowledge",
+      "cylian/engram"
+    ]
+  }
+}

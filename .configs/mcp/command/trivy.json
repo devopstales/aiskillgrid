@@ -1,0 +1,6 @@
+{
+    "trivy-command": {
+        "command": "trivy",
+        "args": ["mcp"]
+    }
+}

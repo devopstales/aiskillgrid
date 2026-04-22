@@ -1,0 +1,13 @@
+{
+    "playwright-docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--name", "ai-mcp-playwright",
+        "--shm-size=1g",
+        "mcp/playwright"
+      ]
+    }
+}

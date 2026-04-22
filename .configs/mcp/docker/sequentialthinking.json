@@ -1,0 +1,12 @@
+{
+    "sequentialthinking-docker": {
+        "command": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "--name", "ai-mcp-sequentialthinking",
+          "-i",
+          "mcp/sequentialthinking"
+        ]
+      }
+}
