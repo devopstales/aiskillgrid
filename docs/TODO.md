@@ -162,9 +162,14 @@ gsd install npm:pi-dashscope
   * [ ] [GSD](https://github.com/vudovn/antigravity-kit)
   * [ ] [GSD-2](https://github.com/gsd-build/gsd-2)
   * [ ] [superpowers](https://github.com/obra/superpowers)
+  * [ ] [agent-skills](https://github.com/addyosmani/agent-skills)
+  * [ ] [Archon](https://github.com/coleam00/Archon)
+  * [ ] [omegon-pi](https://github.com/styrene-lab/omegon-pi)
 * tools
   * [ ] [CocoIndex Code](https://github.com/cocoindex-io/cocoindex-code)
   * [X] [graphify](https://github.com/safishamsi/graphify)
+  * [ ] [Cleave]
+  * [ ] [agent-browser](https://github.com/vercel-labs/agent-browser)
 * multiplexers
   * [ ] [dmux](https://github.com/standardagents/dmux)
   * [ ] [mux](https://github.com/coder/mux)

@@ -1,3 +1,6 @@
+# Local vendor clone for syncing upstream agent-skills (not committed)
+.vendor/
+
 node_modules
 package-lock.json
 .qwen/settings.json.orig

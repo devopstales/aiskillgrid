@@ -7,6 +7,9 @@ List of components.
 ## Agents
 
 * code-reviewer
+  * [ ] Antigravity
+* [ ] test-engineer
+* [ ] security-auditor
 
 ## Skills
 
