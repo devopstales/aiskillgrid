@@ -136,14 +136,37 @@ npm install -g @mariozechner/pi-coding-agent
 
 # Tools
 
-## OpenSpec
-
-## GSD-2
-
-```bash
-npm install -g gsd-pi
-gsd install npm:pi-dashscope
-```
+* env bariables
+* memory in init
+  * `ccc init` in background
+  * `graphify update .` in background
+* commands
+  * `/skillgirid-plan` sas `/osx:apply` is the next
+  * `/skillgrid-breakdown` do not use link tasks sync directly.
+* mcp
+* rules
+  * AGENTS.md ??
+* web based wisulization at brainstorming
+* templates md in skill
+  * AGENTS.md
+  * DESIGN.md
+  * prd tasks as checklist
+* ticketing integration
+  * github
+  * gitlab
+  * jira cloud
+* paralelism
+* checkpint
+* git-worktrees (separate branch?)
+* subagent-driven-development or executing-plans
+* design tools
+* Context Engineering
+* installer
+  * Claude Code plugin
+  * Cursor plugin
+  * opencode plugin
+  * node
+  * skill.sh
 
 ## Sources
 

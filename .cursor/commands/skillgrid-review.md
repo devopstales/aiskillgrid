@@ -30,6 +30,13 @@ Run **`/skillgrid-security`** after this when you want a **dedicated security pa
 - `.agents/skills/database-reviewer/SKILL.md` — PostgreSQL-oriented review when applicable.
 - `.agents/skills/documentation-and-adrs/SKILL.md` — ADRs, API docs, document the why.
 
+## Optional: IDE personas
+
+- **`skillgrid-spec-verifier`** ([`.cursor/agents/skillgrid-spec-verifier.md`](../../.cursor/agents/skillgrid-spec-verifier.md)) — traceability only: specs ↔ `tasks.md` ↔ implementation; use when you want that split from general code review.
+- **`skillgrid-code-reviewer`** ([`.cursor/agents/skillgrid-code-reviewer.md`](../../.cursor/agents/skillgrid-code-reviewer.md)) — five-axis code review in a dedicated subagent context.
+
+With a **parallel** harness, you may run independent personas on the same change and merge reports (see [`.cursor/agents/README.md`](../../.cursor/agents/README.md)).
+
 ## Notes
 
 - Do **not** treat this phase as sufficient for security sign-off; follow with `/skillgrid-security` before merge when security matters.

@@ -188,6 +188,21 @@ For richer context, use Model Context Protocol servers:
 | **PostgreSQL** | Direct database schema and query results |
 | **Filesystem** | Project file access and search |
 | **GitHub** | Issue, PR, and repository context |
+| **Engram** (`mem_*`) | Persistent project memory, SDD artifacts, session context |
+| **CocoIndex (`ccc`)** | Semantic codebase search and index refresh (CLI, not always MCP) |
+| **Graphify** | Knowledge graph outputs under `graphify-out/` when the project uses graphify |
+| **server-memory** (`memory-npx`) | Lightweight MCP memory for short structured recall |
+
+### Indexing, search, and memory workflow
+
+For a concrete checklist (ccc, Engram, graphify, MCP memory), read **[indexing-and-memory.md](../references/indexing-and-memory.md)**.
+
+**Principles:**
+
+- Prefer **semantic index** (`ccc search`) over blind full-repo greps when the index is fresh.
+- Prefer **memory retrieval** (`mem_search` → `mem_get_observation`) before contradicting past team decisions—when Engram (or equivalent) is configured.
+- After **material code or spec changes**, schedule **`ccc index`** (and graphify update if the project uses it).
+- **Save** non-obvious decisions with **`mem_save`** (or follow SDD/engram conventions) so compaction does not erase them.
 
 ## Confusion Management
 

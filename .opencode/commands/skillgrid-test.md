@@ -17,6 +17,7 @@ You are executing **`/skillgrid-test`** (VERIFY phase) for the Skillgrid workflo
 
 ## Skills to read and follow
 
+- `.agents/skills/karpathy-guidelines/SKILL.md` — prove behavior matches stated success criteria.
 - `.agents/skills/e2e-testing/SKILL.md` — end-to-end test design and implementation.
 - `.agents/skills/e2e-runner/SKILL.md` — run and troubleshoot E2E suites.
 - `.agents/skills/testing-patterns/SKILL.md` — general testing patterns beyond E2E.

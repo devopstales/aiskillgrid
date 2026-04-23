@@ -9,14 +9,14 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 - **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD phases, code review, security, TDD, CocoIndex Code `ccc`, and more). See [docs/skills.md](docs/skills.md).
 - **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/commands.md](docs/commands.md).
 - **Workflow** — End-to-end phases from init through finish in [docs/wokflow.md](docs/wokflow.md).
-- **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, graphifyy, CocoIndex Code, etc.). See [docs/tools.md](docs/tools.md).
+- **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, graphify, CocoIndex Code, etc.). See [docs/tools.md](docs/tools.md).
 - **Shared agent rules** — [`.configs/AGENTS.md`](.configs/AGENTS.md) is copied to the target project and IDE config dirs when you install.
 
 ---
 
 ## Workflow
 
-Twelve core **`/skillgrid-*`** steps from [docs/wokflow.md](docs/wokflow.md) (plus optional **`/skillgrid-validate`** as a one-shot review+security gate), grouped like the six-phase diagram in [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills). OpenSpec-focused steps also use **`/opsx-*`** ([docs/commands.md](docs/commands.md)).
+**Phase 0** (`/skillgrid-session`) plus **twelve** workflow **`/skillgrid-*`** steps from [docs/wokflow.md](docs/wokflow.md), including optional **`/skillgrid-validate`** as a one-shot review+security gate, grouped like the six-phase diagram in [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills). OpenSpec-focused steps also use **`/opsx-*`** ([docs/commands.md](docs/commands.md)).
 
 ```
   PHASE 0 (optional at session start)
@@ -37,6 +37,8 @@ Also run **`/skillgrid-explore`** and **`/skillgrid-brainstorm`** (DEFINE), **`/
 
 ## Quick start
 
+Hub maintainers: after cloning, run **`npm ci`** in this repository root once so [package-lock.json](package-lock.json) pins Node tools under `node_modules/`.
+
 From this repository, run the installer against **your** project directory:
 
 ```bash
@@ -50,7 +52,7 @@ Common variants:
 - **Dependencies only:** `./install.sh -d`
 - **Optional CLIs** (OpenSpec, graphify, CocoIndex Code, dmux, Engram): add `-t` in an interactive terminal
 
-You need a working **bash**, **rsync**, and **jq** for a full install with MCP merge; **Node** / **npx** helps for npm-based global tools. Details: [docs/tools.md](docs/tools.md).
+You need a working **bash**, **rsync**, and **jq** for a full install with MCP merge; **Node** and **`npm ci`** in this repo help with pinned **npx**-based tools. For Python CLIs, use **uv** (see [docs/tools.md](docs/tools.md)).
 
 ---
 
@@ -71,11 +73,13 @@ You need a working **bash**, **rsync**, and **jq** for a full install with MCP m
 
 | Doc | Contents |
 |-----|----------|
+| [docs/agents.md](docs/agents.md) | IDE agent personas (`.cursor/agents/`, mirrors, format) |
 | [docs/wokflow.md](docs/wokflow.md) | Skillgrid phases and which skills apply per phase |
+| [.skillgrid/project/](.skillgrid/project/) | This hub’s own architecture, structure, and project onboarding docs |
 | [docs/skills.md](docs/skills.md) | Catalog of all skills with paths and summaries |
 | [docs/commands.md](docs/commands.md) | Slash commands and where they live per IDE |
-| [docs/tools.md](docs/tools.md) | Install toolchain (brew, node, pipx, …) and workflow CLIs / IDEs |
-| [docs/openspec-vs-gsd.md](docs/openspec-vs-gsd.md) | OpenSpec vs GSD-2: on-disk layout and workflow |
+| [docs/tools.md](docs/tools.md) | Install toolchain (brew, node, uv, npm, …) and workflow CLIs / IDEs |
+| [docs/openspec-vs-gsd.md](docs/openspec-vs-gsd.md) | OpenSpec vs GSD-2; Antigravity Kit vs GSD-2 (name check) |
 | [docs/TODO.md](docs/TODO.md) | IDE matrix and internal notes |
 
 ---

@@ -1,13 +1,56 @@
 # Tools and external dependencies
 
-## Install tools
+## Hub maintenance: IDE mirrors
 
-* brew
-* rsync
-* jq
-* node
-* pipx
-* uv
+Cursor is the **source of truth** for slash commands ([`.cursor/commands/`](../.cursor/commands/)) and agent personas ([`.cursor/agents/`](../.cursor/agents/)). After editing those files, run:
+
+```bash
+./scripts/sync-ide-assets.sh
+```
+
+That copies `skillgrid-*.md` and `opsx-*.md` to **`.kilo/commands/`** and **`.opencode/commands/`**, regenerates **`.github/prompts/`** (Copilot: `description` + body only), and syncs **`.cursor/agents/*.md`** to **`.kilo/agents/`**, **`.opencode/agents/`**, and **`.github/agents/`**.
+
+Check for drift without writing (e.g. in CI):
+
+```bash
+./scripts/sync-ide-assets.sh --check
+```
+
+Requires **Python 3** (for GitHub prompt generation) and **`cmp`** (POSIX).
+
+If you **rename or remove** a persona file under **`.cursor/agents/`**, delete the old filename from **`.kilo/agents/`**, **`.opencode/agents/`**, and **`.github/agents/`** (the script overwrites matching names but does not delete orphans), then run the sync again.
+
+## Install tools (canonical)
+
+**Base (system or Homebrew):** `brew`, `rsync`, `jq`, **Node (LTS)** + `npx`, **Python 3**.
+
+### Python: `uv` only
+
+Use **[uv](https://docs.astral.sh/uv/)** for everything Python: global CLIs and per-skill environments. Do not standardize on **pipx** in this repo (legacy docs may still mention it—prefer `uv`).
+
+- **Global CLIs (replaces pipx):** `uv tool install <package>`, e.g. `uv tool install 'cocoindex-code[full]'`, `uv tool install graphifyy`, `uv tool install tavily-cli`
+- **Upgrade:** `uv tool upgrade <name>`
+- **Per-skill venvs:** in a directory with `pyproject.toml` / `uv.lock`, run `uv sync` and `uv run …`
+
+### JavaScript: one lockfile, `npx` to run
+
+At the **repository root** of this hub, [package.json](../package.json) lists pinned **devDependencies** (OpenSpec CLI, `dmux`, and MCP packages aligned with [`.configs/mcp/node/`](../.configs/mcp/node/)). Install once:
+
+```bash
+npm ci
+```
+
+(Use `npm install` if you are bootstrapping and do not have a lockfile yet; prefer committing **package-lock.json**.)
+
+Run tools via **`npx`**, which resolves to **`node_modules/.bin`** when dependencies are installed—no need for a separate global install for day-to-day hub work. **`npx` is the runner, not a replacement for `npm install`:** run `npm ci` in the hub first so versions match the lockfile.
+
+`npm install -g` is reserved for exceptional cases; [`install.sh`](../install.sh) may fall back to global install when a hub-local install is not available.
+
+## MCP: `npx -y` vs project `npx`
+
+MCP server fragments under [`.configs/mcp/node/`](../.configs/mcp/node/) use **`npx`** (often with **`-y`**) so **any** machine can start a server without a prior `npm ci` in this repo. That is the **portable, zero-config** path (may fetch from the registry on first run).
+
+For **reproducible, lockfile-pinned** runs (maintenance and CI in this repo), run **`npm ci`** in the hub, then use **`npx` without `-y`** so the same versions as [package-lock.json](../package-lock.json) are used from `node_modules`. Optional later improvement: set MCP `cwd` to the hub root so `npx` always prefers local `node_modules` (depends on your IDE’s MCP working directory).
 
 ## Context enginearing
 
@@ -15,20 +58,26 @@
 * [ ] [paul](https://github.com/ChristopherKahler/paul)
 * [ ] [seed](https://github.com/ChristopherKahler/seed)
 
-
 ## Spec Driven Development
 
 * [X] [OpenSpec](https://github.com/openspecs/openspec)
-* [ ] [GSD](https://github.com/vudovn/antigravity-kit)
+* [ ] [Antigravity Kit](https://github.com/vudovn/antigravity-kit)
+* [-] [GSD](https://github.com/gsd-build/get-shit-done)
 * [ ] [GSD-2](https://github.com/gsd-build/gsd-2)
 * [ ] [superpowers](https://github.com/obra/superpowers)
 * [ ] [Archon](https://github.com/coleam00/Archon)
 
+## Web scrapper
+
+* [ ] [exa]()
+* [ ] [Brave Search]()
+* [ ] [firecrawl-cli]()
+
 ## Memory tools
 
-* [ ] [CocoIndex Code (ccc)](https://github.com/cocoindex-io/cocoindex-code)
+* [X] [CocoIndex Code (ccc)](https://github.com/cocoindex-io/cocoindex-code)
 * [X] [graphify](https://github.com/safishamsi/graphify)
-* [ ] [Engram](https://github.com/Gentleman-Programming/engram)
+* [X] [Engram](https://github.com/Gentleman-Programming/engram)
 * [ ] [Engrom-v2](https://github.com/EvolvingLMMs-Lab/engram)
 * [ ] [StixDB](https://github.com/Pr0fe5s0r/StixDB)
 
@@ -38,7 +87,7 @@
 * [ ] [npxskillui](https://github.com/amaancoderx/npxskillui)
 * [ ] [impeccable](https://github.com/pbakaus/impeccable)
 
-## Brwser tools
+## Browser tools
 
 * [ ] [agent-browser](https://github.com/vercel-labs/agent-browser)
 * [ ] [PlayWright-mcp](https://github.com/microsoft/playwright-mcp)

@@ -69,3 +69,10 @@ To view or edit embedding model configuration, include/exclude patterns, or lang
 ## Management & Troubleshooting
 
 For installation, initialization, daemon management, troubleshooting, and cleanup commands, see [management.md](references/management.md).
+
+## With persistent memory (Engram) and graphify
+
+`ccc` answers **“where in code?”**; it does not replace cross-session **decision** storage.
+
+- After significant edits, run **`ccc index`** so search matches the tree; pair with **Engram** `mem_save` for decisions and spec pointers (see [indexing-and-memory.md](../references/indexing-and-memory.md); SDD flows reference Engram keys in skills such as `sdd-verify`).
+- If the project uses **graphify**, refresh or consult **`graphify-out/`** per `AGENTS.md` for architecture-level orientation; use **`ccc search`** for symbol-level drill-down.

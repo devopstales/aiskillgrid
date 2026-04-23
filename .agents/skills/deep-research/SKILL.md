@@ -122,6 +122,10 @@ Sub-questions investigated: [list]
 - **Short topics**: Post the full report in chat
 - **Long reports**: Post the executive summary + key takeaways, save full report to a file
 
+### Step 7: Optional — persist for later sessions
+
+If **Engram** (or another memory MCP) is available and the user wants recall across sessions, save a short anchored note with **`mem_save`** (title/topic_key scoped to the research topic, e.g. `research/<slug>`). Include links to the same sources cited in the report. Follow **[indexing-and-memory.md](../references/indexing-and-memory.md)** for ordering with `ccc` / graphify.
+
 ## Parallel Research with Subagents
 
 For broad topics, use Claude Code's Task tool to parallelize:

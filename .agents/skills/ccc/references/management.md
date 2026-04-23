@@ -2,19 +2,19 @@
 
 ## Installation
 
-Install CocoIndex Code via pipx:
+Install CocoIndex Code with **uv** (replaces a legacy `pipx install` flow):
 
 ```bash
-pipx install cocoindex-code
+uv tool install "cocoindex-code[full]"
 ```
 
 To upgrade to the latest version:
 
 ```bash
-pipx upgrade cocoindex-code
+uv tool upgrade cocoindex-code
 ```
 
-After installation, the `ccc` command is available globally.
+After installation, the `ccc` command is on your PATH (per `uv tool` conventions).
 
 ## Project Initialization
 

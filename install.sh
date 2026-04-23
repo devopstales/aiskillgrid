@@ -33,11 +33,11 @@
 #   3. Dependency check  → optional install of missing tools
 #   4. MCP merge         → jq-smerge .configs/mcp/*.json into one object
 #   5. IDE setup         → per-IDE setup_*() writes normalized config files
-#   6. Optional tools    → -t selects tools; CLIs via pipx/npm/brew, then hub copy + openspec init
+#   6. Optional tools    → -t selects tools; CLIs via uv (Python) + hub npm (Node) + brew, then copy + openspec init
 #
 # DEPENDENCIES:
-#   Runtime:  bash 4+, rsync, jq
-#   Optional: node, python3, pip3, npx (for MCP servers)
+#   Runtime:  bash 3.2+ (incl. macOS /bin/bash), rsync, jq
+#   Optional: node, npx, python3, pip3, uv (Python CLIs; hub Node deps via npm ci)
 #   IDE CLIs: opencode, kilo, semgrep, trivy (installed on demand)
 #
 # VERSION: 1.0.0
@@ -79,14 +79,17 @@ else
     NC=''
 fi
 
-# IDE folder name mapping — key = CLI flag name, value = dotfolder in project
-declare -A IDE_FOLDERS=(
-    ["cursor"]=".cursor"
-    ["copilot"]=".vscode"
-    ["kilo"]=".kilo"
-    ["opencode"]=".opencode"
-    ["antigravity"]=".agents"
-)
+# IDE folder name mapping (case-based — bash 3.2 on macOS has no declare -A)
+ide_folder_for() {
+    case "$1" in
+        cursor) echo ".cursor" ;;
+        copilot) echo ".vscode" ;;
+        kilo) echo ".kilo" ;;
+        opencode) echo ".opencode" ;;
+        antigravity) echo ".agents" ;;
+        *) echo "" ;;
+    esac
+}
 
 # Core dependencies — always checked regardless of IDE selection
 # Format: "name:brew_package:pip_package:npm_package:check_command"
@@ -98,13 +101,6 @@ declare -a CORE_DEPENDENCIES=(
     "python3:python@3.12:::python3 --version"
     "pip3::::pip3 --version"
     "npx::::npx --version"
-)
-
-# Optional tooling — only checked when needed for dependency install
-# Format: "name|brew_package|pip_package|npm_package|check_command|ide_flag"
-declare -a OPTIONAL_DEPENDENCIES=(
-    "pipx|pipx|||pipx --version|pipx"
-    "uv|uv|||uv --version|uv"
 )
 
 # IDE-specific dependencies — only checked when the corresponding IDE is selected
@@ -145,7 +141,7 @@ Options:
   -h, --help            Show this help message
 
 Interactive mode: On TTY with no IDE flags, choose IDEs (1-5 or a=all) and MCP servers.
-Use -t to pick optional tools interactively (openspec, graphifyy, cocoindex-code, dmux, engram — installed via brew/npm/pipx when selected).
+Use -t to pick optional tools interactively (openspec, graphifyy, cocoindex-code, dmux, engram — installed via brew / hub npm / uv when selected; see docs/tools.md).
 EOF
 }
 
@@ -417,35 +413,48 @@ tool_is_selected() {
     return 1
 }
 
-# Ensure pipx is available (for cocoindex-code / graphify)
-ensure_pipx() {
-    command -v pipx &>/dev/null && return 0
+# Ensure uv is available (for cocoindex-code / graphifyy: uv tool install)
+ensure_uv() {
+    command -v uv &>/dev/null && return 0
     if [ "$DRY_RUN" = true ]; then
-        echo "[DRY-RUN] brew install pipx  (or: pip3 install --user pipx)"
+        echo "[DRY-RUN] brew install uv  (or: curl -LsSf https://astral.sh/uv/install.sh | sh)"
         return 0
     fi
-    log_info "Installing pipx..."
+    log_info "Installing uv..."
     if command -v brew &>/dev/null; then
-        brew install pipx || true
-        pipx ensurepath 2>/dev/null || true
-    elif command -v pip3 &>/dev/null; then
-        pip3 install --user pipx || true
-        python3 -m pipx ensurepath 2>/dev/null || true
+        brew install uv || true
+    elif command -v curl &>/dev/null; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh || true
     else
-        log_warn "pipx not found — install Homebrew or pip3, then: brew install pipx"
+        log_warn "uv not found — install with: brew install uv (or https://docs.astral.sh/uv/)"
         return 1
     fi
-    command -v pipx &>/dev/null
+    command -v uv &>/dev/null
 }
 
-# Install openspec CLI: prefer Homebrew, else npm global
+# Run npm ci in the hub when package.json exists (pins openspec, dmux, MCP packages; see package.json)
+hub_ensure_npm_install() {
+    [ -n "${SCRIPT_DIR:-}" ] && [ -f "$SCRIPT_DIR/package.json" ] || return 1
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY-RUN] (cd \"$SCRIPT_DIR\" && npm ci)"
+        return 0
+    fi
+    log_info "Hub Node dependencies (npm ci in $SCRIPT_DIR)..."
+    (cd "$SCRIPT_DIR" && npm ci) 2>/dev/null || (cd "$SCRIPT_DIR" && npm install) || {
+        log_warn "hub npm ci failed — check Node, network, and package-lock.json (see docs/tools.md)"
+        return 1
+    }
+    return 0
+}
+
+# Install openspec CLI: prefer PATH, else Homebrew, else hub node_modules, else npm -g
 install_openspec_cli() {
     if command -v openspec &>/dev/null; then
-        log_info "openspec CLI already installed"
+        log_info "openspec CLI already on PATH"
         return 0
     fi
     if [ "$DRY_RUN" = true ]; then
-        echo "[DRY-RUN] brew install openspec  ||  npm install -g @fission-ai/openspec@latest"
+        echo "[DRY-RUN] brew install openspec  ||  hub npm ci  ||  npm install -g @fission-ai/openspec@latest"
         return 0
     fi
     if command -v brew &>/dev/null; then
@@ -454,18 +463,22 @@ install_openspec_cli() {
             return 0
         fi
     fi
+    if hub_ensure_npm_install && [ -x "$SCRIPT_DIR/node_modules/.bin/openspec" ]; then
+        log_success "openspec available: cd \"$SCRIPT_DIR\" && npx openspec (or add node_modules/.bin to PATH)"
+        return 0
+    fi
     if command -v npm &>/dev/null; then
-        log_info "Installing openspec via npm (@fission-ai/openspec@latest)..."
+        log_info "Installing openspec via npm global (@fission-ai/openspec)..."
         if npm install -g @fission-ai/openspec@latest; then
-            log_success "openspec installed (npm)"
+            log_success "openspec installed (npm -g)"
             return 0
         fi
     fi
-    log_warn "openspec: install manually — brew install openspec  OR  npm install -g @fission-ai/openspec@latest"
+    log_warn "openspec: install manually — brew install openspec  OR  npm ci in hub  OR  npm install -g @fission-ai/openspec@latest"
     return 1
 }
 
-# Install CLIs for SELECTED_TOOLS (pipx / npm / brew)
+# Install CLIs for SELECTED_TOOLS (uv / hub npm / brew)
 install_optional_tool_clis() {
     [ ${#SELECTED_TOOLS[@]} -eq 0 ] && return 0
 
@@ -474,23 +487,23 @@ install_optional_tool_clis() {
     echo ""
 
     if tool_is_selected cocoindex-code || tool_is_selected graphify; then
-        ensure_pipx || true
+        ensure_uv || true
     fi
 
     if tool_is_selected cocoindex-code; then
-        if command -v cocoindex &>/dev/null 2>&1 || command -v cocoindex-code &>/dev/null 2>&1; then
-            log_info "cocoindex-code CLI already present"
+        if command -v ccc &>/dev/null 2>&1 || command -v cocoindex &>/dev/null 2>&1 || command -v cocoindex-code &>/dev/null 2>&1; then
+            log_info "cocoindex-code (ccc) CLI already present"
         elif [ "$DRY_RUN" = true ]; then
-            echo "[DRY-RUN] pipx install 'cocoindex-code[full]'"
-        elif command -v pipx &>/dev/null; then
-            log_info "Installing cocoindex-code (pipx)..."
-            if pipx install 'cocoindex-code[full]'; then
-                log_success "cocoindex-code installed"
+            echo "[DRY-RUN] uv tool install 'cocoindex-code[full]'"
+        elif command -v uv &>/dev/null; then
+            log_info "Installing cocoindex-code (uv tool install)..."
+            if uv tool install 'cocoindex-code[full]'; then
+                log_success "cocoindex-code installed (ccc; ensure uv tool path is on PATH)"
             else
-                log_warn "cocoindex-code: pipx install failed"
+                log_warn "cocoindex-code: uv tool install failed"
             fi
         else
-            log_warn "cocoindex-code: pipx missing — run: pipx install 'cocoindex-code[full]'"
+            log_warn "cocoindex-code: uv missing — run: uv tool install 'cocoindex-code[full]'"
         fi
     fi
 
@@ -498,16 +511,16 @@ install_optional_tool_clis() {
         if command -v graphifyy &>/dev/null 2>&1 || command -v graphify &>/dev/null 2>&1; then
             log_info "graphify CLI already present"
         elif [ "$DRY_RUN" = true ]; then
-            echo "[DRY-RUN] pipx install graphifyy"
-        elif command -v pipx &>/dev/null; then
-            log_info "Installing graphifyy (pipx)..."
-            if pipx install graphifyy; then
+            echo "[DRY-RUN] uv tool install graphifyy"
+        elif command -v uv &>/dev/null; then
+            log_info "Installing graphifyy (uv tool install)..."
+            if uv tool install graphifyy; then
                 log_success "graphifyy installed"
             else
-                log_warn "graphifyy: pipx install failed"
+                log_warn "graphifyy: uv tool install failed"
             fi
         else
-            log_warn "graphify: pipx missing — run: pipx install graphifyy"
+            log_warn "graphify: uv missing — run: uv tool install graphifyy"
         fi
     fi
 
@@ -517,18 +530,20 @@ install_optional_tool_clis() {
 
     if tool_is_selected dmux; then
         if command -v dmux &>/dev/null; then
-            log_info "dmux CLI already installed"
+            log_info "dmux CLI already on PATH"
         elif [ "$DRY_RUN" = true ]; then
-            echo "[DRY-RUN] npm install -g dmux"
+            echo "[DRY-RUN] hub npm ci  ||  npm install -g dmux"
+        elif hub_ensure_npm_install && [ -x "$SCRIPT_DIR/node_modules/.bin/dmux" ]; then
+            log_success "dmux available: cd \"$SCRIPT_DIR\" && npx dmux (or add node_modules/.bin to PATH)"
         elif command -v npm &>/dev/null; then
-            log_info "Installing dmux (npm -g)..."
+            log_info "Installing dmux (npm -g fallback)..."
             if npm install -g dmux; then
-                log_success "dmux installed"
+                log_success "dmux installed (npm -g)"
             else
-                log_warn "dmux: npm install failed"
+                log_warn "dmux: npm install -g failed"
             fi
         else
-            log_warn "dmux: npm not found — install Node.js or run: npm install -g dmux"
+            log_warn "dmux: npm not found — install Node.js"
         fi
     fi
 
@@ -571,11 +586,11 @@ interactive_tools_selection() {
     }
 
     echo ""
-    echo -e "${CYAN}Optional tools${NC} — CLIs installed via pipx / npm / brew when you confirm"
-    echo "  1) openspec — OpenSpec (brew or npm @fission-ai/openspec)"
-    echo "  2) graphify — graphifyy (pipx)"
-    echo "  3) cocoindex-code — CocoIndex (pipx cocoindex-code[full])"
-    echo "  4) dmux — tmux pane manager for agents (npm -g)"
+    echo -e "${CYAN}Optional tools${NC} — CLIs via uv, hub npm ci, or brew (see docs/tools.md)"
+    echo "  1) openspec — OpenSpec (brew, hub npx, or npm -g)"
+    echo "  2) graphify — graphifyy (uv tool install graphifyy)"
+    echo "  3) cocoindex-code — CocoIndex (uv tool install cocoindex-code[full] → ccc)"
+    echo "  4) dmux — tmux pane manager (hub npx, or npm -g fallback)"
     echo "  5) engram — Engram MCP CLI (brew gentleman-programming/tap)"
     echo ""
     echo "  a — all five   |   n — none   |   e.g. 1,3 — pick by number"
@@ -1389,7 +1404,7 @@ main() {
 
         # Remove managed IDE folders
         for ide in "${SELECTED_IDES[@]}"; do
-            folder="${IDE_FOLDERS[$ide]}"
+            folder=$(ide_folder_for "$ide")
             target="$PROJECT_PATH/$folder"
             if [ -d "$target" ]; then
                 if [ "$DRY_RUN" = true ]; then
@@ -1527,7 +1542,7 @@ main() {
         fi
     fi
 
-    # Optional tool CLIs (pipx / npm / brew) — after dep prompt, before copying configs
+    # Optional tool CLIs (uv / hub npm / brew) — after dep prompt, before copying configs
     install_optional_tool_clis
 
     # Dry run info
@@ -1541,7 +1556,7 @@ main() {
 
     # Copy selected IDE folders
     for ide in "${SELECTED_IDES[@]}"; do
-        folder="${IDE_FOLDERS[$ide]}"
+        folder=$(ide_folder_for "$ide")
         src="$SCRIPT_DIR/$folder"
         dst="$PROJECT_PATH/$folder"
 
@@ -1573,7 +1588,7 @@ main() {
         if [ "$DRY_RUN" = true ]; then
             echo "[DRY-RUN] Would copy .configs/AGENTS.md -> $PROJECT_PATH/AGENTS.md"
             for ide in "${SELECTED_IDES[@]}"; do
-                folder="${IDE_FOLDERS[$ide]}"
+                folder=$(ide_folder_for "$ide")
                 echo "[DRY-RUN] Would copy .configs/AGENTS.md -> $PROJECT_PATH/$folder/AGENTS.md"
             done
         else
@@ -1581,7 +1596,7 @@ main() {
             cp "$HUB_AGENTS" "$PROJECT_PATH/AGENTS.md"
             log_success "Wrote AGENTS.md (project root)"
             for ide in "${SELECTED_IDES[@]}"; do
-                folder="${IDE_FOLDERS[$ide]}"
+                folder=$(ide_folder_for "$ide")
                 dst_dir="$PROJECT_PATH/$folder"
                 ensure_dir "$dst_dir"
                 cp "$HUB_AGENTS" "$dst_dir/AGENTS.md"

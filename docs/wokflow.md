@@ -2,13 +2,13 @@
 
 **Runnable steps** live in the slash commands (e.g. `.cursor/commands/skillgrid-*.md`, mirrored under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). The sections below are a compact index; open the matching `skillgrid-*` file for the full checklist and skill paths.
 
-Full indexes: [skills.md](skills.md), [commands.md](commands.md), [tools.md](tools.md).
+Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](commands.md), [tools.md](tools.md).
 
 ```bash
 /skillgrid-init
 # Create skillgrid folder structure
-# Detect if the project is greanfield or brownfield
-## If greafield:
+# Detect if the project is greenfield or brownfield
+## If greenfield:
 ## If brownfield: Tell the user to use /skillgrid-explore because it is a brownfield project.
 # index memory
 ## graphify init
@@ -21,16 +21,17 @@ Full indexes: [skills.md](skills.md), [commands.md](commands.md), [tools.md](too
 
 /skillgrid-explore
 # Explore existing code
-## Use opespec-explore
-## Generate content for  ARCHITECTURE.md,  STRUCTURE.md, PROJECT.md
+## Use openspec-explore
+## Generate content for ARCHITECTURE.md, STRUCTURE.md, PROJECT.md
+## Update AGENTS.md Prooject chapter
 ### Skills (.agents/skills/)
 - openspec-explore — explore problem and codebase before a change
 - ccc — semantic codebase search ccc search
 - documentation-and-adrs - Architecture Decision Records, API docs, inline documentation standards - document the why
 
 /skillgrid-brainstorm
-# User tells what it wants
-## Ask back to clerify
+# User describes what they want
+## Ask back to clarify
 ## Search on the internet for good examples
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
@@ -48,7 +49,7 @@ Full indexes: [skills.md](skills.md), [commands.md](commands.md), [tools.md](too
 - spec-driven-development — Write a PRD covering objectives, commands, structure, code style, testing, and boundaries before any code
 
 /skillgrid-design
-# User tells how the page shoud lokks like
+# User describes how the page should look
 ## Generate DESIGN.md
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
@@ -59,7 +60,7 @@ Full indexes: [skills.md](skills.md), [commands.md](commands.md), [tools.md](too
 
 
 /skillgrid-breakdown
-# Brakedown the prd to tasks
+# Break down the PRD into tasks
 # Create tasks under openspec change.
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
@@ -88,17 +89,21 @@ Full indexes: [skills.md](skills.md), [commands.md](commands.md), [tools.md](too
 - testing-patterns — general testing patterns beyond E2E
 
 /skillgrid-review
+# Automated QA testing
+# Automated functional testing
+# Ask user to validate code really works
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
 - sdd-verify — SDD verification against specs, design, and tasks
 - code-review-and-quality — Five-axis review, change sizing 100 lines, severity labels Nit/Optional/FYI, review speed norms, splitting strategies
--  code-simplification - Chesterton Fence, Rule of 500, reduce complexity while preserving exact behavior
+- code-simplification - Chesterton Fence, Rule of 500, reduce complexity while preserving exact behavior
 # clean-code — review for clarity and coupling
 - documentation-and-adrs - Architecture Decision Records, API docs, inline documentation standards - document the why
 - performance-optimization — Measure-first approach - Core Web Vitals targets, profiling workflows, bundle analysis, anti-pattern detection
 #- database-reviewer — PostgreSQL schema, SQL, RLS, performance review
 
 /skillgrid-security
+# Security testing
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
 - security-and-hardening — OWASP Top 10 prevention, auth patterns, secrets management, dependency auditing, three-tier boundary system
@@ -110,9 +115,10 @@ Full indexes: [skills.md](skills.md), [commands.md](commands.md), [tools.md](too
 - deprecation-and-migration - Code-as-liability mindset, compulsory vs advisory deprecation, migration patterns, zombie code removal
 
 /skillgrid-validate
+# Combined gate: run the full /skillgrid-review checklist, then the full /skillgrid-security checklist (see skillgrid-validate command)
 ### Skills (.agents/skills/)
-- karpathy-guidelines — assumptions, simplicity, surgical edits 
-
+- karpathy-guidelines — assumptions, simplicity, surgical edits
+- (plus every skill listed under /skillgrid-review and /skillgrid-security for that session)
 
 /skillgrid-finish
 # Archive change - openspec-archive-change
@@ -125,6 +131,15 @@ Full indexes: [skills.md](skills.md), [commands.md](commands.md), [tools.md](too
 - git-workflow-and-versioning — trunk-style workflow, atomic commits, small changes
 - documentation-and-adrs - Architecture Decision Records, API docs, inline documentation standards - document the why
 ```
+
+## Parallel discovery 
+
+Parallel **subagents** for codebase mapping and domain research, you can **fan out** independent work, then **merge** in the main session:
+
+- **Safe to run in parallel:** read-only **explore** passes on disjoint areas (e.g. different packages), **cited** landscape or prior-art research with non-overlapping briefs (stack vs competitors vs API docs), using personas such as `skillgrid-explore-architect` and `skillgrid-researcher` in separate subagent contexts when your harness allows concurrent `Task` / subagents.
+- **Keep sequential:** `/skillgrid-plan` → optional `/skillgrid-design` → `/skillgrid-breakdown` so intent stays a single chain; then `/skillgrid-apply` and later gates follow their ordered phases.
+
+Parallel fan-out and merge is the same orchestration idea as the **slash command (orchestrator — fan-out)** section in [`.cursor/agents/README.md`](../.cursor/agents/README.md): only when sub-tasks are **independent** (no shared mutable state, no required ordering). The hub’s `/skillgrid-validate` run may still be **sequential in one turn**; true wall-clock parallelism requires a harness with concurrent subagents.
 
 ## skillgrid Folder structure
 

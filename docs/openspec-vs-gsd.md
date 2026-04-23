@@ -2,7 +2,27 @@
 
 This document compares **OpenSpec** (change-centric specs in `openspec/`, driven by the `openspec` CLI — see [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec)) and **GSD-2** (“Get Shit Done” v2: `gsd-pi` — see [gsd-build/GSD-2](https://github.com/gsd-build/GSD-2)). Both aim to keep AI-assisted development aligned with written intent; they differ in *what lives on disk*, *who orchestrates* (CLI vs a long-running agent app), and *how work is decomposed*.
 
-> **Name collision:** [tools.md](tools.md) also lists a separate [GSD](https://github.com/vudovn/antigravity-kit) entry. That is **not** GSD-2. This comparison is **OpenSpec vs GSD-2** only.
+## Antigravity Kit vs GSD-2 (name check)
+
+Some lists used to label the wrong repo as “GSD.” These are **different systems**:
+
+| | **Antigravity Kit** | **GSD-2 (Get Shit Done v2)** |
+|--|--------------------|------------------------------|
+| **Repo / package** | [vudovn/antigravity-kit](https://github.com/vudovn/antigravity-kit), `npx @vudovn/ag-kit init` | [gsd-build/GSD-2](https://github.com/gsd-build/GSD-2), `npm i -g gsd-pi` |
+| **What you get** | A **template pack** into **`.agent/`**: agents, skills, and workflow-style slash commands (`/plan`, `/brainstorm`, …) | A **long-running GSD app** with **`.gsd/`**, SQLite `gsd.db`, milestones → slices → tasks, auto/step mode, reports |
+| **Orchestrator** | Your editor/assistant + workflow markdown; no GSD state machine | `gsd` / `/gsd auto` state machine, crash recovery, cost tracking, etc. |
+| **Spec story** | Workflows + skills; not the same as `openspec/` delta specs | Roadmaps, plans, and DB-backed state—not OpenSpec’s `changes/` + `specs/` merge model |
+
+*Antigravity Kit* is an **ag-kit** installer for `.agent/`. *GSD-2* is the **successor to the old “GSD v1” prompt pack** (now a full `gsd-pi` app). This doc’s main comparison is **OpenSpec vs GSD-2**; Antigravity is separate unless you **choose** to combine it with OpenSpec in one repo.
+
+**Antigravity on disk (typical):**
+
+```text
+project/
+└── .agent/                 # from `ag-kit init` — agents, skills, workflows (see upstream README for layout)
+```
+
+Keep **`.agent/`** out of `.gitignore` if your IDE needs to index slash commands, or use `.git/info/exclude` for local-only ignores (per upstream docs).
 
 ---
 
@@ -129,4 +149,5 @@ project/
 
 - OpenSpec: [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) (getting-started docs describe `openspec/` layout and archive behavior).
 - GSD-2: [gsd-build/GSD-2](https://github.com/gsd-build/GSD-2) (README, user docs under `docs/user-docs/`).
+- Antigravity Kit: [vudovn/antigravity-kit](https://github.com/vudovn/antigravity-kit) (`@vudovn/ag-kit`, **`.agent/`** templates).
 - This hub: [commands.md](commands.md), [wokflow.md](wokflow.md), [tools.md](tools.md).

@@ -13,6 +13,14 @@ This command is a **single-turn combined gate**: perform every step in **`/skill
 
 If you cannot read those files, use the **Steps** and **Skills to read and follow** sections from both commands as the authoritative checklist.
 
+## Skills (combined)
+
+Load **`/skillgrid-review`** and **`/skillgrid-security`** skill lists together; at minimum keep **`karpathy-guidelines`** in scope for scope and assumption checks across both passes.
+
+## Optional: IDE personas
+
+This command runs **review then security sequentially** in one turn. If your IDE supports **parallel subagents**, you can instead fan out independent reports (e.g. **`skillgrid-spec-verifier`**, **`skillgrid-code-reviewer`**, **`skillgrid-security-auditor`**, and optionally **`skillgrid-test-engineer`**) and merge—see [`.cursor/agents/README.md`](../../.cursor/agents/README.md).
+
 ## Notes
 
 - Prefer **`/skillgrid-review`** then **`/skillgrid-security`** as separate invocations when you want clearer phase boundaries or human sign-off between them.

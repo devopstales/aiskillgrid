@@ -2,19 +2,20 @@
 name: /skillgrid-init
 id: skillgrid-init
 category: Workflow
-description: Bootstrap workflow: structure, graphify, CocoIndex, OpenCode, baseline skills
+description: Bootstrap workflow: greenfield/brownfield, structure, graphify, CocoIndex, OpenCode, baseline skills
 ---
 
 You are executing **`/skillgrid-init`** (DEFINE phase) for the Skillgrid workflow.
 
 ## Steps
 
-1. **Graphify** — If this repo uses graphify, initialize it (e.g. graphifyy . under project directory when applicable).
-2. **CocoIndex Code** — From project root: `ccc init` if needed, then `ccc index` so semantic search is available.
-3. **OpenCode** — If the project uses OpenCode, ensure `.opencode/` (or product-specific) config is present and consistent. If not initialize it with `opencode init`
-4. **OpenSpec** — Ensure the OpenSpec CLI is on PATH when the team uses OpenSpec; run `openspec-onboard`-style first cycle only if the user wants a full guided onboarding now.
-5. **Skills (`.agents/skills/`)** — Treat the list below as required reading; they define bootstrap behavior (stack detect, persistence mode, quality baseline).
-6. **Create folder structure** — Establish or verify project layout and conventions (source roots, config dirs, `openspec/` or SDD layout if used).
+1. **Greenfield vs brownfield** — Inspect the repo (existing app code, tests, production history). **Brownfield:** tell the user to run **`/skillgrid-explore`** before deep structural work so architecture and layout are grounded. **Greenfield:** proceed with bootstrap below.
+2. **Graphify** — If this repo uses graphify, initialize it (e.g. `graphify .` from the project directory when applicable).
+3. **CocoIndex Code** — From project root: `ccc init` if needed, then `ccc index` so semantic search is available.
+4. **OpenCode** — If the project uses OpenCode, ensure `.opencode/` (or product-specific) config is present and consistent; if not, initialize with `opencode init`.
+5. **OpenSpec** — Ensure the OpenSpec CLI is on PATH when the team uses OpenSpec; run `openspec-onboard`-style first cycle only if the user wants a full guided onboarding now.
+6. **Skills (`.agents/skills/`)** — Treat the list below as required reading; they define bootstrap behavior (stack detect, persistence mode, quality baseline).
+7. **Create folder structure** — Establish or verify project layout and conventions (source roots, `.skillgrid/project/` + `prd/` per [`docs/wokflow.md`](../../docs/wokflow.md), config dirs, `openspec/` or SDD layout if used).
 
 ## Skills to read and follow
 
@@ -36,11 +37,18 @@ Conventions for a **Skillgrid-initialized** repo (names may vary; `install.sh` s
 ```text
 project-root/
 ├── AGENTS.md                      # rules for agents; often merged from hub .configs/AGENTS.md
-├── PROJECT.md                     # one-page: purpose, stack, boundaries (/skillgrid-explore)
+├── DESIGN.md                      # UX/UI decisions (/skillgrid-design); optional location
 ├── README.md
-├── docs/
-│   ├── PRD/                       # optional: 01-foo.md, 02-bar.md
-│   ├── DESIGN.md                  # optional at root instead if you prefer
+├── .skillgrid/
+│   ├── project/                   # exploration outputs (/skillgrid-explore); see docs/wokflow.md
+│   │   ├── ARCHITECTURE.md
+│   │   ├── STRUCTURE.md
+│   │   └── PROJECT.md
+│   └── prd/
+│       ├── INDEX.md
+│       └── <change-or-feature>.md
+├── docs/                          # optional: extra PRD or architecture copies
+│   ├── PRD/
 │   └── ARCHITECTURE.md
 ├── .agents/
 │   └── skills/                    # SKILL.md per skill; shared references/ checklists
@@ -60,7 +68,7 @@ project-root/
 └── src/ or app/ or lib/           # your product code, tests, package manifests, etc.
 ```
 
-- **Per-project:** adjust `src/` to your monorepo layout (`packages/`, `apps/`, …) as needed; keep `AGENTS.md` and `.agents/skills/` easy to find.
+- **Per-project:** adjust `src/` to your monorepo layout (`packages/`, `apps/`, …) as needed; keep `AGENTS.md`, `.skillgrid/`, and `.agents/skills/` easy to find.
 - **Optional tools:** add `graphify-out/`, CocoIndex dirs, and similar only after the tool has run and you know its on-disk layout.
 
 ## Notes

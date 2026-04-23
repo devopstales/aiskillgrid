@@ -2,7 +2,7 @@
 .vendor/
 
 node_modules
-package-lock.json
+.venv/
 .qwen/settings.json.orig
 !install.sh
 install*.sh*

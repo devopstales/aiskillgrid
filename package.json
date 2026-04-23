@@ -1,0 +1,19 @@
+{
+  "name": "aiskillgrid-hub-tools",
+  "private": true,
+  "description": "Pinned Node CLIs and MCP-related packages for this hub. Run npm ci at the repo root, then use npx (see docs/tools.md).",
+  "scripts": {
+    "openspec": "openspec",
+    "dmux": "dmux"
+  },
+  "devDependencies": {
+    "@browsermcp/mcp": "0.1.3",
+    "@fission-ai/openspec": "1.3.1",
+    "@magicuidesign/mcp": "2.0.0",
+    "@modelcontextprotocol/server-memory": "2026.1.26",
+    "@supabase/mcp-server-supabase": "0.7.0",
+    "chrome-devtools-mcp": "0.23.0",
+    "dmux": "5.7.1",
+    "firecrawl-mcp": "3.11.0"
+  }
+}

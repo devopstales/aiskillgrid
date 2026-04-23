@@ -65,3 +65,11 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+## 5. Cross-session persistence (when memory tools exist)
+
+Assumptions and **locked decisions** disappear after compaction unless they are written down.
+
+- If **Engram** (`mem_save`) or project docs are in use, persist **stable conclusions** (e.g. “we chose Postgres over SQLite for X”) with a clear title/topic—see **[indexing-and-memory.md](../references/indexing-and-memory.md)** and SDD engram conventions when applicable.
+- Before reopening a debate, run **`mem_search`** / **`mem_get_observation`** when available—avoid re-litigating settled choices.
+- **Code navigation** still belongs in the repo and **`ccc search`**; memory is for *decisions and pointers*, not a substitute for reading source.
