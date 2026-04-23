@@ -157,20 +157,11 @@ gsd install npm:pi-dashscope
 * [ ] [AI Gentle Stack](https://github.com/Gentleman-Programming/gentle-ai)
 * [ ] [Awesome Copilot](https://github.com/github/awesome-copilot)
   * [ ] [Awesome Copilot Agents](https://awesome-copilot.github.com/agents/)
+* [ ] [gstack](https://github.com/garrytan/gstack)
 * Spec Driven Development
-  * [X] [OpenSpec](https://github.com/openspecs/openspec)
-  * [ ] [GSD](https://github.com/vudovn/antigravity-kit)
-  * [ ] [GSD-2](https://github.com/gsd-build/gsd-2)
   * [ ] [superpowers](https://github.com/obra/superpowers)
   * [ ] [agent-skills](https://github.com/addyosmani/agent-skills)
   * [ ] [Archon](https://github.com/coleam00/Archon)
   * [ ] [omegon-pi](https://github.com/styrene-lab/omegon-pi)
 * tools
-  * [ ] [CocoIndex Code](https://github.com/cocoindex-io/cocoindex-code)
-  * [X] [graphify](https://github.com/safishamsi/graphify)
   * [ ] [Cleave]
-  * [ ] [agent-browser](https://github.com/vercel-labs/agent-browser)
-* multiplexers
-  * [ ] [dmux](https://github.com/standardagents/dmux)
-  * [ ] [mux](https://github.com/coder/mux)
-  * [ ] [superset](https://github.com/superset-sh/superset)

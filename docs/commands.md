@@ -21,10 +21,11 @@ Invocation in the UI may show **`/command-id`** (for example `/skillgrid-plan` o
 
 ## Skillgrid (full workflow)
 
-These align with **`docs/wokflow.md`** sections. Each command lists skills to read under **`.agents/skills/`** and defers to the workflow doc if anything disagrees.
+These align with **`docs/wokflow.md`** (phase diagram and index). **Steps and skill lists are authored in each command file** so agents do not need to open `wokflow.md` to run a phase; keep the doc in sync when you change a command’s body.
 
 | Command | File (example) | Purpose |
 |---------|----------------|---------|
+| `/skillgrid-session` | [.cursor/commands/skillgrid-session.md](../.cursor/commands/skillgrid-session.md) | Phase 0: session charter, context budget, MCP selection, checkpoints. |
 | `/skillgrid-init` | [.cursor/commands/skillgrid-init.md](../.cursor/commands/skillgrid-init.md) | Bootstrap structure, graphify, CocoIndex (`ccc`), OpenCode, baseline skills. |
 | `/skillgrid-explore` | [.cursor/commands/skillgrid-explore.md](../.cursor/commands/skillgrid-explore.md) | Explore problem and repo; AGENTS/PROJECT; semantic search. |
 | `/skillgrid-brainstorm` | [.cursor/commands/skillgrid-brainstorm.md](../.cursor/commands/skillgrid-brainstorm.md) | Refine ideas before planning. |
@@ -33,7 +34,9 @@ These align with **`docs/wokflow.md`** sections. Each command lists skills to re
 | `/skillgrid-breakdown` | [.cursor/commands/skillgrid-breakdown.md](../.cursor/commands/skillgrid-breakdown.md) | Task breakdown and ordering. |
 | `/skillgrid-apply` | [.cursor/commands/skillgrid-apply.md](../.cursor/commands/skillgrid-apply.md) | Implement with OpenSpec apply, TDD, small batches. |
 | `/skillgrid-test` | [.cursor/commands/skillgrid-test.md](../.cursor/commands/skillgrid-test.md) | Tests, E2E, browser tooling. |
-| `/skillgrid-validate` | [.cursor/commands/skillgrid-validate.md](../.cursor/commands/skillgrid-validate.md) | Verify artifacts, review, security, performance, docs. |
+| `/skillgrid-review` | [.cursor/commands/skillgrid-review.md](../.cursor/commands/skillgrid-review.md) | Spec/SDD verify, code review, performance, data, docs. |
+| `/skillgrid-security` | [.cursor/commands/skillgrid-security.md](../.cursor/commands/skillgrid-security.md) | Security review, SAST, dependency/config scanning, threat framing. |
+| `/skillgrid-validate` | [.cursor/commands/skillgrid-validate.md](../.cursor/commands/skillgrid-validate.md) | Combined gate: full **`/skillgrid-review`** then **`/skillgrid-security`**. |
 | `/skillgrid-finish` | [.cursor/commands/skillgrid-finish.md](../.cursor/commands/skillgrid-finish.md) | Archive or sync specs, git/PR, ship checklist. |
 
 The same filenames exist under **`.kilo/commands/`**, **`.opencode/commands/`**, and **`.github/prompts/`**.

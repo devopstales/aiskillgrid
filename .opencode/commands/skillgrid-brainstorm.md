@@ -5,24 +5,23 @@ category: Workflow
 description: Brainstorm and refine ideas before committing to a plan
 ---
 
-You are executing **`/skillgrid-brainstorm`** for the aiskillgrid workflow.
+You are executing **`/skillgrid-brainstorm`** (DEFINE phase) for the Skillgrid workflow.
 
-**Canonical checklist:** `docs/wokflow.md` (section `/skillgrid-brainstorm`). Prefer that document if this prompt and the doc diverge.
+## Steps
 
-## Actions
-
-1. Treat this as divergent then convergent thinking: options, tradeoffs, then a short recommended direction.
-2. Do not lock a full spec yet; output should feed `/skillgrid-plan`.
+1. **Diverge** — List options, alternatives, and tradeoffs; keep judgment light until the space is wide enough.
+2. **Converge** — Rank approaches; state assumptions and risks (see `karpathy-guidelines`).
+3. **Validate** — Use `deep-research` when external evidence or prior art should inform the choice.
+4. **Refine** — Use `idea-refine` (divergent/convergent structure) to sharpen a vague idea into a defensible direction.
+5. **Handoff** — Output should feed `/skillgrid-plan`, not a full locked spec. Do not over-commit to file artifacts unless the user asks.
 
 ## Skills to read and follow
 
-Load each file below before doing substantive work (read fully or skim per skill length):
-
-- `.agents/skills/karpathy-guidelines/SKILL.md`
-- `.agents/skills/deep-research/SKILL.md`
-- `.agents/skills/idea-refine/SKILL.md`
+- `.agents/skills/karpathy-guidelines/SKILL.md` — surface tradeoffs and alternatives before locking direction.
+- `.agents/skills/deep-research/SKILL.md` — validate assumptions and gather evidence.
+- `.agents/skills/idea-refine/SKILL.md` — structured ideation to sharpen a vague idea.
 
 ## Notes
 
-- Use tools to inspect the repo; do not assume stack or layout.
-- If OpenSpec or SDD modes are unclear, ask once, then pick the path consistent with existing `openspec/` or project docs.
+- Inspect the repo with tools when brainstorming touches implementation reality.
+- If OpenSpec or SDD modes are unclear, ask once, then align with existing `openspec/` or repo conventions.

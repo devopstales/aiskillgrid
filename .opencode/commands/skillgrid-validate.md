@@ -2,41 +2,21 @@
 name: /skillgrid-validate
 id: skillgrid-validate
 category: Workflow
-description: Verify against specs, review code, security, performance, docs
+description: Combined gate — full review then full security (same as review + security)
 ---
 
-You are executing **`/skillgrid-validate`** for the aiskillgrid workflow.
+You are executing **`/skillgrid-validate`** for the Skillgrid workflow.
 
-**Canonical checklist:** `docs/wokflow.md` (section `/skillgrid-validate`). Prefer that document if this prompt and the doc diverge.
+This command is a **single-turn combined gate**: perform every step in **`/skillgrid-review`**, then every step in **`/skillgrid-security`**, in that order.
 
-## Actions
+## Execution
 
-1. Run `openspec-verify-change` and/or `sdd-verify` when the project uses those artifacts.
-2. Perform structured review (`code-review-and-quality`); simplify only with `code-simplification` when appropriate.
-3. Apply security skills; run Trivy/Semgrep projects when configured.
-4. Update ADRs and API docs where decisions changed (`documentation-and-adrs`).
+1. Open and follow **`skillgrid-review.md`** in this repo’s commands directory (same folder as this file, or under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`).
+2. When review is complete, open and follow **`skillgrid-security.md`** in the same way.
 
-## Skills to read and follow
-
-Load each file below before doing substantive work (read fully or skim per skill length):
-
-- `.agents/skills/openspec-verify-change/SKILL.md`
-- `.agents/skills/sdd-verify/SKILL.md`
-- `.agents/skills/karpathy-guidelines/SKILL.md`
-- `.agents/skills/clean-code/SKILL.md`
-- `.agents/skills/code-review-and-quality/SKILL.md`
-- `.agents/skills/code-simplification/SKILL.md`
-- `.agents/skills/security-review/SKILL.md`
-- `.agents/skills/security-and-hardening/SKILL.md`
-- `.agents/skills/performance-optimization/SKILL.md`
-- `.agents/skills/semgrep-security/SKILL.md`
-- `.agents/skills/trivy-security/SKILL.md`
-- `.agents/skills/vulnerability-scanner/SKILL.md`
-- `.agents/skills/security-scan/SKILL.md`
-- `.agents/skills/database-reviewer/SKILL.md`
-- `.agents/skills/documentation-and-adrs/SKILL.md`
+If you cannot read those files, use the **Steps** and **Skills to read and follow** sections from both commands as the authoritative checklist.
 
 ## Notes
 
-- Use tools to inspect the repo; do not assume stack or layout.
-- If OpenSpec or SDD modes are unclear, ask once, then pick the path consistent with existing `openspec/` or project docs.
+- Prefer **`/skillgrid-review`** then **`/skillgrid-security`** as separate invocations when you want clearer phase boundaries or human sign-off between them.
+- Inspect the repo with tools; do not assume stack or layout.

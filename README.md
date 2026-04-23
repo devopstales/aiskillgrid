@@ -16,19 +16,22 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ## Workflow
 
-Ten **`/skillgrid-*`** steps from [docs/wokflow.md](docs/wokflow.md), grouped like the six-phase diagram in [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills). OpenSpec-focused steps also use **`/opsx-*`** ([docs/commands.md](docs/commands.md)).
+Twelve core **`/skillgrid-*`** steps from [docs/wokflow.md](docs/wokflow.md) (plus optional **`/skillgrid-validate`** as a one-shot review+security gate), grouped like the six-phase diagram in [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills). OpenSpec-focused steps also use **`/opsx-*`** ([docs/commands.md](docs/commands.md)).
 
 ```
-  DEFINE          PLAN           BUILD             VERIFY           REVIEW                SHIP
- ┌──────┐        ┌──────┐        ┌──────┐          ┌──────┐        ┌──────┐            ┌──────┐
- │ Init │ ─────▶ │ Plan │ ─────▶ │Apply │ ───────▶ │ Test │ ─────▶ │Valid.│ ─────────▶ │Finish│
- │Explor│        │Design│        │ Code │          │ Prove│        │ Gate │            │  PR  │
- │Brain │        │Break │        │      │          │      │        │      │            │      │
- └──────┘        └──────┘        └──────┘          └──────┘        └──────┘            └──────┘
- /skillgrid-init /skillgrid-plan /skillgrid-apply  /skillgrid-test /skillgrid-validate /skillgrid-finish
+  PHASE 0 (optional at session start)
+ /skillgrid-session — charter, context budget, MCP selection, checkpoints
+
+  DEFINE          PLAN           BUILD                  VERIFY (split)                    SHIP
+ ┌──────┐        ┌──────┐        ┌──────┐    ┌──────────┬──────────┬──────────┐        ┌──────┐
+ │ Init │ ─────▶ │ Plan │ ─────▶ │Apply │ ─▶ │   Test   │  Review  │ Security │ ─────▶ │Finish│
+ │Explor│        │Design│        │ Code │    │   Prove  │  (specs) │  (SAST)  │        │  PR  │
+ │Brain │        │Break │        │      │    │          │          │          │        │      │
+ └──────┘        └──────┘        └──────┘    └──────────┴──────────┴──────────┘        └──────┘
+ /skillgrid-init /skillgrid-plan /skillgrid-apply  /skillgrid-test /skillgrid-review /skillgrid-security /skillgrid-finish
 ```
 
-Also run **`/skillgrid-explore`** and **`/skillgrid-brainstorm`** (DEFINE), **`/skillgrid-design`** and **`/skillgrid-breakdown`** (PLAN).
+Also run **`/skillgrid-explore`** and **`/skillgrid-brainstorm`** (DEFINE), **`/skillgrid-design`** and **`/skillgrid-breakdown`** (PLAN). Use **`/skillgrid-validate`** when you want **`/skillgrid-review`** and **`/skillgrid-security`** in a single agent turn.
 
 ---
 
@@ -72,6 +75,7 @@ You need a working **bash**, **rsync**, and **jq** for a full install with MCP m
 | [docs/skills.md](docs/skills.md) | Catalog of all skills with paths and summaries |
 | [docs/commands.md](docs/commands.md) | Slash commands and where they live per IDE |
 | [docs/tools.md](docs/tools.md) | Install toolchain (brew, node, pipx, …) and workflow CLIs / IDEs |
+| [docs/openspec-vs-gsd.md](docs/openspec-vs-gsd.md) | OpenSpec vs GSD-2: on-disk layout and workflow |
 | [docs/TODO.md](docs/TODO.md) | IDE matrix and internal notes |
 
 ---

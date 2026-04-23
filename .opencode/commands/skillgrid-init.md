@@ -5,32 +5,66 @@ category: Workflow
 description: Bootstrap workflow: structure, graphify, CocoIndex, OpenCode, baseline skills
 ---
 
-You are executing **`/skillgrid-init`** for the aiskillgrid workflow.
+You are executing **`/skillgrid-init`** (DEFINE phase) for the Skillgrid workflow.
 
-**Canonical checklist:** `docs/wokflow.md` (section `/skillgrid-init`). Prefer that document if this prompt and the doc diverge.
+## Steps
 
-## Actions
-
-1. Establish or verify project folder structure per team conventions.
-2. Initialize graphify when this repo uses it.
-3. Initialize CocoIndex Code: run `ccc init` from project root if needed, then `ccc index`.
-4. Initialize OpenCode layout if the project uses OpenCode.
-5. Ensure OpenSpec CLI is available when using OpenSpec; run onboarding only if appropriate.
+1. **Graphify** — If this repo uses graphify, initialize it (e.g. graphifyy . under project directory when applicable).
+2. **CocoIndex Code** — From project root: `ccc init` if needed, then `ccc index` so semantic search is available.
+3. **OpenCode** — If the project uses OpenCode, ensure `.opencode/` (or product-specific) config is present and consistent. If not initialize it with `opencode init`
+4. **OpenSpec** — Ensure the OpenSpec CLI is on PATH when the team uses OpenSpec; run `openspec-onboard`-style first cycle only if the user wants a full guided onboarding now.
+5. **Skills (`.agents/skills/`)** — Treat the list below as required reading; they define bootstrap behavior (stack detect, persistence mode, quality baseline).
+6. **Create folder structure** — Establish or verify project layout and conventions (source roots, config dirs, `openspec/` or SDD layout if used).
 
 ## Skills to read and follow
 
-Load each file below before doing substantive work (read fully or skim per skill length):
+Load each file before substantive work (read fully or skim by length):
 
-- `.agents/skills/sdd-init/SKILL.md`
-- `.agents/skills/openspec-onboard/SKILL.md`
-- `.agents/skills/search-first/SKILL.md`
-- `.agents/skills/karpathy-guidelines/SKILL.md`
-- `.agents/skills/skill-creator/SKILL.md`
-- `.agents/skills/ccc/SKILL.md`
-- `.agents/skills/context-engineering/SKILL.md`
-- `.agents/skills/using-agent-skills/SKILL.md`
+- `.agents/skills/sdd-init/SKILL.md` — bootstrap SDD context (stack, conventions, persistence).
+- `.agents/skills/openspec-onboard/SKILL.md` — first full OpenSpec cycle (requires OpenSpec CLI).
+- `.agents/skills/search-first/SKILL.md` — research tools and patterns before building.
+- `.agents/skills/karpathy-guidelines/SKILL.md` — assumptions, simplicity, surgical edits (baseline).
+- `.agents/skills/skill-creator/SKILL.md` — add or extend Agent Skills in this repo.
+- `.agents/skills/ccc/SKILL.md` — CocoIndex: `ccc init`, indexing, semantic search.
+- `.agents/skills/context-engineering/SKILL.md` — rules, context packing, MCP usage.
+- `.agents/skills/using-agent-skills/SKILL.md` — meta: how to use the agent-skills pack.
+
+## Project structure (example)
+
+Conventions for a **Skillgrid-initialized** repo (names may vary; `install.sh` syncs the IDE and hub bits into *your* tree). Application source lives under whatever fits the stack (e.g. `src/`, `app/`, `lib/`).
+
+```text
+project-root/
+├── AGENTS.md                      # rules for agents; often merged from hub .configs/AGENTS.md
+├── PROJECT.md                     # one-page: purpose, stack, boundaries (/skillgrid-explore)
+├── README.md
+├── docs/
+│   ├── PRD/                       # optional: 01-foo.md, 02-bar.md
+│   ├── DESIGN.md                  # optional at root instead if you prefer
+│   └── ARCHITECTURE.md
+├── .agents/
+│   └── skills/                    # SKILL.md per skill; shared references/ checklists
+├── .cursor/                       # from hub install: commands, rules, agents, mcp.json
+│   ├── commands/                  # /skillgrid-*, /opsx-*
+│   ├── rules/
+│   └── mcp.json
+├── .kilo/                         # same pattern when target uses Kilo Code
+├── .opencode/                     # OpenCode: commands, opencode.json(c), skills mirror
+├── .github/                       # Copilot prompts, agents, workflows
+│   └── prompts/                 # e.g. skillgrid-*, opsx-*
+├── .configs/                      # optional: hub-style MCP fragments (some installs keep these)
+├── openspec/                      # after openspec init: changes/, specs/ (OpenSpec workflow)
+├── .graphify/                     # optional: graphify project config
+├── graphify-out/                  # optional: generated — graph.html, graph.json, report, cache/
+├── .cocoindex_code/              # optional: ccc index — path may differ; check `ccc init` output
+└── src/ or app/ or lib/           # your product code, tests, package manifests, etc.
+```
+
+- **Per-project:** adjust `src/` to your monorepo layout (`packages/`, `apps/`, …) as needed; keep `AGENTS.md` and `.agents/skills/` easy to find.
+- **Optional tools:** add `graphify-out/`, CocoIndex dirs, and similar only after the tool has run and you know its on-disk layout.
 
 ## Notes
 
-- Use tools to inspect the repo; do not assume stack or layout.
-- If OpenSpec or SDD modes are unclear, ask once, then pick the path consistent with existing `openspec/` or project docs.
+- **Phase 0:** For a new agent session or after compaction, run **`/skillgrid-session`** before heavy work so context, MCPs, and checkpoints stay bounded.
+- Inspect the repo with tools; do not assume stack or layout.
+- If OpenSpec vs SDD persistence is unclear, ask once, then follow existing `openspec/` trees or established repo conventions.

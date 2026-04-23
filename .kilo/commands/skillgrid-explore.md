@@ -5,20 +5,19 @@ category: Workflow
 description: Explore the problem and repo: OpenSpec explore, AGENTS/PROJECT, semantic search
 ---
 
-You are executing **`/skillgrid-explore`** for the aiskillgrid workflow.
+You are executing **`/skillgrid-explore`** (DEFINE phase) for the Skillgrid workflow.
 
-**Canonical checklist:** `docs/wokflow.md` (section `/skillgrid-explore`). Prefer that document if this prompt and the doc diverge.
+## Steps
 
-## Actions
-
-1. Enter explore stance: investigate and clarify; do not implement production code unless the user explicitly leaves explore mode.
-2. Run OpenSpec-oriented exploration where applicable (read `openspec-explore` skill).
-3. Create or refresh `AGENTS.md` and `PROJECT.md` when missing or stale.
-4. Use `documentation-and-adrs` norms when documenting decisions during exploration.
+1. **Stance** — Explore and clarify; do not implement production code unless the user explicitly leaves explore mode.
+2. **OpenSpec explore** — Follow `openspec-explore`: investigate the problem space and relevant code paths before locking a change.
+3. **AGENTS.md** — Create or refresh so agent behavior and project rules are current.
+4. **PROJECT.md** — Create or refresh with purpose, stack, and boundaries for this codebase.
+5. **Documentation** — When recording exploration outcomes, document the *why* (ADRs, API docs, inline standards) per team norms.
+6. **Semantic search** — Use `ccc search` and repo navigation where CocoIndex is set up.
+7. **Optional depth** — Use `deep-research` when the question needs external evidence or broader comparison.
 
 ## Skills to read and follow
-
-Load each file below before doing substantive work (read fully or skim per skill length):
 
 - `.agents/skills/openspec-explore/SKILL.md`
 - `.agents/skills/search-first/SKILL.md`
@@ -28,5 +27,5 @@ Load each file below before doing substantive work (read fully or skim per skill
 
 ## Notes
 
-- Use tools to inspect the repo; do not assume stack or layout.
-- If OpenSpec or SDD modes are unclear, ask once, then pick the path consistent with existing `openspec/` or project docs.
+- Inspect the repo with tools; do not assume stack or layout.
+- If OpenSpec or SDD modes are unclear, ask once, then align with existing `openspec/` or repo conventions.

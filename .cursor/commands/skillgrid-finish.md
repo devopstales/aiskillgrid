@@ -5,28 +5,27 @@ category: Workflow
 description: Close the change: archive or sync specs, git hygiene, ship checklist, PR
 ---
 
-You are executing **`/skillgrid-finish`** for the aiskillgrid workflow.
+You are executing **`/skillgrid-finish`** (SHIP phase) for the Skillgrid workflow.
 
-**Canonical checklist:** `docs/wokflow.md` (section `/skillgrid-finish`). Prefer that document if this prompt and the doc diverge.
+## Steps
 
-## Actions
-
-1. Archive OpenSpec changes with `openspec-archive-change` when done; use `openspec-sync-specs` if promoting specs without archiving.
-2. Follow trunk-friendly git workflow; prepare PR with clear description and risk notes.
-3. Use shipping checklist skills when deploying.
+1. **Archive** — Complete and archive the OpenSpec change with `openspec-archive-change` per your merge and branch policy.
+2. **Sync specs (optional)** — If the team promotes delta specs to mainline specs *without* archiving, use `openspec-sync-specs` instead of or in addition to archive.
+3. **Pull request** — Open or update a PR with a clear description, risk notes, and links to the change; keep commits atomic and reviewable (`git-workflow-and-versioning`).
+4. **CI / gates** — Align with `ci-cd-and-automation`: required checks, feature flags, deployment hooks as used by the project.
+5. **Deprecation** — If this change supersedes old paths, use `deprecation-and-migration` for timelines and cleanup.
+6. **Ship** — When deploying, run through `shipping-and-launch` (rollout, monitoring, rollback).
 
 ## Skills to read and follow
 
-Load each file below before doing substantive work (read fully or skim per skill length):
-
-- `.agents/skills/openspec-archive-change/SKILL.md`
-- `.agents/skills/openspec-sync-specs/SKILL.md`
-- `.agents/skills/git-workflow-and-versioning/SKILL.md`
-- `.agents/skills/ci-cd-and-automation/SKILL.md`
-- `.agents/skills/deprecation-and-migration/SKILL.md`
-- `.agents/skills/shipping-and-launch/SKILL.md`
+- `.agents/skills/openspec-archive-change/SKILL.md` — complete and archive the change.
+- `.agents/skills/openspec-sync-specs/SKILL.md` — promote delta specs without archiving, if the flow needs it.
+- `.agents/skills/git-workflow-and-versioning/SKILL.md` — trunk-style workflow, atomic commits, small changes.
+- `.agents/skills/ci-cd-and-automation/SKILL.md` — pipelines, feature flags, quality gates.
+- `.agents/skills/deprecation-and-migration/SKILL.md` — sunset paths, migrations, dead code.
+- `.agents/skills/shipping-and-launch/SKILL.md` — pre-launch checks, rollouts, rollback, monitoring.
 
 ## Notes
 
-- Use tools to inspect the repo; do not assume stack or layout.
-- If OpenSpec or SDD modes are unclear, ask once, then pick the path consistent with existing `openspec/` or project docs.
+- Inspect the repo with tools; do not assume stack or layout.
+- If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.

@@ -5,24 +5,22 @@ category: Workflow
 description: Plan: PRDs and proposals (OpenSpec + SDD)
 ---
 
-You are executing **`/skillgrid-plan`** for the aiskillgrid workflow.
+You are executing **`/skillgrid-plan`** (PLAN phase) for the Skillgrid workflow.
 
-**Canonical checklist:** `docs/wokflow.md` (section `/skillgrid-plan`). Prefer that document if this prompt and the doc diverge.
+## Steps
 
-## Actions
-
-1. Produce or update a PRD covering objectives, commands, structure, code style, testing, and boundaries.
-2. Create or update an OpenSpec change proposal (`openspec-propose`) or SDD `proposal.md` (`sdd-propose`) per project mode.
+1. **PRDs** — Produce or update PRD-style documents covering objectives, commands, structure, code style, testing, and boundaries *before* implementation work.
+2. **OpenSpec change** — Create or update a change from the PRD using `openspec-propose` (OpenSpec layout and CLI) when the project uses OpenSpec.
+3. **SDD proposal** — If the project uses SDD/Engram-style artifacts instead, create or update `proposal.md` per `sdd-propose` and the active persistence mode.
+4. **Spec discipline** — Follow `spec-driven-development`: the PRD/plan is the single source of intent until superseded by design or delta specs.
 
 ## Skills to read and follow
 
-Load each file below before doing substantive work (read fully or skim per skill length):
-
-- `.agents/skills/openspec-propose/SKILL.md`
-- `.agents/skills/sdd-propose/SKILL.md`
-- `.agents/skills/spec-driven-development/SKILL.md`
+- `.agents/skills/openspec-propose/SKILL.md` — OpenSpec change + CLI-driven artifacts to apply-ready.
+- `.agents/skills/sdd-propose/SKILL.md` — proposal when SDD orchestration or Engram/openspec file modes apply.
+- `.agents/skills/spec-driven-development/SKILL.md` — PRD-style scope before code.
 
 ## Notes
 
-- Use tools to inspect the repo; do not assume stack or layout.
-- If OpenSpec or SDD modes are unclear, ask once, then pick the path consistent with existing `openspec/` or project docs.
+- Inspect the repo with tools; do not assume stack or layout.
+- If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.
