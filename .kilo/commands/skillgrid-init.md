@@ -3,19 +3,27 @@ name: /skillgrid-init
 id: skillgrid-init
 category: Workflow
 description: Bootstrap workflow: greenfield/brownfield, structure, graphify, CocoIndex, OpenCode, baseline skills
+allowed-tools: Read, Write, Glob, Grep, Bash, Task
+argument-hint: "[optional: app purpose, stack, or brownfield notes]"
 ---
+
+<objective>
 
 You are executing **`/skillgrid-init`** (DEFINE phase) for the Skillgrid workflow.
 
+</objective>
+
+<process>
+
 ## Steps
 
-1. **Greenfield vs brownfield** — Inspect the repo (existing app code, tests, production history). **Brownfield:** tell the user to run **`/skillgrid-explore`** before deep structural work so architecture and layout are grounded. **Greenfield:** proceed with bootstrap below.
-2. **Graphify** — If this repo uses graphify, initialize it (e.g. `graphify .` from the project directory when applicable).
-3. **CocoIndex Code** — From project root: `ccc init` if needed, then `ccc index` so semantic search is available.
-4. **OpenCode** — If the project uses OpenCode, ensure `.opencode/` (or product-specific) config is present and consistent; if not, initialize with `opencode init`.
-5. **OpenSpec** — Ensure the OpenSpec CLI is on PATH when the team uses OpenSpec; run `openspec-onboard`-style first cycle only if the user wants a full guided onboarding now.
-6. **Skills (`.agents/skills/`)** — Treat the list below as required reading; they define bootstrap behavior (stack detect, persistence mode, quality baseline).
-7. **Create folder structure** — Establish or verify project layout and conventions (source roots, `.skillgrid/project/` + `prd/` per [`docs/wokflow.md`](../../docs/wokflow.md), config dirs, `openspec/` or SDD layout if used).
+1. **Greenfield vs brownfield** — Inspect the repo (existing app code, tests, production history). **Brownfield:** tell the user to run **`/skillgrid-explore`** before deep structural work so **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`) and **AGENTS.md** are grounded. **Greenfield:** ask until you have a clear picture of the **app’s main purpose**, **target stack**, and **tools/technologies**; then create or update **`.skillgrid/project/ARCHITECTURE.md`**, **`STRUCTURE.md`**, **`PROJECT.md`**, and the **Project** chapter of root **`AGENTS.md`** (see [docs/wokflow.md](../../docs/wokflow.md)).
+2. **Create folder structure** — Establish or verify project layout and conventions (source roots, `.skillgrid/project/` + `prd/` per wokflow, config dirs, `openspec/` or SDD layout if used).
+3. **Graphify** — When graphify is part of the workflow, run **`graphify update .`** from the project root. **Do not block the main turn on graph output:** spawn a **subagent** (e.g. `Task` with the shell agent) or run the command in the **background** and continue init; the user can read **`graphify-out/`** when it finishes.
+4. **CocoIndex Code (ccc)** — From project root: if **`.cocoindex_code/`** is **absent**, run **`ccc init`**, then **`ccc index`**. If **`.cocoindex_code/`** **already exists**, run **`ccc index` only** (do not re-init). **Do not block the main turn on indexing:** run **`ccc` in a subagent or in the background** and proceed with the rest of init; use **`ccc search`** when the index is ready. Follow `.agents/skills/ccc/SKILL.md` for flags and project specifics.
+5. **OpenCode** — If the project uses OpenCode, ensure `.opencode/` (or product-specific) config is present and consistent; if not, initialize with `opencode init`.
+6. **OpenSpec** — Ensure the OpenSpec CLI is on PATH when the team uses OpenSpec; run `openspec-onboard`-style first cycle only if the user wants a full guided onboarding now.
+7. **Skills (`.agents/skills/`)** — Treat the list below as required reading; they define bootstrap behavior (stack detect, persistence mode, quality baseline).
 
 ## Skills to read and follow
 
@@ -37,7 +45,7 @@ Conventions for a **Skillgrid-initialized** repo (names may vary; `install.sh` s
 ```text
 project-root/
 ├── AGENTS.md                      # rules for agents; often merged from hub .configs/AGENTS.md
-├── DESIGN.md                      # UX/UI decisions (/skillgrid-design); optional location
+├── DESIGN.md                      # UX/UI decisions; optional location
 ├── README.md
 ├── .skillgrid/
 │   ├── project/                   # exploration outputs (/skillgrid-explore); see docs/wokflow.md
@@ -76,3 +84,5 @@ project-root/
 - **Phase 0:** For a new agent session or after compaction, run **`/skillgrid-session`** before heavy work so context, MCPs, and checkpoints stay bounded.
 - Inspect the repo with tools; do not assume stack or layout.
 - If OpenSpec vs SDD persistence is unclear, ask once, then follow existing `openspec/` trees or established repo conventions.
+
+</process>

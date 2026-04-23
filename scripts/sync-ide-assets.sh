@@ -3,6 +3,7 @@
 # Usage:
 #   ./scripts/sync-ide-assets.sh           # write .kilo, .opencode, .github/prompts, .github/agents
 #   ./scripts/sync-ide-assets.sh --check   # exit 1 if any mirror differs (CI)
+# Removes command/prompt files under mirrors when the matching file is deleted from .cursor/commands/.
 set -uo pipefail
 shopt -s nullglob
 
@@ -29,6 +30,19 @@ sync_pair() {
 for dest in "$ROOT/.kilo/commands" "$ROOT/.opencode/commands"; do
   for f in "$ROOT/.cursor/commands"/skillgrid-*.md "$ROOT/.cursor/commands"/opsx-*.md; do
     sync_pair "$f" "$dest/$(basename "$f")"
+  done
+  # Drop mirror files removed from .cursor/commands (e.g. disabled commands)
+  for f in "$dest"/skillgrid-*.md "$dest"/opsx-*.md; do
+    [[ -f "$f" ]] || continue
+    base="$(basename "$f")"
+    if [[ ! -f "$ROOT/.cursor/commands/$base" ]]; then
+      if [[ $CHECK -eq 1 ]]; then
+        echo "ORPHAN: $f (no longer in .cursor/commands)" >&2
+        EXIT=1
+      else
+        rm -f "$f"
+      fi
+    fi
   done
 done
 
@@ -62,8 +76,14 @@ for f in files:
         print(f"sync-ide-assets: missing description: {f}", file=sys.stderr)
         sys.exit(2)
     desc = dm.group(1).strip()
+    extra_lines = []
+    for key in ("allowed-tools", "argument-hint"):
+        km = re.search(rf"^{re.escape(key)}:\s*(.+)$", fm, re.MULTILINE)
+        if km:
+            extra_lines.append(f"{key}: {km.group(1).strip()}")
     body = text[m.end() :]
-    out = f"---\ndescription: {desc}\n---\n{body}"
+    extra = ("\n".join(extra_lines) + "\n") if extra_lines else ""
+    out = f"---\ndescription: {desc}\n{extra}---\n{body}"
     dest = gh / f.name
     if check:
         if not dest.exists() or dest.read_text(encoding="utf-8") != out:
@@ -72,6 +92,15 @@ for f in files:
     else:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(out, encoding="utf-8")
+# Remove GitHub prompt files for commands deleted from .cursor/commands
+for dest in sorted(gh.glob("skillgrid-*.md")) + sorted(gh.glob("opsx-*.md")):
+    src = cur / dest.name
+    if not src.exists():
+        if check:
+            print(f"ORPHAN: {dest}", file=sys.stderr)
+            drift = True
+        else:
+            dest.unlink()
 sys.exit(1 if drift else 0)
 PY
 then

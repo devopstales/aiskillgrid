@@ -3,11 +3,19 @@ name: /skillgrid-security
 id: skillgrid-security
 category: Workflow
 description: Security review, hardening, SAST, dependency/config audit, attack-surface and deprecation hygiene
+allowed-tools: Read, Glob, Grep, Bash, Task
+argument-hint: "[scope: path, surface, or change-id]"
 ---
+
+<objective>
 
 You are executing **`/skillgrid-security`** (REVIEW — security) for the Skillgrid workflow.
 
 Prefer running **`/skillgrid-review`** first so behavior matches specs; this phase focuses on **threats, misuse, and supply-chain** surfaces.
+
+</objective>
+
+<process>
 
 ## Steps
 
@@ -33,3 +41,5 @@ Prefer running **`/skillgrid-review`** first so behavior matches specs; this pha
 
 - Inspect the repo with tools; do not assume stack or layout.
 - If scanners are not installed, say what is missing and what commands would run once configured.
+
+</process>

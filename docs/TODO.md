@@ -137,12 +137,8 @@ npm install -g @mariozechner/pi-coding-agent
 # Tools
 
 * env bariables
-* memory in init
-  * `ccc init` in background
-  * `graphify update .` in background
 * commands
   * `/skillgirid-plan` sas `/osx:apply` is the next
-  * `/skillgrid-breakdown` do not use link tasks sync directly.
 * mcp
 * rules
   * AGENTS.md ??
@@ -150,13 +146,12 @@ npm install -g @mariozechner/pi-coding-agent
 * templates md in skill
   * AGENTS.md
   * DESIGN.md
-  * prd tasks as checklist
 * ticketing integration
   * github
   * gitlab
   * jira cloud
 * paralelism
-* checkpint
+* checkpont
 * git-worktrees (separate branch?)
 * subagent-driven-development or executing-plans
 * design tools

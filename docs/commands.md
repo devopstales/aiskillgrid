@@ -1,6 +1,6 @@
 # Agent commands
 
-Slash-style commands are **Markdown prompts** checked into this repo. Each file tells the agent what to do for that command; Cursor, Kilo, and OpenCode use YAML frontmatter (`name`, `id`, `category`, `description`). GitHub Copilot uses **`.github/prompts/`** with a short `description` only.
+Slash-style commands are **Markdown prompts** checked into this repo. Each file tells the agent what to do for that command; Cursor, Kilo, and OpenCode use YAML frontmatter (`name`, `id`, `category`, `description`, plus optional **`allowed-tools`** and **`argument-hint`**). Bodies use **`<objective>`** / **`<process>`** to separate intent from procedure. GitHub Copilot uses **`.github/prompts/`** with `description`, the same optional keys when present, and the same body.
 
 **Lifecycle overview:** [`wokflow.md`](wokflow.md) maps phases to skills. **Skillgrid** commands wrap those phases; **OpenSpec (`opsx`)** commands target the OpenSpec CLI workflow directly. **Tooling and installers:** [`tools.md`](tools.md).
 
@@ -32,7 +32,6 @@ These align with **`docs/wokflow.md`**. **Steps and skill lists are authored in 
 | DEFINE | `/skillgrid-explore` | [skillgrid-explore.md](../.cursor/commands/skillgrid-explore.md) | OpenSpec explore; **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`); root `AGENTS.md`; semantic search. |
 | DEFINE | `/skillgrid-brainstorm` | [skillgrid-brainstorm.md](../.cursor/commands/skillgrid-brainstorm.md) | Clarify, research (`search-first`, `documentation-lookup`), refine ideas before planning. |
 | PLAN | `/skillgrid-plan` | [skillgrid-plan.md](../.cursor/commands/skillgrid-plan.md) | PRDs and proposals (OpenSpec + SDD). |
-| PLAN | `/skillgrid-design` | [skillgrid-design.md](../.cursor/commands/skillgrid-design.md) | `DESIGN.md`, UI, APIs, architecture docs, delta specs. |
 | PLAN | `/skillgrid-breakdown` | [skillgrid-breakdown.md](../.cursor/commands/skillgrid-breakdown.md) | Spec completeness, `tasks.md`, TDD stance, ordering, CocoIndex refresh when needed. |
 | BUILD | `/skillgrid-apply` | [skillgrid-apply.md](../.cursor/commands/skillgrid-apply.md) | OpenSpec apply, contracts (`api-and-interface-design`), TDD, small batches. |
 | VERIFY | `/skillgrid-test` | [skillgrid-test.md](../.cursor/commands/skillgrid-test.md) | Tests, E2E, browser tooling, debugging. |

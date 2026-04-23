@@ -3,11 +3,19 @@ name: /skillgrid-session
 id: skillgrid-session
 category: Workflow
 description: Phase 0 — session charter, context budget, MCP/tool selection, checkpoints
+allowed-tools: Read, Glob, Grep, Write, Task
+argument-hint: "[optional: session goal or resume context]"
 ---
+
+<objective>
 
 You are executing **`/skillgrid-session`** (Phase 0) for the Skillgrid workflow.
 
 Use this at the **start of a new agent session**, after context compaction, or when switching tracks so work stays bounded and reproducible.
+
+</objective>
+
+<process>
 
 ## Steps
 
@@ -29,3 +37,5 @@ Use this at the **start of a new agent session**, after context compaction, or w
 
 - Phase 0 is **orthogonal** to `/skillgrid-init` (repo bootstrap). Run session when the **agent context** resets; run init when the **repository** still needs structure or tooling setup.
 - Inspect the repo with tools; do not assume stack or layout.
+
+</process>

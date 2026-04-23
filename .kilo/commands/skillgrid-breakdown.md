@@ -3,9 +3,17 @@ name: /skillgrid-breakdown
 id: skillgrid-breakdown
 category: Workflow
 description: PRD implementation checklist synced with OpenSpec tasks.md
+allowed-tools: Read, Write, Glob, Grep, Bash, Task
+argument-hint: "[change-id or PRD slug]"
 ---
 
+<objective>
+
 You are executing **`/skillgrid-breakdown`** (TASKS phase) for the Skillgrid workflow.
+
+</objective>
+
+<process>
 
 ## Steps
 
@@ -72,3 +80,5 @@ After you draft or sync **`tasks.md` and the PRD checklist**, you can spawn **`s
 - Inspect the repo with tools; do not assume stack, change id, or layout.
 - If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.
 - For PRD document sections outside Implementation tasks, follow `/skillgrid-plan` (problem, goals, requirements, success criteria, boundaries).
+
+</process>

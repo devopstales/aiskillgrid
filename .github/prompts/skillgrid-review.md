@@ -1,10 +1,18 @@
 ---
 description: Verify specs, code review, performance, data, docs (pre-security gate)
+allowed-tools: Read, Glob, Grep, Bash, Task
+argument-hint: "[change-id, PR, or scope]"
 ---
+
+<objective>
 
 You are executing **`/skillgrid-review`** (REVIEW — quality and alignment) for the Skillgrid workflow.
 
 Run **`/skillgrid-security`** after this when you want a **dedicated security pass**, or use **`/skillgrid-validate`** to run both in one invocation.
+
+</objective>
+
+<process>
 
 ## Steps
 
@@ -38,3 +46,5 @@ With a **parallel** harness, you may run independent personas on the same change
 
 - Do **not** treat this phase as sufficient for security sign-off; follow with `/skillgrid-security` before merge when security matters.
 - Inspect the repo with tools; do not assume stack or layout.
+
+</process>

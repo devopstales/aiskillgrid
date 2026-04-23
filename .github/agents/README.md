@@ -33,7 +33,7 @@ Each `skillgrid-*` persona includes an **Indexing and memory** section: when Coc
 |---------|-------------------------|
 | `skillgrid-explore-architect` | `/skillgrid-explore` |
 | `skillgrid-researcher` | `/skillgrid-brainstorm` (heavy research), optional `/skillgrid-explore` depth |
-| `skillgrid-design-critic` | `/skillgrid-design` |
+| `skillgrid-design-critic` | `/skillgrid-plan` (with `DESIGN.md`) or direct spawn |
 | `skillgrid-task-breakdown-auditor` | `/skillgrid-breakdown` |
 | `skillgrid-spec-verifier` | `/skillgrid-review` (spec pass) or pre-merge traceability |
 | `skillgrid-code-reviewer` | `/skillgrid-review` |

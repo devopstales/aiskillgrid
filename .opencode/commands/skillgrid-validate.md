@@ -3,11 +3,19 @@ name: /skillgrid-validate
 id: skillgrid-validate
 category: Workflow
 description: Combined gate — full review then full security (same as review + security)
+allowed-tools: Read, Glob, Grep, Bash, Task, Write
+argument-hint: "[change-id or release scope]"
 ---
+
+<objective>
 
 You are executing **`/skillgrid-validate`** for the Skillgrid workflow.
 
 This command is a **single-turn combined gate**: perform every step in **`/skillgrid-review`**, then every step in **`/skillgrid-security`**, in that order.
+
+</objective>
+
+<process>
 
 ## Execution
 
@@ -28,3 +36,5 @@ This command runs **review then security sequentially** in one turn. If your IDE
 
 - Prefer **`/skillgrid-review`** then **`/skillgrid-security`** as separate invocations when you want clearer phase boundaries or human sign-off between them.
 - Inspect the repo with tools; do not assume stack or layout.
+
+</process>

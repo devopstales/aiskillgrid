@@ -3,9 +3,17 @@ name: /skillgrid-plan
 id: skillgrid-plan
 category: Workflow
 description: Plan — structured PRDs and proposals (OpenSpec + SDD)
+allowed-tools: Read, Write, Glob, Grep, Bash, Task
+argument-hint: "[feature name, slug, or PRD title]"
 ---
 
+<objective>
+
 You are executing **`/skillgrid-plan`** (PLAN phase) for the Skillgrid workflow.
+
+</objective>
+
+<process>
 
 ## Steps
 
@@ -84,3 +92,5 @@ If present: numbered workstreams and checkboxes; should trace to requirements ab
 - Inspect the repo with tools; do not assume stack or layout.
 - If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.
 - The repo’s narrative templates for `prd/INDEX.md` and per-PRD files also appear in `docs/wokflow.md` (PRD index and single-feature PRD examples).
+
+</process>

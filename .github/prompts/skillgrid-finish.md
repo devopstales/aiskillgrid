@@ -1,8 +1,16 @@
 ---
 description: Close the change: archive or sync specs, git hygiene, ship checklist, PR
+allowed-tools: Read, Write, Glob, Grep, Bash, Task
+argument-hint: "[change-id or branch name]"
 ---
 
+<objective>
+
 You are executing **`/skillgrid-finish`** (SHIP phase) for the Skillgrid workflow.
+
+</objective>
+
+<process>
 
 ## Steps
 
@@ -29,3 +37,5 @@ You are executing **`/skillgrid-finish`** (SHIP phase) for the Skillgrid workflo
 
 - Inspect the repo with tools; do not assume stack or layout.
 - If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.
+
+</process>

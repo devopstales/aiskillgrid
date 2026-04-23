@@ -3,9 +3,17 @@ name: /skillgrid-test
 id: skillgrid-test
 category: Workflow
 description: Prove behavior: automated tests, E2E, browser DevTools
+allowed-tools: Read, Write, Glob, Grep, Bash, Task
+argument-hint: "[area, ticket id, or failing test]"
 ---
 
+<objective>
+
 You are executing **`/skillgrid-test`** (VERIFY phase) for the Skillgrid workflow.
+
+</objective>
+
+<process>
 
 ## Steps
 
@@ -28,3 +36,5 @@ You are executing **`/skillgrid-test`** (VERIFY phase) for the Skillgrid workflo
 
 - Inspect the repo with tools; do not assume stack or layout.
 - If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.
+
+</process>

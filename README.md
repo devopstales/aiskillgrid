@@ -25,13 +25,13 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
   DEFINE          PLAN           BUILD                  VERIFY (split)                    SHIP
  ┌──────┐        ┌──────┐        ┌──────┐    ┌──────────┬──────────┬──────────┐        ┌──────┐
  │ Init │ ─────▶ │ Plan │ ─────▶ │Apply │ ─▶ │   Test   │  Review  │ Security │ ─────▶ │Finish│
- │Explor│        │Design│        │ Code │    │   Prove  │  (specs) │  (SAST)  │        │  PR  │
+ │Explor│        │      │        │ Code │    │   Prove  │  (specs) │  (SAST)  │        │  PR  │
  │Brain │        │Break │        │      │    │          │          │          │        │      │
  └──────┘        └──────┘        └──────┘    └──────────┴──────────┴──────────┘        └──────┘
  /skillgrid-init /skillgrid-plan /skillgrid-apply  /skillgrid-test /skillgrid-review /skillgrid-security /skillgrid-finish
 ```
 
-Also run **`/skillgrid-explore`** and **`/skillgrid-brainstorm`** (DEFINE), **`/skillgrid-design`** and **`/skillgrid-breakdown`** (PLAN). Use **`/skillgrid-validate`** when you want **`/skillgrid-review`** and **`/skillgrid-security`** in a single agent turn.
+Also run **`/skillgrid-explore`** and **`/skillgrid-brainstorm`** in DEFINE, and **`/skillgrid-breakdown`** in PLAN. Use **`/skillgrid-validate`** when you want **`/skillgrid-review`** and **`/skillgrid-security`** in a single agent turn.
 
 ---
 

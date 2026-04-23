@@ -3,9 +3,17 @@ name: /skillgrid-apply
 id: skillgrid-apply
 category: Workflow
 description: Implement from tasks; keep PRD and OpenSpec tasks.md checked off in sync
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+argument-hint: "[change-id; optional task focus]"
 ---
 
+<objective>
+
 You are executing **`/skillgrid-apply`** (BUILD phase) for the Skillgrid workflow.
+
+</objective>
+
+<process>
 
 ## Steps
 
@@ -42,3 +50,5 @@ You are executing **`/skillgrid-apply`** (BUILD phase) for the Skillgrid workflo
 - Inspect the repo with tools; do not assume stack or layout.
 - If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.
 - Checklist format and the PRD↔`tasks.md` link live in `/skillgrid-breakdown`; apply keeps them aligned as work lands.
+
+</process>

@@ -8,7 +8,7 @@ Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](comm
 /skillgrid-init
 # Create skillgrid folder structure
 # Detect if the project is greenfield or brownfield
-## If greenfield:
+## If greenfield: Ask the user abaute the man porpose of the app, what tools, technologys want to use. Ask until it is clear. Then generate content for ARCHITECTURE.md, STRUCTURE.md, PROJECT.md and Update AGENTS.md Prooject chapter
 ## If brownfield: Tell the user to use /skillgrid-explore because it is a brownfield project.
 # index memory
 ## graphify init
@@ -48,6 +48,7 @@ Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](comm
 - sdd-propose — proposal.md only SDD orchestrator / Engram or openspec mode
 - spec-driven-development — Write a PRD covering objectives, commands, structure, code style, testing, and boundaries before any code
 
+# Tempolary disabled
 /skillgrid-design
 # User describes how the page should look
 ## Generate DESIGN.md
@@ -137,7 +138,7 @@ Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](comm
 Parallel **subagents** for codebase mapping and domain research, you can **fan out** independent work, then **merge** in the main session:
 
 - **Safe to run in parallel:** read-only **explore** passes on disjoint areas (e.g. different packages), **cited** landscape or prior-art research with non-overlapping briefs (stack vs competitors vs API docs), using personas such as `skillgrid-explore-architect` and `skillgrid-researcher` in separate subagent contexts when your harness allows concurrent `Task` / subagents.
-- **Keep sequential:** `/skillgrid-plan` → optional `/skillgrid-design` → `/skillgrid-breakdown` so intent stays a single chain; then `/skillgrid-apply` and later gates follow their ordered phases.
+- **Keep sequential:** `/skillgrid-plan` → `/skillgrid-breakdown` so intent stays a single chain; then `/skillgrid-apply` and later gates follow their ordered phases.
 
 Parallel fan-out and merge is the same orchestration idea as the **slash command (orchestrator — fan-out)** section in [`.cursor/agents/README.md`](../.cursor/agents/README.md): only when sub-tasks are **independent** (no shared mutable state, no required ordering). The hub’s `/skillgrid-validate` run may still be **sequential in one turn**; true wall-clock parallelism requires a harness with concurrent subagents.
 
