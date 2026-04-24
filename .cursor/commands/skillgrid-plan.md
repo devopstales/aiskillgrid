@@ -40,6 +40,7 @@ Use this outline for every PRD. Adapt headings only if the repo’s own PRD temp
 - Heading: `### PRD: <Title>` (should align with the filename, e.g. `PRD02_tasks-to-do` → a clear title for that slice)
 - **File:** `.skillgrid/prd/PRD<NN>_<slug>.md` — execution order = `<NN>`
 - **Spec / change:** `<path>` — canonical source for status and technical artifacts (e.g. `openspec/changes/<id>/` or project equivalent)
+- **Session context (optional):** `.skillgrid/tasks/context_<change-id>.md` — rolling handoff for parent + subagents; create or refresh during this command (see *Session context* under Part B)
 - **Status:** `draft` (after this command; later phases set `todo` → `inprogress` → `devdone` → `done` per **`/skillgrid-init`**) — or project extension of that lifecycle
 - **Depends on (optional):** other PRD files (by `PRDNN_` name) that must be done or stable before this one
 - **Tech / stack (optional):** one line — key languages, framework, and critical dependencies for this slice (helps scoping; mirror deeper detail in **Project fit** or `design.md`)
@@ -126,7 +127,13 @@ Run the CLI steps below. After artifacts reach **apply-ready** (or when you have
 
    This creates a scaffolded change at `openspec/changes/<name>/` (layout depends on OpenSpec CLI version; follow the generated tree).
 
-3. **Get the artifact build order**
+3. **Session context (filesystem handoff)** — For Skillgrid, establish the per-change handoff the parent and `Task` subagents will use:
+
+   - Create **`.skillgrid/tasks/research/<name>/`** if missing.
+   - Create or update **`.skillgrid/tasks/context_<name>.md`** using the skeleton in **`docs/wokflow.md`** (*Filesystem handoff*). Set **Change / PRD links**, **current goal**, and **state** (`planning` / `research`). Cross-link the PRD path you use in Part A.
+   - When you write or next edit **`openspec/changes/<name>/proposal.md`**, add a single line the reader cannot miss, e.g. `**Skillgrid session context:** .skillgrid/tasks/context_<name>.md` (body or frontmatter, per team convention; keep one canonical pointer).
+
+4. **Get the artifact build order**
 
    ```bash
    openspec status --change "<name>" --json
@@ -137,7 +144,7 @@ Run the CLI steps below. After artifacts reach **apply-ready** (or when you have
    - `applyRequires`: artifact IDs that must be complete before implementation (e.g. `["tasks"]`)
    - `artifacts`: all artifacts with status and dependencies
 
-4. **Create artifacts in sequence until apply-ready**
+5. **Create artifacts in sequence until apply-ready**
 
    Use a todo list to track progress through the artifacts.
 
@@ -162,7 +169,7 @@ Run the CLI steps below. After artifacts reach **apply-ready** (or when you have
 
    c. **If an artifact needs user input**, ask, then continue.
 
-5. **Final status**
+6. **Final status**
 
    ```bash
    openspec status --change "<name>"
@@ -179,6 +186,7 @@ Summarize: change name and path; list of artifacts and short descriptions; state
 - **Never** copy `context` / `rules` blocks into the written files.
 - If a change with that name already exists, ask whether to continue it or use a new name.
 - Verify each file exists on disk before moving to the next artifact.
+- **Fan-out / `Task` subagents:** If you spin off research or exploration in a **subagent**, put **`.skillgrid/tasks/context_<name>.md`** and **`.skillgrid/tasks/research/<name>/`** in the subagent prompt so it can read the handoff and spill long output; see `docs/wokflow.md` — *Parallel discovery* / *Subagent contract*.
 
 ## PRD file templates (formatting)
 

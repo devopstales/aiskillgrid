@@ -25,22 +25,78 @@ Canonical on-disk tree for a project using Skillgrid (names may vary). Applicati
 project-root/
 ├── AGENTS.md
 ├── DESIGN.md
-└── .skillgrid/
-    ├── project/                    # exploration / init: system & onboarding
-    │   ├── ARCHITECTURE.md
-    │   ├── STRUCTURE.md
-    │   └── PROJECT.md
-    ├── prd/                        # optional PRD index and per-change PRDs
-    │   ├── INDEX.md
-    │   └── <change-or-feature>.md
-    ├── preview/                    # /skillgrid-brainstorm: ephemeral MD/HTML to compare and pick options
-    └── scripts/
-        └── preview.sh              # scaffolds non-destructive stubs under preview/
+├── .skillgrid/
+│   ├── project/                    # exploration / init: system & onboarding
+│   │   ├── ARCHITECTURE.md
+│   │   ├── STRUCTURE.md
+│   │   └── PROJECT.md
+│   ├── prd/                        # optional PRD index and per-change PRDs
+│   │   ├── INDEX.md
+│   │   ├── PRD01_<first-slug>.md
+│   │   └── PRD02_<next-slug>.md
+│   ├── tasks/
+│   │   ├── context_<change-id>.md  # rolling orchestrator handoff (per OpenSpec change id)
+│   │   └── research/
+│   │       └── <change-id>/
+│   │           └── <topic-or-agent>_<optional-date>.md  # long research / spill; not chat dumps
+│   ├── preview/                    # brainstorm: ephemeral MD/HTML to compare and pick options
+│   └── scripts/
+│       ├── prd-kanban.mjs          # 
+│       └── preview.sh              # scaffolds non-destructive stubs under preview/
+├── .cursor/
+│   └── commands/
+├── openspec/                      # hybrid: disk + Engram
+│   ├── config.yaml
+│   ├── specs/
+│   ├── changes/
+│   └── changes/archive/
+├── graphify-out/
+└── src/ or app/ or lib/
 ```
 
 - **`preview/`** — Short-lived brainstorm files (e.g. layout A vs B). This repo’s **`.skillgrid/preview/.gitignore`** may ignore `*.html`; commit policy is up to the team.  
+- **`tasks/context_<change-id>.md`** and **`tasks/research/<change-id>/`** — **Filesystem handoff** for the main session and subagents: see **Filesystem handoff (session context)** below. The **`<change-id>`** is the OpenSpec change directory name (same as `openspec list`).  
 - **`scripts/preview.sh`** — Run from project root: `.skillgrid/scripts/preview.sh [slug]` (optional `--md` for markdown). Not every IDE has an embedded browser; users can open files in the editor or a regular browser, or work from labeled A/B in chat.  
 - A longer **example** (with IDE folders, `openspec/`, etc.) appears in **`/skillgrid-init`** under **Project structure (example)**. **Copy-paste templates** for `ARCHITECTURE.md`, `STRUCTURE.md`, `PROJECT.md`, and PRD index/skeleton are in the commands, not in this file (see **Formatting templates** below).
+
+## Filesystem handoff (session context)
+
+**Purpose:** Keep a **git-visible, change-scoped** handoff so the **parent** session and **`Task` / subagents** stay aligned without flooding chat or losing work after a subagent turn ends. Large tool output goes to **`tasks/research/…`** (“spill”); the handoff file stays a short index and state. This complements **Engram** (cross-session memory) and **OpenSpec** `contextFiles` (proposal, specs, `tasks.md`).
+
+**Conventions**
+
+- **Handoff file:** **`.skillgrid/tasks/context_<change-id>.md`**
+- **Spill directory:** **`.skillgrid/tasks/research/<change-id>/`**
+- **ID:** Use the **OpenSpec change id** (kebab-case directory under `openspec/changes/<change-id>/`). Cross-link to **`.skillgrid/prd/PRD<NN>_<slug>.md`** inside the handoff; do not duplicate the full PRD.
+
+**Minimum sections** (start from this skeleton when creating a new handoff):
+
+```markdown
+# Session context: <change-id>
+
+## Change / PRD links
+- OpenSpec: `openspec/changes/<change-id>/`
+- PRD: `.skillgrid/prd/PRD<NN>_<slug>.md`
+
+## Current goal
+(One paragraph.)
+
+## State
+- **Phase:** planning | research | implementing | blocked
+- **Owner:** (optional)
+
+## Subagent / research index
+| Date | Persona / agent | Report path | Outcome (one line) |
+|------|-----------------|-------------|---------------------|
+
+## Decisions
+(Durable choices; point to Engram `mem_save` for cross-session recall if needed.)
+
+## Next actions
+(What the parent should do next, e.g. read `research/.../x.md` then run task N from `tasks.md`.)
+```
+
+**Link from OpenSpec:** `openspec/changes/<change-id>/proposal.md` should include one line: **Skillgrid session context:** `.skillgrid/tasks/context_<change-id>.md` (see **`/skillgrid-plan`**). PRD title block may repeat the same path for discoverability.
 
 ```bash
 /skillgrid-init
@@ -177,6 +233,16 @@ Parallel **subagents** for codebase mapping and domain research, you can **fan o
 - **Safe to run in parallel:** read-only **explore** passes on disjoint areas (e.g. different packages), **cited** landscape or prior-art research with non-overlapping briefs (stack vs competitors vs API docs), using personas such as `skillgrid-explore-architect` and `skillgrid-researcher` in separate subagent contexts when your harness allows concurrent `Task` / subagents.
 - **Keep sequential:** `/skillgrid-plan` → `/skillgrid-breakdown` so intent stays a single chain; then `/skillgrid-apply` and later gates follow their ordered phases.
 
+**Subagent contract (filesystem handoff)** — Same rules for `skillgrid-researcher`, `skillgrid-design-critic`, and `skillgrid-explore-architect` when spawned as subagents for a **change**:
+
+1. **Before work:** Read **`.skillgrid/tasks/context_<change-id>.md`** (create with the parent if missing).
+2. **Scope:** **Research, critique, or mapping only** unless the user explicitly asked this persona to implement. Implementation stays on the **parent** so it retains full repo context.
+3. **Spill:** Write long output to **`.skillgrid/tasks/research/<change-id>/*.md`**; keep the chat return to a **short summary plus file paths**.
+4. **After work:** Update the handoff (research index row, state, next actions).
+5. **Return message to parent:** e.g. “Updated `context_<change-id>.md`; primary report: `…`; read those before continuing.”
+
+When delegating, the **orchestrator must** pass the handoff path in the `Task` prompt. After a subagent returns, the **parent reads** the handoff and cited research files before writing product code. See also **`/skillgrid-plan`** and **`/skillgrid-apply`**.
+
 Parallel fan-out and merge is the same orchestration idea as the **slash command (orchestrator — fan-out)** section in [`.cursor/agents/README.md`](../.cursor/agents/README.md): only when sub-tasks are **independent** (no shared mutable state, no required ordering). The hub’s `/skillgrid-validate` run may still be **sequential in one turn**; true wall-clock parallelism requires a harness with concurrent subagents.
 
 ## Formatting templates
@@ -188,5 +254,6 @@ Markdown **skeletons** for project and PRD files are maintained in the slash com
 | **PRD / change `Status` stages** (`draft` → `todo` → `inprogress` → `devdone` → `done`) | **PRD / change `Status` (stages)** (above) and **`/skillgrid-init`** — **PRD / change `Status` lifecycle** |
 | **`.skillgrid/project/ARCHITECTURE.md`**, **STRUCTURE.md**, **PROJECT.md** | **`/skillgrid-init`** — **Project document templates** |
 | **`.skillgrid/prd/INDEX.md`**, PRD skeleton, and full **PRD document format** | **`/skillgrid-plan`** — **Part A** and **PRD file templates (formatting)** |
+| **`.skillgrid/tasks/context_<change-id>.md`**, **research/** spill layout | **Filesystem handoff (session context)** (above) and **`/skillgrid-plan`** / **`/skillgrid-apply`** |
 
 **`.skillgrid/preview/`** and **`.skillgrid/scripts/preview.sh`** support **Preview picks** during **`/skillgrid-brainstorm`**. In Skillgrid, **STRUCTURE.md** holds repo tree and, if you use it, deployment topology in an optional section.

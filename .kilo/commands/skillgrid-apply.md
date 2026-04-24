@@ -47,11 +47,13 @@ Implement from the OpenSpec change’s **apply** instructions. **Always use hybr
    - **`all_done`**: congratulate; suggest **`/skillgrid-review`** and **`/skillgrid-finish`**.
    - Otherwise: proceed to implementation.
 
-4. **Read context** — Read every path in `contextFiles` from the apply output (commonly proposal, specs, design, `tasks` for spec-driven flows). Prefer CLI output over hard-coded filenames.
+4. **Read context** — Read every path in `contextFiles` from the apply output (commonly proposal, specs, design, `tasks` for spec-driven flows). Prefer CLI output over hard-coded filenames. Also read **`.skillgrid/tasks/context_<name>.md`** if it exists (rolling handoff; see `docs/wokflow.md` — *Filesystem handoff*).
 
-5. **Show progress** — Display schema, **N/M tasks** complete, remaining work, and the CLI’s current instruction.
+5. **Filesystem handoff (subagents)** — If you use **`Task`** to delegate **research, design critique, or exploration** to a subagent for this change: create or open **`.skillgrid/tasks/context_<name>.md`** and **include its path in the subagent prompt**. After the subagent returns, **read** that file and any **`.skillgrid/tasks/research/<name>/`** files it cites **before** writing product code. The parent session keeps full implementation context; subagents spill long output to disk.
 
-6. **Implement (loop)** — For each **pending** task line:
+6. **Show progress** — Display schema, **N/M tasks** complete, remaining work, and the CLI’s current instruction.
+
+7. **Implement (loop)** — For each **pending** task line:
 
    - State which task you are on.
    - Make minimal, focused code changes.
@@ -59,9 +61,9 @@ Implement from the OpenSpec change’s **apply** instructions. **Always use hybr
    - **Immediately** mirror the same line in the **PRD** **Implementation tasks** section (**`.skillgrid/prd/PRD<NN>_<slug>.md`**). The two must stay identical.
    - Continue until done, blocked, or interrupted.
 
-7. **Pause if** the task is unclear, implementation contradicts the design, an error is hit, or the user stops you—report and wait.
+8. **Pause if** the task is unclear, implementation contradicts the design, an error is hit, or the user stops you—report and wait.
 
-8. **End of session** — Summarize completed tasks, N/M progress, and next action (continue apply, run review, or archive).
+9. **End of session** — Summarize completed tasks, N/M progress, and next action (continue apply, run review, or archive).
 
 ### Output shape (optional)
 

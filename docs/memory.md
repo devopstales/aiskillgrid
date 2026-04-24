@@ -11,8 +11,11 @@ This document explains **what we use for “memory” in the broad sense**: dura
 | **Cross-session memory** | What did we decide, discover, or agree to last time? | **Engram** (primary) |
 | **Repo index / map** | How is this codebase structured; where are the hot spots? | **graphify** (`graphify-out/`) |
 | **Structural code search** | Where is this symbol, string, or pattern implemented? | **ripgrep** (`rg`), IDE search, **LSP** |
+| **Per-change handoff (Skillgrid)** | For one OpenSpec **change id**, what is the rolling goal, state, and where are subagent reports? | **`.skillgrid/tasks/context_<change-id>.md`** and **`.skillgrid/tasks/research/<change-id>/`**, documented in `docs/wokflow.md` (*Filesystem handoff*) |
 
 Those layers are **complementary**. Engram does not replace reading source; graphify does not replace exact search for a function name.
+
+**Handoff vs Engram vs graphify:** The **context file** and **research/** spill are **on-disk, git-friendly state** for a single change—shared by the parent session and `Task` subagents without pasting long tool output into chat. **Engram** is for **cross-session** or **durable** observations (`mem_save`, `mem_search`) and compaction survival; the handoff can *point* to Engram topics but should not duplicate every memo. **graphify** remains the **structural** map of the repo (`graphify-out/`); the handoff **references** key paths or follow-up work, it does not replace a graph or `rg` for “where is X implemented.”
 
 ---
 

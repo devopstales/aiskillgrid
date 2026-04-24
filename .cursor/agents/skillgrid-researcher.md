@@ -29,6 +29,16 @@ Load these **before** heavy research (read fully or skim by length):
 - `.agents/skills/search-first/SKILL.md` — when to research vs build.
 - `.agents/skills/documentation-lookup/SKILL.md` — Context7 for authoritative docs when the question names a framework or SDK.
 
+## Filesystem handoff (when spawned as a subagent for a change)
+
+When the user or parent session delegates with **`Task`** for a specific **OpenSpec change** (`<change-id>` = directory under `openspec/changes/`):
+
+1. **Before work:** Read **`.skillgrid/tasks/context_<change-id>.md`**. If it does not exist, ask the parent to create the stub (see `docs/wokflow.md` — *Filesystem handoff*).
+2. **Scope:** **Research and planning only**; do not implement product code unless the user explicitly asked this session to.
+3. **Spill:** Write long or cited memos to **`.skillgrid/tasks/research/<change-id>/<topic>_<optional-date>.md`**. Keep the chat reply to a **short summary + paths**.
+4. **After work:** Update the handoff: research index row, state, next actions.
+5. **Return to parent:** e.g. “Updated `context_<change-id>.md`; primary report: `<path>`; read those before continuing.”
+
 ## Approach
 
 1. **Clarify** — Goal (decision, comparison, landscape), depth, time horizon, and constraints (e.g. license, self-hosted only).

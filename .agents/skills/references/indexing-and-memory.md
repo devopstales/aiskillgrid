@@ -26,12 +26,17 @@ Use these when the project or IDE has them enabled (merged `mcp.json`, `install.
 - **Config fragment:** `.configs/mcp/node/memory.json` (`@modelcontextprotocol/server-memory`)
 - **Role:** Lightweight structured recall; use when enabled and appropriate to the task (not a substitute for Engram project memory).
 
+## Per-change handoff (Skillgrid)
+
+When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. **Use these for subagent / parent sync** in the current effort; they are not a replacement for **Engram** (cross-session) or **graphify** (whole-repo map). See `docs/wokflow.md` — *Filesystem handoff*.
+
 ## Suggested order
 
 1. Rules + `mem_context` / quick `mem_search` (if memory MCPs available)  
-2. `graphify-out/` skim if present  
-3. `rg` / IDE search (and LSP) for concrete code locations  
-4. Read files / run tests as usual  
-5. `mem_save` (or SDD persistence) for durable outputs the next session must see  
+2. For an active **change** with a handoff file: read **`.skillgrid/tasks/context_<change-id>.md`** (when present)  
+3. `graphify-out/` skim if present  
+4. `rg` / IDE search (and LSP) for concrete code locations  
+5. Read files / run tests as usual  
+6. `mem_save` (or SDD persistence) for durable outputs the next session must see  
 
 Narrative overview: [`docs/memory.md`](../../../docs/memory.md).
