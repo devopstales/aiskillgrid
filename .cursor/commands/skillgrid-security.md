@@ -19,27 +19,29 @@ Prefer running **`/skillgrid-review`** first so behavior matches specs; this pha
 
 ## Steps
 
-1. **Code security review** — Apply `security-review` and `security-and-hardening` (auth, secrets, boundaries, OWASP-oriented patterns).
-2. **Static analysis** — Run **Semgrep** and other project-configured SAST; follow `semgrep-security` for conventions.
-3. **Artifacts and dependencies** — Run **Trivy** (and related scanners) on containers, IaC, and lockfiles per `trivy-security`.
-4. **Risk framing** — Use `vulnerability-scanner` for threat modeling and prioritization when the change has meaningful exposure.
-5. **Agent and IDE config** — When relevant, `security-scan` for `.claude/`, MCP, hooks, and similar automation surfaces.
-6. **Deprecation / attack surface** — When the change removes or replaces surfaces (endpoints, auth paths, dependencies), use `deprecation-and-migration` so old entry points are not left as shadow risk.
+1. **Code security review** — AuthN/Z, secrets, injection, SSRF, path traversal, deserialization, and trust boundaries; minimal blast radius.
+2. **Static analysis** — Run **Semgrep** and other project-configured SAST.
+3. **Artifacts and dependencies** — Run **Trivy** (and related scanners) on containers, IaC, and lockfiles as configured.
+4. **Risk framing** — Threat model and prioritize when exposure is meaningful; document assumptions.
+5. **Agent and IDE config** — When relevant, audit `.claude/`, MCP servers, hooks, and agent definitions for unsafe defaults.
+6. **Deprecation / attack surface** — When removing or replacing endpoints, auth paths, or dependencies, retire old entry points and document timelines.
 
-## Skills to read and follow
+## Practices (inline)
 
-- `.agents/skills/karpathy-guidelines/SKILL.md` — explicit threat assumptions and minimal blast radius.
-- `.agents/skills/security-review/SKILL.md` — code-focused security review.
-- `.agents/skills/security-and-hardening/SKILL.md` — OWASP-oriented patterns, auth, secrets, boundaries.
-- `.agents/skills/semgrep-security/SKILL.md` — Semgrep static analysis.
-- `.agents/skills/trivy-security/SKILL.md` — Trivy for containers/deps and related surfaces.
-- `.agents/skills/vulnerability-scanner/SKILL.md` — threat modeling and prioritization.
-- `.agents/skills/security-scan/SKILL.md` — audit agent/IDE config.
-- `.agents/skills/deprecation-and-migration/SKILL.md` — retire unsafe or duplicate surfaces cleanly.
+- State explicit **threat assumptions** (who is trusted, what data is sensitive).
+- Prefer measurable checks (scanner commands, policy-as-code) over generic advice.
 
 ## Notes
 
 - Inspect the repo with tools; do not assume stack or layout.
 - If scanners are not installed, say what is missing and what commands would run once configured.
+
+## Completion report (required)
+
+End with a **Session wrap-up** the user can scan:
+
+1. **What I did** — Bullets: scanners or checklists run, findings severity summary, and files written (e.g. reports) if any.
+2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
+3. **Suggested next command** — **`/skillgrid-validate`** for combined review+security sign-off, or **`/skillgrid-finish`** if you already ran review separately and are ready to ship.
 
 </process>

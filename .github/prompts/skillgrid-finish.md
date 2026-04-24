@@ -1,5 +1,8 @@
 ---
-description: Close the change: archive or sync specs, git hygiene, ship checklist, PR
+name: /skillgrid-finish
+id: skillgrid-finish
+category: Workflow
+description: Close the change: optional spec sync, archive, git hygiene, ship checklist, PR
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[change-id or branch name]"
 ---
@@ -8,34 +11,96 @@ argument-hint: "[change-id or branch name]"
 
 You are executing **`/skillgrid-finish`** (SHIP phase) for the Skillgrid workflow.
 
+Order of operations: **(1) optional** sync of delta specs into main `openspec/specs/` when the team wants mainline docs updated, **(2)** archive the change directory on disk, **(3)** **`mem_save`** ship/closure notes to Engram (stable `topic_key`, e.g. `skillgrid/<change>/archive`), **(4)** open/update PR, CI, and ship notes. **Always hybrid:** never treat disk and Engram as optional alternatives.
+
+**Status on exit:** Set the relevant PRD **`Status:`** to **`done`** (and INDEX / ticket table if used) when this phase completes successfully — last value in the lifecycle under **`/skillgrid-init` → PRD / change `Status` lifecycle** (`draft` → `todo` → `inprogress` → `devdone` → `done`).
+
 </objective>
 
 <process>
 
-## Steps
+## 1 — Optional: sync delta specs to main (before or without archive)
 
-1. **Archive** — Complete and archive the OpenSpec change with `openspec-archive-change` per your merge and branch policy.
-2. **Sync specs (optional)** — If the team promotes delta specs to mainline specs *without* archiving, use `openspec-sync-specs` instead of or in addition to archive.
-3. **Pull request** — Open or update a PR with a clear description, risk notes, and links to the change; keep commits atomic and reviewable (`git-workflow-and-versioning`).
-4. **CI / gates** — Align with `ci-cd-and-automation`: required checks, feature flags, deployment hooks as used by the project.
-5. **Deprecation** — If this change supersedes old paths, use `deprecation-and-migration` for timelines and cleanup.
-6. **Ship** — When deploying, run through `shipping-and-launch` (rollout, monitoring, rollback).
-7. **Documentation** — Update ADRs, API docs, and inline *why* via `documentation-and-adrs` when behavior or contracts shipped with this change.
+**When:** The change has **delta** specs under `openspec/changes/<name>/specs/` and the team wants **`openspec/specs/<capability>/spec.md`** updated before or without archiving the change.
 
-## Skills to read and follow
+**Input**: Change name, or ask via `openspec list --json` if ambiguous. **Do not** auto-pick a change when multiple are active and the user did not name one.
 
-- `.agents/skills/karpathy-guidelines/SKILL.md` — crisp PR text and honest risk notes.
-- `.agents/skills/openspec-archive-change/SKILL.md` — complete and archive the change.
-- `.agents/skills/openspec-sync-specs/SKILL.md` — promote delta specs without archiving, if the flow needs it.
-- `.agents/skills/git-workflow-and-versioning/SKILL.md` — trunk-style workflow, atomic commits, small changes.
-- `.agents/skills/documentation-and-adrs/SKILL.md` — record decisions and public surface changes for the next reader.
-- `.agents/skills/ci-cd-and-automation/SKILL.md` — pipelines, feature flags, quality gates.
-- `.agents/skills/deprecation-and-migration/SKILL.md` — sunset paths, migrations, dead code.
-- `.agents/skills/shipping-and-launch/SKILL.md` — pre-launch checks, rollouts, rollback, monitoring.
+**Steps**
+
+1. List changes that have a `specs/` subtree under the change. If none, skip this section.
+
+2. For each `openspec/changes/<name>/specs/<capability>/spec.md`:
+
+   - Read the **delta** (sections like `## ADDED Requirements`, `## MODIFIED Requirements`, `## REMOVED Requirements`, `## RENAMED Requirements`).
+   - Read or create the **main** file `openspec/specs/<capability>/spec.md`.
+   - **Merge intelligently** — apply partial updates (e.g. add a scenario under MODIFIED without pasting the whole file). Preserve main-spec content not touched by the delta.
+   - **ADDED** — add or reconcile requirements; **MODIFIED** — apply edits; **REMOVED** — remove blocks; **RENAMED** — apply FROM/TO.
+   - If the capability is new, create the directory and a minimal **Purpose** plus the added requirements.
+
+3. Summarize: which capabilities were updated and what class of change (add/modify/remove/rename).
+
+**Idempotency** — Re-reading delta and main and re-applying should be safe; when unsure, ask.
+
+---
+
+## 2 — Archive the OpenSpec change (on-disk)
+
+**Input**: Change name, or ask via `openspec list --json` if missing/ambiguous. Prefer explicit user choice when multiple changes exist.
+
+**Steps**
+
+1. **Status**
+
+   ```bash
+   openspec status --change "<name>" --json
+   ```
+
+   List artifacts not `done`. Warn and get confirmation to continue if something is incomplete.
+
+2. **Tasks** — Open `openspec/changes/<name>/tasks.md` (or the path your schema uses). Count `- [ ]` vs `- [x]`. If incomplete, warn and confirm before archiving.
+
+3. **Sync prompt when delta specs exist** — If `openspec/changes/<name>/specs/` exists, compare to main `openspec/specs/`. If main is behind, offer:
+
+   - **Sync now (recommended)** — run the **sync procedure** in section 1, then continue.
+   - **Archive without syncing** — document that choice in the finish summary.
+   - **Cancel** — stop.
+
+4. **Archive move**
+
+   ```bash
+   mkdir -p openspec/changes/archive
+   mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
+   ```
+
+   Use **today’s date** in `YYYY-MM-DD` (authoritative: session “today”). If `openspec/changes/archive/YYYY-MM-DD-<name>` **already exists**, do not overwrite: report the conflict and list options (rename old archive, remove duplicate, or use another date).
+
+5. **Summary** — Print change id, schema if known, final archive path, whether specs were synced, and any warnings (incomplete artifacts or tasks, sync skipped).
+
+6. **Engram** — `mem_save` a short closure record: archive path, PR link or branch, spec sync outcome. **`topic_key`:** e.g. `skillgrid/<name>/archive`. If you could not archive on disk (e.g. missing `openspec/`), still save to Engram and explain the gap.
+
+---
+
+## 3 — Pull request, CI, and ship
+
+1. **Pull request** — Open or update a PR: clear description, risks, and links to **`openspec/changes/…`**, the numbered PRD file(s) (**`.skillgrid/prd/PRD<NN>_<slug>.md`**), and tests. Keep commits small and reviewable; follow team branching rules.
+2. **CI / gates** — Ensure required checks pass; feature flags and deployment hooks as the project does.
+3. **Deprecation** — If old paths are retired, document timelines and follow-up issues.
+4. **Deploy** — When shipping to production, use your **launch checklist** (rollout, monitoring, rollback) as the team defines.
+5. **Documentation** — ADRs, API docs, and “why” comments if behavior or contracts changed.
+
+6. **PRD `Status`** — Set the relevant PRD’s **`Status:`** to **`done`** (and INDEX / ticket table if used). This is the terminal state in **`/skillgrid-init` → PRD / change `Status` lifecycle**.
 
 ## Notes
 
-- Inspect the repo with tools; do not assume stack or layout.
-- If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.
+- Inspect the repo; do not assume stack or layout.
+- First-time OpenSpec **guided** walkthrough: see [`/opsx-onboard`](./opsx-onboard.md) for a full cycle narrative; finish here is the **archive + ship** end of that story.
+
+## Completion report (required)
+
+End with a **Session wrap-up** the user can scan:
+
+1. **What I did** — Bullets: archive moves, spec sync, PR/CI prep, and Engram or closure steps completed.
+2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
+3. **Suggested next command** — None for this change cycle—**merge / deploy**; for **new** work, start with **`/skillgrid-plan`** or **`/skillgrid-explore`**.
 
 </process>

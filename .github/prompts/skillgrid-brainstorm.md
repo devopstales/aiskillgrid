@@ -20,7 +20,7 @@ Do **not** write production code, scaffold apps, or drive **`/skillgrid-apply`**
 
 ## Questioning discipline
 
-Use **one question at a time**, **multiple choice when it helps**, **scope before detail**, and **alternatives with tradeoffs** before locking direction—see the table and **Preview picks** below. Stay inside Skillgrid phases and the skills at the end of this file.
+Use **one question at a time**, **multiple choice when it helps**, **scope before detail**, and **alternatives with tradeoffs** before locking direction—see the table and **Preview picks** below. Stay inside Skillgrid phases; hand off with a clear problem statement for **`/skillgrid-plan`**.
 
 | Practice | What to do |
 |----------|------------|
@@ -74,27 +74,55 @@ flowchart TD
 
 1. **Clarify** — Follow **Questioning discipline** and **Preview picks** until goals, constraints, and success criteria are explicit.
 2. **Diverge** — List options, alternatives, and tradeoffs; keep judgment light until the space is wide enough.
-3. **Research** — Use `search-first` and the open web for prior art; use `documentation-lookup` (Context7) when the idea depends on a specific framework or library.
-4. **Converge** — Rank approaches; state assumptions and risks (see `karpathy-guidelines`).
-5. **Validate** — Use `deep-research` when external evidence or breadth should inform the choice.
-6. **Refine** — Use `idea-refine` (divergent/convergent structure) to sharpen a vague idea into a defensible direction.
-7. **Handoff** — Output should feed **`/skillgrid-plan`**, not a full locked spec. 
+3. **Research** — Use the open web and repo search for prior art; use **Context7** (or your docs MCP) when the idea depends on a specific framework or library.
+4. **Converge** — Rank approaches; state assumptions, risks, and tradeoffs explicitly before locking direction.
+5. **Validate** — When breadth or citations matter, run a deeper multi-source pass with explicit sources.
+6. **Refine** — Use divergent then convergent structure to sharpen a vague idea into a defensible direction.
+7. **OpenSpec `config.yaml`** — If **`openspec/`** exists on disk, read **`openspec/config.yaml`**. After **Converge** (or at **Handoff**), **merge** session-stable context into the file: update **`context`** with goals, constraints, chosen direction, and stack implications from the brainstorm; add or adjust **`rules`** if the session set norms for artifacts (**proposal**, **specs**, **design**, **tasks**). If the file is missing, create it from **OpenSpec project config (template)** below (same as **`/skillgrid-init`**). Keep **`context`** under **50KB**; keep a valid **`schema`** (default `spec-driven` unless the project uses another). **Merge**, do not clobber: if the file is already rich, show a short diff and confirm before replacing large sections. Skip this step if the project has no **`openspec/`** (e.g. Engram-only persistence).
+8. **Handoff** — Output should feed **`/skillgrid-plan`**, not a full locked spec.
 
-## Skills to read and follow
+## OpenSpec project config (template)
 
-- `.agents/skills/karpathy-guidelines/SKILL.md` — surface tradeoffs and alternatives before locking direction.
-- `.agents/skills/search-first/SKILL.md` — research tools and patterns before building.
-- `.agents/skills/documentation-lookup/SKILL.md` — authoritative library/framework docs via Context7 MCP.
-- `.agents/skills/deep-research/SKILL.md` — validate assumptions and gather evidence.
-- `.agents/skills/idea-refine/SKILL.md` — structured ideation to sharpen a vague idea.
+Same default body for **`openspec/config.yaml`** as **`/skillgrid-init`**. Use when creating the file or as the merge target for **`context`** / **`rules`**. Replace `<placeholders>` with repo and session facts. Fields: **`schema`** (required), **`context`** (optional), **`rules`** (optional, keyed by artifact id).
+
+```yaml
+# openspec/config.yaml — Skillgrid default; merge with existing file if present
+schema: spec-driven
+
+context: |
+  Project: <short name — purpose in one line>
+  Stack: <languages, frameworks, package manager>
+  Layout: <e.g. src/, app/, packages/>
+  Testing: <runner; where tests live>
+  Skillgrid: PRDs in .skillgrid/prd/; persistence per AGENTS.md (hybrid: openspec/ + Engram when used)
+  Conventions: <AGENTS.md / team rules — keep brief>
+
+rules:
+  proposal:
+    - Tie to the PRD under .skillgrid/prd/ when one exists; name scope and non-goals.
+  specs:
+    - Use clear requirements; scenarios (Given/When/Then) when they help acceptance.
+  design:
+    - Boundaries, data flow, migration or rollback when relevant.
+  tasks:
+    - Small, verifiable checkboxes; trace to specs and PRD execution order.
+```
 
 ## Optional: IDE personas
 
-For a **dedicated research subagent** that leans on hub MCPs (**Exa**, **Firecrawl**, **DeepWiki**, **Context7**) and delivers a cited memo, spawn **`skillgrid-researcher`** ([`.cursor/agents/skillgrid-researcher.md`](../../.cursor/agents/skillgrid-researcher.md)).
+For a **dedicated research subagent** that leans on hub MCPs (**Exa**, **Firecrawl**, **DeepWiki**, **Context7**) and delivers a cited memo, spawn agent **`skillgrid-researcher`** (definition: **`.cursor/agents/skillgrid-researcher.md`**).
 
 ## Notes
 
 - Inspect the repo with tools when brainstorming touches implementation reality.
-- If OpenSpec or SDD modes are unclear, ask once, then align with existing `openspec/` or repo conventions.
+- **Hybrid persistence** (`openspec/` + Engram) is the default; align with **`/skillgrid-init`** if the repo layout is unclear.
+
+## Completion report (required)
+
+End with a **Session wrap-up** the user can scan:
+
+1. **What I did** — Bullets: topics covered, options compared, any **`.skillgrid/preview/`** or **`openspec/config.yaml`** updates, and the agreed direction in one line.
+2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
+3. **Suggested next command** — **`/skillgrid-plan`** to capture a PRD and OpenSpec change (or **`/skillgrid-explore`** if repo reality is still unknown).
 
 </process>

@@ -5,7 +5,7 @@ Use these when the project or IDE has them enabled (merged `mcp.json`, `install.
 ## Engram (persistent memory MCP)
 
 - **Typical tools:** `mem_context`, `mem_search`, `mem_get_observation`, `mem_save`, `mem_session_summary` (exact set depends on server config).
-- **Role:** Cross-session facts, SDD-related artifact keys when the project uses SDD + Engram (see e.g. `.agents/skills/sdd-verify/SKILL.md`), and decisions worth recalling.
+- **Role:** Cross-session facts, **Skillgrid** / OpenSpec artifact keys when the project uses **Engram** (e.g. `skillgrid-init/{project}`, `skillgrid/{change}/verify-report`), and decisions worth recalling.
 - **Rule:** `mem_search` previews are short; use `mem_get_observation(id)` for full content before relying on an artifact.
 - **When:** Session start, before claiming “we already decided…”, after locking a decision worth replaying.
 - **Discipline:** `.agents/skills/memory-protocol/SKILL.md` (Engram memory protocol).

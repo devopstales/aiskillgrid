@@ -6,7 +6,8 @@
 # PURPOSE:
 #   Copies AI assistant configuration folders (Cursor, Copilot, Kilo, OpenCode,
 #   Antigravity) from this hub repo into a target project directory.
-#   Merges MCP server configs from .configs/mcp/ and normalizes them per-IDE.
+#   Syncs hub `.skillgrid/` (project docs + scripts) and merges MCP configs from
+#   .configs/mcp/ normalized per-IDE.
 #
 # USAGE:
 #   ./install.sh [OPTIONS]
@@ -385,18 +386,11 @@ interactive_mcp_selection() {
             selected_names+=("$name")
         done
 
-        # Create JSON array
-        MCP_KEY_FILTER_JSON="["
-        local first=true
-        for name in "${selected_names[@]}"; do
-            if [ "$first" = true ]; then
-                MCP_KEY_FILTER_JSON+="\"$name\""
-                first=false
-            else
-                MCP_KEY_FILTER_JSON+=",\"$name\""
-            fi
-        done
-        MCP_KEY_FILTER_JSON+="]"
+        # JSON array via jq so keys with quotes/special chars are valid for --argjson
+        MCP_KEY_FILTER_JSON=$(printf '%s\n' "${selected_names[@]}" | jq -R -s 'split("\n") | map(select(length > 0))') || {
+            log_error "MCP: could not encode server key list (jq) — try again"
+            continue
+        }
 
         log_info "MCP: selected ${#selected_names[@]} server(s)"
         return 0
@@ -694,12 +688,18 @@ merge_mcp_configs() {
         return 1
     }
 
-    # Apply filter if subset selected
+    # Apply filter if subset selected (--argjson name must not shadow jq builtins like "keys")
     if [ -n "$MCP_KEY_FILTER_JSON" ]; then
-        merged_json=$(echo "$merged_json" | jq --argjson keys "$MCP_KEY_FILTER_JSON" '{ mcpServers: (.mcpServers | with_entries(select(.key as $k | ($keys | index($k) != null)))) }' 2>/dev/null) || {
-            log_error "MCP subset filter failed (jq)" >&2
+        local jq_filter_err
+        jq_filter_err=$(mktemp)
+        merged_json=$(printf '%s' "$merged_json" | jq --argjson keep "$MCP_KEY_FILTER_JSON" '
+          { mcpServers: ((.mcpServers // {}) | with_entries(select(.key as $k | ($keep | index($k) != null)))) }
+        ' 2>"$jq_filter_err") || {
+            log_error "MCP subset filter failed (jq): $(tr '\n' ' ' < "$jq_filter_err")" >&2
+            rm -f "$jq_filter_err"
             return 1
         }
+        rm -f "$jq_filter_err"
         local count
         count=$(echo "$merged_json" | jq '.mcpServers | keys | length')
         log_info "Applied MCP server subset ($count server(s))" >&2
@@ -1591,6 +1591,30 @@ main() {
         fi
     elif [ ! -f "$HUB_AGENTS" ] && [ ${#SELECTED_IDES[@]} -gt 0 ]; then
         log_info ".configs/AGENTS.md not found in hub — skipping AGENTS.md copy"
+    fi
+
+    # Sync hub .skillgrid/ → project root (no --delete: preserve target prd/, preview/, etc.)
+    HUB_SKILLGRID="$SCRIPT_DIR/.skillgrid"
+    if [ -d "$HUB_SKILLGRID" ]; then
+        echo ""
+        dst_skillgrid="$PROJECT_PATH/.skillgrid"
+        if [ "$DRY_RUN" = true ]; then
+            if [ -d "$dst_skillgrid" ]; then
+                echo "[DRY-RUN] Would update: .skillgrid"
+            else
+                echo "[DRY-RUN] Would create: .skillgrid"
+            fi
+        else
+            if [ -d "$dst_skillgrid" ]; then
+                echo "Updating: .skillgrid"
+            else
+                echo "Creating: .skillgrid"
+            fi
+            rsync -av "$HUB_SKILLGRID/" "$dst_skillgrid/"
+            log_success "Synced .skillgrid/ (hub templates → project)"
+        fi
+    else
+        log_info ".skillgrid/ not found in hub — skipping"
     fi
 
     # Sync .agents/skills/ to each IDE's skills directory

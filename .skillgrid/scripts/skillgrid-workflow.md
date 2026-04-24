@@ -1,6 +1,8 @@
 # Skillgrid workflow
 
-**Runnable steps** live in the slash commands (e.g. `.cursor/commands/skillgrid-*.md`, mirrored under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). The sections below are a compact index; open the matching `skillgrid-*` file for the full checklist and skill paths.
+**Single-file index** — lives at **`.skillgrid/scripts/skillgrid-workflow.md`** (next to `preview.sh`). Copy this file with your project when you share or archive the repo; the aiskillgrid hub also mirrors it from `docs/wokflow.md` (or follow the short pointer in `docs/wokflow.md` on GitHub).
+
+**Runnable steps** live in slash command files (e.g. **`.cursor/commands/skillgrid-*.md`**, or **`.kilo/commands/`**, **`.opencode/commands/`**, **`.github/prompts/`**). The sections below are a compact index; open the matching **`skillgrid-*`** file in your IDE for the full checklist and skill paths.
 
 ## PRD / change `Status` (stages)
 
@@ -35,10 +37,11 @@ project-root/
     │   └── <change-or-feature>.md
     ├── preview/                    # /skillgrid-brainstorm: ephemeral MD/HTML to compare and pick options
     └── scripts/
-        └── preview.sh              # scaffolds non-destructive stubs under preview/
+        ├── preview.sh              # scaffolds non-destructive stubs under preview/
+        └── skillgrid-workflow.md   # this file
 ```
 
-- **`preview/`** — Short-lived brainstorm files (e.g. layout A vs B). This repo’s **`.skillgrid/preview/.gitignore`** may ignore `*.html`; commit policy is up to the team.  
+- **`preview/`** — Short-lived brainstorm files (e.g. layout A vs B). A **`.skillgrid/preview/.gitignore`** may ignore `*.html`; commit policy is up to the team.  
 - **`scripts/preview.sh`** — Run from project root: `.skillgrid/scripts/preview.sh [slug]` (optional `--md` for markdown). Not every IDE has an embedded browser; users can open files in the editor or a regular browser, or work from labeled A/B in chat.  
 - A longer **example** (with IDE folders, `openspec/`, etc.) appears in **`/skillgrid-init`** under **Project structure (example)**. **Copy-paste templates** for `ARCHITECTURE.md`, `STRUCTURE.md`, `PROJECT.md`, and PRD index/skeleton are in the commands, not in this file (see **Formatting templates** below).
 
@@ -52,7 +55,7 @@ project-root/
 ## graphify — `graphify update .` from project root (see AGENTS.md); code discovery via `rg`/IDE search
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
-- skillgrid-init (command) — bootstrap `.skillgrid/`, OpenSpec tree, persistence modes (`hybrid` / `openspec` / `engram` / `none`); see `.cursor/commands/skillgrid-init.md`
+- skillgrid-init (command) — bootstrap `.skillgrid/`, OpenSpec tree, persistence modes (`hybrid` / `openspec` / `engram` / `none`); see your IDE’s copy of e.g. `.cursor/commands/skillgrid-init.md`
 - memory-protocol — Engram MCP: when to save, search, close sessions
 - context-engineering — Feed agents the right information at the right time - rules files, context packing, MCP integrations
 
@@ -80,7 +83,7 @@ project-root/
 
 /skillgrid-brainstorm
 # User describes what they want
-## Ask back to clarify; diverge and converge (see .cursor/commands/skillgrid-brainstorm.md)
+## Ask back to clarify; diverge and converge (see your IDE’s skillgrid-brainstorm command file)
 ## Preview picks (optional): put compare-and-choose MD/HTML in .skillgrid/preview/; run .skillgrid/scripts/preview.sh to scaffold; works in any IDE (open file or use A/B in chat if no browser)
 ## Search the internet for good examples when it helps
 ### Skills (.agents/skills/)
@@ -132,7 +135,7 @@ project-root/
 # Ask user to validate code really works
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
-- skillgrid-review (command) — OpenSpec verify + Engram + code/product review; see `.cursor/commands/skillgrid-review.md`
+- skillgrid-review (command) — OpenSpec verify + Engram + code/product review; see your IDE’s `skillgrid-review` command
 - code-review-and-quality — Five-axis review, change sizing 100 lines, severity labels Nit/Optional/FYI, review speed norms, splitting strategies
 - code-simplification - Chesterton Fence, Rule of 500, reduce complexity while preserving exact behavior
 # clean-code — review for clarity and coupling
@@ -177,7 +180,7 @@ Parallel **subagents** for codebase mapping and domain research, you can **fan o
 - **Safe to run in parallel:** read-only **explore** passes on disjoint areas (e.g. different packages), **cited** landscape or prior-art research with non-overlapping briefs (stack vs competitors vs API docs), using personas such as `skillgrid-explore-architect` and `skillgrid-researcher` in separate subagent contexts when your harness allows concurrent `Task` / subagents.
 - **Keep sequential:** `/skillgrid-plan` → `/skillgrid-breakdown` so intent stays a single chain; then `/skillgrid-apply` and later gates follow their ordered phases.
 
-Parallel fan-out and merge is the same orchestration idea as the **slash command (orchestrator — fan-out)** section in [`.cursor/agents/README.md`](../.cursor/agents/README.md): only when sub-tasks are **independent** (no shared mutable state, no required ordering). The hub’s `/skillgrid-validate` run may still be **sequential in one turn**; true wall-clock parallelism requires a harness with concurrent subagents.
+Parallel fan-out and merge matches the same idea as a **fan-out / orchestrator** section in your IDE’s agent docs (e.g. **`.cursor/agents/README.md`** in Cursor), only when sub-tasks are **independent** (no shared mutable state, no required ordering). A **`/skillgrid-validate`** run may still be **sequential in one turn**; true wall-clock parallelism needs a harness with concurrent subagents.
 
 ## Formatting templates
 

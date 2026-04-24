@@ -1,5 +1,8 @@
 ---
-description: Implement from tasks; keep PRD and OpenSpec tasks.md checked off in sync
+name: /skillgrid-apply
+id: skillgrid-apply
+category: Workflow
+description: Implement from tasks; OpenSpec apply loop; keep PRD and tasks.md in sync
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 argument-hint: "[change-id; optional task focus]"
 ---
@@ -8,44 +11,104 @@ argument-hint: "[change-id; optional task focus]"
 
 You are executing **`/skillgrid-apply`** (BUILD phase) for the Skillgrid workflow.
 
+Implement from the OpenSpec change’s **apply** instructions. **Always use hybrid persistence:** keep **PRD**, **`tasks.md`**, and **Engram** aligned — update checkboxes on disk and **`mem_save`** task progress to a stable `topic_key` (e.g. `skillgrid/{change}/tasks`) when you complete or restructure work.
+
+**Status on exit:** Set the PRD’s **`Status:`** to **`inprogress`** once this run advances implementation (e.g. lands code, marks tasks, or checkboxes change). If the run only loads context and does not advance work, you may keep the prior value. Next lifecycle values: **`devdone`** after **`/skillgrid-review`**, **`done`** after **`/skillgrid-finish`** (see **`/skillgrid-init` → PRD / change `Status` lifecycle**).
+
 </objective>
 
 <process>
 
-## Steps
+## Part A — OpenSpec apply loop (on-disk OpenSpec)
 
-1. **Worktrees** — Prefer git worktrees for parallel changes when the workflow benefits from isolation.
-2. **Apply change** — Implement using `openspec-apply-change` from the change’s tasks and delta specs (when OpenSpec/SDD artifacts drive the work).
-3. **Task bookkeeping (mandatory)** — When you **complete** a task, **immediately** update the checklist in **both** places so they never diverge:
-   - `openspec/changes/<change-id>/tasks.md` — set the matching items to `- [x]` (or adjust wording if the task was split, deferred, or corrected; then mirror that edit in the PRD).
-   - The change’s **PRD** — the **Implementation tasks** section (e.g. `prd/<slug>.md`) must show the **same** `- [x]` / `- [ ]` state and the same numbered lines as `tasks.md`.
-   If the project has no PRD file for the change, update `tasks.md` only and add or restore a PRD pointer when the team expects one. Never mark done in one file and leave the other stale.
-4. **Scope** — Ship a **minimum viable change**: smallest increment that meets the current tasks; avoid unrelated refactors.
-5. **Contracts** — Preserve public APIs and error semantics agreed in design; use `api-and-interface-design` when changing boundaries.
-6. **TDD** — When tests are part of the stack, use red–green–refactor (`tdd-workflow`, `tdd-guide`, `test-driven-development`).
-7. **Framework choices** — Ground decisions in official documentation (`source-driven-development`); note citations in commits or code where helpful.
-8. **Quality** — Keep edits readable and cohesive (`clean-code`, `karpathy-guidelines`); use `incremental-implementation` for vertical slices with verification and atomic commits.
-9. **Migrations** — Use `database-migrations` for schema and data changes safely.
-10. **Graph** — After substantial edits, run **`graphify update .`** when the project uses graphify (see `AGENTS.md`).
+**Input**: Optionally the change name (e.g. `/skillgrid-apply add-auth`). If omitted, infer from context, or if only one active change exists, use it. If ambiguous, run `openspec list --json` and ask the user to choose.
 
-## Skills to read and follow
+1. **Announce the change** — State you are **using change: `<name>`** and how to override (e.g. pass a different name next time).
 
-- `.agents/skills/openspec-apply-change/SKILL.md` — implement from OpenSpec change tasks.
-- `.agents/skills/api-and-interface-design/SKILL.md` — contracts, Hyrum’s Law, error semantics at module edges.
-- `.agents/skills/karpathy-guidelines/SKILL.md` — surgical, verifiable steps.
-- `.agents/skills/incremental-implementation/SKILL.md` — vertical slices, verify, commit; safe defaults.
-- `.agents/skills/tdd-workflow/SKILL.md` — structured red–green–refactor discipline.
-- `.agents/skills/tdd-guide/SKILL.md` — TDD patterns.
-- `.agents/skills/test-driven-development/SKILL.md` — red–green–refactor, pyramid, DAMP, Beyoncé rule.
-- `.agents/skills/source-driven-development/SKILL.md` — cite official docs for framework decisions.
-- `.agents/skills/clean-code/SKILL.md` — readability and maintainability while implementing.
-- `.agents/skills/database-migrations/SKILL.md` — apply schema/data migrations safely.
-- `.agents/skills/references/indexing-and-memory.md` — graphify refresh and structural search after significant code changes.
+2. **Status**
+
+   ```bash
+   openspec status --change "<name>" --json
+   ```
+
+   Note `schemaName` and which artifact holds tasks (often `tasks`).
+
+3. **Apply instructions**
+
+   ```bash
+   openspec instructions apply --change "<name>" --json
+   ```
+
+   This yields context file paths, progress (total / complete / remaining), task list, and a dynamic note for the current state.
+
+   **Handle states:**
+
+   - **`blocked`** (missing artifacts): show which artifacts are missing; complete them with **`/skillgrid-plan`** or **`/skillgrid-breakdown`**, or create files per `openspec instructions <artifact-id> --change "<name>" --json`. Do not guess past schema requirements.
+   - **`all_done`**: congratulate; suggest **`/skillgrid-review`** and **`/skillgrid-finish`**.
+   - Otherwise: proceed to implementation.
+
+4. **Read context** — Read every path in `contextFiles` from the apply output (commonly proposal, specs, design, `tasks` for spec-driven flows). Prefer CLI output over hard-coded filenames.
+
+5. **Show progress** — Display schema, **N/M tasks** complete, remaining work, and the CLI’s current instruction.
+
+6. **Implement (loop)** — For each **pending** task line:
+
+   - State which task you are on.
+   - Make minimal, focused code changes.
+   - **Immediately** set the task checkbox in **`openspec/changes/<name>/tasks.md`**: `- [ ]` → `- [x]`.
+   - **Immediately** mirror the same line in the **PRD** **Implementation tasks** section (**`.skillgrid/prd/PRD<NN>_<slug>.md`**). The two must stay identical.
+   - Continue until done, blocked, or interrupted.
+
+7. **Pause if** the task is unclear, implementation contradicts the design, an error is hit, or the user stops you—report and wait.
+
+8. **End of session** — Summarize completed tasks, N/M progress, and next action (continue apply, run review, or archive).
+
+### Output shape (optional)
+
+Use clear headings, e.g. `Implementing: <change> (schema: …)`, per-task progress, and a short completion or pause block.
+
+### Apply guardrails
+
+- Read context from the **apply** instruction output every time; do not assume fixed filenames beyond what the schema provides.
+- Keep changes scoped; one task at a time.
+- Update checkboxes in **`tasks.md` and the PRD** in the same edit pass when possible.
+- On ambiguity or schema mismatch, stop and ask—do not invent missing artifacts.
+
+### Fluid workflow
+
+- Apply can be invoked with partial progress; you may need to **update design or specs** if implementation finds issues—suggest that explicitly before coding around the schema.
+
+---
+
+## Part B — Skillgrid-specific (hybrid bookkeeping)
+
+1. **Worktrees** — Prefer **git worktrees** for parallel or isolated work when it helps the team.
+2. **Task bookkeeping (mandatory)** — Whenever a task is **done** or **split/deferred/corrected**, update:
+
+   - `openspec/changes/<change-id>/tasks.md` (when it exists)
+   - The **PRD** **Implementation tasks** (same line numbers and checkbox state)
+   - The **PRD** **`Status:`** line to **`inprogress`** when this session advances work (per **objective**)
+
+   If there is no PRD file, update `tasks.md` (or Engram) only and add a pointer when the team expects a PRD.
+3. **Scope** — Smallest vertical slice that satisfies the current tasks; no unrelated refactors.
+4. **Contracts** — Preserve agreed APIs and error behavior at public boundaries; document contract changes in design/PRD when you must change them.
+5. **TDD** — When tests are in play: red–green–refactor; write the failing test first when the task calls for it.
+6. **Frameworks** — Ground behavior in the official docs for the stack the repo uses; cite in commits or code comments when useful.
+7. **Quality** — Small, reviewable commits; work in **vertical slices** (implement, verify, commit).
+8. **Migrations** — For schema/data changes, follow safe migration practices (one migration per logical change, rollback story).
+9. **Graph** — After substantial structural edits, run **`graphify update .`** when the project uses graphify.
 
 ## Notes
 
-- Inspect the repo with tools; do not assume stack or layout.
-- If OpenSpec or SDD modes are unclear, ask once, then follow existing `openspec/` or repo persistence conventions.
-- Checklist format and the PRD↔`tasks.md` link live in `/skillgrid-breakdown`; apply keeps them aligned as work lands.
+- Inspect the repo; do not assume stack or layout.
+- Checklist format and PRD link live in **`/skillgrid-breakdown`**.
+
+## Completion report (required)
+
+End with a **Session wrap-up** the user can scan:
+
+1. **What I did** — Bullets: change name, which **`openspec instructions apply`** steps completed, files changed in the repo, and PRD **`Implementation tasks`** sync.
+2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
+3. **Suggested next command** — **`/skillgrid-test`** to run automated checks; if tests are not in scope, **`/skillgrid-review`**.
 
 </process>

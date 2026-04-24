@@ -8,7 +8,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 - **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD phases, code review, security, TDD, graphify + Engram memory protocol, and more). See [docs/skills.md](docs/skills.md).
 - **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/commands.md](docs/commands.md).
-- **Workflow** — End-to-end phases from init through finish in [docs/wokflow.md](docs/wokflow.md).
+- **Workflow** — End-to-end phases from init through finish in [.skillgrid/scripts/skillgrid-workflow.md](.skillgrid/scripts/skillgrid-workflow.md).
 - **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, graphify, dmux, Engram, etc.). See [docs/tools.md](docs/tools.md).
 - **Shared agent rules** — [`.configs/AGENTS.md`](.configs/AGENTS.md) is copied to the target project and IDE config dirs when you install.
 
@@ -16,7 +16,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ## Workflow
 
-**Phase 0** (`/skillgrid-session`) plus **twelve** workflow **`/skillgrid-*`** steps from [docs/wokflow.md](docs/wokflow.md), including optional **`/skillgrid-validate`** as a one-shot review+security gate, grouped like the six-phase diagram in [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills). OpenSpec-focused steps also use **`/opsx-*`** ([docs/commands.md](docs/commands.md)).
+**Phase 0** (`/skillgrid-session`) plus **twelve** workflow **`/skillgrid-*`** steps from [.skillgrid/scripts/skillgrid-workflow.md](.skillgrid/scripts/skillgrid-workflow.md), including optional **`/skillgrid-validate`** as a one-shot review+security gate, grouped like the six-phase diagram in [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills). OpenSpec-focused steps also use **`/opsx-*`** ([docs/commands.md](docs/commands.md)).
 
 ```
   PHASE 0 (optional at session start)
@@ -74,7 +74,7 @@ You need a working **bash**, **rsync**, and **jq** for a full install with MCP m
 | Doc | Contents |
 |-----|----------|
 | [docs/agents.md](docs/agents.md) | IDE agent personas (`.cursor/agents/`, mirrors, format) |
-| [docs/wokflow.md](docs/wokflow.md) | Skillgrid phases and which skills apply per phase |
+| [.skillgrid/scripts/skillgrid-workflow.md](.skillgrid/scripts/skillgrid-workflow.md) | Skillgrid phases and which skills apply per phase |
 | [.skillgrid/project/](.skillgrid/project/) | This hub’s own architecture, structure, and project onboarding docs |
 | [docs/skills.md](docs/skills.md) | Catalog of all skills with paths and summaries |
 | [docs/commands.md](docs/commands.md) | Slash commands and where they live per IDE |

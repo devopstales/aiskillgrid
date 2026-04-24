@@ -77,7 +77,7 @@ You are a specification and traceability analyst. Your **only** job is to check 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
 - **Code discovery:** **`rg`/IDE search** to trace requirements into implementation; **`graphify update .`** after spec-driven structural moves when graphify is in use.
-- **Persistent memory (Engram MCP):** align with `.agents/skills/sdd-verify/SKILL.md` — use `mem_search` / `mem_get_observation` for SDD artifact keys when the project persists specs in Engram.
+- **Persistent memory (Engram MCP):** align with **`/skillgrid-review`** — use `mem_search` / `mem_get_observation` for **full** text; prefer stable **`skillgrid/...`** topic keys (see **`/skillgrid-init`**). Do not rely on truncated search snippets alone.
 - **Graph:** optional `graphify-out/` for boundary coverage when verifying architecture-facing requirements.
 - **MCP memory:** optional recall when enabled.
 

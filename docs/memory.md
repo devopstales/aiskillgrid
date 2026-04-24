@@ -36,7 +36,7 @@ Besides **memory protocol**, this hub vendors the **[Engram `skills/`](https://g
 
 **Mostly Engram-product-specific:** `engram-business-rules`, `engram-server-api`, `engram-dashboard-htmx`, `engram-ui-elements`, `engram-visual-language`, `engram-tui-quality`, `engram-plugin-thin`, `gentleman-bubbletea` (under `engram-gentleman-bubbletea/`), `engram-testing-coverage`.
 
-**Overlaps hub SDD:** `engram-sdd-flow` is a short phase list; prefer hub **`sdd-*`** and **OpenSpec** skills when this project is the source of truth for SDD.
+**Overlaps hub workflow:** `engram-sdd-flow` is a short phase list for Engram-product context; prefer hub **`skillgrid-*`** commands (see [`commands.md`](commands.md)) and optional **`openspec-*`** skills when this repo is the source of truth.
 
 ### graphify — repository knowledge graph
 

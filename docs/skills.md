@@ -28,15 +28,9 @@ Summaries are taken from each skill’s frontmatter `description` (trimmed). For
 | `openspec-sync-specs` | [.agents/skills/openspec-sync-specs/SKILL.md](../.agents/skills/openspec-sync-specs/SKILL.md) | Merge delta specs into main specs without archiving. |
 | `openspec-archive-change` | [.agents/skills/openspec-archive-change/SKILL.md](../.agents/skills/openspec-archive-change/SKILL.md) | Archive a completed change. |
 
-### Spec-Driven Development (SDD)
+### Skillgrid workflow (commands, not skills)
 
-| Skill | Path | Summary |
-|--------|------|---------|
-| `sdd-init` | [.agents/skills/sdd-init/SKILL.md](../.agents/skills/sdd-init/SKILL.md) | Initialize SDD context: stack, conventions, persistence mode. |
-| `sdd-propose` | [.agents/skills/sdd-propose/SKILL.md](../.agents/skills/sdd-propose/SKILL.md) | Create or update `proposal.md` for a named change. |
-| `sdd-spec` | [.agents/skills/sdd-spec/SKILL.md](../.agents/skills/sdd-spec/SKILL.md) | Write delta specs (requirements and scenarios). |
-| `sdd-tasks` | [.agents/skills/sdd-tasks/SKILL.md](../.agents/skills/sdd-tasks/SKILL.md) | Produce implementation task checklist (`tasks.md`). |
-| `sdd-verify` | [.agents/skills/sdd-verify/SKILL.md](../.agents/skills/sdd-verify/SKILL.md) | Verify implementation against specs, design, and tasks. |
+End-to-end **OpenSpec + PRD** procedures live in **slash commands** under [`.cursor/commands/`](../.cursor/commands/) (mirrored to `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). See [`commands.md`](commands.md) and [`wokflow.md`](wokflow.md). **`opsx-*`** commands are thin aliases of the matching **`skillgrid-*`** steps.
 
 ### Define and plan (product and tasks)
 
@@ -159,7 +153,7 @@ These directories mirror (or align with) skills from **[Gentleman-Programming/en
 | `engram-plugin-thin` | [.agents/skills/engram-plugin-thin/SKILL.md](../.agents/skills/engram-plugin-thin/SKILL.md) | Thin Claude/OpenCode/Gemini/Codex plugin adapters vs Go core. |
 | `engram-pr-review-deep` | [.agents/skills/engram-pr-review-deep/SKILL.md](../.agents/skills/engram-pr-review-deep/SKILL.md) | Deep technical review before merge. |
 | `engram-project-structure` | [.agents/skills/engram-project-structure/SKILL.md](../.agents/skills/engram-project-structure/SKILL.md) | Where files, handlers, templates, and tests belong (Engram repo layout). |
-| `engram-sdd-flow` | [.agents/skills/engram-sdd-flow/SKILL.md](../.agents/skills/engram-sdd-flow/SKILL.md) | Short SDD phase order; hub also has fuller `sdd-*` / OpenSpec skills. |
+| `engram-sdd-flow` | [.agents/skills/engram-sdd-flow/SKILL.md](../.agents/skills/engram-sdd-flow/SKILL.md) | Short phase-order reference (Engram product context); hub workflow is **`skillgrid-*`** + **`openspec-*`** skills optional. |
 | `engram-server-api` | [.agents/skills/engram-server-api/SKILL.md](../.agents/skills/engram-server-api/SKILL.md) | HTTP API contract guardrails for server changes. |
 | `engram-testing-coverage` | [.agents/skills/engram-testing-coverage/SKILL.md](../.agents/skills/engram-testing-coverage/SKILL.md) | TDD and coverage standards (Engram packages). |
 | `engram-tui-quality` | [.agents/skills/engram-tui-quality/SKILL.md](../.agents/skills/engram-tui-quality/SKILL.md) | Bubbletea/Lipgloss TUI quality and navigation. |
@@ -181,4 +175,4 @@ Upstream catalog: [engram `skills/catalog.md`](https://github.com/Gentleman-Prog
 
 Use **`skill-creator`** and keep one directory per skill with a root **`SKILL.md`**. Optional subfolders: `assets/`, `references/` (per-skill), or rely on shared **`.agents/skills/references/`** for checklists.
 
-After adding skills, update this file (`docs/skills.md`) and the phase lists in [`wokflow.md`](wokflow.md) if the workflow should surface them. If a skill introduces a new CLI or MCP dependency, add it to [`tools.md`](tools.md). For how **Engram**, **graphify**, and search fit together, see [`memory.md`](memory.md).
+After adding skills, update this file (`docs/skills.md`) and the phase lists in [`wokflow.md`](wokflow.md) if the workflow should surface them. **Markdown file templates** for project/PRD live in **`/skillgrid-init`** and **`/skillgrid-plan`**, not in `wokflow.md`. If a skill introduces a new CLI or MCP dependency, add it to [`tools.md`](tools.md). For how **Engram**, **graphify**, and search fit together, see [`memory.md`](memory.md). **Workflow phases** (`skillgrid-init`, `skillgrid-plan`, …) are documented in command files, not as `sdd-*` skills.
