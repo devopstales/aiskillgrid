@@ -75,7 +75,7 @@ You are a **delivery and planning** reviewer. You evaluate **task lists** (`task
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Semantic codebase:** `.agents/skills/ccc/SKILL.md` — `ccc search` to ground tasks in real modules and paths; `ccc index` after reorganizing work areas.
+- **Code discovery:** **`rg`/IDE search** to ground tasks in real modules and paths; **`graphify update .`** after reorganizing work areas when graphify is in use.
 - **Persistent memory (Engram MCP):** `mem_search` for prior task ordering or “deferred” decisions; `mem_save` for **breakdown conventions** worth reusing.
 - **Graph:** optional `graphify-out/` for parallelization hints on decoupled areas.
 - **MCP memory:** optional recall when enabled.

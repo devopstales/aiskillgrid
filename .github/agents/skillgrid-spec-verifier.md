@@ -76,7 +76,7 @@ You are a specification and traceability analyst. Your **only** job is to check 
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Semantic codebase:** `.agents/skills/ccc/SKILL.md` — `ccc search` to trace requirements into implementation; `ccc index` after spec-driven code moves.
+- **Code discovery:** **`rg`/IDE search** to trace requirements into implementation; **`graphify update .`** after spec-driven structural moves when graphify is in use.
 - **Persistent memory (Engram MCP):** align with `.agents/skills/sdd-verify/SKILL.md` — use `mem_search` / `mem_get_observation` for SDD artifact keys when the project persists specs in Engram.
 - **Graph:** optional `graphify-out/` for boundary coverage when verifying architecture-facing requirements.
 - **MCP memory:** optional recall when enabled.

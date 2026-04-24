@@ -25,7 +25,7 @@ Three layers, each with a distinct job:
 
 The user (or a slash command) is the orchestrator. **Personas do not call other personas.** Skills are mandatory hops inside a persona's workflow.
 
-Each `skillgrid-*` persona includes an **Indexing and memory** section: when CocoIndex (`ccc`), Engram, graphify, or MCP `server-memory` are configured, use them per [`.agents/skills/references/indexing-and-memory.md`](../../.agents/skills/references/indexing-and-memory.md).
+Each `skillgrid-*` persona includes an **Indexing and memory** section: when Engram, graphify, or MCP `server-memory` are configured, use them per [`.agents/skills/references/indexing-and-memory.md`](../../.agents/skills/references/indexing-and-memory.md).
 
 ## Skillgrid mapping (this hub)
 

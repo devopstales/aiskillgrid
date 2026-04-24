@@ -2,7 +2,7 @@
 name: /skillgrid-init
 id: skillgrid-init
 category: Workflow
-description: Bootstrap workflow: greenfield/brownfield, structure, graphify, CocoIndex, OpenCode, baseline skills
+description: Bootstrap workflow: greenfield/brownfield, structure, graphify, OpenCode, baseline skills
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[optional: app purpose, stack, or brownfield notes]"
 ---
@@ -18,12 +18,11 @@ You are executing **`/skillgrid-init`** (DEFINE phase) for the Skillgrid workflo
 ## Steps
 
 1. **Greenfield vs brownfield** — Inspect the repo (existing app code, tests, production history). **Brownfield:** tell the user to run **`/skillgrid-explore`** before deep structural work so **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`) and **AGENTS.md** are grounded. **Greenfield:** ask until you have a clear picture of the **app’s main purpose**, **target stack**, and **tools/technologies**; then create or update **`.skillgrid/project/ARCHITECTURE.md`**, **`STRUCTURE.md`**, **`PROJECT.md`**, and the **Project** chapter of root **`AGENTS.md`** (see [docs/wokflow.md](../../docs/wokflow.md)).
-2. **Create folder structure** — Establish or verify project layout and conventions (source roots, `.skillgrid/project/` + `prd/` per wokflow, config dirs, `openspec/` or SDD layout if used).
+2. **Create folder structure** — Establish or verify project layout and conventions (source roots, **`.skillgrid/project/`** + **`prd/`** + **`preview/`** + **`scripts/preview.sh`** per [docs/wokflow.md](../../docs/wokflow.md), config dirs, `openspec/` or SDD layout if used).
 3. **Graphify** — When graphify is part of the workflow, run **`graphify update .`** from the project root. **Do not block the main turn on graph output:** spawn a **subagent** (e.g. `Task` with the shell agent) or run the command in the **background** and continue init; the user can read **`graphify-out/`** when it finishes.
-4. **CocoIndex Code (ccc)** — From project root: if **`.cocoindex_code/`** is **absent**, run **`ccc init`**, then **`ccc index`**. If **`.cocoindex_code/`** **already exists**, run **`ccc index` only** (do not re-init). **Do not block the main turn on indexing:** run **`ccc` in a subagent or in the background** and proceed with the rest of init; use **`ccc search`** when the index is ready. Follow `.agents/skills/ccc/SKILL.md` for flags and project specifics.
-5. **OpenCode** — If the project uses OpenCode, ensure `.opencode/` (or product-specific) config is present and consistent; if not, initialize with `opencode init`.
-6. **OpenSpec** — Ensure the OpenSpec CLI is on PATH when the team uses OpenSpec; run `openspec-onboard`-style first cycle only if the user wants a full guided onboarding now.
-7. **Skills (`.agents/skills/`)** — Treat the list below as required reading; they define bootstrap behavior (stack detect, persistence mode, quality baseline).
+4. **OpenCode** — If the project uses OpenCode, ensure `.opencode/` (or product-specific) config is present and consistent; if not, initialize with `opencode init`.
+5. **OpenSpec** — Ensure the OpenSpec CLI is on PATH when the team uses OpenSpec; run `openspec-onboard`-style first cycle only if the user wants a full guided onboarding now.
+6. **Skills (`.agents/skills/`)** — Treat the list below as required reading; they define bootstrap behavior (stack detect, persistence mode, quality baseline).
 
 ## Skills to read and follow
 
@@ -34,7 +33,7 @@ Load each file before substantive work (read fully or skim by length):
 - `.agents/skills/search-first/SKILL.md` — research tools and patterns before building.
 - `.agents/skills/karpathy-guidelines/SKILL.md` — assumptions, simplicity, surgical edits (baseline).
 - `.agents/skills/skill-creator/SKILL.md` — add or extend Agent Skills in this repo.
-- `.agents/skills/ccc/SKILL.md` — CocoIndex: `ccc init`, indexing, semantic search.
+- `.agents/skills/memory-protocol/SKILL.md` — Engram MCP: when to save, search, and close sessions.
 - `.agents/skills/context-engineering/SKILL.md` — rules, context packing, MCP usage.
 - `.agents/skills/using-agent-skills/SKILL.md` — meta: how to use the agent-skills pack.
 
@@ -52,9 +51,12 @@ project-root/
 │   │   ├── ARCHITECTURE.md
 │   │   ├── STRUCTURE.md
 │   │   └── PROJECT.md
-│   └── prd/
-│       ├── INDEX.md
-│       └── <change-or-feature>.md
+│   ├── prd/
+│   │   ├── INDEX.md
+│   │   └── <change-or-feature>.md
+│   ├── preview/                  # /skillgrid-brainstorm: ephemeral MD/HTML (Preview picks)
+│   └── scripts/
+│       └── preview.sh            # scaffolds stubs under preview/
 ├── docs/                          # optional: extra PRD or architecture copies
 │   ├── PRD/
 │   └── ARCHITECTURE.md
@@ -72,12 +74,11 @@ project-root/
 ├── openspec/                      # after openspec init: changes/, specs/ (OpenSpec workflow)
 ├── .graphify/                     # optional: graphify project config
 ├── graphify-out/                  # optional: generated — graph.html, graph.json, report, cache/
-├── .cocoindex_code/              # optional: ccc index — path may differ; check `ccc init` output
 └── src/ or app/ or lib/           # your product code, tests, package manifests, etc.
 ```
 
 - **Per-project:** adjust `src/` to your monorepo layout (`packages/`, `apps/`, …) as needed; keep `AGENTS.md`, `.skillgrid/`, and `.agents/skills/` easy to find.
-- **Optional tools:** add `graphify-out/`, CocoIndex dirs, and similar only after the tool has run and you know its on-disk layout.
+- **Optional tools:** add `graphify-out/` only after graphify has run and you know its on-disk layout.
 
 ## Notes
 

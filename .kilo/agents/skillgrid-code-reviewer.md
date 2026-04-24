@@ -94,7 +94,7 @@ Categorize every finding:
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Semantic codebase:** `.agents/skills/ccc/SKILL.md` — use `ccc search` to find similar patterns and call sites; run `ccc index` after large refactors.
+- **Code discovery:** **`rg`/IDE search** for similar patterns and call sites; **`graphify update .`** after large refactors when graphify is in use.
 - **Persistent memory (Engram MCP):** `mem_context` / `mem_search` at session start when available; `mem_get_observation` for full notes. Save review **norms or team decisions** with `mem_save` if they should survive compaction.
 - **Graph:** if `graphify-out/` exists per project rules, consult it for hot spots before blanket file reads.
 - **MCP memory** (`@modelcontextprotocol/server-memory`): optional short recall when enabled in merged MCP config.

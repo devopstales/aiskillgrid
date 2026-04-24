@@ -22,7 +22,7 @@ You are executing **`/skillgrid-breakdown`** (TASKS phase) for the Skillgrid wor
 6. **Testing stance** — For tasks that need automated proof, align test levels with `test-driven-development` and `tdd-guide` (what to test first, pyramid, acceptance tests). Testing workstreams often appear as their own numbered group in the checklist (see example below).
 7. **Framework tasks** — When tasks touch framework behavior, ground them with `source-driven-development` (doc links or citations in task line text where helpful).
 8. **Task quality** — Use `planning-and-task-breakdown`: small, verifiable items with clear acceptance, dependency ordering, parallel vs sequential work called out in workstream titles or notes.
-9. **Index** — After large breakdown edits to code or structure, plan a `ccc` index refresh if the team uses CocoIndex.
+9. **Graph** — After large breakdown edits to code or structure, plan a **`graphify update .`** when the project uses graphify.
 10. **No orphan work** — Each task maps to a spec or agreed design; call out gaps before coding.
 
 ## PRD: Implementation tasks checklist format
@@ -66,7 +66,7 @@ Apply the **same** structure and **same** numbering inside `openspec/changes/<ch
 - `.agents/skills/test-driven-development/SKILL.md` — pyramid, DAMP, browser testing where relevant.
 - `.agents/skills/tdd-guide/SKILL.md` — TDD patterns for implementation tasks.
 - `.agents/skills/source-driven-development/SKILL.md` — cite official docs for framework-dependent tasks.
-- `.agents/skills/ccc/SKILL.md` — refresh semantic index after significant code or layout changes.
+- `.agents/skills/references/indexing-and-memory.md` — graphify refresh after significant code or layout changes.
 
 ## Optional: IDE personas
 

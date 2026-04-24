@@ -29,7 +29,7 @@ You are executing **`/skillgrid-apply`** (BUILD phase) for the Skillgrid workflo
 7. **Framework choices** — Ground decisions in official documentation (`source-driven-development`); note citations in commits or code where helpful.
 8. **Quality** — Keep edits readable and cohesive (`clean-code`, `karpathy-guidelines`); use `incremental-implementation` for vertical slices with verification and atomic commits.
 9. **Migrations** — Use `database-migrations` for schema and data changes safely.
-10. **Index** — After substantial edits, refresh CocoIndex: `ccc index` when the project relies on `ccc` search.
+10. **Graph** — After substantial edits, run **`graphify update .`** when the project uses graphify (see `AGENTS.md`).
 
 ## Skills to read and follow
 
@@ -43,7 +43,7 @@ You are executing **`/skillgrid-apply`** (BUILD phase) for the Skillgrid workflo
 - `.agents/skills/source-driven-development/SKILL.md` — cite official docs for framework decisions.
 - `.agents/skills/clean-code/SKILL.md` — readability and maintainability while implementing.
 - `.agents/skills/database-migrations/SKILL.md` — apply schema/data migrations safely.
-- `.agents/skills/ccc/SKILL.md` — refresh semantic index after significant code changes.
+- `.agents/skills/references/indexing-and-memory.md` — graphify refresh and structural search after significant code changes.
 
 ## Notes
 

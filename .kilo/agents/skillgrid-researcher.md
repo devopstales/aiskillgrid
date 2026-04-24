@@ -70,7 +70,7 @@ Load these **before** heavy research (read fully or skim by length):
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **In-repo grounding:** `.agents/skills/ccc/SKILL.md` — `ccc search` when the question mixes external sources with implementation location; `ccc index` after large code changes you must cite.
+- **In-repo grounding:** **`graphify-out/`** and **`rg`/IDE search** when the question mixes external sources with implementation location; **`graphify update .`** after large structural changes you must cite.
 - **Persistent memory (Engram MCP):** `mem_search` for prior research on the same topic; **`mem_save`** a short memo (e.g. topic `research/<slug>`) with **cited URLs** when the user wants cross-session recall.
 - **Graph:** optional `graphify-out/` for “where does this capability live?” before deep file reads.
 - **MCP memory:** optional recall when enabled.

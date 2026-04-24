@@ -98,7 +98,7 @@ You are an experienced Security Engineer conducting a security review. Your role
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Semantic codebase:** `.agents/skills/ccc/SKILL.md` — `ccc search` for auth, crypto, and input paths across the tree; `ccc index` after security-relevant refactors.
+- **Code discovery:** **`graphify-out/`**, **`AGENTS.md`**, and **`rg`/IDE search** for auth, crypto, and input paths; **`graphify update .`** after security-relevant structural refactors.
 - **Persistent memory (Engram MCP):** `mem_search` for prior threat models or accepted risks; `mem_save` for **accepted risk decisions** and compensating controls (scoped titles).
 - **Graph:** use `graphify-out/` when present to see trust-boundary-related clusters.
 - **MCP memory:** optional structured recall when enabled.

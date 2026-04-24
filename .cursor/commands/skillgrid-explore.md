@@ -2,7 +2,7 @@
 name: /skillgrid-explore
 id: skillgrid-explore
 category: Workflow
-description: Explore the problem and repo: OpenSpec list, PRD backfill, OpenSpec explore, .skillgrid/project, AGENTS, ccc
+description: Explore the problem and repo: OpenSpec list, PRD backfill, OpenSpec explore, .skillgrid/project, AGENTS, graphify
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[optional: topic, change id, or area to explore]"
 ---
@@ -24,7 +24,7 @@ You are executing **`/skillgrid-explore`** (DEFINE phase) for the Skillgrid work
 5. **Project docs (canonical)** — Create or refresh **`.skillgrid/project/ARCHITECTURE.md`**, **`STRUCTURE.md`**, and **`PROJECT.md`** (system design, repo layout and optional runtime topology, onboarding narrative). Use templates in [`docs/wokflow.md`](../../docs/wokflow.md) when helpful.
 6. **AGENTS.md** — Create or refresh at repo root so agent behavior and project rules are current.
 7. **Documentation** — When recording exploration outcomes, document the *why* (ADRs, API docs, inline standards) per team norms.
-8. **Semantic search** — Use `ccc search` and repo navigation where CocoIndex is set up.
+8. **Code discovery** — Use **`graphify-out/`** and **`AGENTS.md`** for orientation, then **`rg`/IDE search** and targeted file reads.
 9. **Optional depth** — Use `deep-research` when the question needs external evidence or broader comparison.
 
 ## PRD template (use when a change has no PRD)
@@ -116,7 +116,7 @@ If `tasks.md` does not exist yet, still include an **Implementation tasks** sect
 - `.agents/skills/openspec-propose/SKILL.md` — OpenSpec changes and `openspec/changes/<id>/` layout when backfilling PRDs.
 - `.agents/skills/search-first/SKILL.md`
 - `.agents/skills/deep-research/SKILL.md`
-- `.agents/skills/ccc/SKILL.md`
+- `.agents/skills/references/indexing-and-memory.md`
 - `.agents/skills/documentation-and-adrs/SKILL.md`
 - `.agents/skills/spec-driven-development/SKILL.md` — when drafting PRD sections and boundaries.
 

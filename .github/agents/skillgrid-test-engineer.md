@@ -92,7 +92,7 @@ When analyzing test coverage:
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Semantic codebase:** `.agents/skills/ccc/SKILL.md` — `ccc search` for existing tests and fixtures; `ccc index` after moving or adding many test files.
+- **Code discovery:** **`rg`/IDE search** for existing tests and fixtures; **`graphify update .`** after moving or adding many test files when graphify is in use.
 - **Persistent memory (Engram MCP):** `mem_search` for flaky-test history or quarantine decisions; `mem_save` for **stability conventions** the team must reuse.
 - **Graph:** optional orientation from `graphify-out/` for large suites.
 - **MCP memory:** optional recall when enabled.

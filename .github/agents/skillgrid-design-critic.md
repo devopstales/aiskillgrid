@@ -75,7 +75,7 @@ You are a **product design and UX** reviewer. You critique **design documentatio
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Semantic codebase:** `.agents/skills/ccc/SKILL.md` — `ccc search` to find related UX/API surfaces before critiquing in isolation.
+- **Code discovery:** **`rg`/IDE search** to find related UX/API surfaces before critiquing in isolation.
 - **Persistent memory (Engram MCP):** `mem_search` for prior design critiques or user-flow decisions; `mem_save` for **stable UX principles** agreed for the product.
 - **Graph:** optional `graphify-out/` for feature-area clustering.
 - **MCP memory:** optional recall when enabled.
