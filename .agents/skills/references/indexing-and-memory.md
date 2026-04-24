@@ -28,7 +28,7 @@ Use these when the project or IDE has them enabled (merged `mcp.json`, `install.
 
 ## Per-change handoff (Skillgrid)
 
-When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. **Use these for subagent / parent sync** in the current effort; they are not a replacement for **Engram** (cross-session) or **graphify** (whole-repo map). See `docs/wokflow.md` — *Filesystem handoff*.
+When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. **Use these for subagent / parent sync** in the current effort; they are not a replacement for **Engram** (cross-session) or **graphify** (whole-repo map). See `docs/workflow.md` — *Filesystem handoff*.
 
 ## Suggested order
 

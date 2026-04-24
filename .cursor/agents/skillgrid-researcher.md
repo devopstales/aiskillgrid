@@ -33,7 +33,7 @@ Load these **before** heavy research (read fully or skim by length):
 
 When the user or parent session delegates with **`Task`** for a specific **OpenSpec change** (`<change-id>` = directory under `openspec/changes/`):
 
-1. **Before work:** Read **`.skillgrid/tasks/context_<change-id>.md`**. If it does not exist, ask the parent to create the stub (see `docs/wokflow.md` — *Filesystem handoff*).
+1. **Before work:** Read **`.skillgrid/tasks/context_<change-id>.md`**. If it does not exist, ask the parent to create the stub (see `docs/workflow.md` — *Filesystem handoff*).
 2. **Scope:** **Research and planning only**; do not implement product code unless the user explicitly asked this session to.
 3. **Spill:** Write long or cited memos to **`.skillgrid/tasks/research/<change-id>/<topic>_<optional-date>.md`**. Keep the chat reply to a **short summary + paths**.
 4. **After work:** Update the handoff: research index row, state, next actions.

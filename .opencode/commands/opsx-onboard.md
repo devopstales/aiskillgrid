@@ -18,7 +18,7 @@ This command is a **short entrypoint**. Execute the same work using the **canoni
 5. **`/skillgrid-review`** — Verify artifacts and code; write `verify-report.md` (+ Engram when used).
 6. **`/skillgrid-finish`** — Optional delta → main spec sync, archive under `openspec/changes/archive/`, PR/ship.
 
-**Preflight:** `openspec --version` (install OpenSpec CLI per product docs). For narrative context see `docs/wokflow.md`.
+**Preflight:** `openspec --version` (install OpenSpec CLI per product docs). For narrative context see `docs/workflow.md`.
 
 ## Completion report (required)
 

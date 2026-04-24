@@ -11,7 +11,7 @@ argument-hint: "[change-id or branch name]"
 
 You are executing **`/skillgrid-finish`** (SHIP phase) for the Skillgrid workflow.
 
-Order of operations: **(1) optional** sync of delta specs into main `openspec/specs/` when the team wants mainline docs updated, **(2)** archive the change directory on disk, **(3)** **`mem_save`** ship/closure notes to Engram (stable `topic_key`, e.g. `skillgrid/<change>/archive`), **(4)** open/update PR, CI, and ship notes. **Always hybrid:** never treat disk and Engram as optional alternatives.
+Order of operations: **(1) optional** sync of delta specs into main `openspec/specs/`, **(2)** final alignment of **`.skillgrid/project/`** (ARCHITECTURE, STRUCTURE, PROJECT) with the **merged** codebase, **(3)** archive the change on disk, **(4)** **`mem_save`** ship/closure to Engram (e.g. `topic_key` `skillgrid/<change>/archive`), **(5)** open/update PR, CI, and ship notes. **Always hybrid:** never treat disk and Engram as optional alternatives.
 
 **Status on exit:** Set the relevant PRD **`Status:`** to **`done`** (and INDEX / ticket table if used) when this phase completes successfully — last value in the lifecycle under **`/skillgrid-init` → PRD / change `Status` lifecycle** (`draft` → `todo` → `inprogress` → `devdone` → `done`).
 
@@ -43,7 +43,23 @@ Order of operations: **(1) optional** sync of delta specs into main `openspec/sp
 
 ---
 
-## 2 — Archive the OpenSpec change (on-disk)
+## 2 — Final alignment: `.skillgrid/project/` (before archive)
+
+**When:** The repo uses **`.skillgrid/project/`** (from **`/skillgrid-init`** or equivalent). Run this **after** the implementation branch reflects the work you are closing, and **before** moving the change to `openspec/changes/archive/`.
+
+**Goal:** **ARCHITECTURE.md**, **STRUCTURE.md**, and **PROJECT.md** match the **current** tree, dependencies, and how the system runs—so the merged `main` is not ahead of the onboarding docs.
+
+**Steps**
+
+1. **Skim the three files** and compare to the repo: layout (**STRUCTURE**), decisions and subsystems (**ARCHITECTURE**), deps and tooling (**PROJECT**). If **`/skillgrid-apply`** already updated them during the change, still verify nothing drifted in the last commits.
+2. **Update** any section that is wrong or missing after the change (new top-level services, package moves, new external deps, build/CI or runtime topology, **ADRs** — link new ADRs from **ARCHITECTURE.md** as appropriate).
+3. **Commit** — Prefer a **dedicated** commit for doc-only fixes (e.g. `docs: align Skillgrid project files with <change-id>`) when the diff is non-trivial, so code review can separate product changes from doc catch-up. Small fixes may fold into the final ship commit if the team prefers.
+
+**If the project has no `.skillgrid/project/`** — Skip; optionally note in the finish summary.
+
+---
+
+## 3 — Archive the OpenSpec change (on-disk)
 
 **Input**: Change name, or ask via `openspec list --json` if missing/ambiguous. Prefer explicit user choice when multiple changes exist.
 
@@ -61,7 +77,7 @@ Order of operations: **(1) optional** sync of delta specs into main `openspec/sp
 
 3. **Sync prompt when delta specs exist** — If `openspec/changes/<name>/specs/` exists, compare to main `openspec/specs/`. If main is behind, offer:
 
-   - **Sync now (recommended)** — run the **sync procedure** in section 1, then continue.
+   - **Sync now (recommended)** — run the **sync procedure** in **section 1**, then continue (you may re-check **section 2** if specs implied structural edits).
    - **Archive without syncing** — document that choice in the finish summary.
    - **Cancel** — stop.
 
@@ -80,7 +96,7 @@ Order of operations: **(1) optional** sync of delta specs into main `openspec/sp
 
 ---
 
-## 3 — Pull request, CI, and ship
+## 4 — Pull request, CI, and ship
 
 1. **Pull request** — Open or update a PR: clear description, risks, and links to **`openspec/changes/…`**, the numbered PRD file(s) (**`.skillgrid/prd/PRD<NN>_<slug>.md`**), and tests. Keep commits small and reviewable; follow team branching rules.
 2. **CI / gates** — Ensure required checks pass; feature flags and deployment hooks as the project does.
@@ -99,7 +115,7 @@ Order of operations: **(1) optional** sync of delta specs into main `openspec/sp
 
 End with a **Session wrap-up** the user can scan:
 
-1. **What I did** — Bullets: archive moves, spec sync, PR/CI prep, and Engram or closure steps completed.
+1. **What I did** — Bullets: spec sync (if any), **`.skillgrid/project/`** final alignment (if applicable), archive moves, PR/CI prep, and Engram or closure steps completed.
 2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
 3. **Suggested next command** — None for this change cycle—**merge / deploy**; for **new** work, start with **`/skillgrid-plan`** or **`/skillgrid-explore`**.
 

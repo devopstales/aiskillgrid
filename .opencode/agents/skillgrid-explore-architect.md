@@ -17,7 +17,7 @@ When exploration targets a specific **OpenSpec change** (`<change-id>` = directo
 4. **After work:** Update the handoff: research index row, state, next actions. Still prefer **`.skillgrid/project/{ARCHITECTURE,STRUCTURE,PROJECT}.md`** for the durable narrative (link them from the handoff).
 5. **Return to parent:** e.g. “Updated `context_<change-id>.md`; see `…` and project docs; read before implementing.”
 
-Template: `docs/wokflow.md` — *Filesystem handoff*.
+Template: `docs/workflow.md` — *Filesystem handoff*.
 
 ## Primary artifacts
 

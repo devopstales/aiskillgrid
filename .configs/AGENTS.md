@@ -70,7 +70,7 @@ Rules:
 
 ## Skillgrid: per-change handoff (filesystem context)
 
-When the project uses **Skillgrid** + **OpenSpec**, keep **change-scoped** state on disk so the main session and **`Task` / subagents** stay aligned without pasting long tool output in chat. Full layout, handoff **template**, and subagent **contract** live in **`docs/wokflow.md`** (*Filesystem handoff* and *Parallel discovery*).
+When the project uses **Skillgrid** + **OpenSpec**, keep **change-scoped** state on disk so the main session and **`Task` / subagents** stay aligned without pasting long tool output in chat. Full layout, handoff **template**, and subagent **contract** live in **`docs/workflow.md`** (*Filesystem handoff* and *Parallel discovery*).
 
 **Paths (`<change-id>` = directory name under `openspec/changes/<change-id>/`):**
 

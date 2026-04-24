@@ -2,7 +2,7 @@
 
 This project keeps reusable agent instructions under **`.agents/skills/<skill-name>/SKILL.md`**. Tools discover them from `.agents/skills/` (and may also load skills from user-global paths, depending on the IDE).
 
-For **IDE persona files** (`agents/` under each IDE config dir), see [`agents.md`](agents.md). For **how skills fit into the end-to-end flow**, see [`wokflow.md`](wokflow.md). For **CLIs, MCPs, and install.sh dependencies** referenced by skills, see [`tools.md`](tools.md). For **web search, scraping, doc MCPs, Brave API skills, and Context7**, see [`web-scraping-and-research.md`](web-scraping-and-research.md).
+For **IDE persona files** (`agents/` under each IDE config dir), see [`agents.md`](agents.md). For **how skills fit into the end-to-end flow**, see [`workflow.md`](workflow.md). For **CLIs, MCPs, and install.sh dependencies** referenced by skills, see [`tools.md`](tools.md). For **web search, scraping, doc MCPs, Brave API skills, and Context7**, see [`web-scraping-and-research.md`](web-scraping-and-research.md).
 
 ---
 
@@ -30,7 +30,7 @@ Summaries are taken from each skill’s frontmatter `description` (trimmed). For
 
 ### Skillgrid workflow (commands, not skills)
 
-End-to-end **OpenSpec + PRD** procedures live in **slash commands** under [`.cursor/commands/`](../.cursor/commands/) (mirrored to `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). See [`commands.md`](commands.md) and [`wokflow.md`](wokflow.md). **`opsx-*`** commands are thin aliases of the matching **`skillgrid-*`** steps.
+End-to-end **OpenSpec + PRD** procedures live in **slash commands** under [`.cursor/commands/`](../.cursor/commands/) (mirrored to `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). See [`commands.md`](commands.md) and [`workflow.md`](workflow.md). **`opsx-*`** commands are thin aliases of the matching **`skillgrid-*`** steps.
 
 ### Define and plan (product and tasks)
 
@@ -175,4 +175,4 @@ Upstream catalog: [engram `skills/catalog.md`](https://github.com/Gentleman-Prog
 
 Use **`skill-creator`** and keep one directory per skill with a root **`SKILL.md`**. Optional subfolders: `assets/`, `references/` (per-skill), or rely on shared **`.agents/skills/references/`** for checklists.
 
-After adding skills, update this file (`docs/skills.md`) and the phase lists in [`wokflow.md`](wokflow.md) if the workflow should surface them. **Markdown file templates** for project/PRD live in **`/skillgrid-init`** and **`/skillgrid-plan`**, not in `wokflow.md`. If a skill introduces a new CLI or MCP dependency, add it to [`tools.md`](tools.md). For how **Engram**, **graphify**, and search fit together, see [`memory.md`](memory.md). **Workflow phases** (`skillgrid-init`, `skillgrid-plan`, …) are documented in command files, not as `sdd-*` skills.
+After adding skills, update this file (`docs/skills.md`) and the phase lists in [`workflow.md`](workflow.md) if the workflow should surface them. **Markdown file templates** for project/PRD live in **`/skillgrid-init`** and **`/skillgrid-plan`**, not in `workflow.md`. If a skill introduces a new CLI or MCP dependency, add it to [`tools.md`](tools.md). For how **Engram**, **graphify**, and search fit together, see [`memory.md`](memory.md). **Workflow phases** (`skillgrid-init`, `skillgrid-plan`, …) are documented in command files, not as `sdd-*` skills.

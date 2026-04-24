@@ -11,7 +11,7 @@ This document explains **what we use for “memory” in the broad sense**: dura
 | **Cross-session memory** | What did we decide, discover, or agree to last time? | **Engram** (primary) |
 | **Repo index / map** | How is this codebase structured; where are the hot spots? | **graphify** (`graphify-out/`) |
 | **Structural code search** | Where is this symbol, string, or pattern implemented? | **ripgrep** (`rg`), IDE search, **LSP** |
-| **Per-change handoff (Skillgrid)** | For one OpenSpec **change id**, what is the rolling goal, state, and where are subagent reports? | **`.skillgrid/tasks/context_<change-id>.md`** and **`.skillgrid/tasks/research/<change-id>/`**, documented in `docs/wokflow.md` (*Filesystem handoff*) |
+| **Per-change handoff (Skillgrid)** | For one OpenSpec **change id**, what is the rolling goal, state, and where are subagent reports? | **`.skillgrid/tasks/context_<change-id>.md`** and **`.skillgrid/tasks/research/<change-id>/`**, documented in `docs/workflow.md` (*Filesystem handoff*) |
 
 Those layers are **complementary**. Engram does not replace reading source; graphify does not replace exact search for a function name.
 

@@ -2,9 +2,43 @@
 
 **Runnable steps** live in the slash commands (e.g. `.cursor/commands/skillgrid-*.md`, mirrored under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). The sections below are a compact index; open the matching `skillgrid-*` file for the full checklist and skill paths.
 
-## PRD / change `Status` (stages)
+## Memory usage
 
-On each **`.skillgrid/prd/PRD<NN>_<slug>.md`** (and the **Status** column in **`.skillgrid/prd/INDEX.md`** or ticket tables), advance **`Status:`** in lockstep with the workflow commands:
+Skillgrid uses **several layers** of “memory,” each answering a different question. They are **complementary**—none replaces reading source, exact search, or the OpenSpec change folder.
+
+| Layer | Question it answers | Mechanism |
+|-------|----------------------|-----------|
+| **Cross-session memory** | What did we decide, discover, or agree to last time? | **Engram** MCP (`mem_save`, `mem_search`, `mem_context`, `mem_session_summary`, …) when configured |
+| **Repo map** | How is the codebase structured; where are hot spots? | **graphify** — `graphify-out/` (e.g. `GRAPH_REPORT.md`); refresh with `graphify update .` after substantive edits |
+| **Exact navigation** | Where is this symbol or string? | **ripgrep** (`rg`), IDE search, LSP |
+| **Per-change handoff** | For one OpenSpec **change id**, what is the current goal, state, and where are subagent reports? | **`.skillgrid/tasks/context_<change-id>.md`** and **`.skillgrid/tasks/research/<change-id>/`** (see *Filesystem handoff* below) |
+
+**Discipline**
+
+- **Engram:** Save **durable** facts promptly (decisions, non-obvious bugfix learnings, stable pointers). Recall with `mem_context` / `mem_search` before repeating work. Use a stable `topic_key` (e.g. `skillgrid/{change}/…`). Full protocol: **`.agents/skills/memory-protocol/SKILL.md`**; hub copy also in [`.configs/AGENTS.md`](../.configs/AGENTS.md) (*Engram*).
+- **Handoff vs Engram:** The **context file** is **git-visible, change-scoped** state for the team and `Task` subagents. **Engram** is for **cross-session** recall. Do not paste the full PRD or long research into both—**link** (`proposal.md` ↔ PRD ↔ `mem_save` topic).
+- **graphify** does not replace `rg` for a function name; **Engram** does not replace files on disk.
+
+Deeper reference: [`docs/memory.md`](memory.md) (*Mental model: three layers* and tool tables).
+
+## PRD (product requirements)
+
+In Skillgrid, a **PRD** is the **human-facing slice of intent**: problem, goals, in/out of scope, requirements, and success criteria. It **does not** replace **`openspec/changes/<id>/tasks.md`** (that is the implementable checklist from **`/skillgrid-breakdown`**).
+
+A PRD may map to one or more OpenSpec changes (commonly 1:1).
+If the scope expands, add references under a “Related changes” heading.
+The PRD’s `Status` field can be reset to an earlier stage if the plan is revised; update both the PRD and `INDEX.md`.
+
+**Location and naming**
+
+- **Canonical path:** **`.skillgrid/prd/PRD<NN>_<slug>.md`** — **`<NN>`** is a two-digit execution order (`01`, `02`, …).  
+- **Index:** **`.skillgrid/prd/INDEX.md`** — one row or bullet per PRD, sorted by `NN`, with links to the matching OpenSpec change when it exists.  
+- **Do not** create new PRDs under a root `prd/` folder; use **`.skillgrid/prd/`** only (see **`/skillgrid-init`**).  
+- Title block in the PRD should list **file**, **Spec / change** (path under `openspec/changes/…`), optional **Session context** (`.skillgrid/tasks/context_<change-id>.md`), and **`Status:`** (see table below).
+
+**PRD as source of product intent** until superseded: keep the PRD **consistent** with `openspec/changes/<id>/proposal.md` and delta specs when both exist. Detailed file-by-file steps belong in **`tasks.md`**, not in the PRD body.
+
+**Status lifecycle (`Status:` on the PRD and in `INDEX.md`)** — advance in lockstep with the workflow commands:
 
 | When this command completes (phase) | Set `Status` to |
 |------------------------------------|-----------------|
@@ -14,8 +48,29 @@ On each **`.skillgrid/prd/PRD<NN>_<slug>.md`** (and the **Status** column in **`
 | **`/skillgrid-review`** | `devdone` |
 | **`/skillgrid-finish`** | `done` |
 
-- Single token values (`inprogress` has no space). The agent overwrites the previous value as the work moves forward.
-- Authoritative rules and edge cases: **`/skillgrid-init`** — **PRD / change `Status` lifecycle**.
+- Use **single-token** values (`inprogress` has no space). Overwrite the previous value as the work moves forward.  
+- Authoritative rules and edge cases: **`/skillgrid-init`** — **PRD / change `Status` lifecycle**.  
+- Markdown **skeletons** for the PRD title block and sections live in **`/skillgrid-plan`** (Part A — *PRD file templates*), not duplicated here; see *Formatting templates* at the end of this file.
+
+## OpenSpec
+
+**OpenSpec** in this workflow is the **on-disk spec system** for a change: `openspec/changes/<change-id>/` holds **proposal**, **delta specs**, **`tasks.md`**, and related artifacts; `openspec/specs/` holds **main** (accumulated) specs where your project uses them; `openspec/changes/archive/` stores **completed** changes after finish/archive.
+
+**Change id** — The directory name **`openspec/changes/<change-id>/`** (kebab-case) is the same **`<change-id>`** used in **`.skillgrid/tasks/context_<change-id>.md`** and in `openspec list`. Tie every Skillgrid handoff to **one** change id per active slice of work.
+
+**How PRD and OpenSpec connect**
+
+1. **`/skillgrid-plan`** — Write or update the **PRD** first, then create or refresh the **OpenSpec change** (Part B in the command). Set PRD **Status** to `draft`. **`/skillgrid-plan`** may also **`mem_save`** to Engram with a stable `topic_key` pointing at the change id and PRD path (**hybrid persistence**: disk + Engram).  
+2. **`/skillgrid-breakdown`** — Decompose into **`tasks.md`**; align with PRD; PRD **Status** → `todo`.  
+3. **`/skillgrid-apply`** — Implement from **`tasks.md`**; **Status** → `inprogress`.  
+4. **`/skillgrid-review` / `/skillgrid-validate`** — Verify against specs and tasks; **Status** → `devdone`.  
+5. **`/skillgrid-finish`** — **`openspec-archive-change`** (and optionally **`openspec-sync-specs`**); open PR; **Status** → `done`.
+
+**Context for agents** — OpenSpec **proposal** may list **`contextFiles`**. The Skillgrid handoff file is **additional** filesystem context: add a line in **`proposal.md`**: *Skillgrid session context:* `.skillgrid/tasks/context_<change-id>.md` (see **`/skillgrid-plan`**). The orchestrator and subagents should **read the handoff** when it exists, not only `contextFiles`.
+
+**CLI** — Use the OpenSpec CLI as your project documents it (e.g. `openspec status`, `openspec instructions tasks` during breakdown). Optional skills: **`openspec-*`** under `.agents/skills/` (e.g. `openspec-apply-change`, `openspec-verify-change`).
+
+**Persistence modes** (repo-dependent) — e.g. **hybrid** (disk + Engram), **openspec**-only, **engram**-only, **none**; see **`/skillgrid-init`** when bootstrapping `openspec/` and `.skillgrid/`.
 
 ## Skillgrid layout (`.skillgrid/`)
 
@@ -41,7 +96,7 @@ project-root/
 │   │           └── <topic-or-agent>_<optional-date>.md  # long research / spill; not chat dumps
 │   ├── preview/                    # brainstorm: ephemeral MD/HTML to compare and pick options
 │   └── scripts/
-│       ├── prd-kanban.mjs          # 
+│       ├── prd-kanban.mjs          # optional PRD / kanban helper
 │       └── preview.sh              # scaffolds non-destructive stubs under preview/
 ├── .cursor/
 │   └── commands/
@@ -58,6 +113,27 @@ project-root/
 - **`tasks/context_<change-id>.md`** and **`tasks/research/<change-id>/`** — **Filesystem handoff** for the main session and subagents: see **Filesystem handoff (session context)** below. The **`<change-id>`** is the OpenSpec change directory name (same as `openspec list`).  
 - **`scripts/preview.sh`** — Run from project root: `.skillgrid/scripts/preview.sh [slug]` (optional `--md` for markdown). Not every IDE has an embedded browser; users can open files in the editor or a regular browser, or work from labeled A/B in chat.  
 - A longer **example** (with IDE folders, `openspec/`, etc.) appears in **`/skillgrid-init`** under **Project structure (example)**. **Copy-paste templates** for `ARCHITECTURE.md`, `STRUCTURE.md`, `PROJECT.md`, and PRD index/skeleton are in the commands, not in this file (see **Formatting templates** below).
+
+## Project documents (`.skillgrid/project/`)
+
+These three files onboard humans and agents on **how the repo is shaped**, **why**, and **how to build it**. Update them when reality drifts—not only at project start.
+
+**Which file to edit**
+
+| File | Update when… |
+|------|----------------|
+| **STRUCTURE.md** | Folder or package layout changes; where code lives; top-level directory renames or new trees. |
+| **ARCHITECTURE.md** | Design decisions, boundaries, **new subsystems** or **top-level services**, **pattern** or **runtime topology** shifts. **New ADRs** should be **cross-referenced** from here. |
+| **PROJECT.md** | New **external dependencies**, **build** / **CI** / **tooling** changes the team must know. |
+
+**During development**
+
+- **Trigger points** — Revisit after the codebase **structure** or **architecture** changes in a **material** way: new top-level services, **package reorganisation**, added **external** dependencies, **pattern** shifts, or **runtime topology** changes. Typical moments: a **significant** **`/skillgrid-apply`** that **reorganises folders**, **introduces a new subsystem**, or **changes** how/where the app runs; **any time a new ADR is added** (link it from **ARCHITECTURE.md** when relevant).
+- **`/skillgrid-apply`** — The orchestrator should ask: *“Did this change affect the architecture or repo structure?”* and, if the answer is **yes** (or the work clearly touched layout or boundaries), act on it in the same run. The command’s **post-implementation housekeeping** step includes: run **`graphify update .`** when the project uses graphify; if you **added, renamed, or removed** top-level directories, **new services**, or **major patterns**, update the appropriate **`.skillgrid/project/`** file(s) **now** (see **`/skillgrid-apply`**, step 9).
+
+**At completion**
+
+- **`/skillgrid-finish`** — **Before archiving** the OpenSpec change, run the **final alignment** step: confirm **ARCHITECTURE.md**, **STRUCTURE.md**, and **PROJECT.md** still match the **merged** branch; use a **separate** doc-only commit when the diff is large. See **`/skillgrid-finish`**, **section 2**.
 
 ## Filesystem handoff (session context)
 
@@ -102,8 +178,11 @@ project-root/
 /skillgrid-init
 # Create skillgrid folder structure
 # Detect if the project is greenfield or brownfield
-## If greenfield: Ask the user abaute the man porpose of the app, what tools, technologys want to use. Ask until it is clear. Then generate content for ARCHITECTURE.md, STRUCTURE.md, PROJECT.md and Update AGENTS.md Prooject chapter
-## If brownfield: Tell the user to use /skillgrid-explore because it is a brownfield project.
+## If greenfield: Ask the user about the main purpose of the app, what tools and technologies to use. Ask until it is clear. Then generate content for ARCHITECTURE.md, STRUCTURE.md, PROJECT.md and update the AGENTS.md Project chapter
+## If brownfield: 
+### 1. Create `.skillgrid/` folder tree (if missing).  
+### 2. Initialize `openspec/` (if not present).  
+### 3. Tell the user: “Now run `/skillgrid-explore` to map your existing codebase and populate `ARCHITECTURE.md` etc.”
 # index memory
 ## graphify — `graphify update .` from project root (see AGENTS.md); code discovery via `rg`/IDE search
 ### Skills (.agents/skills/)
@@ -117,13 +196,13 @@ project-root/
 # Explore existing code
 ## Use openspec-explore
 ## Generate content for ARCHITECTURE.md, STRUCTURE.md, PROJECT.md
-## Update AGENTS.md Prooject chapter
+## Update the AGENTS.md Project chapter
 ### Skills (.agents/skills/)
 - openspec-explore — explore problem and codebase before a change
 - graphify-out + `rg`/IDE search — orient in repo; refresh graph after structural changes
 - documentation-and-adrs - Architecture Decision Records, API docs, inline documentation standards - document the why
 
-# Tempolary disabled
+# Temporarily disabled
 /skillgrid-ui-design
 # User describes how the page should look
 ## Generate DESIGN.md
@@ -147,8 +226,8 @@ project-root/
 - documentation-lookup - Use up-to-date library and framework docs via Context7 MCP instead of training data. Activates for setup questions, API references, code examples, or when the user names a framework e.g. React, Next.js, Prisma.
 
 /skillgrid-plan
-## Generate prd for the function
-## Use prd to generate openspec change (skillgrid-plan Part B)
+## Generate a PRD for the feature
+## Use the PRD to drive the OpenSpec change (skillgrid-plan Part B)
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
 - spec-driven-development — Write a PRD covering objectives, commands, structure, code style, testing, and boundaries before any code
@@ -226,9 +305,9 @@ project-root/
 - documentation-and-adrs - Architecture Decision Records, API docs, inline documentation standards - document the why
 ```
 
-## Parallel discovery 
+## Parallel discovery
 
-Parallel **subagents** for codebase mapping and domain research, you can **fan out** independent work, then **merge** in the main session:
+**With** parallel **subagents** (codebase mapping and domain research), you can **fan out** independent work, then **merge** in the main session:
 
 - **Safe to run in parallel:** read-only **explore** passes on disjoint areas (e.g. different packages), **cited** landscape or prior-art research with non-overlapping briefs (stack vs competitors vs API docs), using personas such as `skillgrid-explore-architect` and `skillgrid-researcher` in separate subagent contexts when your harness allows concurrent `Task` / subagents.
 - **Keep sequential:** `/skillgrid-plan` → `/skillgrid-breakdown` so intent stays a single chain; then `/skillgrid-apply` and later gates follow their ordered phases.
@@ -251,8 +330,10 @@ Markdown **skeletons** for project and PRD files are maintained in the slash com
 
 | What | Where |
 |------|--------|
-| **PRD / change `Status` stages** (`draft` → `todo` → `inprogress` → `devdone` → `done`) | **PRD / change `Status` (stages)** (above) and **`/skillgrid-init`** — **PRD / change `Status` lifecycle** |
-| **`.skillgrid/project/ARCHITECTURE.md`**, **STRUCTURE.md**, **PROJECT.md** | **`/skillgrid-init`** — **Project document templates** |
+| **PRD / change `Status` stages** (`draft` → `todo` → `inprogress` → `devdone` → `done`) | **PRD (product requirements)** (above) and **`/skillgrid-init`** — **PRD / change `Status` lifecycle** |
+| **OpenSpec** layout, change lifecycle, hybrid persistence | **OpenSpec** (above) and **`/skillgrid-init`** |
+| **Memory** layers (Engram, graphify, handoff) | **Memory usage** (above) and [`docs/memory.md`](memory.md) |
+| **`.skillgrid/project/ARCHITECTURE.md`**, **STRUCTURE.md**, **PROJECT.md** | **Project documents (`.skillgrid/project/`)** (above), **`/skillgrid-init`** — templates, **`/skillgrid-apply`** — housekeeping, **`/skillgrid-finish`** — final alignment |
 | **`.skillgrid/prd/INDEX.md`**, PRD skeleton, and full **PRD document format** | **`/skillgrid-plan`** — **Part A** and **PRD file templates (formatting)** |
 | **`.skillgrid/tasks/context_<change-id>.md`**, **research/** spill layout | **Filesystem handoff (session context)** (above) and **`/skillgrid-plan`** / **`/skillgrid-apply`** |
 

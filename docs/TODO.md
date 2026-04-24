@@ -140,20 +140,18 @@ npm install -g @mariozechner/pi-coding-agent
 * commands
   * `/skillgirid-plan` sas `/osx:apply` is the next
 * mcp
-* rules
-  * AGENTS.md ??
 * planning
   * database structure
   * mermaid graph in db plan
 * visualization
   * web based wisulization for pipeline
-  * web based wisulization kamban board
 * templates md in skill
   * AGENTS.md
 * ticketing integration
   * github
   * gitlab
   * jira cloud
+* usae TDD workflow
 * paralelism
   * subagent-driven-development or executing-plans
 * checkpont

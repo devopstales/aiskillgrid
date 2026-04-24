@@ -47,7 +47,7 @@ Implement from the OpenSpec change’s **apply** instructions. **Always use hybr
    - **`all_done`**: congratulate; suggest **`/skillgrid-review`** and **`/skillgrid-finish`**.
    - Otherwise: proceed to implementation.
 
-4. **Read context** — Read every path in `contextFiles` from the apply output (commonly proposal, specs, design, `tasks` for spec-driven flows). Prefer CLI output over hard-coded filenames. Also read **`.skillgrid/tasks/context_<name>.md`** if it exists (rolling handoff; see `docs/wokflow.md` — *Filesystem handoff*).
+4. **Read context** — Read every path in `contextFiles` from the apply output (commonly proposal, specs, design, `tasks` for spec-driven flows). Prefer CLI output over hard-coded filenames. Also read **`.skillgrid/tasks/context_<name>.md`** if it exists (rolling handoff; see `docs/workflow.md` — *Filesystem handoff*).
 
 5. **Filesystem handoff (subagents)** — If you use **`Task`** to delegate **research, design critique, or exploration** to a subagent for this change: create or open **`.skillgrid/tasks/context_<name>.md`** and **include its path in the subagent prompt**. After the subagent returns, **read** that file and any **`.skillgrid/tasks/research/<name>/`** files it cites **before** writing product code. The parent session keeps full implementation context; subagents spill long output to disk.
 
@@ -63,7 +63,16 @@ Implement from the OpenSpec change’s **apply** instructions. **Always use hybr
 
 8. **Pause if** the task is unclear, implementation contradicts the design, an error is hit, or the user stops you—report and wait.
 
-9. **End of session** — Summarize completed tasks, N/M progress, and next action (continue apply, run review, or archive).
+9. **Post-implementation housekeeping** — After a meaningful run (especially when code or the tree changed):
+
+    - **Ask** (or self-check with the user): *Did this change affect the architecture or repo structure?*
+    - **Checklist — update `.skillgrid/project/` when needed:** If you **added, renamed, or removed** top-level directories, **new services** or subsystems, **major patterns**, or **runtime topology**, update the right file(s) **in this pass** (do not defer without reason):
+      - **`.skillgrid/project/STRUCTURE.md`** — folder and package layout; where code lives.
+      - **`.skillgrid/project/ARCHITECTURE.md`** — design decisions, boundaries, new subsystems, pattern or topology shifts. When you add a **new ADR**, **cross-reference** it from here.
+      - **`.skillgrid/project/PROJECT.md`** — new **dependencies**, **build** / **CI** config, and **tooling** the team must know about.
+    - **Graph** — When the project uses **graphify**, run **`graphify update .`** to refresh the repo map (see also **Part B**). Typical triggers: this housekeeping step after a significant apply; **structural** code edits; **major** file additions/removals (e.g. new packages, deleted trees, large moves).
+
+10. **End of session** — Summarize completed tasks, N/M progress, housekeeping actions (if any), and next action (continue apply, run review, or archive).
 
 ### Output shape (optional)
 
@@ -98,7 +107,7 @@ Use clear headings, e.g. `Implementing: <change> (schema: …)`, per-task progre
 6. **Frameworks** — Ground behavior in the official docs for the stack the repo uses; cite in commits or code comments when useful.
 7. **Quality** — Small, reviewable commits; work in **vertical slices** (implement, verify, commit).
 8. **Migrations** — For schema/data changes, follow safe migration practices (one migration per logical change, rollback story).
-9. **Graph** — After substantial structural edits, run **`graphify update .`** when the project uses graphify.
+9. **Graph & project docs** — At end of a substantive apply run, follow **Part A — step 9 (Post-implementation housekeeping)**: **`graphify update .`** when needed, and keep **`.skillgrid/project/ARCHITECTURE.md`**, **STRUCTURE.md**, and **PROJECT.md** aligned with what you changed (see step 9 for which file to touch). **`/skillgrid-finish`** runs a final consistency pass before archive.
 
 ## Notes
 
@@ -109,7 +118,7 @@ Use clear headings, e.g. `Implementing: <change> (schema: …)`, per-task progre
 
 End with a **Session wrap-up** the user can scan:
 
-1. **What I did** — Bullets: change name, which **`openspec instructions apply`** steps completed, files changed in the repo, and PRD **`Implementation tasks`** sync.
+1. **What I did** — Bullets: change name, which **`openspec instructions apply`** steps completed, files changed in the repo, PRD **`Implementation tasks`** sync, and (if any) **`.skillgrid/project/`** or **`graphify`** updates from post-implementation housekeeping.
 2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
 3. **Suggested next command** — **`/skillgrid-test`** to run automated checks; if tests are not in scope, **`/skillgrid-review`**.
 

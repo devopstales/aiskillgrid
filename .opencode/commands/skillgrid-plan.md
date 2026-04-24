@@ -130,7 +130,7 @@ Run the CLI steps below. After artifacts reach **apply-ready** (or when you have
 3. **Session context (filesystem handoff)** — For Skillgrid, establish the per-change handoff the parent and `Task` subagents will use:
 
    - Create **`.skillgrid/tasks/research/<name>/`** if missing.
-   - Create or update **`.skillgrid/tasks/context_<name>.md`** using the skeleton in **`docs/wokflow.md`** (*Filesystem handoff*). Set **Change / PRD links**, **current goal**, and **state** (`planning` / `research`). Cross-link the PRD path you use in Part A.
+   - Create or update **`.skillgrid/tasks/context_<name>.md`** using the skeleton in **`docs/workflow.md`** (*Filesystem handoff*). Set **Change / PRD links**, **current goal**, and **state** (`planning` / `research`). Cross-link the PRD path you use in Part A.
    - When you write or next edit **`openspec/changes/<name>/proposal.md`**, add a single line the reader cannot miss, e.g. `**Skillgrid session context:** .skillgrid/tasks/context_<name>.md` (body or frontmatter, per team convention; keep one canonical pointer).
 
 4. **Get the artifact build order**
@@ -186,7 +186,7 @@ Summarize: change name and path; list of artifacts and short descriptions; state
 - **Never** copy `context` / `rules` blocks into the written files.
 - If a change with that name already exists, ask whether to continue it or use a new name.
 - Verify each file exists on disk before moving to the next artifact.
-- **Fan-out / `Task` subagents:** If you spin off research or exploration in a **subagent**, put **`.skillgrid/tasks/context_<name>.md`** and **`.skillgrid/tasks/research/<name>/`** in the subagent prompt so it can read the handoff and spill long output; see `docs/wokflow.md` — *Parallel discovery* / *Subagent contract*.
+- **Fan-out / `Task` subagents:** If you spin off research or exploration in a **subagent**, put **`.skillgrid/tasks/context_<name>.md`** and **`.skillgrid/tasks/research/<name>/`** in the subagent prompt so it can read the handoff and spill long output; see `docs/workflow.md` — *Parallel discovery* / *Subagent contract*.
 
 ## PRD file templates (formatting)
 

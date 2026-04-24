@@ -17,7 +17,7 @@ When the parent delegates design critique for a specific **OpenSpec change** (`<
 4. **After work:** Update the handoff: research index row, state, next actions.
 5. **Return to parent:** e.g. “Updated `context_<change-id>.md`; report: `<path>`; read before building.”
 
-Full template: `docs/wokflow.md` — *Filesystem handoff*.
+Full template: `docs/workflow.md` — *Filesystem handoff*.
 
 ## Inputs
 

@@ -150,4 +150,4 @@ project/
 - OpenSpec: [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) (getting-started docs describe `openspec/` layout and archive behavior).
 - GSD-2: [gsd-build/GSD-2](https://github.com/gsd-build/GSD-2) (README, user docs under `docs/user-docs/`).
 - Antigravity Kit: [vudovn/antigravity-kit](https://github.com/vudovn/antigravity-kit) (`@vudovn/ag-kit`, **`.agent/`** templates).
-- This hub: [commands.md](commands.md), [wokflow.md](wokflow.md), [tools.md](tools.md).
+- This hub: [commands.md](commands.md), [workflow.md](workflow.md), [tools.md](tools.md).
