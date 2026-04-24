@@ -69,6 +69,8 @@ For **reproducible, lockfile-pinned** runs (maintenance and CI in this repo), ru
 
 ## Web scrapper
 
+Hub inventory (MCP fragments + skills + researcher persona): **[web-scraping-and-research.md](web-scraping-and-research.md)**.
+
 * [ ] [context7]()
 * [ ] [exa]()
 * [ ] [deepwiki]()

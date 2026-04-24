@@ -2,7 +2,7 @@
 
 This project keeps reusable agent instructions under **`.agents/skills/<skill-name>/SKILL.md`**. Tools discover them from `.agents/skills/` (and may also load skills from user-global paths, depending on the IDE).
 
-For **IDE persona files** (`agents/` under each IDE config dir), see [`agents.md`](agents.md). For **how skills fit into the end-to-end flow**, see [`wokflow.md`](wokflow.md). For **CLIs, MCPs, and install.sh dependencies** referenced by skills, see [`tools.md`](tools.md).
+For **IDE persona files** (`agents/` under each IDE config dir), see [`agents.md`](agents.md). For **how skills fit into the end-to-end flow**, see [`wokflow.md`](wokflow.md). For **CLIs, MCPs, and install.sh dependencies** referenced by skills, see [`tools.md`](tools.md). For **web search, scraping, doc MCPs, Brave API skills, and Context7**, see [`web-scraping-and-research.md`](web-scraping-and-research.md).
 
 ---
 
@@ -52,6 +52,24 @@ Summaries are taken from each skill’s frontmatter `description` (trimmed). For
 | `exa-search` | [.agents/skills/exa-search/SKILL.md](../.agents/skills/exa-search/SKILL.md) | Neural search via Exa MCP. |
 | `context-engineering` | [.agents/skills/context-engineering/SKILL.md](../.agents/skills/context-engineering/SKILL.md) | Rules, context packing, session quality. |
 | `using-agent-skills` | [.agents/skills/using-agent-skills/SKILL.md](../.agents/skills/using-agent-skills/SKILL.md) | Meta: discover and invoke other skills. |
+
+### Brave Search API (`brave-*`)
+
+[Brave Search API](https://api.search.brave.com) via API key and `curl` (and optional **`bx`** CLI). Not shipped as default MCP fragments in [`.configs/mcp/`](../.configs/mcp/); pair with [`web-scraping-and-research.md`](web-scraping-and-research.md) for how this fits Exa / Firecrawl / Context7.
+
+| Skill (directory) | Path | Summary |
+|-------------------|------|---------|
+| `brave-bx` (`bx`) | [.agents/skills/brave-bx/SKILL.md](../.agents/skills/brave-bx/SKILL.md) | All-in-one agentic search / grounding (`bx` CLI); pre-extracted, token-budgeted content. |
+| `brave-web-search` | [.agents/skills/brave-web-search/SKILL.md](../.agents/skills/brave-web-search/SKILL.md) | Primary web search: snippets, URLs, thumbnails, Goggles, pagination. |
+| `brave-llm-context` | [.agents/skills/brave-llm-context/SKILL.md](../.agents/skills/brave-llm-context/SKILL.md) | RAG / LLM grounding: pre-extracted web text, tables, code. |
+| `brave-answers` | [.agents/skills/brave-answers/SKILL.md](../.agents/skills/brave-answers/SKILL.md) | AI answers via OpenAI-compatible `/chat/completions` with Brave grounding. |
+| `brave-news-search` | [.agents/skills/brave-news-search/SKILL.md](../.agents/skills/brave-news-search/SKILL.md) | News articles with metadata, freshness and date filters. |
+| `brave-images-search` | [.agents/skills/brave-images-search/SKILL.md](../.agents/skills/brave-images-search/SKILL.md) | Image search with thumbnails (up to 200 results). |
+| `brave-videos-search` | [.agents/skills/brave-videos-search/SKILL.md](../.agents/skills/brave-videos-search/SKILL.md) | Video search with duration, views, creator. |
+| `brave-suggest` | [.agents/skills/brave-suggest/SKILL.md](../.agents/skills/brave-suggest/SKILL.md) | Fast query autocomplete / suggestions. |
+| `brave-spellcheck` | [.agents/skills/brave-spellcheck/SKILL.md](../.agents/skills/brave-spellcheck/SKILL.md) | Spell correction and “did you mean” (often redundant with search endpoints). |
+| `brave-local-pois` | [.agents/skills/brave-local-pois/SKILL.md](../.agents/skills/brave-local-pois/SKILL.md) | Local POI details (requires POI IDs from location-filtered web search). |
+| `brave-local-descriptions` | [.agents/skills/brave-local-descriptions/SKILL.md](../.agents/skills/brave-local-descriptions/SKILL.md) | AI POI descriptions from POI IDs (max 20 per request). |
 
 ### Build: code, UI, APIs, sources
 
@@ -108,7 +126,8 @@ Summaries are taken from each skill’s frontmatter `description` (trimmed). For
 | `shipping-and-launch` | [.agents/skills/shipping-and-launch/SKILL.md](../.agents/skills/shipping-and-launch/SKILL.md) | Launch checklists, rollouts, rollback. |
 | `documentation-and-adrs` | [.agents/skills/documentation-and-adrs/SKILL.md](../.agents/skills/documentation-and-adrs/SKILL.md) | ADRs and durable documentation. |
 | `documentation-templates` | [.agents/skills/documentation-templates/SKILL.md](../.agents/skills/documentation-templates/SKILL.md) | Templates for READMEs and API docs. |
-| `documentation-lookup` | [.agents/skills/documentation-lookup/SKILL.md](../.agents/skills/documentation-lookup/SKILL.md) | Framework docs via Context7 MCP. |
+| `documentation-lookup` | [.agents/skills/documentation-lookup/SKILL.md](../.agents/skills/documentation-lookup/SKILL.md) | Framework / SDK docs via **Context7 MCP** (`resolve-library-id`, `query-docs`). |
+| `context7` | [.agents/skills/context7/SKILL.md](../.agents/skills/context7/SKILL.md) | Same Context7 catalog via **HTTP API** and `curl` when MCP is unavailable. |
 | `doc-updater` | [.agents/skills/doc-updater/SKILL.md](../.agents/skills/doc-updater/SKILL.md) | Codemaps and doc refresh workflows. |
 
 ### Tooling and codebase index

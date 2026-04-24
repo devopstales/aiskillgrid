@@ -1,5 +1,15 @@
 {
   "version": 1,
   "skills": {
+    "context7": {
+      "source": "intellectronica/agent-skills",
+      "sourceType": "github",
+      "computedHash": "fccbea654f8e35824a8bdce3e059e206efeb6c1fab9f6c096c3867e761081983"
+    },
+    "tavily": {
+      "source": "intellectronica/agent-skills",
+      "sourceType": "github",
+      "computedHash": "405d1fff83c48c3bb0eb7e4415d353a718865d0e3b16249e0a7c16da80960f60"
+    }
   }
 }

@@ -146,7 +146,6 @@ npm install -g @mariozechner/pi-coding-agent
   * database structure
   * mermaid graph in db plan
 * visualization
-  * web based wisulization at brainstorming
   * web based wisulization for pipeline
   * web based wisulization kamban board
 * templates md in skill
@@ -170,6 +169,7 @@ npm install -g @mariozechner/pi-coding-agent
   * cnnect prainstorming with design
   * project level desig command (not part of the main function workflow)
 * Context Engineering
+  * memory
 * installer
   * Claude Code plugin
   * Cursor plugin

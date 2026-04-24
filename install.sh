@@ -33,7 +33,7 @@
 #   3. Dependency check  → optional install of missing tools
 #   4. MCP merge         → jq-smerge .configs/mcp/*.json into one object
 #   5. IDE setup         → per-IDE setup_*() writes normalized config files
-#   6. Optional tools    → -t selects tools; CLIs via uv (Python) + hub npm (Node) + brew, then copy + openspec init
+#   6. Optional tools    → -t selects tools; CLIs via uv (Python) + hub npm (Node) + brew + brave-search-cli curl|sh, then copy + openspec init
 #
 # DEPENDENCIES:
 #   Runtime:  bash 3.2+ (incl. macOS /bin/bash), rsync, jq
@@ -131,7 +131,7 @@ Options:
   -o, --opencode        Setup configuration for opencode
   -a, --antigravity     Setup configuration for Google Antigravity
   -A, --all             Setup for all supported IDEs (Default if none selected)
-  -t, --tools           Interactive prompt to select optional tools (openspec, graphify, dmux, engram)
+  -t, --tools           Interactive prompt to select optional tools (openspec, graphify, dmux, engram, brave-search-cli)
   -d, --deps            Check and install dependencies before install
   -y, --yes             Non-interactive mode (skip prompts)
   --no-mcp              Skip MCP server configuration
@@ -141,7 +141,7 @@ Options:
   -h, --help            Show this help message
 
 Interactive mode: On TTY with no IDE flags, choose IDEs (1-5 or a=all) and MCP servers.
-Use -t to pick optional tools interactively (openspec, graphifyy, dmux, engram — installed via brew / hub npm / uv when selected; see docs/tools.md).
+Use -t to pick optional tools interactively (openspec, graphifyy, dmux, engram, brave-search-cli — brew / hub npm / uv / official Brave install.sh when selected; see docs/tools.md).
 EOF
 }
 
@@ -544,10 +544,28 @@ install_optional_tool_clis() {
         fi
     fi
 
+    # Brave Search CLI — installs `bx` (https://github.com/brave/brave-search-cli)
+    if tool_is_selected brave-search-cli; then
+        if command -v bx &>/dev/null; then
+            log_info "brave-search-cli (bx) already on PATH"
+        elif [ "$DRY_RUN" = true ]; then
+            echo "[DRY-RUN] curl -fsSL https://raw.githubusercontent.com/brave/brave-search-cli/main/scripts/install.sh | sh"
+        elif command -v curl &>/dev/null; then
+            log_info "Installing brave-search-cli (official install.sh → bx)..."
+            if curl -fsSL https://raw.githubusercontent.com/brave/brave-search-cli/main/scripts/install.sh | sh; then
+                log_success "brave-search-cli installed (bx)"
+            else
+                log_warn "brave-search-cli: install script failed"
+            fi
+        else
+            log_warn "brave-search-cli: curl not found — install curl or run the install command manually"
+        fi
+    fi
+
     echo ""
 }
 
-# Interactive optional tools (openspec, graphify, dmux, engram)
+# Interactive optional tools (openspec, graphify, dmux, engram, brave-search-cli)
 interactive_tools_selection() {
     [ "$TOOLS_INTERACTIVE" = true ] || return 0
     [ "$NON_INTERACTIVE" != true ] || {
@@ -566,13 +584,14 @@ interactive_tools_selection() {
     }
 
     echo ""
-    echo -e "${CYAN}Optional tools${NC} — CLIs via uv, hub npm ci, or brew (see docs/tools.md)"
+    echo -e "${CYAN}Optional tools${NC} — CLIs via uv, hub npm ci, brew, or Brave install (see docs/tools.md)"
     echo "  1) openspec — OpenSpec (brew, hub npx, or npm -g)"
     echo "  2) graphify — graphifyy (uv tool install graphifyy)"
     echo "  3) dmux — tmux pane manager (hub npx, or npm -g fallback)"
     echo "  4) engram — Engram MCP CLI (brew gentleman-programming/tap)"
+    echo "  5) brave-search-cli — Brave Search CLI, bx (curl | sh from brave/brave-search-cli)"
     echo ""
-    echo "  a — all four   |   n — none   |   e.g. 1,3 — pick by number"
+    echo "  a — all five   |   n — none   |   e.g. 1,3 — pick by number"
     echo ""
 
     local choice
@@ -591,8 +610,8 @@ interactive_tools_selection() {
         lower=$(printf '%s' "$choice" | tr '[:upper:]' '[:lower:]')
         case "$lower" in
             a|all)
-                SELECTED_TOOLS=("openspec" "graphify" "dmux" "engram")
-                log_info "Optional tools: openspec, graphify, dmux, engram"
+                SELECTED_TOOLS=("openspec" "graphify" "dmux" "engram" "brave-search-cli")
+                log_info "Optional tools: openspec, graphify, dmux, engram, brave-search-cli"
                 return 0
                 ;;
             n|no|none|skip)
@@ -613,7 +632,8 @@ interactive_tools_selection() {
                 2) SELECTED_TOOLS+=("graphify") ;;
                 3) SELECTED_TOOLS+=("dmux") ;;
                 4) SELECTED_TOOLS+=("engram") ;;
-                *) invalid="invalid index: $tok (use 1–4, a, or n)"; break ;;
+                5) SELECTED_TOOLS+=("brave-search-cli") ;;
+                *) invalid="invalid index: $tok (use 1–5, a, or n)"; break ;;
             esac
         done
 
@@ -622,7 +642,7 @@ interactive_tools_selection() {
             continue
         fi
         if [ ${#SELECTED_TOOLS[@]} -eq 0 ]; then
-            log_warn "Pick at least one number (1–4), a for all, or n for none"
+            log_warn "Pick at least one number (1–5), a for all, or n for none"
             continue
         fi
         log_info "Optional tools: selected ${#SELECTED_TOOLS[@]} tool(s)"
