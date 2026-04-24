@@ -189,19 +189,18 @@ For richer context, use Model Context Protocol servers:
 | **Filesystem** | Project file access and search |
 | **GitHub** | Issue, PR, and repository context |
 | **Engram** (`mem_*`) | Persistent project memory, SDD artifacts, session context |
-| **CocoIndex (`ccc`)** | Semantic codebase search and index refresh (CLI, not always MCP) |
 | **Graphify** | Knowledge graph outputs under `graphify-out/` when the project uses graphify |
 | **server-memory** (`memory-npx`) | Lightweight MCP memory for short structured recall |
 
 ### Indexing, search, and memory workflow
 
-For a concrete checklist (ccc, Engram, graphify, MCP memory), read **[indexing-and-memory.md](../references/indexing-and-memory.md)**.
+For a concrete checklist (Engram, graphify, structural search, MCP memory), read **[indexing-and-memory.md](../references/indexing-and-memory.md)** and **[docs/memory.md](../../../docs/memory.md)**.
 
 **Principles:**
 
-- Prefer **semantic index** (`ccc search`) over blind full-repo greps when the index is fresh.
+- Prefer **`graphify-out/`** (when present) plus **scoped `rg`/IDE search** over undirected full-tree reads.
 - Prefer **memory retrieval** (`mem_search` → `mem_get_observation`) before contradicting past team decisions—when Engram (or equivalent) is configured.
-- After **material code or spec changes**, schedule **`ccc index`** (and graphify update if the project uses it).
+- After **material code or spec changes**, run **`graphify update .`** when the project uses graphify.
 - **Save** non-obvious decisions with **`mem_save`** (or follow SDD/engram conventions) so compaction does not erase them.
 
 ## Confusion Management

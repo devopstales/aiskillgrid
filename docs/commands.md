@@ -28,11 +28,11 @@ These align with **`docs/wokflow.md`**. **Steps and skill lists are authored in 
 | Phase | Command | File | Purpose |
 |-------|---------|------|---------|
 | 0 | `/skillgrid-session` | [skillgrid-session.md](../.cursor/commands/skillgrid-session.md) | Session charter, context budget, MCP selection, checkpoints. |
-| DEFINE | `/skillgrid-init` | [skillgrid-init.md](../.cursor/commands/skillgrid-init.md) | Greenfield/brownfield routing, bootstrap structure, graphify, CocoIndex (`ccc`), OpenCode, baseline skills. |
+| DEFINE | `/skillgrid-init` | [skillgrid-init.md](../.cursor/commands/skillgrid-init.md) | Greenfield/brownfield routing, bootstrap structure, graphify, OpenCode, baseline skills. |
 | DEFINE | `/skillgrid-explore` | [skillgrid-explore.md](../.cursor/commands/skillgrid-explore.md) | OpenSpec explore; **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`); root `AGENTS.md`; semantic search. |
 | DEFINE | `/skillgrid-brainstorm` | [skillgrid-brainstorm.md](../.cursor/commands/skillgrid-brainstorm.md) | Clarify, research (`search-first`, `documentation-lookup`), refine ideas before planning. |
 | PLAN | `/skillgrid-plan` | [skillgrid-plan.md](../.cursor/commands/skillgrid-plan.md) | PRDs and proposals (OpenSpec + SDD). |
-| PLAN | `/skillgrid-breakdown` | [skillgrid-breakdown.md](../.cursor/commands/skillgrid-breakdown.md) | Spec completeness, `tasks.md`, TDD stance, ordering, CocoIndex refresh when needed. |
+| PLAN | `/skillgrid-breakdown` | [skillgrid-breakdown.md](../.cursor/commands/skillgrid-breakdown.md) | Spec completeness, `tasks.md`, TDD stance, ordering, graphify refresh when needed. |
 | BUILD | `/skillgrid-apply` | [skillgrid-apply.md](../.cursor/commands/skillgrid-apply.md) | OpenSpec apply, contracts (`api-and-interface-design`), TDD, small batches. |
 | VERIFY | `/skillgrid-test` | [skillgrid-test.md](../.cursor/commands/skillgrid-test.md) | Tests, E2E, browser tooling, debugging. |
 | REVIEW | `/skillgrid-review` | [skillgrid-review.md](../.cursor/commands/skillgrid-review.md) | Spec/SDD verify, code review, performance, data, docs. |

@@ -6,10 +6,10 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ## What you get
 
-- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD phases, code review, security, TDD, CocoIndex Code `ccc`, and more). See [docs/skills.md](docs/skills.md).
+- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD phases, code review, security, TDD, graphify + Engram memory protocol, and more). See [docs/skills.md](docs/skills.md).
 - **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/commands.md](docs/commands.md).
 - **Workflow** — End-to-end phases from init through finish in [docs/wokflow.md](docs/wokflow.md).
-- **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, graphify, CocoIndex Code, etc.). See [docs/tools.md](docs/tools.md).
+- **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, graphify, dmux, Engram, etc.). See [docs/tools.md](docs/tools.md).
 - **Shared agent rules** — [`.configs/AGENTS.md`](.configs/AGENTS.md) is copied to the target project and IDE config dirs when you install.
 
 ---
@@ -50,7 +50,7 @@ Common variants:
 - **All supported IDEs and defaults:** `./install.sh -p /path/to/project -A -y`
 - **Dry run:** `./install.sh -p /path/to/project -n`
 - **Dependencies only:** `./install.sh -d`
-- **Optional CLIs** (OpenSpec, graphify, CocoIndex Code, dmux, Engram): add `-t` in an interactive terminal
+- **Optional CLIs** (OpenSpec, graphify, dmux, Engram): add `-t` in an interactive terminal
 
 You need a working **bash**, **rsync**, and **jq** for a full install with MCP merge; **Node** and **`npm ci`** in this repo help with pinned **npx**-based tools. For Python CLIs, use **uv** (see [docs/tools.md](docs/tools.md)).
 

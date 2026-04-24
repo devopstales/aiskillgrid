@@ -115,9 +115,39 @@ Summaries are taken from each skill’s frontmatter `description` (trimmed). For
 
 | Skill | Path | Summary |
 |--------|------|---------|
-| `ccc` | [.agents/skills/ccc/SKILL.md](../.agents/skills/ccc/SKILL.md) | CocoIndex Code: semantic search and index lifecycle. |
+| `indexing-and-memory` | [.agents/skills/references/indexing-and-memory.md](../.agents/skills/references/indexing-and-memory.md) | Hub checklist: Engram, graphify, structural search, MCP memory. |
+| `memory-protocol` | [.agents/skills/memory-protocol/SKILL.md](../.agents/skills/memory-protocol/SKILL.md) | Engram MCP discipline (`mem_save`, search, session close); includes **Engram in this repository** pretext—**prefer this path** over `engram-memory-protocol/`. |
 | `skill-creator` | [.agents/skills/skill-creator/SKILL.md](../.agents/skills/skill-creator/SKILL.md) | Author new skills to the Agent Skills layout. |
 | `nano-banana` | [.agents/skills/nano-banana/SKILL.md](../.agents/skills/nano-banana/SKILL.md) | Image generation and editing (Gemini / Nano Banana). |
+
+### Engram skills (vendored)
+
+These directories mirror (or align with) skills from **[Gentleman-Programming/engram / `skills/`](https://github.com/Gentleman-Programming/engram/tree/main/skills)**. Summaries are from each skill’s frontmatter; open `SKILL.md` for full rules. Several bodies reference the **Engram product** codebase (Go, SQLite, dashboard, TUI)—when a file has **Engram in this repository**, apply the **principles** here and concrete paths from **this** hub (see also [`memory.md`](memory.md)).
+
+| Directory (`name` in frontmatter) | Path | Summary |
+|-----------------------------------|------|---------|
+| `engram-architecture-guardrails` | [.agents/skills/engram-architecture-guardrails/SKILL.md](../.agents/skills/engram-architecture-guardrails/SKILL.md) | System boundaries: local store, cloud, dashboard, plugins. |
+| `engram-backlog-triage` | [.agents/skills/engram-backlog-triage/SKILL.md](../.agents/skills/engram-backlog-triage/SKILL.md) | Issue/PR audit, disposition report, maintainer stance. |
+| `engram-branch-pr` | [.agents/skills/engram-branch-pr/SKILL.md](../.agents/skills/engram-branch-pr/SKILL.md) | PR workflow, issue-first enforcement. |
+| `engram-business-rules` | [.agents/skills/engram-business-rules/SKILL.md](../.agents/skills/engram-business-rules/SKILL.md) | Product rules: sync, admin, permissions, memory semantics. |
+| `engram-commit-hygiene` | [.agents/skills/engram-commit-hygiene/SKILL.md](../.agents/skills/engram-commit-hygiene/SKILL.md) | Conventional commits and branch naming (upstream rulesets). |
+| `engram-cultural-norms` | [.agents/skills/engram-cultural-norms/SKILL.md](../.agents/skills/engram-cultural-norms/SKILL.md) | Collaboration and quality norms for contributors and agents. |
+| `engram-dashboard-htmx` | [.agents/skills/engram-dashboard-htmx/SKILL.md](../.agents/skills/engram-dashboard-htmx/SKILL.md) | HTMX / server-rendered dashboard interaction rules. |
+| `engram-docs-alignment` | [.agents/skills/engram-docs-alignment/SKILL.md](../.agents/skills/engram-docs-alignment/SKILL.md) | Docs must match current behavior and examples. |
+| `gentleman-bubbletea` | [.agents/skills/engram-gentleman-bubbletea/SKILL.md](../.agents/skills/engram-gentleman-bubbletea/SKILL.md) | Bubbletea TUI patterns (installer / Go TUI context). |
+| `engram-issue-creation` | [.agents/skills/engram-issue-creation/SKILL.md](../.agents/skills/engram-issue-creation/SKILL.md) | Issue workflow, issue-first system. |
+| `engram-memory-protocol` | [.agents/skills/engram-memory-protocol/SKILL.md](../.agents/skills/engram-memory-protocol/SKILL.md) | Same MCP discipline as `memory-protocol`; **prefer** [.agents/skills/memory-protocol/SKILL.md](../.agents/skills/memory-protocol/SKILL.md) in this hub. |
+| `engram-plugin-thin` | [.agents/skills/engram-plugin-thin/SKILL.md](../.agents/skills/engram-plugin-thin/SKILL.md) | Thin Claude/OpenCode/Gemini/Codex plugin adapters vs Go core. |
+| `engram-pr-review-deep` | [.agents/skills/engram-pr-review-deep/SKILL.md](../.agents/skills/engram-pr-review-deep/SKILL.md) | Deep technical review before merge. |
+| `engram-project-structure` | [.agents/skills/engram-project-structure/SKILL.md](../.agents/skills/engram-project-structure/SKILL.md) | Where files, handlers, templates, and tests belong (Engram repo layout). |
+| `engram-sdd-flow` | [.agents/skills/engram-sdd-flow/SKILL.md](../.agents/skills/engram-sdd-flow/SKILL.md) | Short SDD phase order; hub also has fuller `sdd-*` / OpenSpec skills. |
+| `engram-server-api` | [.agents/skills/engram-server-api/SKILL.md](../.agents/skills/engram-server-api/SKILL.md) | HTTP API contract guardrails for server changes. |
+| `engram-testing-coverage` | [.agents/skills/engram-testing-coverage/SKILL.md](../.agents/skills/engram-testing-coverage/SKILL.md) | TDD and coverage standards (Engram packages). |
+| `engram-tui-quality` | [.agents/skills/engram-tui-quality/SKILL.md](../.agents/skills/engram-tui-quality/SKILL.md) | Bubbletea/Lipgloss TUI quality and navigation. |
+| `engram-ui-elements` | [.agents/skills/engram-ui-elements/SKILL.md](../.agents/skills/engram-ui-elements/SKILL.md) | Dashboard pages, cards, metrics, detail flows. |
+| `engram-visual-language` | [.agents/skills/engram-visual-language/SKILL.md](../.agents/skills/engram-visual-language/SKILL.md) | Dashboard styling, typography, spacing, visual identity. |
+
+Upstream catalog: [engram `skills/catalog.md`](https://github.com/Gentleman-Programming/engram/blob/main/skills/catalog.md).
 
 ### Session learning (optional)
 
@@ -132,4 +162,4 @@ Summaries are taken from each skill’s frontmatter `description` (trimmed). For
 
 Use **`skill-creator`** and keep one directory per skill with a root **`SKILL.md`**. Optional subfolders: `assets/`, `references/` (per-skill), or rely on shared **`.agents/skills/references/`** for checklists.
 
-After adding skills, update this file (`docs/skills.md`) and the phase lists in [`wokflow.md`](wokflow.md) if the workflow should surface them. If a skill introduces a new CLI or MCP dependency, add it to [`tools.md`](tools.md).
+After adding skills, update this file (`docs/skills.md`) and the phase lists in [`wokflow.md`](wokflow.md) if the workflow should surface them. If a skill introduces a new CLI or MCP dependency, add it to [`tools.md`](tools.md). For how **Engram**, **graphify**, and search fit together, see [`memory.md`](memory.md).

@@ -71,7 +71,7 @@ For the end-to-end Skillgrid phase list, see [wokflow.md](wokflow.md) and [comma
 | Doc | Use |
 |-----|-----|
 | [.cursor/agents/README.md](../.cursor/agents/README.md) | Persona philosophy, orchestration patterns, adding a persona. |
-| [.agents/skills/references/indexing-and-memory.md](../.agents/skills/references/indexing-and-memory.md) | Shared checklist: `ccc`, Engram, graphify, MCP memory (used by personas + skills). |
+| [.agents/skills/references/indexing-and-memory.md](../.agents/skills/references/indexing-and-memory.md) | Shared checklist: Engram, graphify, structural search, MCP memory (used by personas + skills). |
 | [skills.md](skills.md) | Skill catalog (`SKILL.md` trees). |
 | [commands.md](commands.md) | Slash commands per IDE. |
 | [tools.md](tools.md) | `install.sh` and toolchain. |

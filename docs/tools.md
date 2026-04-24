@@ -28,7 +28,7 @@ If you **rename or remove** a persona file under **`.cursor/agents/`**, delete t
 
 Use **[uv](https://docs.astral.sh/uv/)** for everything Python: global CLIs and per-skill environments. Do not standardize on **pipx** in this repo (legacy docs may still mention it—prefer `uv`).
 
-- **Global CLIs (replaces pipx):** `uv tool install <package>`, e.g. `uv tool install 'cocoindex-code[full]'`, `uv tool install graphifyy`, `uv tool install tavily-cli`
+- **Global CLIs (replaces pipx):** `uv tool install <package>`, e.g. `uv tool install graphifyy`, `uv tool install tavily-cli`
 - **Upgrade:** `uv tool upgrade <name>`
 - **Per-skill venvs:** in a directory with `pyproject.toml` / `uv.lock`, run `uv sync` and `uv run …`
 
@@ -69,17 +69,28 @@ For **reproducible, lockfile-pinned** runs (maintenance and CI in this repo), ru
 
 ## Web scrapper
 
+* [ ] [context7]()
 * [ ] [exa]()
+* [ ] [deepwiki]()
 * [ ] [Brave Search]()
 * [ ] [firecrawl-cli]()
 
-## Memory tools
+## Memory and codebase index
 
-* [X] [CocoIndex Code (ccc)](https://github.com/cocoindex-io/cocoindex-code)
-* [X] [graphify](https://github.com/safishamsi/graphify)
+Conceptual overview: **[memory.md](memory.md)** (what each layer is for).
+
+* [X] [graphify](https://github.com/safishamsi/graphify) 
 * [X] [Engram](https://github.com/Gentleman-Programming/engram)
-* [ ] [Engrom-v2](https://github.com/EvolvingLMMs-Lab/engram)
-* [ ] [StixDB](https://github.com/Pr0fe5s0r/StixDB)
+* [ ] [context-mode](https://github.com/mksglu/context-mode)
+
+### Engram MCP (multi-agent)
+
+Use the **same** Engram MCP entry everywhere you run agents (Cursor, OpenCode, Copilot MCP, etc.) so everyone reads/writes the same store (default: `~/.engram/`).
+
+1. **Binary:** `brew install gentleman-programming/tap/engram` or run [`install.sh`](../install.sh) with **`-t`** and select **engram**.
+2. **MCP fragment:** [`.configs/mcp/command/engram.json`](../.configs/mcp/command/engram.json) — `command`: `engram`, `args`: `["mcp", "--tools=agent"]`. Merge this into the IDE’s merged MCP config (this hub’s [`install.sh`](../install.sh) composes `.configs/mcp/**/*.json` for targets that use it).
+3. **Agent discipline:** `.agents/skills/memory-protocol/SKILL.md` — when to `mem_save`, `mem_search`, `mem_session_summary`.
+4. **Optional team sync:** [`engram sync`](https://github.com/Gentleman-Programming/engram) exports compressed chunks under `.engram/`; others run `engram sync --import`. See upstream [DOCS.md](https://github.com/Gentleman-Programming/engram/blob/main/DOCS.md) and [AGENT-SETUP.md](https://github.com/Gentleman-Programming/engram/blob/main/docs/AGENT-SETUP.md).
 
 ## Design Tools
 

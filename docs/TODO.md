@@ -142,19 +142,33 @@ npm install -g @mariozechner/pi-coding-agent
 * mcp
 * rules
   * AGENTS.md ??
-* web based wisulization at brainstorming
+* planning
+  * database structure
+  * mermaid graph in db plan
+* visualization
+  * web based wisulization at brainstorming
+  * web based wisulization for pipeline
+  * web based wisulization kamban board
 * templates md in skill
   * AGENTS.md
-  * DESIGN.md
 * ticketing integration
   * github
   * gitlab
   * jira cloud
 * paralelism
+  * subagent-driven-development or executing-plans
 * checkpont
-* git-worktrees (separate branch?)
-* subagent-driven-development or executing-plans
+  * git-worktrees (separate branch?)
+  * checkpoint commands
+  * create separate git branch for prds and work on that
+  * at the and create PR
 * design tools
+  * DESIGN.md
+  * taste-skill
+  * npxskillui
+  * impeccable
+  * cnnect prainstorming with design
+  * project level desig command (not part of the main function workflow)
 * Context Engineering
 * installer
   * Claude Code plugin

@@ -131,7 +131,7 @@ Options:
   -o, --opencode        Setup configuration for opencode
   -a, --antigravity     Setup configuration for Google Antigravity
   -A, --all             Setup for all supported IDEs (Default if none selected)
-  -t, --tools           Interactive prompt to select optional tools (openspec, graphify, cocoindex-code, dmux, engram)
+  -t, --tools           Interactive prompt to select optional tools (openspec, graphify, dmux, engram)
   -d, --deps            Check and install dependencies before install
   -y, --yes             Non-interactive mode (skip prompts)
   --no-mcp              Skip MCP server configuration
@@ -141,7 +141,7 @@ Options:
   -h, --help            Show this help message
 
 Interactive mode: On TTY with no IDE flags, choose IDEs (1-5 or a=all) and MCP servers.
-Use -t to pick optional tools interactively (openspec, graphifyy, cocoindex-code, dmux, engram — installed via brew / hub npm / uv when selected; see docs/tools.md).
+Use -t to pick optional tools interactively (openspec, graphifyy, dmux, engram — installed via brew / hub npm / uv when selected; see docs/tools.md).
 EOF
 }
 
@@ -413,7 +413,7 @@ tool_is_selected() {
     return 1
 }
 
-# Ensure uv is available (for cocoindex-code / graphifyy: uv tool install)
+# Ensure uv is available (for graphifyy: uv tool install)
 ensure_uv() {
     command -v uv &>/dev/null && return 0
     if [ "$DRY_RUN" = true ]; then
@@ -486,28 +486,8 @@ install_optional_tool_clis() {
     echo "Optional tools — installing CLIs..."
     echo ""
 
-    if tool_is_selected cocoindex-code || tool_is_selected graphify; then
-        ensure_uv || true
-    fi
-
-    if tool_is_selected cocoindex-code; then
-        if command -v ccc &>/dev/null 2>&1 || command -v cocoindex &>/dev/null 2>&1 || command -v cocoindex-code &>/dev/null 2>&1; then
-            log_info "cocoindex-code (ccc) CLI already present"
-        elif [ "$DRY_RUN" = true ]; then
-            echo "[DRY-RUN] uv tool install 'cocoindex-code[full]'"
-        elif command -v uv &>/dev/null; then
-            log_info "Installing cocoindex-code (uv tool install)..."
-            if uv tool install 'cocoindex-code[full]'; then
-                log_success "cocoindex-code installed (ccc; ensure uv tool path is on PATH)"
-            else
-                log_warn "cocoindex-code: uv tool install failed"
-            fi
-        else
-            log_warn "cocoindex-code: uv missing — run: uv tool install 'cocoindex-code[full]'"
-        fi
-    fi
-
     if tool_is_selected graphify; then
+        ensure_uv || true
         if command -v graphifyy &>/dev/null 2>&1 || command -v graphify &>/dev/null 2>&1; then
             log_info "graphify CLI already present"
         elif [ "$DRY_RUN" = true ]; then
@@ -567,7 +547,7 @@ install_optional_tool_clis() {
     echo ""
 }
 
-# Interactive optional tools (openspec, graphify, cocoindex-code, dmux, engram)
+# Interactive optional tools (openspec, graphify, dmux, engram)
 interactive_tools_selection() {
     [ "$TOOLS_INTERACTIVE" = true ] || return 0
     [ "$NON_INTERACTIVE" != true ] || {
@@ -589,11 +569,10 @@ interactive_tools_selection() {
     echo -e "${CYAN}Optional tools${NC} — CLIs via uv, hub npm ci, or brew (see docs/tools.md)"
     echo "  1) openspec — OpenSpec (brew, hub npx, or npm -g)"
     echo "  2) graphify — graphifyy (uv tool install graphifyy)"
-    echo "  3) cocoindex-code — CocoIndex (uv tool install cocoindex-code[full] → ccc)"
-    echo "  4) dmux — tmux pane manager (hub npx, or npm -g fallback)"
-    echo "  5) engram — Engram MCP CLI (brew gentleman-programming/tap)"
+    echo "  3) dmux — tmux pane manager (hub npx, or npm -g fallback)"
+    echo "  4) engram — Engram MCP CLI (brew gentleman-programming/tap)"
     echo ""
-    echo "  a — all five   |   n — none   |   e.g. 1,3 — pick by number"
+    echo "  a — all four   |   n — none   |   e.g. 1,3 — pick by number"
     echo ""
 
     local choice
@@ -612,8 +591,8 @@ interactive_tools_selection() {
         lower=$(printf '%s' "$choice" | tr '[:upper:]' '[:lower:]')
         case "$lower" in
             a|all)
-                SELECTED_TOOLS=("openspec" "graphify" "cocoindex-code" "dmux" "engram")
-                log_info "Optional tools: openspec, graphify, cocoindex-code, dmux, engram"
+                SELECTED_TOOLS=("openspec" "graphify" "dmux" "engram")
+                log_info "Optional tools: openspec, graphify, dmux, engram"
                 return 0
                 ;;
             n|no|none|skip)
@@ -632,10 +611,9 @@ interactive_tools_selection() {
             case "$tok" in
                 1) SELECTED_TOOLS+=("openspec") ;;
                 2) SELECTED_TOOLS+=("graphify") ;;
-                3) SELECTED_TOOLS+=("cocoindex-code") ;;
-                4) SELECTED_TOOLS+=("dmux") ;;
-                5) SELECTED_TOOLS+=("engram") ;;
-                *) invalid="invalid index: $tok (use 1–5, a, or n)"; break ;;
+                3) SELECTED_TOOLS+=("dmux") ;;
+                4) SELECTED_TOOLS+=("engram") ;;
+                *) invalid="invalid index: $tok (use 1–4, a, or n)"; break ;;
             esac
         done
 
@@ -644,7 +622,7 @@ interactive_tools_selection() {
             continue
         fi
         if [ ${#SELECTED_TOOLS[@]} -eq 0 ]; then
-            log_warn "Pick at least one number (1–5), a for all, or n for none"
+            log_warn "Pick at least one number (1–4), a for all, or n for none"
             continue
         fi
         log_info "Optional tools: selected ${#SELECTED_TOOLS[@]} tool(s)"
@@ -1121,7 +1099,7 @@ fi
 # Interactive MCP selection (if eligible)
 interactive_mcp_selection
 
-# Optional tools — must run before --deps counts (openspec / graphify / cocoindex-code / dmux / engram)
+# Optional tools — must run before --deps counts (openspec / graphify / dmux / engram)
 interactive_tools_selection
 
 # Handle --deps flag (check and optionally install)
@@ -1426,18 +1404,6 @@ main() {
                     echo "[DRY-RUN] Would remove: openspec"
                 else
                     echo "Removing: openspec"
-                    rm -rf "$target"
-                fi
-            fi
-        fi
-
-        if tool_is_selected cocoindex-code; then
-            target="$PROJECT_PATH/.cocoindex_code"
-            if [ -d "$target" ]; then
-                if [ "$DRY_RUN" = true ]; then
-                    echo "[DRY-RUN] Would remove: .cocoindex_code"
-                else
-                    echo "Removing: .cocoindex_code"
                     rm -rf "$target"
                 fi
             fi
@@ -1762,28 +1728,6 @@ main() {
         fi
     elif tool_is_selected openspec && [ ! -d "$SCRIPT_DIR/openspec" ]; then
         log_info "openspec: hub has no openspec/ — skip copy"
-    fi
-
-    # Optional tool: cocoindex-code
-    if tool_is_selected cocoindex-code && [ -d "$SCRIPT_DIR/.cocoindex_code" ]; then
-        target="$PROJECT_PATH/.cocoindex_code"
-        if [ -d "$target" ]; then
-            if [ "$DRY_RUN" = true ]; then
-                echo "[DRY-RUN] Would update: .cocoindex_code"
-            else
-                echo "Updating: .cocoindex_code"
-                rsync -av "$SCRIPT_DIR/.cocoindex_code/" "$target/"
-            fi
-        else
-            if [ "$DRY_RUN" = true ]; then
-                echo "[DRY-RUN] Would create: .cocoindex_code"
-            else
-                echo "Creating: .cocoindex_code"
-                rsync -av "$SCRIPT_DIR/.cocoindex_code/" "$target/"
-            fi
-        fi
-    elif tool_is_selected cocoindex-code && [ ! -d "$SCRIPT_DIR/.cocoindex_code" ]; then
-        log_info "cocoindex-code: hub has no .cocoindex_code/ — skip copy"
     fi
 
     # Run openspec init when openspec tool selected

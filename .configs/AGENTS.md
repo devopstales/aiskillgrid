@@ -60,9 +60,10 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## graphify
 
-This project has a graphify knowledge graph at graphify-out/.
+This project uses **graphify** as the hub-supported codebase index (outputs under `graphify-out/`). Pair it with **`rg`/IDE search** and LSP for exact symbols.
 
 Rules:
 - Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
 - If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
 - After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+- **Commit policy:** Either commit `graphify-out/` so all agents share the same snapshot, or keep it local/gitignored and regenerate after clone—pick one per repo; document in the root README or CONTRIBUTING if non-obvious

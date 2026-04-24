@@ -4,6 +4,31 @@
 
 Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](commands.md), [tools.md](tools.md).
 
+## Skillgrid layout (`.skillgrid/`)
+
+Canonical on-disk tree for a project using Skillgrid (names may vary). Application code lives under `src/`, `app/`, or your stack’s layout elsewhere.
+
+```text
+project-root/
+├── AGENTS.md
+├── DESIGN.md
+└── .skillgrid/
+    ├── project/                    # exploration / init: system & onboarding
+    │   ├── ARCHITECTURE.md
+    │   ├── STRUCTURE.md
+    │   └── PROJECT.md
+    ├── prd/                        # optional PRD index and per-change PRDs
+    │   ├── INDEX.md
+    │   └── <change-or-feature>.md
+    ├── preview/                    # /skillgrid-brainstorm: ephemeral MD/HTML to compare and pick options
+    └── scripts/
+        └── preview.sh              # scaffolds non-destructive stubs under preview/
+```
+
+- **`preview/`** — Short-lived brainstorm files (e.g. layout A vs B). This repo’s **`.skillgrid/preview/.gitignore`** may ignore `*.html`; commit policy is up to the team.  
+- **`scripts/preview.sh`** — Run from project root: `.skillgrid/scripts/preview.sh [slug]` (optional `--md` for markdown). Not every IDE has an embedded browser; users can open files in the editor or a regular browser, or work from labeled A/B in chat.  
+- A longer **example** (with IDE folders, `openspec/`, etc.) also appears in [`/skillgrid-init`](../.cursor/commands/skillgrid-init.md) under **Project structure (example)**.
+
 ```bash
 /skillgrid-init
 # Create skillgrid folder structure
@@ -11,14 +36,14 @@ Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](comm
 ## If greenfield: Ask the user abaute the man porpose of the app, what tools, technologys want to use. Ask until it is clear. Then generate content for ARCHITECTURE.md, STRUCTURE.md, PROJECT.md and Update AGENTS.md Prooject chapter
 ## If brownfield: Tell the user to use /skillgrid-explore because it is a brownfield project.
 # index memory
-## graphify init
-## CocoIndex init
+## graphify — `graphify update .` from project root (see AGENTS.md); code discovery via `rg`/IDE search
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
 - sdd-init — bootstrap SDD context: stack, conventions, persistence
-- ccc — CocoIndex Code: `ccc init`, indexing, semantic search setup
+- memory-protocol — Engram MCP: when to save, search, close sessions
 - context-engineering — Feed agents the right information at the right time - rules files, context packing, MCP integrations
 
+# Optional only if greenfield project
 /skillgrid-explore
 # Explore existing code
 ## Use openspec-explore
@@ -26,13 +51,25 @@ Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](comm
 ## Update AGENTS.md Prooject chapter
 ### Skills (.agents/skills/)
 - openspec-explore — explore problem and codebase before a change
-- ccc — semantic codebase search ccc search
+- graphify-out + `rg`/IDE search — orient in repo; refresh graph after structural changes
 - documentation-and-adrs - Architecture Decision Records, API docs, inline documentation standards - document the why
+
+# Tempolary disabled
+/skillgrid-ui-design
+# User describes how the page should look
+## Generate DESIGN.md
+### Skills (.agents/skills/)
+- karpathy-guidelines — assumptions, simplicity, surgical edits 
+- frontend-design - 
+- frontend-ui-engineering — Component architecture, design systems, state management, responsive design, WCAG 2.1 AA accessibility
+- sdd-propose — proposal.md only SDD orchestrator / Engram or openspec mode
+- spec-driven-development — Write a PRD covering objectives, commands, structure, code style, testing, and boundaries before any code
 
 /skillgrid-brainstorm
 # User describes what they want
-## Ask back to clarify
-## Search on the internet for good examples
+## Ask back to clarify; diverge and converge (see .cursor/commands/skillgrid-brainstorm.md)
+## Preview picks (optional): put compare-and-choose MD/HTML in .skillgrid/preview/; run .skillgrid/scripts/preview.sh to scaffold; works in any IDE (open file or use A/B in chat if no browser)
+## Search the internet for good examples when it helps
 ### Skills (.agents/skills/)
 - karpathy-guidelines — assumptions, simplicity, surgical edits 
 - search-first — research tools and patterns before building
@@ -48,17 +85,6 @@ Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](comm
 - sdd-propose — proposal.md only SDD orchestrator / Engram or openspec mode
 - spec-driven-development — Write a PRD covering objectives, commands, structure, code style, testing, and boundaries before any code
 
-# Tempolary disabled
-/skillgrid-design
-# User describes how the page should look
-## Generate DESIGN.md
-### Skills (.agents/skills/)
-- karpathy-guidelines — assumptions, simplicity, surgical edits 
-- frontend-design - 
-- frontend-ui-engineering — Component architecture, design systems, state management, responsive design, WCAG 2.1 AA accessibility
-- sdd-propose — proposal.md only SDD orchestrator / Engram or openspec mode
-- spec-driven-development — Write a PRD covering objectives, commands, structure, code style, testing, and boundaries before any code
-
 
 /skillgrid-breakdown
 # Break down the PRD into tasks
@@ -71,7 +97,7 @@ Full indexes: [agents.md](agents.md), [skills.md](skills.md), [commands.md](comm
 - test-driven-development - Red-Green-Refactor, test pyramid 80/15/5, test sizes, DAMP over DRY, Beyonce Rule, browser testing
 - tdd-guide — TDD guidance and patterns
 - source-driven-development — Ground every framework decision in official documentation - verify, cite sources, flag what is unverified
-- ccc — refresh semantic index after significant code changes
+- graphify — `graphify update .` after significant code or layout changes when graphify is in use
 # - clean-code — readability and maintainability while implementing
 
 /skillgrid-apply
@@ -142,23 +168,7 @@ Parallel **subagents** for codebase mapping and domain research, you can **fan o
 
 Parallel fan-out and merge is the same orchestration idea as the **slash command (orchestrator — fan-out)** section in [`.cursor/agents/README.md`](../.cursor/agents/README.md): only when sub-tasks are **independent** (no shared mutable state, no required ordering). The hub’s `/skillgrid-validate` run may still be **sequential in one turn**; true wall-clock parallelism requires a harness with concurrent subagents.
 
-## skillgrid Folder structure
-
-```bash
-project-root/
-├── AGENTS.md
-├── DESIGN.md
-└── .skillgrid/
-     ├── project
-          ├── ARCHITECTURE.md - Architecture with mermaid graphs
-          ├── STRUCTURE.md - Repository layout and (optional) runtime topology
-          └── PROJECT.md
-     └── prd
-          ├── INDEX.md
-          └── <change-or-feature-name>.md
-```
-
-**Templates** below match a common `project/` + `prd/` layout: a deep **architecture** write-up, a **project** onboarding doc, a **structure** doc for paths (and optional runtime topology—what many teams put in a separate `INFRASTRUCTURE.md`), and **PRD** index plus one file per change. In skillgrid, **STRUCTURE.md** holds repo tree and, if you use it, that deployment half in an optional section.
+**Templates** below match a common `project/` + `prd/` layout: a deep **architecture** write-up, a **project** onboarding doc, a **structure** doc for paths (and optional runtime topology—what many teams put in a separate `INFRASTRUCTURE.md`), and **PRD** index plus one file per change. **`.skillgrid/preview/`** and **`.skillgrid/scripts/preview.sh`** support **Preview picks** during `/skillgrid-brainstorm` (see **Skillgrid layout** at the top of this file). In Skillgrid, **STRUCTURE.md** holds repo tree and, if you use it, that deployment half in an optional section.
 
 ### `project/ARCHITECTURE.md` (template)
 
