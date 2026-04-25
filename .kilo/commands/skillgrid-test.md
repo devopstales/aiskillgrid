@@ -18,10 +18,42 @@ You are executing **`/skillgrid-test`** (VERIFY phase) for the Skillgrid workflo
 ## Steps
 
 1. **Automated tests** — Run or add tests that match the change; for bugs, prefer a failing test first, then the fix.
-2. **E2E** — Cover critical user journeys; quarantine or stabilize flaky cases per team practice.
-3. **Layers** — Use unit and integration tests with sensible mocks where the stack expects them.
-4. **Browser** — For UI, use DevTools or a browser MCP: DOM, console, network, performance as needed.
-5. **Debug** — Reproduce, localize, reduce, fix, then add a guard (test or assertion).
+2. **Code quality (automated)** — Run or verify project‑standard quality checks for the change.
+
+   - Detect the project’s quality tools from config: ESLint, Prettier, Ruff, Black, Pylint, Clippy, TypeScript strict mode, etc.
+   - At minimum, check for:
+     - **Linting** – no rule violations in changed files
+     - **Formatting** – consistent formatting
+     - **Type checking** – if the language has a type system, ensure no new errors
+   - If the project has no pre‑configured quality checks, offer to add a minimal `lint-staged` or CI‑ready command; do **not** add global tooling without user approval.
+   - If checks fail, report the failures clearly. Do **not** proceed to security or deeper functional tests until the code is clean.
+3. **Security (automated)** — Scan for vulnerabilities, secrets, misconfigurations, and code‑level weaknesses using both **[Trivy](https://github.com/aquasecurity/trivy)** and **Semgrep** (or the project’s configured SAST). This step mirrors the automation portion of **`/skillgrid-security`** and keeps the Test phase self‑contained.
+
+   - **Check tool availability:**
+     - `trivy --version`
+     - `semgrep --version` (or the project’s chosen SAST: `bandit`, `gosec`, etc.)
+     - If missing, offer to install them; for lightweight environments, fall back to package‑manager audits.
+
+   - **Trivy — filesystem & dependencies:**
+     `trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL . ` (limit to changed paths for speed; use `trivy image <image>` for containerised projects)
+
+   - **Semgrep — code patterns:**
+     `semgrep --config auto --error --strict .` (respect `.semgrep.yml` if present; prefer project‑configured rules)
+
+   - **Secrets deep‑dive (if Trivy found nothing):**
+     `trivy fs --scanners secret .` If a real credential is detected, do not echo it to chat; warn the user immediately and stop further scanning until it is revoked.
+
+   - **Triage findings:**
+     * **Critical / High CVEs or Semgrep errors:** list them plainly; the user must decide to **fix**, **suppress** (with a short justification), or **accept risk** before continuing.
+     * **Misconfigurations:** fix trivial ones immediately (e.g., `USER` in Dockerfile); surface design‑level changes to the user.
+     * **Secrets:** if any real credential is exposed, stop the scan, warn the user without echoing the secret, and block progress until it is revoked.
+
+   - **Risk framing (light):** Summarise the change’s attack surface in one sentence—does it touch auth, data stores, or external APIs? If the surface is non‑trivial, mention that a full manual review with **`/skillgrid-security`** is recommended later.
+
+4. **E2E** — Cover critical user journeys; quarantine or stabilize flaky cases per team practice.
+5. **Layers** — Use unit and integration tests with sensible mocks where the stack expects them.
+6. **Browser** — For UI, use DevTools or a browser MCP: DOM, console, network, performance as needed.
+7. **Debug** — Reproduce, localize, reduce, fix, then add a guard (test or assertion).
 
 ## Practices (inline)
 

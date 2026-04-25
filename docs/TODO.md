@@ -145,20 +145,20 @@ npm install -g @mariozechner/pi-coding-agent
   * mermaid graph in db plan
 * visualization
   * web based wisulization for pipeline
-* templates md in skill
-  * AGENTS.md
 * ticketing integration
   * github
   * gitlab
   * jira cloud
-* usae TDD workflow
 * paralelism
   * subagent-driven-development or executing-plans
-* checkpont
-  * git-worktrees (separate branch?)
-  * checkpoint commands
-  * create separate git branch for prds and work on that
-  * at the and create PR
+  * checkpont
+    * git-worktrees (separate branch?)
+    * checkpoint commands
+    * create separate git branch for prds and work on that
+    * at the and create PR
+* generate user journey 
+  * to Markdown Presentation Ecosystem format
+  * to mermeade
 * design tools
   * DESIGN.md
   * taste-skill
@@ -166,8 +166,6 @@ npm install -g @mariozechner/pi-coding-agent
   * impeccable
   * cnnect prainstorming with design
   * project level desig command (not part of the main function workflow)
-* Context Engineering
-  * memory
 * installer
   * Claude Code plugin
   * Cursor plugin

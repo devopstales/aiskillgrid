@@ -1,63 +1,164 @@
 ---
-description: Combined gate — full review then full security (same as review + security)
-allowed-tools: Read, Glob, Grep, Bash, Task, Write
+description: Combined gate — full review, full security, then user validation
+allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[change-id or release scope]"
 ---
 
 <objective>
-
 You are executing **`/skillgrid-validate`** for the Skillgrid workflow.
 
-This command is a **single-turn combined gate**: perform every step in **`/skillgrid-review`**, then every step in **`/skillgrid-security`**, in that order.
+This command is a **single, self‑contained gate** that performs a complete review, a complete security check, and then requires the user to approve (or rollback) the change. Do **not** delegate to separate `/skillgrid-review` or `/skillgrid-security` commands; all steps are defined here.
 
+**Hybrid persistence:** always use on‑disk `openspec/changes/<name>/` **and** Engram (`mem_save`) to persist findings.
 </objective>
 
 <process>
 
-## Execution
+## Phase 1 – Review (on‑disk & code/product)
 
-1. Open and follow **`skillgrid-review.md`** in this repo’s commands directory (same folder as this file, or under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`).
-2. When review is complete, open and follow **`skillgrid-security.md`** in the same way.
+### 1.1 OpenSpec verification
 
-If you cannot read those files, use the **Steps** / **process** sections from both commands as the authoritative checklist (no external skill file paths).
+**Input:** The change name (kebab‑case). If missing, list active changes with `openspec list --json` and ask the user to choose.
 
-## Practices (combined)
+- **Status**  
+  `openspec status --change "<name>" --json`
 
-Across both passes: keep **scope and assumptions** explicit; do not treat this single gate as sufficient if the team requires a human sign-off between review and security.
+Note `schemaName` and existing artifacts.
 
-## Verification discipline (completion claims)
+- **Apply context**  
+  `openspec instructions apply --change "<name>" --json`
 
-**Principle:** Evidence before any success or completion claim. If you have not run the check that proves the claim in this turn, you cannot state that the claim holds.
+Read all listed `contextFiles`.
 
-**Before stating** that tests pass, the build is clean, a bug is fixed, requirements are met, or this gate is satisfied:
+### 1.2 Completeness
 
-1. **Identify** the command or checklist step that would prove it.
-2. **Run** it fully (fresh, not assumed from an earlier session or another agent).
-3. **Read** the full output, exit code, and failure counts.
-4. **Verify** that the output actually supports the claim; if not, report the real state with that evidence.
-5. **Only then** make the claim, and cite what you ran.
+- **Tasks:** If `tasks.md` is in context, count open `- [ ]` vs completed `- [x]`. Flag incomplete core tasks as **CRITICAL**.
+- **Delta specs:** If `openspec/changes/<name>/specs/` exists, extract `### Requirement:` blocks and search the codebase for likely implementations. Unimplemented requirements → **CRITICAL**.
 
-**Weak claims to avoid** (they are not verification): “should pass,” “probably fine,” “looks correct,” satisfaction or “done” before reading output, trusting another agent’s success report without checking diffs and rerunning checks where needed, substituting linter green for a full build, or treating partial checks as proof of the whole gate.
+### 1.3 Correctness
 
-**Regression / TDD:** A regression test is only credible after a red–green check (failure without the fix, pass with the fix) when that is feasible.
+- For each requirement, find implementation evidence; divergence → **WARNING** with file:line.
+- For `#### Scenario:` blocks, check for corresponding test coverage; missing coverage → **WARNING** or **SUGGESTION**.
 
-**Delegation:** If work was delegated, independently confirm repository state and verification output; a delegated “success” is not evidence by itself.
+### 1.4 Coherence
+
+- Compare `design.md` decisions against code; contradictions → **WARNING**.
+- Check new code against repo patterns (naming, layout); big deviations → **SUGGESTION**.
+
+### 1.5 Code & product review
+
+- **Code review** — Readability, coupling, error handling, change size. Use blocker / major / minor.
+- **Performance** — Check hot paths the change touched; flag obvious regressions.
+- **Data** — For storage changes: review schema, queries, migrations.
+- **Documentation** — If public APIs or behaviour changed, note missing docs.
+
+### 1.6 Review report
+
+Write **`openspec/changes/<name>/verify-report.md`** with a summary table (completeness / correctness / coherence), all findings with severity (CRITICAL / WARNING / SUGGESTION), and a verdict (ready / must‑fix / ship‑with‑warnings). Persist to Engram as `mem_save` with topic key `skillgrid/<change-name>/verify-report`.
+
+---
+
+## Phase 2 – Security (deep review)
+
+### 2.1 Automated baseline (if not already in test phase)
+
+Run quick scanner baseline to ensure no glaring issues slipped through:
+  - `trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL .`
+  - `semgrep --config auto --error --strict .`
+
+
+### 2.2 Code security review
+
+Manually inspect critical paths for:
+- AuthN/Z flaws, hardcoded secrets, injection (SQL/command/template/noSQL)
+- SSRF, open redirects, path traversal, unsafe deserialisation
+- Trust boundaries and blast radius
+
+### 2.3 Dependency & container deep‑dive
+
+- For every added/bumped dependency: check for unmaintained, licence issues, known exploits
+- Container images: minimal base, non‑root user, Trivy image scan if applicable
+- IaC misconfigurations (open ports, overly permissive IAM)
+
+### 2.4 Agent & IDE config audit
+
+- Review `.cursor/`, `.kilo/`, `.opencode/`, `.github/prompts/` for unsafe defaults
+- MCP server permissions, tool allow‑lists
+- Agent definitions for risky patterns
+
+### 2.5 Deprecation hygiene
+
+If the change removes or replaces endpoints/keys/dependencies:
+- List old entry points and plan a deprecation timeline
+- Verify no stale secrets or docs remain
+
+### 2.6 Risk framing & threat model
+
+- Identify threat actors and trust assumptions
+- Prioritise findings: 🟥 Critical / 🟧 High / 🟨 Medium / 🟩 Low
+- Document mitigations
+
+### 2.7 Security findings summary
+
+Collect all security findings into a concise summary for the user (do not write a separate file unless the user requests; include in the combined validation prompt).
+
+---
+
+## Phase 3 – User validation & rollback
+
+Present the combined outcome:
+
+- Change id and linked PRD path
+- Review verdict and security severity counts
+- Any unresolved blockers from either pass
+
+Then ask:
+> *“Does this change pass validation? Reply **approved** to set status to `devdone` and proceed to `/skillgrid-finish`, describe what to fix, or reply **rollback** to discard the change.”*
+
+Handle responses:
+- **Approved:** continue to Phase 4.
+- **Changes requested:** apply fixes, re‑run affected checks, re‑prompt.
+- **Rollback:**
+  - If a worktree was used (`.worktree/<slug>/`): `git worktree remove .worktree/<slug>/ --force` and delete the associated branch.
+  - If applied directly, guide the user on reverting commits.
+  - Reset PRD status to `draft` (or archive). Suggest next steps: `/skillgrid-plan` or `/skillgrid-finish`.
+- **No response:** wait; do not advance.
+
+---
+
+## Phase 4 – Finalise (after approval)
+
+- Set PRD **`Status:`** to **`devdone`** (and update `.skillgrid/prd/INDEX.md` / ticket table).
+- Update `.skillgrid/tasks/context_<change-id>.md` with a validation sign‑off note.
+
+---
+
+## Verification discipline
+
+- Never claim a check passed without running it and reading the output.
+- Avoid weak claims (“should pass”, “looks correct”); always provide evidence.
+- If work was delegated to subagents, independently confirm the repository state and results.
+- Regression tests must show red‑green where possible.
+
+---
 
 ## Optional: IDE personas
 
-This command runs **review then security sequentially** in one turn. If your IDE supports **parallel subagents**, you can instead fan out independent reports (e.g. **`skillgrid-spec-verifier`**, **`skillgrid-code-reviewer`**, **`skillgrid-security-auditor`**, and optionally **`skillgrid-test-engineer`**) and merge—see [`.cursor/agents/README.md`](../../.cursor/agents/README.md).
+If your environment supports parallel subagents, you may fan out the review and security steps concurrently, but the user validation (Phase 3) must happen after all reports are merged.
+
+---
 
 ## Notes
 
-- Prefer **`/skillgrid-review`** then **`/skillgrid-security`** as separate invocations when you want clearer phase boundaries or human sign-off between them.
 - Inspect the repo with tools; do not assume stack or layout.
+- This command is self‑contained; it does not invoke separate `/skillgrid-review` or `/skillgrid-security` commands.
 
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:
 
-1. **What I did** — Bullets: review + security outcomes, reports written, and whether the change is merge-ready.
+1. **What I did** — Bullets: review + security outcomes, reports written, and final validation decision (approved / changes requested / rollback).
 2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
-3. **Suggested next command** — **`/skillgrid-finish`** to archive, sync specs, and prep PR/CI; or **`/skillgrid-apply`** if blockers need more implementation.
+3. **Suggested next command** — **`/skillgrid-finish`** to archive, sync specs, and create a PR (if approved); **`/skillgrid-apply`** if blockers need more implementation; or **`/skillgrid-plan`** if a rollback requires a fresh start.
 
 </process>

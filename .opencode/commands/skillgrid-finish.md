@@ -96,6 +96,18 @@ Order of operations: **(1) optional** sync of delta specs into main `openspec/sp
 
 ---
 
+## 3a — Cleanup preview
+
+Check **`.skillgrid/preview/`** for files related to the change you’re closing.
+
+- If the directory is empty or gitignored and contains only stale files, list them.
+- Ask the user: *“Can I delete these preview files? [list]”*  
+  On confirmation, remove them.
+- If the team keeps previews for reference, skip with a brief note.
+   ```
+
+---
+
 ## 4 — Pull request, CI, and ship
 
 1. **Pull request** — Open or update a PR: clear description, risks, and links to **`openspec/changes/…`**, the numbered PRD file(s) (**`.skillgrid/prd/PRD<NN>_<slug>.md`**), and tests. Keep commits small and reviewable; follow team branching rules.

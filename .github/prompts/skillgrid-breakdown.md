@@ -1,7 +1,4 @@
 ---
-name: /skillgrid-breakdown
-id: skillgrid-breakdown
-category: Workflow
 description: PRD implementation checklist synced with OpenSpec tasks.md
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[change-id or PRD slug]"
@@ -23,7 +20,12 @@ Merge **PRD “Implementation tasks”** with the canonical OpenSpec **`tasks.md
 
 ## Steps
 
-1. **Select the change** — If the name is not given, infer from context or list `openspec/changes/` / `openspec list --json` and ask. Announce which change you are using.
+1. **Select the change** — If the name is not given, infer from context or list `openspec/changes/` / `openspec list --json` and ask.
+
+   - **Pre-flight check:**  
+     - If **no PRD** exists for this change (glob `.skillgrid/prd/PRD*_<slug>.md` and check the `Spec / change` link), warn: *“No PRD found for this change. Run `/skillgrid-plan` first to create one.”* Do not proceed until a PRD exists.  
+     - If **`openspec/changes/<name>/`** does not exist, warn: *“No OpenSpec change directory. Run `/skillgrid-plan` to scaffold it.”*  
+   - Announce which change and PRD you are using.
 
 2. **CLI status (readiness)** — For on-disk OpenSpec:
 
@@ -64,7 +66,23 @@ Merge **PRD “Implementation tasks”** with the canonical OpenSpec **`tasks.md
 
 11. **No orphan work** — Each task should map to a spec or agreed design; call out gaps before coding.
 
+11a. **Validate with the user** — After the checklist is synced and `applyRequires` are met, present a summary before advancing the status.
+
+   - Summarise:
+     - Change id and PRD path
+     - Number of workstreams and total tasks
+     - Which workstream(s) are parallelizable (if any)
+     - Any tasks flagged as blocking or high-risk
+     - Current `applyRequires` status (all `done`?)
+   - Ask: *“Does this breakdown look ready? Reply **approved** to set status to `todo` and proceed to `/skillgrid-apply`, or describe what should change.”*
+   - If the user requests changes, apply them to both the PRD and `tasks.md`, re-run `openspec status`, and repeat validation.
+   - Only after explicit approval should you set the PRD `Status:` to `todo` (step 12) and produce the completion report.
+
 12. **PRD `Status`** — Set the change’s PRD **`Status:`** to **`todo`** (and INDEX / ticket table if used) before handoff. Next is **`inprogress`** in **`/skillgrid-apply`**.
+
+12b. **Update session context** — If `.skillgrid/tasks/context_<change-id>.md` exists, set:
+   - `state:` from `planning` to `breakdown` (or your team’s convention)
+   - Add a one-line note: *“Tasks broken down; N workstreams, M total tasks. Ready for apply.”*
 
 ## PRD: Implementation tasks checklist format
 

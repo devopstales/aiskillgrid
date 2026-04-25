@@ -27,6 +27,11 @@ You detect the stack and repo layout, then apply a **persistence mode** the team
    - **Brownfield** when: real product code exists in the repo to map and change (services, app entrypoints, libraries beyond stubs), or the user **explicitly** says the codebase is existing / legacy / brownfield.
    - **Wrong:** calling a repo brownfield just because **`.skillgrid/`**, **`openspec/`**, or IDE folders exist.
    - **Greenfield path:** clarify **purpose**, **stack**, and **tools**; then create or update **`.skillgrid/project/*.md`** and the **Project** section of root **`AGENTS.md`** (see **`.skillgrid/scripts/skillgrid-workflow.md`**).
+   - * **Design intent** — Ask: *“Do you have design preferences—colors, typography, aesthetic direction—or a design system you’d like to use?”*  
+     - * Create (or update) **`DESIGN.md`** at the root.  
+     - * Always scaffold the file using the template below, even if the user provides only a vague direction. Fill provided tokens; leave unspecified ones empty (`""`).  
+     - * The front matter must match the structure used by Skillgrid’s design tokens: `name`, `colors`, `typography`, `rounded`.  
+     - * If the user wants to defer all design decisions, still create the file with empty front matter and a placeholder `## Overview` (e.g. “To be defined during brainstorming.”).
    - **Brownfield path:** recommend **`/skillgrid-explore`** before big structural work so **`.skillgrid/project/`** and **`AGENTS.md`** are grounded in the real code.
 
 2. **On-disk OpenSpec** — For modes **`openspec`** and **`hybrid`** only: if there is no `openspec/` yet, run the **OpenSpec CLI** from the **project root** using the Skillgrid default:
@@ -43,7 +48,7 @@ You detect the stack and repo layout, then apply a **persistence mode** the team
    - **Type** (e.g. `architecture` or your convention) and **project** field as your Engram setup expects.
    - **Content:** markdown summary: stack, test runner, key paths, whether `openspec/` exists, and which **persistence mode** is active.
 
-4. **Create folder structure** — Establish or verify **`.skillgrid/project/`**, **`.skillgrid/prd/`** (and **`.skillgrid/preview/`** / **`.skillgrid/scripts/preview.sh`** if the repo uses them per **`.skillgrid/scripts/skillgrid-workflow.md`**). **PRD files** use **`.skillgrid/prd/PRD<NN>_<slug>.md`**: two-digit `<NN>` is **execution order**; add **`.skillgrid/prd/INDEX.md`** listing PRDs sorted by `<NN>`. **Repeat:** do **not** create **`prd/`** at repo root. Application source lives where the stack expects (`src/`, `app/`, `packages/`, etc.).
+4. **Create folder structure** — Establish or verify **`.skillgrid/project/`**, **`.skillgrid/prd/`**, **`.skillgrid/tasks/`**, **`.skillgrid/tasks/research/`** . **PRD files** use **`.skillgrid/prd/PRD<NN>_<slug>.md`**: two-digit `<NN>` is **execution order**; add **`.skillgrid/prd/INDEX.md`** listing PRDs sorted by `<NN>`. **Repeat:** do **not** create **`prd/`** at repo root. Application source lives where the stack expects (`src/`, `app/`, `packages/`, etc.).
 
 5. **Graphify** — When graphify is in use, run **`graphify update .`** from the project root. **Do not** block the whole turn on it: use a subagent/background run; the user can read **`graphify-out/`** when ready.
 
@@ -101,7 +106,13 @@ Conventions for a **Skillgrid-initialized** repo. Application code lives under w
 project-root/
 ├── AGENTS.md
 ├── README.md
+├── DESIGN.md
 ├── .skillgrid/
+│   ├── tasks/
+│   │   ├── context_<change-id>.md
+│   │   └── research/
+│   │       └── <change-id>/
+│   │           └── <topic-or-agent>_<optional-date>.md
 │   ├── project/
 │   │   ├── ARCHITECTURE.md
 │   │   ├── STRUCTURE.md
@@ -132,12 +143,14 @@ Use these **exact** values on the **PRD** `**Status:**` line (and in **`.skillgr
 
 | When this command completes successfully | Set `Status` to |
 |------------------------------------------|-----------------|
+| **`/skillgrid-init`** | `draft` |
 | **`/skillgrid-plan`** | `draft` |
 | **`/skillgrid-breakdown`** | `todo` |
 | **`/skillgrid-apply`** | `inprogress` |
 | **`/skillgrid-review`** | `devdone` |
 | **`/skillgrid-finish`** | `done` |
 
+- **Initial Status:** At creation the PRD’s **`Status:`** is `draft`
 - **Single line of truth:** the PRD’s **`Status:`** (and any mirrored table column). The agent **updates** that field at the end of the matching phase; later phases may overwrite the previous value.
 - **Optional metadata:** OpenSpec on-disk or Engram can carry parallel notes, but the PRD `Status` is what humans scan first.
 
@@ -152,7 +165,7 @@ Use these when creating **`.skillgrid/project/ARCHITECTURE.md`**, **`.skillgrid/
 
 > **Version:** <semver or date>
 > **Last Updated:** <YYYY-MM-DD>
-> **Status:** <Draft | Active | Superseded>
+> **Status:** <Draft | ToDo | InProgress | DevDone | Done | Superseaded>
 
 ---
 
@@ -293,6 +306,53 @@ graph TD
 - PRDs: `.skillgrid/prd/INDEX.md`
 - …
 ````
+
+### `DESIGN.md`
+
+```markdown
+---
+name: <Project Name>
+colors:
+  primary: ""
+  secondary: ""
+  surface: ""
+  on-surface: ""
+  error: ""
+typography:
+  body-md:
+    fontFamily: ""
+    fontSize: ""
+    fontWeight: ""
+rounded:
+  md: ""
+---
+
+# Design System
+
+## Overview
+<User-provided one-liner: e.g. "A focused, dark interface for a developer tool.">
+
+## Colors
+- **Primary** (``): CTAs, active states, key interactive elements
+- **Secondary** (``): Supporting UI, chips, secondary actions
+- **Surface** (``): Page backgrounds
+- **On-surface** (``): Primary text on dark backgrounds
+- **Error** (``): Validation errors, destructive actions
+
+## Typography
+- **Headlines**: …
+- **Body**: …
+- **Labels**: …
+
+## Components
+- **Buttons**: …
+- **Inputs**: …
+- **Cards**: …
+
+## Do's and Don'ts
+- Do …
+- Don't …
+```
 
 ## Notes
 

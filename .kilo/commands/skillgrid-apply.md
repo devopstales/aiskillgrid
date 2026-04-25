@@ -101,13 +101,26 @@ Use clear headings, e.g. `Implementing: <change> (schema: …)`, per-task progre
    - The **PRD** **`Status:`** line to **`inprogress`** when this session advances work (per **objective**)
 
    If there is no PRD file, update `tasks.md` (or Engram) only and add a pointer when the team expects a PRD.
-3. **Scope** — Smallest vertical slice that satisfies the current tasks; no unrelated refactors.
-4. **Contracts** — Preserve agreed APIs and error behavior at public boundaries; document contract changes in design/PRD when you must change them.
-5. **TDD** — When tests are in play: red–green–refactor; write the failing test first when the task calls for it.
-6. **Frameworks** — Ground behavior in the official docs for the stack the repo uses; cite in commits or code comments when useful.
-7. **Quality** — Small, reviewable commits; work in **vertical slices** (implement, verify, commit).
-8. **Migrations** — For schema/data changes, follow safe migration practices (one migration per logical change, rollback story).
-9. **Graph & project docs** — At end of a substantive apply run, follow **Part A — step 9 (Post-implementation housekeeping)**: **`graphify update .`** when needed, and keep **`.skillgrid/project/ARCHITECTURE.md`**, **STRUCTURE.md**, and **PROJECT.md** aligned with what you changed (see step 9 for which file to touch). **`/skillgrid-finish`** runs a final consistency pass before archive.
+3. **Engram snapshot (reindex):** After every substantive apply run that lands code or alters the repo, `mem_save` a brief progress snapshot with topic key `skillgrid/<change>/apply`. Include:
+     - Tasks completed this session and N/M total.
+     - Files created, modified, or deleted.
+     - Any structural changes (new packages, services, ADRs).
+     - Link to the PRD and OpenSpec change directory.
+     This keeps Engram current and allows other agents to pick up without rereading the entire disk state.
+4. **Scope** — Smallest vertical slice that satisfies the current tasks; no unrelated refactors.
+5. **Contracts** — Preserve agreed APIs and error behavior at public boundaries; document contract changes in design/PRD when you must change them.
+6. **TDD** — When tests are in play: red–green–refactor; write the failing test first when the task calls for it.
+   - **If the task requires a behavioural change (new feature, bug fix, or contract adjustment):**
+     1. **Write (or update) a failing test** that clearly proves the intended behaviour.
+     2. **Run the test suite** and observe it fail (or confirm the new test fails while nothing else breaks unexpectedly).
+     3. **Implement the minimal code** to make the test pass.
+     4. **Run the test again** and confirm it passes (green).
+     5. **Refactor** for clarity and performance without changing behaviour, then rerun tests.
+   - For tasks that are purely structural (renames, formatting, non‑behavioural refactors), a test is optional; explain why you skipped it.
+7. **Frameworks** — Ground behavior in the official docs for the stack the repo uses; cite in commits or code comments when useful.
+8. **Quality** — Small, reviewable commits; work in **vertical slices** (implement, verify, commit).
+9. **Migrations** — For schema/data changes, follow safe migration practices (one migration per logical change, rollback story).
+10. **Graph & project docs** — At end of a substantive apply run, follow **Part A — step 9 (Post-implementation housekeeping)**: **`graphify update .`** when needed, and keep **`.skillgrid/project/ARCHITECTURE.md`**, **STRUCTURE.md**, and **PROJECT.md** aligned with what you changed (see step 9 for which file to touch). **`/skillgrid-finish`** runs a final consistency pass before archive.
 
 ## Notes
 

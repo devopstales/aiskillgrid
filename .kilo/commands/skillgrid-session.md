@@ -20,10 +20,20 @@ Use this at the **start of a new agent session**, after context compaction, or w
 ## Steps
 
 1. **Charter** — Capture a short session note: goal, constraints, success criteria, and stack or repo assumptions. Align with how your project records session context (e.g. project playbook or `NOTE.md`).
-2. **Context budget** — Decide what must be loaded now versus later: rules, skills, MCP servers, and large files. Prefer minimal viable context until a phase needs depth.
-3. **Tooling** — Enable only the MCPs and CLIs needed for this session; defer the rest to avoid noise and token burn.
-4. **Checkpoint** — Note where to resume if interrupted (open change, branch, last task id, or spec section).
-5. **Research vs build** — If discovery is still open, prefer a quick literature pass (web, docs MCPs, repo search) before locking design; if building, defer broad research unless a risk appears.
+2. **Restore project memory (hybrid)**  
+   - Read **`AGENTS.md`** and **`openspec/config.yaml`** (if present) for stack, conventions, and rules.  
+   - Run `openspec list --json` to identify active changes.  
+   - Glob **`.skillgrid/prd/PRD*.md`** and check `Status:` lines to find work in flight.  
+   - For each active change, check for **`.skillgrid/tasks/context_<change-id>.md`** — if one exists, display its `state`, `current goal`, and `last checkpoint` so the user can resume immediately.  
+   - If Engram is available, `mem_search` for `skillgrid-init/{project-name}` and any change-scoped keys (`skillgrid/<change>/plan`, `skillgrid/<change>/verify-report`). Offer to load the full text via `mem_get_observation`.
+
+3. **Detect parallel work**  
+   - Check for **`.worktree/`** directories and any associated branches (`git worktree list`). Warn if multiple worktrees are active and which changes they map to.
+   - Run `git status --short` to surface uncommitted work from a previous session.
+4. **Context budget** — Decide what must be loaded now versus later: rules, skills, MCP servers, and large files. Prefer minimal viable context until a phase needs depth.
+5. **Tooling** — Enable only the MCPs and CLIs needed for this session; defer the rest to avoid noise and token burn.
+6. **Checkpoint** — Note where to resume if interrupted (open change, branch, last task id, or spec section).
+7. **Research vs build** — If discovery is still open, prefer a quick literature pass (web, docs MCPs, repo search) before locking design; if building, defer broad research unless a risk appears.
 
 ## Practices (inline)
 

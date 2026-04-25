@@ -35,20 +35,159 @@ You are executing **`/skillgrid-explore`** (DEFINE phase) for the Skillgrid work
 
    This surfaces active changes, names, and status. If the CLI is missing or the command fails, still inspect **`openspec/changes/`** and **`openspec/specs/`** (if present) and summarize what exists. If the project uses `openspec list` without `--json`, that is acceptable; prefer `--json` when available for machine-readable status.
 
-3. **PRD coverage for existing changes** — For each change surfaced by `openspec list` (or each directory under `openspec/changes/<change-id>/` when you inventoried manually), confirm there is a **PRD** that names that change. **Canonical path:** **`.skillgrid/prd/PRD<NN>_<slug>.md`** (two-digit **`<NN>`** = execution order). **First**, glob **`.skillgrid/prd/PRD*.md`** (and root `prd/PRD*.md` only if migrating legacy), **sort by `<NN>`**, and read **`.skillgrid/prd/INDEX.md`**. The PRD’s title block or body should point at the change path (e.g. `openspec/changes/<id>/`). **If execution order of open work is wrong**, renumber files (`PRD01_…` …) and update **`.skillgrid/prd/INDEX.md`**, cross-links, and any Engram or OpenSpec notes (same rules as **`/skillgrid-plan`**). **If a change has no PRD**, create one under **`.skillgrid/prd/`** using the **PRD template** below and assign the next appropriate `<NN>`. **Do not** create new PRD files at repo root `prd/`. `docs/PRD/` may mirror; keep numbering consistent with **`.skillgrid/prd/`**.
+3. **PRD coverage for existing changes** — For each change surfaced by `openspec list` (or each directory under `openspec/changes/<change-id>/` when you inventoried manually), confirm there is a **PRD** that names that change. **Canonical path:** **`.skillgrid/prd/PRD<NN>_<slug>.md`** (two-digit **`<NN>`** = execution order). **First**, glob **`.skillgrid/prd/PRD*.md`** (and root `prd/PRD*.md` only if migrating legacy), **sort by `<NN>`**, and read **`.skillgrid/prd/INDEX.md`**. The PRD’s title block or body should point at the change path (e.g. `openspec/changes/<id>/`). **If execution order of open work is wrong**, renumber files (`PRD01_…` …) and update **`.skillgrid/prd/INDEX.md`**, cross-links, and any Engram or OpenSpec notes (same rules as **`/skillgrid-plan`**). **If a change has no PRD**, create one under **`.skillgrid/prd/`** using the **PRD template** below and assign the next appropriate `<NN>`.
+
+   - **Backfill status (required):** When creating a PRD for an existing OpenSpec change, inspect the change directory to set the initial `Status:` field in the PRD title block. Use the following rules — they precede the normal lifecycle table and ensure every PRD has a correct status from the moment it is created:
+     * If the change directory is under **`openspec/changes/archive/`** → `done`
+     * Else if a **`tasks.md`** exists and has at least **one completed checkbox** (`- [x]`) → `inprogress`
+     * Else if only a **`proposal.md`** (or other planning files) exists but no tasks or no completed tasks → `draft`
+     * (If the change has no structured artifacts, treat it as a proposal-only scenario → `draft`)
+   - After setting the status, continue with the rest of the PRD creation steps (numbering, INDEX.md update, cross-links). **Do not** create new PRD files at repo root `prd/`. `docs/PRD/` may mirror; keep numbering consistent with **`.skillgrid/prd/`**.
+
+3a. **Auto‑generate with openspec‑explore skill (optional)** — If the skill `openspec-explore` is available (check `.cursor/skills/`, `.kilo/skills/`, `.opencode/skills/`, `.agents/skills/`), offer to run it against a specific change. When invoked, call the skill with the change‑id and the canonical PRD path (adapt to your actual skill interface; it may be a sub‑agent prompt or a tool call).
+
+   The skill should:
+   - Extract requirements from existing OpenSpec delta specs into a populated PRD.
+   - Or, if a PRD already exists, compare it against the OpenSpec change and flag gaps.
+   - Optionally, generate an initial `tasks.md` skeleton from spec requirements if it is missing (it can be refined later with **`/skillgrid-breakdown`**).
+
+   After the skill runs, verify its output: ensure the PRD `Status` is set according to the backfill rules in step 3. If the skill is not installed, continue with the manual backfill in step 3.
 
 4. **Read existing change artifacts in context** — If the user names a change or one is relevant:
 
    - Read `openspec/changes/<name>/proposal.md`, `design.md`, `tasks.md`, and delta specs as needed.
    - Reference them in conversation; offer to capture new decisions in the right file when the user wants that recorded.
 
-5. **Project docs (canonical)** — Create or refresh **`.skillgrid/project/ARCHITECTURE.md`**, **`STRUCTURE.md`**, and **`PROJECT.md`**. Use **Project document templates** in **`/skillgrid-init`** when helpful.
+5. **Project docs (canonical)** — Create or refresh **`.skillgrid/project/ARCHITECTURE.md`**, **`STRUCTURE.md`**, and **`PROJECT.md`** using the templates in **`/skillgrid-init`**. Also process the design document below.
+
+5a. **DESIGN.md** — discover, extract, or ask
+
+   **Goal:** Ensure a populated root **`DESIGN.md`** exists for every project. This file follows the [Google Stitch DESIGN.md format](https://stitch.withgoogle.com/docs/design-md/format/): an optional YAML front matter with machine-readable tokens (`colors`, `typography`, `rounded`, `spacing`, `components`) and a markdown body with human-readable rationale.
+
+   **Inspiration library:** If the user wants to adopt a known brand aesthetic, point them to **[getdesign.md](https://getdesign.md)** — a curated collection of 69+ DESIGN.md files (Stripe, Notion, Linear, Apple, Tesla, etc.). They can browse, pick a reference, and either copy the file directly or run:
+
+```bash
+npx getdesign@latest add <brand-slug>   # e.g. stripe, notion, linear
+```
+
+This drops a ready-made DESIGN.md into the project root. If the user takes this path, skip the rest of step 5a (the file is already populated) and just note it in the completion report.
+
+#### Auto-detection (brownfield)
+
+Scan the codebase for design tokens. Run these checks in parallel where possible:
+
+| Source | What to extract | How |
+|--------|----------------|-----|
+| `tailwind.config.*` | `theme.colors`, `theme.fontFamily`, `theme.fontSize`, `theme.borderRadius` | Read and map to DESIGN.md token names |
+| CSS custom properties (`:root` block, `theme.css`, `globals.css`) | `--color-*`, `--font-*`, `--radius-*` | Extract hex values and font stacks |
+| `Theme.ts` / `theme.ts` / `DesignSystem.ts` | Exported colour objects, typography scales, spacing | Map object keys → token names |
+| `app.json` / `config/design.*` | Any structured design config | Adapt to DESIGN.md schema |
+| Figma links in README or AGENTS.md | URL references | Note under `## Design sources` in the body; do not scrape |
+
+**Mapping rules:**
+
+- Tailwind `colors.primary` → `colors.primary` in YAML front matter
+- CSS `--color-primary` → `colors.primary`
+- Tailwind `borderRadius.md` → `rounded.md`
+- If multiple shades exist (e.g. `primary.500`, `primary.700`), pick the middle weight as `primary` and note the scale under `## Colors` in the body.
+
+#### Populate or create DESIGN.md
+
+If root `DESIGN.md` already exists (from init), update it with discovered tokens. Merge intelligently: detected values override empty placeholders but **never** overwrite user-authored values without asking.
+
+If no `DESIGN.md` exists, scaffold one from the **DESIGN.md template** below, filling every slot you can from auto-detection. Leave undetected values as empty strings (`""`).
+
+#### Ask the user (when detection is incomplete)
+
+After auto-detection, present a **compact summary** of what was found and what’s missing. Ask targeted questions — do not ask the user to fill in the entire file themselves. Example:
+
+> **Design tokens detected:**
+> - Colors: primary `#2665fd`, surface `#0b1326` ✅
+> - Typography: Inter (body), 16px ✅
+> - Rounded: 8px ✅
+> - Missing: error color, heading font, spacing scale
+>
+> **Two quick questions:**
+> 1. What hex value should I use for **error/destructive** colour? (default: `#ffb4ab`)
+> 2. Do you have a preferred **heading font** or should I keep Inter for everything?
+
+If the user defers all design decisions, leave the empty slots and note in the body: *“To be refined during `/skillgrid-brainstorm`.”*
+
+If the user has **no preferences at all**, suggest picking a reference from **[getdesign.md](https://getdesign.md)** that matches their product category (e.g. Stripe for fintech, Linear for dev tools, Notion for productivity).
+
+#### DESIGN.md template (canonical)
+
+```markdown
+---
+name: <Project Name>
+colors:
+  primary: ""
+  secondary: ""
+  surface: ""
+  on-surface: ""
+  error: ""
+typography:
+  body-md:
+    fontFamily: ""
+    fontSize: ""
+    fontWeight: ""
+  h1:
+    fontFamily: ""
+    fontSize: ""
+    fontWeight: ""
+rounded:
+  md: ""
+---
+
+# Design System
+
+## Overview
+<One-line description of visual direction. If unknown: "To be refined during brainstorming.">
+
+## Design sources
+<Link to Figma, getdesign.md reference, brand guidelines, or "None — defined in this file.">
+
+## Colors
+- **Primary** (`primary`): CTAs, active states, key interactive elements
+- **Secondary** (`secondary`): Supporting UI, chips, secondary actions
+- **Surface** (`surface`): Page backgrounds
+- **On-surface** (`on-surface`): Primary text on surface backgrounds
+- **Error** (`error`): Validation errors, destructive actions
+
+## Typography
+- **Headlines** (h1): <font, weight, size — or "To be defined">
+- **Body** (body-md): <font, weight, size — or "To be defined">
+- **Labels**: <font, weight, size — or "To be defined">
+
+## Spacing & Layout
+<To be defined during brainstorming — or describe scale if detected>
+
+## Components
+- **Buttons**: <shape, fill, hover behaviour — or "To be defined">
+- **Inputs**: <border, background, focus ring — or "To be defined">
+- **Cards**: <elevation, border, padding — or "To be defined">
+
+## Do's and Don'ts
+- Do …
+- Don't …
+```
 
 6. **AGENTS.md** — Create or refresh at repo root so agent behavior and project rules are current.
 
 7. **Documentation** — When recording exploration outcomes, document the *why* (ADRs, API docs, inline standards) per team norms.
 
 8. **Code discovery** — Use **`graphify-out/`** and **`AGENTS.md`** for orientation, then **`rg` / IDE search** and targeted file reads. Optional: deeper external research when the question needs off-repo evidence (document sources).
+
+8a. **Test landscape (optional)** — If the user is interested in quality or this is a brownfield project, scan for the testing setup. Do **not** implement anything; just map what’s there and note gaps that will matter when the change moves to the **Test** phase.
+
+   - Find test directories and test files (`**/*.test.*`, `**/*.spec.*`, `**/__tests__/`, etc.)
+   - Identify the test runner from config or scripts (`vitest.config.*`, `jest.config.*`, `pytest`, `cargo test`, etc.)
+   - Check if there is a coverage setup (`.nycrc`, `vitest --coverage`, `coverage/` folder)
+   - See if the project follows a testing pattern (unit, integration, e2e; separate or alongside code)
+   - Note integration with CI (`.github/workflows/`, `Jenkinsfile`, etc.) – just flag, do not replicate
+   - Summarize under a `### Testing` heading in **`.skillgrid/project/PROJECT.md`** if you are already updating that file, or include a short note in the session wrap‑up.
+
+8b. **Graphify freshness** — If **`graphify-out/`** is present but its contents are older than the most recent commit touching source code (check `git log -1 --format=%ct -- <src paths>` vs `stat graphify-out/`), offer to run **`graphify update .`** in a subagent or background task before deep code search. The updated graph ensures exploration works from current code.
 
 9. **Ending** — There is no required ending. You may offer a short summary or suggest moving to **`/skillgrid-plan`** when the idea is ready to formalize.
 
@@ -178,6 +317,9 @@ End with a **Session wrap-up** the user can scan:
 
 1. **What I did** — Bullets: what was explored, which changes/PRDs inspected, which **`.skillgrid/project/`** files were created or updated, and key findings.
 2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
-3. **Suggested next command** — **`/skillgrid-plan`** to formalize scope and open an OpenSpec change (or **`/skillgrid-init`** if the repo is still unbootstrapped).
+3. **Suggested next command** —  
+   - If exploration uncovered several viable approaches, unresolved trade-offs, or design decisions that need creative options → **`/skillgrid-brainstorm`** to diverge/converge and create previews.  
+   - If the scope is already sharp and a specific change / PRD is ready to formalize → **`/skillgrid-plan`** to create or update the PRD and open an OpenSpec change.  
+   - If the repo is still unbootstrapped (no `openspec/`, no `.skillgrid/`) → **`/skillgrid-init`** first.
 
 </process>

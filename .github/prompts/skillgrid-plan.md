@@ -1,7 +1,4 @@
 ---
-name: /skillgrid-plan
-id: skillgrid-plan
-category: Workflow
 description: Plan — PRD first, then OpenSpec change and CLI-driven artifacts
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[feature name, slug, or PRD title]"
@@ -175,6 +172,18 @@ Run the CLI steps below. After artifacts reach **apply-ready** (or when you have
    openspec status --change "<name>"
    ```
 
+7. **Validate with the user** — After all artifacts are created and the change is apply‑ready, present a summary and ask for approval.
+
+   - Summarise:
+     - PRD path and title
+     - Change id and path (`openspec/changes/<name>/`)
+     - Key in‑scope goals, out‑of‑scope items, and success criteria (2–3 bullets)
+     - List of created OpenSpec artifacts with one‑line descriptions
+     - Current PRD status: `draft`
+   - Ask: *“Does this plan look correct? Reply **approved** to proceed to `/skillgrid-breakdown`, or describe what should change.”*
+   - If the user requests changes, apply them to the PRD and/or OpenSpec artifacts, then re‑check status and repeat validation.
+   - Only after explicit approval should you produce the completion report (below) and suggest the next command.
+
 ### Output after Part B
 
 Summarize: change name and path; list of artifacts and short descriptions; state that the change is **apply-ready** when `applyRequires` are done. Confirm the Engram `mem_save` (hybrid) was done or queued. **Ensure** the PRD’s **`Status:`** is **`draft`** and INDEX / ticket table matches. Point the user to **`/skillgrid-breakdown`** (then **`/skillgrid-apply`**) to implement.
@@ -257,9 +266,9 @@ One file per major change or feature. Expand using **### PRD document format** i
 - [ ] …
 ````
 
-### Optional: Jira-style ticket list (click through to PRD)
+### Jira-style ticket list (click through to PRD)
 
-When the team wants a **board-style index** where each item behaves like a Jira ticket row (**click / tap → full PRD**), add this on top of the normal PRD files.
+Add this on top of the normal PRD files.
 
 1. **Linkable index** — In **`.skillgrid/prd/INDEX.md`**, add a **table** (renders as a ticket list in GitHub, GitLab, many IDEs). Each **Summary** or **Key** cell links to the PRD file so one click opens the full document.
 

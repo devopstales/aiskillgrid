@@ -1,7 +1,4 @@
 ---
-name: /skillgrid-finish
-id: skillgrid-finish
-category: Workflow
 description: Close the change: optional spec sync, archive, git hygiene, ship checklist, PR
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[change-id or branch name]"
@@ -93,6 +90,18 @@ Order of operations: **(1) optional** sync of delta specs into main `openspec/sp
 5. **Summary** — Print change id, schema if known, final archive path, whether specs were synced, and any warnings (incomplete artifacts or tasks, sync skipped).
 
 6. **Engram** — `mem_save` a short closure record: archive path, PR link or branch, spec sync outcome. **`topic_key`:** e.g. `skillgrid/<name>/archive`. If you could not archive on disk (e.g. missing `openspec/`), still save to Engram and explain the gap.
+
+---
+
+## 3a — Cleanup preview
+
+Check **`.skillgrid/preview/`** for files related to the change you’re closing.
+
+- If the directory is empty or gitignored and contains only stale files, list them.
+- Ask the user: *“Can I delete these preview files? [list]”*  
+  On confirmation, remove them.
+- If the team keeps previews for reference, skip with a brief note.
+   ```
 
 ---
 

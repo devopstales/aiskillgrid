@@ -76,10 +76,39 @@ flowchart TD
 2. **Diverge** — List options, alternatives, and tradeoffs; keep judgment light until the space is wide enough.
 3. **Research** — Use the open web and repo search for prior art; use **Context7** (or your docs MCP) when the idea depends on a specific framework or library.
 4. **Converge** — Rank approaches; state assumptions, risks, and tradeoffs explicitly before locking direction.
-5. **Validate** — When breadth or citations matter, run a deeper multi-source pass with explicit sources.
-6. **Refine** — Use divergent then convergent structure to sharpen a vague idea into a defensible direction.
-7. **OpenSpec `config.yaml`** — If **`openspec/`** exists on disk, read **`openspec/config.yaml`**. After **Converge** (or at **Handoff**), **merge** session-stable context into the file: update **`context`** with goals, constraints, chosen direction, and stack implications from the brainstorm; add or adjust **`rules`** if the session set norms for artifacts (**proposal**, **specs**, **design**, **tasks**). If the file is missing, create it from **OpenSpec project config (template)** below (same as **`/skillgrid-init`**). Keep **`context`** under **50KB**; keep a valid **`schema`** (default `spec-driven` unless the project uses another). **Merge**, do not clobber: if the file is already rich, show a short diff and confirm before replacing large sections. Skip this step if the project has no **`openspec/`** (e.g. Engram-only persistence).
-8. **Handoff** — Output should feed **`/skillgrid-plan`**, not a full locked spec.
+5. **Document architectural decisions** — After converge, write the session’s architectural choices to **`.skillgrid/project/ARCHITECTURE.md`**.  
+   - If the file doesn’t exist, create it using the template from **`/skillgrid-init`**.  
+   - Add a new row to the **Design decisions** table for each decision:
+
+     | Decision | Choice | Rationale |
+     | -------- | ------ | --------- |
+     | …        | …      | …         |
+
+   - For more than a table, use the **## 3. <Domain-specific sections>** (e.g. “Data flow”, “Error handling”) to record diagrams or prose if the brainstorm produced them.  
+   - Keep it tight: one‑line decisions are enough; do not rewrite the whole architecture doc.  
+   - If the architecture doc already exists and the brainstorm reaffirms existing decisions, do nothing – just note “architecture unchanged” in the completion report.
+5b. **Update DESIGN.md (if visual decisions were made)** — If the session settled on concrete design tokens, component styles, or layout patterns, record them in the root **`DESIGN.md`** so later phases (Apply, Review) have a visual reference.
+
+   - **Trigger:** Did the brainstorm pick specific colors, fonts, rounding, spacing, or component behaviors (buttons, inputs, cards)? Did the user select or approve a preview that encoded those?  
+   - **If yes:**  
+     * Read `DESIGN.md` if it exists; otherwise create it using the template from **`/skillgrid-init`**.  
+     * Update the YAML front matter with the chosen tokens (`colors`, `typography`, `rounded`, etc.).  
+     * Update the body section(s) that were decided — e.g. **`## Colors`** values, **`## Typography`** choices, **`## Components`** guidelines.  
+     * If a preview illustrated a layout or component, cross‑reference the preview file under **`## Design sources`** (e.g., `Preview: .skillgrid/preview/dashboard-layout-2026-04-25.html`).  
+   - **If no visual decisions were made** (only architecture, data flow, etc.), do nothing and note in the completion report: “No design tokens chosen — DESIGN.md unchanged.”
+6. **Validate** — When breadth or citations matter, run a deeper multi-source pass with explicit sources.
+7. **Refine** — Use divergent then convergent structure to sharpen a vague idea into a defensible direction.
+8. **OpenSpec `config.yaml`** — If **`openspec/`** exists on disk, read **`openspec/config.yaml`**. After **Converge** (or at **Handoff**), **merge** session-stable context into the file: update **`context`** with goals, constraints, chosen direction, and stack implications from the brainstorm; add or adjust **`rules`** if the session set norms for artifacts (**proposal**, **specs**, **design**, **tasks**). If the file is missing, create it from **OpenSpec project config (template)** below (same as **`/skillgrid-init`**). Keep **`context`** under **50KB**; keep a valid **`schema`** (default `spec-driven` unless the project uses another). **Merge**, do not clobber: if the file is already rich, show a short diff and confirm before replacing large sections. Skip this step if the project has no **`openspec/`** (e.g. Engram-only persistence).
+8. **Handoff to `/skillgrid-plan`** — Package the session’s output into a crisp brief that the planner can ingest without rereading the whole chat.
+
+   - **Problem statement** — One sentence: what problem are we solving, and for whom?  
+   - **Chosen approach** — The preferred direction (from **Converge**), with 2–3 bullets on key tradeoffs or assumptions.  
+   - **Design decisions** — Reference the updates you made to **`.skillgrid/project/ARCHITECTURE.md`** (e.g. “Added data‑flow decision: enforce at‑least‑once delivery”). If no decisions were written, state that explicitly.  
+   - **Previews** — List any file paths under **`.skillgrid/preview/`** that capture the agreed visual or structural options (with short descriptions).  
+   - **Open questions** — Any lingering unknowns that `/skillgrid-plan` should treat as assumptions or resolve with a spike.  
+   - **Suggested PRD title and slug** — Provide a candidate `PRD<NN>_<slug>.md` name to jumpstart `/skillgrid-plan` (the planner can accept or override).  
+
+   The format is free text; keep it brief—a paragraph plus bullets. The goal is for the planner to open **`/skillgrid-plan`** with this summary and immediately know what to build, what’s in scope, and where the architectural risks are.
 
 ## OpenSpec project config (template)
 
