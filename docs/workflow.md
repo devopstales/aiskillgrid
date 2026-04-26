@@ -2,12 +2,14 @@
 
 **Runnable steps** live in the slash commands (e.g. `.cursor/commands/skillgrid-*.md`, mirrored under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). The sections below are a compact index; open the matching `skillgrid-*` file for the full checklist and skill paths.
 
-## Explore (Optional)
+## Session (Optional)
 
+* `/skillgrid-session`
 * It’s a pre‑condition you run at the start of any agent session before entering a workflow phase.
 
 ## Init
 
+* `/skillgrid-init`
 * Create skillgrid folder structure
   * Initialize graphify
   * Initialize engram
@@ -21,6 +23,9 @@
     * Ask how shod the app lokks like -> DESIGN.md
       * 
 
+## Explore (Optional)
+
+* `/skillgrid-explore`
 * Explore existing code
   * Parallel discovery
 * Generate content for ARCHITECTURE.md, STRUCTURE.md, DESIGN.md
@@ -28,8 +33,14 @@
   * Geberate PRD from OpenSpec change and vica versa
   * Genarate Tasks on PRD from OpenSpec spec in change and vica gersa
 
+## Design (Optional)
+
+* `/skillgrid-design`
+* It’s an on-demand design workshop that bootstraps, tunes, and audits the visual identity of the project.
+
 ## Brainstorm
 
+* `/skillgrid-brainstorm`
 * User describes what they want
 * Ask back to clarify; diverge and converge
 * Generate Preview to pick
@@ -37,6 +48,7 @@
 
 ## Plan
 
+* `/skillgrid-plan`
 * Generate a PRD for the feature
   * `.skillgrid/prd/PRD01_<first-slug>.md`
 * Use the PRD to drive the OpenSpec change
@@ -44,11 +56,13 @@
 
 ## Breakdown
 
+* `/skillgrid-reakdown`
 * Break down the PRD into tasks
 * Create tasks under OpenSpec change.
 
 ## Aplly 
 
+* `/skillgrid-apply`
 * *subagent-driven-development* or *executing-plans* (Phase 2)
 * Create workre in separate branch for paralel execution
   * `.worktree/<first-slug>/`
@@ -57,21 +71,25 @@
 
 ## Test
 
+* `/skillgrid-test`
 * Automated Code Quality Testing
 * Automated Functional Testing
 * Automated Security testing
 
 ## Security (Optional)
 
+* `/skillgrid-security`
 * dedicated, deeper security vlidate
 
 ## Validate
 
+* `/skillgrid-validate`
 * Ask User to validate
 * roll back atmic change if nececary
 
 ## Finish
 
+* `/skillgrid-finish`
 * Archive change - openspec-archive-change
 * Optional: sync delta specs to main specs - openspec-sync-specs
 * cleanup preview

@@ -164,7 +164,8 @@ npm install -g @mariozechner/pi-coding-agent
   * npxskillui
   * impeccable
   * cnnect prainstorming with design
-  * project level desig command (not part of the main function workflow)
+  * project level desig command ?? (not part of the main function workflow)
+  * https://app.superdesign.dev/
 * installer
   * Claude Code plugin
   * Cursor plugin
@@ -176,7 +177,6 @@ For Phase 2 subagent dispatch, copy the two‑stage review: spec‑reviewer su
 
 Model‑selection strategy: add to Apply (or a new subagent‑dispatch skill) the rule: cheap model for 1–2 file tasks with complete specs, standard for integration, most capable for design/review.
 
-Context isolation: add a rule to Apply: “Subagent prompts must be constructed fresh. Never pass your session history or chain‑of‑thought.”
 
 ## Sources
 

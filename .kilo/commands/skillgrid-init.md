@@ -351,29 +351,39 @@ typography:
     fontWeight: ""
 rounded:
   md: ""
+# taste-skill dials (1–10)
+design_variance: 5
+motion_intensity: 3
+visual_density: 5
+# provenance
+design_sources: []
 ---
 
 # Design System
 
 ## Overview
-<User-provided one-liner: e.g. "A focused, dark interface for a developer tool.">
+<User-provided one-liner; else “To be defined during brainstorming.”>
+
+## Design sources
+<!-- List of sources: getdesign.md slug, skillui URL, Figma link, etc. -->
+- None yet — defined in this file.
 
 ## Colors
 - **Primary** (``): CTAs, active states, key interactive elements
 - **Secondary** (``): Supporting UI, chips, secondary actions
 - **Surface** (``): Page backgrounds
-- **On-surface** (``): Primary text on dark backgrounds
+- **On-surface** (``): Primary text on dark/light backgrounds
 - **Error** (``): Validation errors, destructive actions
 
 ## Typography
-- **Headlines**: …
-- **Body**: …
-- **Labels**: …
+- **Headlines**: To be defined
+- **Body**: To be defined
+- **Labels**: To be defined
 
 ## Components
-- **Buttons**: …
-- **Inputs**: …
-- **Cards**: …
+- **Buttons**: To be defined
+- **Inputs**: To be defined
+- **Cards**: To be defined
 
 ## Do's and Don'ts
 - Do …

@@ -96,6 +96,10 @@ flowchart TD
 npx getdesign@latest add <brand-slug>   # e.g. stripe, notion, linear
 ```
 
+   **SkillUI extraction (optional):** If the project has a deployed URL or the user admires a reference site, offer:  
+     `skillui --url <reference-url>`  
+     This produces a complete `DESIGN.md`, token JSON files, and screenshots. Merge the extracted tokens into the project's root `DESIGN.md`. This is powerful for brownfield projects where the live UI already embodies the design system but documentation is missing.
+
 This drops a ready-made DESIGN.md into the project root. If the user takes this path, skip the rest of step 5a (the file is already populated) and just note it in the completion report.
 
 #### Auto-detection (brownfield)

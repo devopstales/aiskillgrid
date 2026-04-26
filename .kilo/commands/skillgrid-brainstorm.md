@@ -101,8 +101,11 @@ flowchart TD
      * If the user prefers text stories, capture those.  
      * The resulting diagram can be saved into the PRD later by `/skillgrid-plan`.
 2. **Diverge** — List options, alternatives, and tradeoffs; keep judgment light until the space is wide enough.
-3. **Research** — Use the open web and repo search for prior art; use **Context7** (or your docs MCP) when the idea depends on a specific framework or library.
-4. **Converge** — Rank approaches; state assumptions, risks, and tradeoffs explicitly before locking direction.
+3. **Research** — Use the open web and repo search for prior art; use **Context7** when the idea depends on a specific framework.  
+   - **Design research (optional):** If the idea is visual, offer to search for design inspiration via `npx getdesign@latest search "<query>"` or extract a reference with `skillui --url <url>`.  
+4. **Converge** — Rank approaches; state assumptions, risks, and tradeoffs explicitly.  
+   - **Visual convergence:** If multiple design directions are viable, offer to generate quick mockups via SuperDesign (`/superdesign help me design <feature>`) and place them in `.skillgrid/preview/` for A/B selection.  
+   - **Shape planning:** For UX-heavy features, offer to run Impeccable’s structured discovery interview to clarify the design brief before locking direction.
 5. **Document architectural decisions** — After converge, write the session’s architectural choices to **`.skillgrid/project/ARCHITECTURE.md`**.  
    - If the file doesn’t exist, create it using the template from **`/skillgrid-init`**.  
    - Add a new row to the **Design decisions** table for each decision:
@@ -114,7 +117,7 @@ flowchart TD
    - For more than a table, use the **## 3. <Domain-specific sections>** (e.g. “Data flow”, “Error handling”) to record diagrams or prose if the brainstorm produced them.  
    - Keep it tight: one‑line decisions are enough; do not rewrite the whole architecture doc.  
    - If the architecture doc already exists and the brainstorm reaffirms existing decisions, do nothing – just note “architecture unchanged” in the completion report.
-5b. **Update DESIGN.md (if visual decisions were made)** — If the session settled on concrete design tokens, component styles, or layout patterns, record them in the root **`DESIGN.md`** so later phases (Apply, Review) have a visual reference.
+5a. **Update DESIGN.md (if visual decisions were made)** — If the session settled on concrete design tokens, component styles, or layout patterns, record them in the root **`DESIGN.md`** so later phases (Apply, Review) have a visual reference.
 
    - **Trigger:** Did the brainstorm pick specific colors, fonts, rounding, spacing, or component behaviors (buttons, inputs, cards)? Did the user select or approve a preview that encoded those?  
    - **If yes:**  

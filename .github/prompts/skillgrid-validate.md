@@ -74,6 +74,7 @@ Read all listed `contextFiles`.
 - **Performance** — Check hot paths the change touched; flag obvious regressions.
 - **Data** — For storage changes: review schema, queries, migrations.
 - **Documentation** — If public APIs or behaviour changed, note missing docs.
+- **Design audit (optional):** If the change includes UI, offer to audit the visual quality. Use Impeccable’s critique capabilities: quantitative UX scoring, anti‑pattern detection, and actionable feedback on visual hierarchy, cognitive load, and emotional resonance. Write findings into the review report or flag them during user validation.
 
 ### 1.6 Review report
 
