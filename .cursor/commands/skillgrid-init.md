@@ -19,6 +19,32 @@ You detect the stack and repo layout, then apply a **persistence mode** the team
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-init])
+    GFB{Greenfield or brownfield?}
+    START --> GFB
+    GFB -->|Greenfield| ASK[Ask purpose, stack, tools]
+    ASK --> DESIGN[Create root DESIGN.md from template]
+    DESIGN --> ARCH[Create .skillgrid/project/ARCHITECTURE.md]
+    ARCH --> STRUCT[Create .skillgrid/project/STRUCTURE.md]
+    STRUCT --> PROJ[Create .skillgrid/project/PROJECT.md]
+    PROJ --> AGENTS[Update root AGENTS.md]
+    AGENTS --> OPS{openspec/ exists?}
+    OPS -->|No| INIT[openspec init --tools none]
+    INIT --> CONFIG[Populate openspec/config.yaml]
+    CONFIG --> PRD_CREATE[Create .skillgrid/prd/ and .skillgrid/tasks/]
+    PRD_CREATE --> ENGRAM[mem_save to Engram]
+    ENGRAM --> GRAPH[graphify update .]
+    GRAPH --> DONE([Handoff to /skillgrid-plan or /skillgrid-explore])
+    GFB -->|Brownfield| EXPLORE[Recommend /skillgrid-explore]
+    EXPLORE --> DONE
+
+    OPS -->|Yes| PRD_CREATE
+```
+
 ## Steps
 
 1. **Greenfield vs brownfield** — Classify from **evidence**, not from “repo already has files.”

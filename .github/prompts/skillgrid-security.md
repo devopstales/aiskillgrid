@@ -12,6 +12,30 @@ This command provides a **human-centric, threat-oriented review** that goes beyo
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+  START([User calls /skillgrid-security])
+  BASELINE{Already ran /skillgrid-test?}
+  START --> BASELINE
+  BASELINE -->|No| SCAN[Quick Trivy + Semgrep baseline]
+  BASELINE -->|Yes| LOAD[Load previous findings]
+  SCAN --> CODE[Code security review: Auth, injection, trust boundaries]
+  LOAD --> CODE
+  CODE --> SAST[Additional Semgrep rules / project SAST]
+  SAST --> DEPS[Dependency & container deep-dive]
+  DEPS --> AGENT[Agent & IDE config audit]
+  AGENT --> DEPR[Deprecation & attack-surface reduction]
+  DEPR --> RISK[Risk framing & threat modeling]
+  RISK --> REPORT[Compile findings summary]
+  REPORT --> SAVE{Engram available?}
+  SAVE -->|Yes| MEM[mem_save report]
+  SAVE -->|No| NOTE[Note pending save]
+  MEM --> NEXT[Suggest /skillgrid-validate or /skillgrid-finish]
+  NOTE --> NEXT
+```
+
 ## Steps
 
 1. **Review automated findings** — If **`/skillgrid-test`** was run previously, start from its Trivy/Semgrep results; otherwise, run a quick scan to get a baseline (`trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL .` and `semgrep --config auto --error .`). Do not replicate the full test phase here.

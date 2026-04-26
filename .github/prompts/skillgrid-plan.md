@@ -16,6 +16,32 @@ You are executing **`/skillgrid-plan`** (PLAN phase) for the Skillgrid workflow.
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-plan])
+    INPUT{Change name or description?}
+    START --> INPUT
+    INPUT -->|Yes| DERIVE[Derive kebab-case ID]
+    INPUT -->|No| ASK[Ask user what to build]
+    ASK --> DERIVE
+    DERIVE --> PRD[Write PRD to .skillgrid/prd/PRDNN_slug.md]
+    PRD --> INDEX[Update .skillgrid/prd/INDEX.md]
+    INDEX --> CTX[Create/update context_<id>.md]
+    CTX --> NEW[openspec new change name]
+    NEW --> LOOP{Artifacts until apply-ready}
+    LOOP -->|next artifact| INSTRUCT[openspec instructions artifact]
+    INSTRUCT --> CREATE[Create file from template]
+    CREATE --> STATUS[openspec status --json]
+    STATUS -->|not done| LOOP
+    STATUS -->|apply-ready| ENGRAM[mem_save to Engram]
+    ENGRAM --> VALIDATE[Ask user to validate plan]
+    VALIDATE -->|changes| PRD
+    VALIDATE -->|approved| DRAFT[Set PRD status to draft]
+    DRAFT --> DONE([Handoff to /skillgrid-breakdown])
+```
+
 ## Part A — PRD (required)
 
 ### PRD file naming and execution order (authoritative)

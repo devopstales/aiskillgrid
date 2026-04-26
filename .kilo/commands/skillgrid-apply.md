@@ -19,6 +19,30 @@ Implement from the OpenSpec change’s **apply** instructions. **Always use hybr
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-apply])
+    ANNOUNCE[Announce change]
+    STATUS[openspec status --json]
+    APPLY[openspec instructions apply --json]
+    APPLY -->|blocked| FIX[Complete missing artifacts]
+    FIX --> APPLY
+    APPLY -->|all_done| CELEBRATE[Congratulate, suggest review]
+    APPLY -->|proceed| CONTEXT[Read contextFiles + context_<id>.md]
+    CONTEXT --> LOOP{For each pending task}
+    LOOP -->|behaviour task| TDD[Write failing test, run, watch fail, implement, run, green, refactor]
+    TDD --> CHECK[Check task off in tasks.md and PRD]
+    LOOP -->|structural task| CHECK
+    CHECK --> LOOP
+    LOOP -->|all tasks done| HOUSE[Post-implementation housekeeping]
+    HOUSE --> GRAPH[graphify update . if structural]
+    GRAPH --> ENGRAM[mem_save snapshot with topic_key]
+    ENGRAM --> INPROGRESS[Set PRD status to inprogress]
+    INPROGRESS --> DONE([Suggest /skillgrid-test])
+```
+
 ## Part A — OpenSpec apply loop (on-disk OpenSpec)
 
 **Input**: Optionally the change name (e.g. `/skillgrid-apply add-auth`). If omitted, infer from context, or if only one active change exists, use it. If ambiguous, run `openspec list --json` and ask the user to choose.

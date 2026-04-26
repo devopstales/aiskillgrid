@@ -12,6 +12,32 @@ You are executing **`/skillgrid-explore`** (DEFINE phase) for the Skillgrid work
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-explore])
+    HYBRID[Use openspec list + Engram]
+    INV[OpenSpec inventory]
+    PRD_COV[PRD coverage check per change]
+    PRD_COV -->|missing PRD| BACKFILL[Create PRD with status from archive/tasks/proposal]
+    BACKFILL --> SKILL{openspec-explore skill available?}
+    SKILL -->|Yes| SKILL_RUN[Auto-generate from delta specs]
+    SKILL -->|No| MANUAL[Manual PRD backfill]
+    SKILL_RUN --> STATUS[Set backfill status]
+    MANUAL --> STATUS
+    STATUS --> PROJDOC[Update .skillgrid/project/ docs]
+    PROJDOC --> DESIGNDOC[DESIGN.md discover/ask/getdesign.md]
+    DESIGNDOC --> AGENT[Update AGENTS.md]
+    AGENT --> TESTSCAN[Scan test landscape]
+    TESTSCAN --> GRAPHCHECK{Graphify stale?}
+    GRAPHCHECK -->|Yes| GRAPH[Run graphify update .]
+    GRAPHCHECK -->|No| NEXT{Clear scope?}
+    GRAPH --> NEXT
+    NEXT -->|Yes| PLAN[Suggest /skillgrid-plan]
+    NEXT -->|No| BRAINSTORM[Suggest /skillgrid-brainstorm]
+```
+
 ## Stance: explore, do not implement
 
 **Explore mode is for thinking, not implementing.** You may read files, search code, and investigate the codebase, but you must **not** write application code or ship features. If the user asks you to implement something, remind them to leave explore mode and use **`/skillgrid-plan`** (or a later build phase). You **may** create or edit planning artifacts (PRDs, OpenSpec `proposal.md` / `design.md` text under `openspec/changes/`, ADRs) when that is capturing thinking—not production code.

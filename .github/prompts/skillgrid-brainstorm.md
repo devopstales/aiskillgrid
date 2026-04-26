@@ -14,6 +14,27 @@ Turn ideas into a **reviewable direction** through collaborative dialogue: under
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-brainstorm])
+    CLARIFY[Clarify goals, constraints, success criteria]
+    CLARIFY --> PREVIEW{Previews beneficial?}
+    PREVIEW -->|Yes| OFFER[Single-message offer for previews]
+    OFFER --> DIVERGE[Diverge options]
+    PREVIEW -->|No| DIVERGE
+    DIVERGE --> RESEARCH[Web/repo research]
+    RESEARCH --> CONVERGE[Converge on approach, tradeoffs]
+    CONVERGE --> ARCH[Record decisions in .skillgrid/project/ARCHITECTURE.md]
+    CONVERGE --> DES{Visual decisions made?}
+    DES -->|Yes| UPDATE_DES[Update root DESIGN.md frontmatter & body]
+    DES -->|No| HANDOFF[Package handoff for /skillgrid-plan]
+    UPDATE_DES --> HANDOFF
+    ARCH --> HANDOFF
+    HANDOFF --> DONE([Handoff to /skillgrid-plan])
+```
+
 ## Implementation gate
 
 Do **not** write production code, scaffold apps, or drive **`/skillgrid-apply`** from this command. Brainstorming ends in a **clear enough** problem statement and preferred approach for **`/skillgrid-plan`** (use **`/skillgrid-explore`** first if repo or OpenSpec context is still thin).

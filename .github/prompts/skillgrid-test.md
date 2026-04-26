@@ -12,6 +12,23 @@ You are executing **`/skillgrid-test`** (VERIFY phase) for the Skillgrid workflo
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-test])
+    QUALITY[Run code quality checks: lint, format, type]
+    QUALITY --> SEC[Security: trivy fs, semgrep]
+    SEC --> Triage{Triage findings}
+    Triage -->|Critical/High| BLOCK[User decision: fix/suppress/accept]
+    Triage -->|OK| FUNC[Functional: unit, integration, E2E]
+    FUNC --> BROWSER[Browser DevTools if needed]
+    BROWSER --> DEBUG{Any failures?}
+    DEBUG -->|Yes| FIX[Debug, reproduce, fix, guard]
+    FIX --> FUNC
+    DEBUG -->|No| DONE([Suggest /skillgrid-validate or /skillgrid-review])
+```
+
 ## Steps
 
 1. **Automated tests** — Run or add tests that match the change; for bugs, prefer a failing test first, then the fix.

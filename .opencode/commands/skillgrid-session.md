@@ -17,6 +17,27 @@ Use this at the **start of a new agent session**, after context compaction, or w
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-session])
+    CHARTER[Capture session goal & constraints]
+    AGENTS[Read AGENTS.md and openspec/config.yaml]
+    OPS[openspec list --json]
+    PRDS[Glob .skillgrid/prd/PRD*.md, check statuses]
+    CONTEXT[Check .skillgrid/tasks/context_*.md for active changes]
+    ENGRAM[mem_search for skillgrid-init and change keys]
+    WORKTREES[Check .worktree/ and git worktree list]
+    DIRTY[git status --short]
+    BUDGET[Decide what to load now vs later]
+    TOOLS[Enable needed MCPs/CLIs]
+    CHECKPOINT[Note resume marker]
+    START --> CHARTER
+    CHARTER --> AGENTS --> OPS --> PRDS --> CONTEXT --> ENGRAM --> WORKTREES --> DIRTY
+    DIRTY --> BUDGET --> TOOLS --> CHECKPOINT --> DONE([Handoff to substantive phase])
+```
+
 ## Steps
 
 1. **Charter** — Capture a short session note: goal, constraints, success criteria, and stack or repo assumptions. Align with how your project records session context (e.g. project playbook or `NOTE.md`).

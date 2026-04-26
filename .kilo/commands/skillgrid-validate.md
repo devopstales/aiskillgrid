@@ -17,6 +17,29 @@ This command is a **single, self‑contained gate** that performs a complete rev
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-validate])
+    PHASE1[Phase 1: Review — completeness, correctness, coherence]
+    PHASE1 --> REPORT[Write verify-report.md + Engram]
+    REPORT --> PHASE2[Phase 2: Security — trivy, semgrep, code review, agent audit]
+    PHASE2 --> SUM[Summarise findings]
+    SUM --> ASK{User validates?}
+    ASK -->|approved| DEVDONE[Set PRD status to devdone]
+    DEVDONE --> CTX[Update session context]
+    CTX --> FINISH[Suggest /skillgrid-finish]
+    ASK -->|changes| FIX[Apply fixes, re-run checks]
+    FIX --> SUM
+    ASK -->|rollback| WORKTREE{Worktree exists?}
+    WORKTREE -->|Yes| REMOVE[git worktree remove .worktree/<slug>/ --force]
+    WORKTREE -->|No| REVERT[Guide user on revert]
+    REMOVE --> RESET[Reset PRD status to draft]
+    REVERT --> RESET
+    RESET --> RESTART[Suggest /skillgrid-plan or /skillgrid-finish]
+```
+
 ## Phase 1 – Review (on‑disk & code/product)
 
 ### 1.1 OpenSpec verification

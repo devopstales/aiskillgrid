@@ -19,6 +19,25 @@ Order of operations: **(1) optional** sync of delta specs into main `openspec/sp
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-finish])
+    SYNC{Delta specs exist?}
+    START --> SYNC
+    SYNC -->|Yes| MERGE[Merge delta specs into main openspec/specs/]
+    SYNC -->|No| ALIGN[Align .skillgrid/project/ docs]
+    MERGE --> ALIGN
+    ALIGN --> ARCHIVE[openspec status, warn if incomplete]
+    ARCHIVE --> MOVE[mv openspec/changes/{name} archive/YYYY-MM-DD-{name}]
+    MOVE --> ENGRAM[mem_save archive record]
+    ENGRAM --> PREVIEW[Cleanup .skillgrid/preview/ if user agrees]
+    PREVIEW --> PR[Create/update PR, CI checks]
+    PR --> DONE[Set PRD status to done]
+    DONE --> END([Merge / deploy, suggest new cycle])
+```
+
 ## 1 — Optional: sync delta specs to main (before or without archive)
 
 **When:** The change has **delta** specs under `openspec/changes/<name>/specs/` and the team wants **`openspec/specs/<capability>/spec.md`** updated before or without archiving the change.

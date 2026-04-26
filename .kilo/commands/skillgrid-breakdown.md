@@ -21,6 +21,30 @@ Merge **PRD “Implementation tasks”** with the canonical OpenSpec **`tasks.md
 
 <process>
 
+## Flow
+
+```mermaid
+flowchart TD
+    START([User calls /skillgrid-breakdown])
+    SELECT{Change selected?}
+    START --> SELECT
+    SELECT -->|No| ASK[Ask user to choose]
+    ASK --> CHECK[Pre-flight: PRD exists? openspec change exists?]
+    CHECK -->|Missing| STOP[Warn and stop]
+    CHECK -->|OK| STATUS[openspec status --json]
+    STATUS --> TASKS_INSTRUCT[openspec instructions tasks]
+    TASKS_INSTRUCT --> SYNC[Sync PRD Implementation tasks with tasks.md]
+    SYNC --> IDENTICAL[Keep both identical]
+    IDENTICAL --> READY{applyRequires done?}
+    READY -->|No| FILL[Complete missing artifacts]
+    FILL --> READY
+    READY -->|Yes| VALIDATE[Ask user to validate breakdown]
+    VALIDATE -->|changes| SYNC
+    VALIDATE -->|approved| TODO[Set PRD status to todo]
+    TODO --> CTRX[Update session context]
+    CTRX --> DONE([Handoff to /skillgrid-apply])
+```
+
 ## Steps
 
 1. **Select the change** — If the name is not given, infer from context or list `openspec/changes/` / `openspec list --json` and ask.
