@@ -142,10 +142,17 @@ Use clear headings, e.g. `Implementing: <change> (schema: …)`, per-task progre
      4. **Run the test again** and confirm it passes (green).
      5. **Refactor** for clarity and performance without changing behaviour, then rerun tests.
    - For tasks that are purely structural (renames, formatting, non‑behavioural refactors), a test is optional; explain why you skipped it.
-7. **Frameworks** — Ground behavior in the official docs for the stack the repo uses; cite in commits or code comments when useful.
-8. **Quality** — Small, reviewable commits; work in **vertical slices** (implement, verify, commit).
-9. **Migrations** — For schema/data changes, follow safe migration practices (one migration per logical change, rollback story).
-10. **Graph & project docs** — At end of a substantive apply run, follow **Part A — step 9 (Post-implementation housekeeping)**: **`graphify update .`** when needed, and keep **`.skillgrid/project/ARCHITECTURE.md`**, **STRUCTURE.md**, and **PROJECT.md** aligned with what you changed (see step 9 for which file to touch). **`/skillgrid-finish`** runs a final consistency pass before archive.
+7. **Model selection for subagents** — When delegating work to a `Task` subagent, choose the model based on task complexity:
+
+   - **Cheap / fast model** — For mechanical 1–2 file edits with a complete, unambiguous spec and existing tests.
+   - **Standard model** — For multi‑file integration changes, moderate ambiguity, or when the spec needs light interpretation.
+   - **Most capable model** — For architecture decisions, design critique, security review, or any task that requires broad judgement.
+
+   State the model choice in the subagent prompt and explain the reason. Never use a cheap model for design or review tasks.
+8. **Frameworks** — Ground behavior in the official docs for the stack the repo uses; cite in commits or code comments when useful.
+9. **Quality** — Small, reviewable commits; work in **vertical slices** (implement, verify, commit).
+10. **Migrations** — For schema/data changes, follow safe migration practices (one migration per logical change, rollback story).
+11. **Graph & project docs** — At end of a substantive apply run, follow **Part A — step 9 (Post-implementation housekeeping)**: **`graphify update .`** when needed, and keep **`.skillgrid/project/ARCHITECTURE.md`**, **STRUCTURE.md**, and **PROJECT.md** aligned with what you changed (see step 9 for which file to touch). **`/skillgrid-finish`** runs a final consistency pass before archive.
 
 ## Notes
 

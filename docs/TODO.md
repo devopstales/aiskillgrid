@@ -134,7 +134,7 @@
 npm install -g @mariozechner/pi-coding-agent
 ```
 
-# Tools
+# Plans and Bugs
 
 * env bariables
 * commands
@@ -143,12 +143,11 @@ npm install -g @mariozechner/pi-coding-agent
 * planning
   * database structure
   * mermaid graph in db plan
-* visualization
-  * web based wisulization for pipeline
 * ticketing integration
   * github
   * gitlab
   * jira cloud
+  * web based kamban UI
 * paralelism
   * subagent-driven-development or executing-plans
   * checkpont
@@ -172,6 +171,12 @@ npm install -g @mariozechner/pi-coding-agent
   * opencode plugin
   * node
   * skill.sh
+
+For Phase 2 subagent dispatch, copy the two‑stage review: spec‑reviewer subagent → implementer fixes → code‑quality‑reviewer subagent → task complete. The Superpowers prompts are at ./implementer-prompt.md, ./spec-reviewer-prompt.md, ./code-quality-reviewer-prompt.md.
+
+Model‑selection strategy: add to Apply (or a new subagent‑dispatch skill) the rule: cheap model for 1–2 file tasks with complete specs, standard for integration, most capable for design/review.
+
+Context isolation: add a rule to Apply: “Subagent prompts must be constructed fresh. Never pass your session history or chain‑of‑thought.”
 
 ## Sources
 
