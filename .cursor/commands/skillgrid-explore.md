@@ -203,6 +203,7 @@ rounded:
 7. **Documentation** — When recording exploration outcomes, document the *why* (ADRs, API docs, inline standards) per team norms.
 
 8. **Code discovery** — Use **`graphify-out/`** and **`AGENTS.md`** for orientation, then **`rg` / IDE search** and targeted file reads. Optional: deeper external research when the question needs off-repo evidence (document sources).
+   - **User flows** — Search for existing user‑flow documentation (flowcharts in `docs/`, `README`, Figma links, even inline Mermaid diagrams). If found, reference them in the exploration summary; they can seed later PRD journeys.
 
 8a. **Test landscape (optional)** — If the user is interested in quality or this is a brownfield project, scan for the testing setup. Do **not** implement anything; just map what’s there and note gaps that will matter when the change moves to the **Test** phase.
 

@@ -94,6 +94,10 @@ flowchart TD
 ## Steps
 
 1. **Clarify** — Follow **Questioning discipline** and **Preview picks** until goals, constraints, and success criteria are explicit.
+   - **User flows** – When the feature involves a user (human or API client), ask: *“What are the 2–3 key steps the user takes to achieve their goal? Can we sketch a quick journey?”*  
+     * If the user agrees, draft a Mermaid `journey` diagram in chat for validation.  
+     * If the user prefers text stories, capture those.  
+     * The resulting diagram can be saved into the PRD later by `/skillgrid-plan`.
 2. **Diverge** — List options, alternatives, and tradeoffs; keep judgment light until the space is wide enough.
 3. **Research** — Use the open web and repo search for prior art; use **Context7** (or your docs MCP) when the idea depends on a specific framework or library.
 4. **Converge** — Rank approaches; state assumptions, risks, and tradeoffs explicitly before locking direction.

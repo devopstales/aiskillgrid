@@ -55,6 +55,11 @@ flowchart TD
 - **New PRD** — Use the next free number **or** an intermediate number and **reorder** (renumber) existing files so numbers stay **contiguous in execution order** (no duplicate `<NN>`, no gaps when you intend a strict total order—optional gaps are allowed only if documented in `INDEX.md`).
 
 1. **PRD (required format)** — Produce or update a PRD that follows the structure below, using the path **`.skillgrid/prd/PRD<NN>_<slug>.md`** and **`.skillgrid/prd/INDEX.md`**: one row or bullet per PRD, **sorted by `NN`**, with title and `openspec/changes/…` link. If the project keeps extra copies under `docs/PRD/`, mirror names or link back to the canonical **`.skillgrid/prd/PRDNN_…`** file. **Do not** create new PRDs under root **`prd/`** (use **`.skillgrid/prd/`** only; see **`/skillgrid-init`**).
+   - **User journeys** – Once scope, goals, and actors are clear, ask:  
+     *“Would you like to add Mermaid user‑journey diagrams for the main personas? They help acceptance testing.”*  
+     * If yes, draft a `journey` diagram together and place it in the PRD under `### User Journeys`.  
+     * If the user prefers text stories alone, skip the diagram.  
+     * The `### Feature diagram` can also be added at this point if a visual flow clarifies the feature.
 2. **Spec discipline** — The PRD is the single source of product intent until superseded by design or delta specs; keep it consistent with any existing `openspec/changes/<id>/proposal.md` when both exist.
 
 ### PRD document format
@@ -95,6 +100,33 @@ What this change includes and what is explicitly not included (prevents scope cr
 #### Codebase touchpoints (optional)
 
 High-level only (not a full implementation plan): **packages, top-level dirs, or files** expected to be **created** or **modified**—enough to lock **boundaries** and inform **`/skillgrid-breakdown`**. Put **detailed** file-by-file steps, exact commands, and per-step code in **`openspec/.../tasks.md`** (via **`/skillgrid-breakdown`**) and keep that checklist in sync with the PRD. If the team also keeps a long-form implementation write-up, store it under something like `docs/.../plans/YYYY-MM-DD-<feature>.md` (or your repo’s path); do **not** paste that level of detail into the PRD body.
+
+#### Feature diagram (optional)
+
+```mermaid
+flowchart TD
+  A[User Action] --> B{Decision / API call}
+  B -->|success| C[Update UI]
+  B -->|failure| D[Show Error]
+  C --> E[Persistence / Side effects]
+```
+
+#### User Journeys
+
+```mermaid
+journey
+  title New user onboarding
+  section Discovery
+    Visitor: Land on homepage: 5
+    Visitor: Read value prop: 4
+  section Sign up
+    Visitor: Click sign up: 4
+    Visitor: Fill registration form: 3
+    Visitor: Confirm email: 3
+  section First use
+    New User: Complete profile: 4
+    New User: Create first project: 3
+```
 
 #### User stories (optional)
 
@@ -279,6 +311,21 @@ One file per major change or feature. Expand using **### PRD document format** i
 
 - **Performance / security / compatibility:** …
 
+#### Feature diagram (optional)
+
+```mermaid
+flowchart TD
+  A[Start] --> B[End]
+```
+
+#### User Journeys
+
+```mermaid
+journey
+  title ...
+  section ...
+    Actor: Step: 5
+```
 ---
 
 ### Implementation tasks
