@@ -124,15 +124,41 @@ Check **`.skillgrid/preview/`** for files related to the change you’re closing
 
 ---
 
-## 4 — Pull request, CI, and ship
+## 4 — Finish options (choose one)
 
-1. **Pull request** — Open or update a PR: clear description, risks, and links to **`openspec/changes/…`**, the numbered PRD file(s) (**`.skillgrid/prd/PRD<NN>_<slug>.md`**), and tests. Keep commits small and reviewable; follow team branching rules.
-2. **CI / gates** — Ensure required checks pass; feature flags and deployment hooks as the project does.
-3. **Deprecation** — If old paths are retired, document timelines and follow-up issues.
-4. **Deploy** — When shipping to production, use your **launch checklist** (rollout, monitoring, rollback) as the team defines.
-5. **Documentation** — ADRs, API docs, and “why” comments if behavior or contracts changed.
+After archiving, present the user with exactly these four choices and act accordingly:
 
-6. **PRD `Status`** — Set the relevant PRD’s **`Status:`** to **`done`** (and INDEX / ticket table if used). This is the terminal state in **`/skillgrid-init` → PRD / change `Status` lifecycle**.
+1. **Merge locally and push**
+   - Merge the change branch into `main` (or the default branch) locally: `git checkout main && git merge <branch>`
+   - Push directly (if the team allows): `git push origin main`
+   - Run any required CI checks that can be triggered locally; ensure all gates pass before pushing.
+   - Proceed to **post‑merge steps** (deprecation, deploy, documentation, PRD status → `done`).
+
+2. **Create a pull request**
+   - Ensure the branch is pushed.
+   - Open a PR with a clear description, links to the `openspec/changes/…` directory, the PRD file(s), and a summary of testing.
+   - Trigger CI; wait for checks to pass (or note expected failures).
+   - Once the PR is approved and merged by the team, update the PRD status to `done` (this may happen outside the session).
+   - If you can’t merge now, leave the change in `devdone` status and note the PR URL.
+
+3. **Leave as‑is (do not merge yet)**
+   - Keep the branch and worktree intact; no further action.
+   - The PRD status stays as `devdone` (or whatever it was).
+   - Suggest the user return later with `/skillgrid-finish` to finalize.
+
+4. **Discard the change**
+   - Confirm with the user that they want to permanently discard this change.
+   - Remove any `.worktree/` associated with the change: `git worktree remove .worktree/<slug>/ --force`
+   - Delete the branch: `git branch -D <branch-name>`
+   - Archive the `openspec/changes/<name>/` directory (already done in step 3) but set the PRD status to `archived` (or `done` with a note of discard). Optionally move the PRD to an archived section of the index.
+   - Clean up any remaining preview files (step 3a already asked, but confirm again).
+
+### Post‑merge actions (only after options 1 or 2 complete)
+
+- **Deprecation** — If old paths are retired, document timelines and follow‑up issues.
+- **Deploy** — Use the team’s launch checklist (rollout, monitoring, rollback).
+- **Documentation** — Update ADRs, API docs, and “why” comments if behavior or contracts changed.
+- **PRD status** — Set the relevant PRD’s **`Status:`** to **`done`** (and INDEX / ticket table). This is the terminal state.
 
 ## Notes
 
