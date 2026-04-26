@@ -82,6 +82,13 @@ flowchart TD
 - Inspect the repo with tools; do not assume stack or layout.
 - **Hybrid persistence** is the default (`openspec/` + Engram); align with **`/skillgrid-init`** if layout is unclear.
 
+## Anti-patterns
+
+- **Skipping quality and security** – Don’t jump to functional tests before running linting, formatting, type checks, and Trivy/Semgrep.
+- **“Looks correct” without evidence** – Never claim a test passed without reading the full output and exit code.
+- **Ignoring security findings** – Critical/High findings must be explicitly resolved (fix, suppress, or accept risk) before handoff.
+- **Speculative coverage** – Don’t write tests for unrelated code; tie every test to a PRD success criterion or OpenSpec scenario.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

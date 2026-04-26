@@ -337,6 +337,13 @@ For **external / cited research** rather than in-repo mapping, use **`skillgrid-
 - Inspect the repo with tools; do not assume stack or layout.
 - **Hybrid** is the default: **`openspec/`** on disk plus Engram for durable summaries. If something is still missing, run **`/skillgrid-init`** or align with existing `openspec/` and `AGENTS.md`.
 
+## Anti-patterns
+
+- **Implementing during exploration** – Never write production code or drive `/skillgrid-apply` from this phase; exploration is for mapping and understanding.
+- **Skipping DESIGN.md detection** – Don’t ignore the design token scan; a brownfield project has a design system even if it’s not documented yet.
+- **Creating PRDs without status** – Never backfill a PRD without setting its `Status:` according to the change’s real state (archive = `done`, `tasks.md` with checkmarks = `inprogress`, etc.).
+- **Endless exploration** – Don’t explore forever; when the scope is clear, suggest moving to `/skillgrid-plan` or `/skillgrid-brainstorm`.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

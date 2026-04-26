@@ -325,6 +325,14 @@ Add this on top of the normal PRD files.
 - **Formatting templates** for project docs live in **`/skillgrid-init`** (**Project document templates**).
 - For a guided first OpenSpec cycle, run `/opsx-onboard` or follow that command’s preflight and phases.
 
+## Anti-patterns
+
+- **Implementation detail in the PRD** – Never put file‑by‑file steps, CLI commands, or code snippets in the PRD body; that belongs in `tasks.md` after breakdown.
+- **Skipping user validation** – Never proceed to `/skillgrid-breakdown` without the user explicitly approving the plan.
+- **PRD without OpenSpec link** – Don’t create a PRD without pointing it at a concrete `openspec/changes/<id>/` directory.
+- **Vague requirements** – Never leave `TBD`, `TODO`, or “add appropriate error handling” in the **Functional requirements**; every item must be testable.
+- **Root `prd/` files** – No new PRDs outside `.skillgrid/prd/`.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

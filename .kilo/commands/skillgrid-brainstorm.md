@@ -170,6 +170,14 @@ For a **dedicated research subagent** that leans on hub MCPs (**Exa**, **Firecra
 - Inspect the repo with tools when brainstorming touches implementation reality.
 - **Hybrid persistence** (`openspec/` + Engram) is the default; align with **`/skillgrid-init`** if the repo layout is unclear.
 
+## Anti-patterns
+
+- **“This is too simple to need design”** – Even small features need explicit goals, constraints, and success criteria.
+- **Multi‑question messages** – Never bundle unrelated questions in one turn; one clear question at a time.
+- **Skipping divergence** – Don’t lock onto the first approach; always produce at least two alternatives with tradeoffs.
+- **Forgetting architecture decisions** – Never end a brainstorm that chose patterns or technologies without recording them in `.skillgrid/project/ARCHITECTURE.md`.
+- **Previews without an offer** – Don’t create preview files without first asking the user if they want the visual workflow.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

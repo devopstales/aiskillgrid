@@ -176,6 +176,13 @@ If your environment supports parallel subagents, you may fan out the review and 
 - Inspect the repo with tools; do not assume stack or layout.
 - This command is self‑contained; it does not invoke separate `/skillgrid-review` or `/skillgrid-security` commands.
 
+## Anti-patterns
+
+- **Skipping user validation** – Never set status to `devdone` automatically; the combined review+security report must be approved by the user.
+- **No rollback option** – Don’t finish the gate without offering to revert the atomic change (worktree, branch, or commits) if the user rejects.
+- **Weak claims** – Never state “the change passes” without running fresh checks and reading their results.
+- **Combining without review** – Don’t treat this as a substitute for a separate human review when the team requires it; still present all findings.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

@@ -83,6 +83,13 @@ flowchart TD
 - Tie findings to OpenSpec requirements or PRD success criteria if possible.
 - This command is **optional** for low‑risk changes; the automated scans in `/skillgrid-test` already cover the baseline.
 
+## Anti-patterns
+
+- **Scanner‑only security** – Don’t stop after Trivy and Semgrep; a manual review of auth, trust boundaries, and agent config is essential.
+- **Ignoring agent/IDE config** – The AI‑assisted development surface (`.cursor/`, MCP servers, prompts) is part of the attack surface; never skip it.
+- **Silent acceptance of critical bugs** – Any critical or high finding must be actively decided by the user, not buried in a report.
+- **No threat model** – Don’t finish without stating who is trusted, what data is sensitive, and the blast radius of a compromise.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

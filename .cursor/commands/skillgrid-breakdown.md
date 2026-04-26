@@ -147,6 +147,13 @@ After you draft or sync **`tasks.md` and the PRD checklist**, you can spawn **`s
 - Inspect the repo with tools; do not assume stack, change id, or layout.
 - For PRD sections outside Implementation tasks, follow **`/skillgrid-plan`**.
 
+## Anti-patterns
+
+- **No PRD or OpenSpec change** – Never start breakdown if the change doesn’t already have a PRD and an `openspec/changes/<id>/` directory; redirect to `/skillgrid-plan`.
+- **Drifting checklists** – Don’t let the PRD “Implementation tasks” section and `tasks.md` get out of sync; update both in the same edit pass.
+- **Skipping user validation** – Never move to `todo` status without asking the user to review the workstreams and task ordering.
+- **Tasks too large** – Each checkbox must be a single, verifiable, small step; avoid “build the auth module” as one task.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

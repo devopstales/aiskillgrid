@@ -67,6 +67,13 @@ flowchart TD
 - Phase 0 is **orthogonal** to `/skillgrid-init` (repo bootstrap). Run session when the **agent context** resets; run init when the **repository** still needs structure or tooling setup.
 - Inspect the repo with tools; do not assume stack or layout.
 
+## Anti-patterns
+
+- **Relying on chat history** – Never assume context from a previous chat; always run `/skillgrid-session` first to restore active changes, worktrees, and Engram state.
+- **Loading everything** – Don’t enable all MCPs and files at once; use the context budget to load only what the imminent phase needs.
+- **Skipping the checkpoint** – Never start heavy work without noting a resume marker (change id, task number, branch, etc.).
+- **Ignoring parallel work** – Don’t forget to check for active `.worktree/` directories and uncommitted changes before modifying files.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

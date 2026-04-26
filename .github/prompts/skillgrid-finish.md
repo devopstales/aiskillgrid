@@ -139,6 +139,13 @@ Check **`.skillgrid/preview/`** for files related to the change you’re closing
 - Inspect the repo; do not assume stack or layout.
 - First-time OpenSpec **guided** walkthrough: see [`/opsx-onboard`](./opsx-onboard.md) for a full cycle narrative; finish here is the **archive + ship** end of that story.
 
+## Anti-patterns
+
+- **Archiving without syncing specs** – Never move a change to archive if delta specs haven’t been merged into `openspec/specs/` (unless the user explicitly chooses not to).
+- **Stale preview files** – Don’t leave `.skillgrid/preview/` files that were only used for A/B comparison; ask before archiving.
+- **Forgetting the final status** – Never close the change without setting the PRD `Status:` to `done` and updating the INDEX/ticket table.
+- **Merge without documentation alignment** – If the change added new dependencies, services, or patterns, `.skillgrid/project/` files must be updated before the PR is considered ready.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

@@ -385,6 +385,14 @@ rounded:
 - **Session hygiene:** For a new or compacted session, run **`/skillgrid-session`** before heavy work.
 - If Engram is unavailable in a given session, still bootstrap **`openspec/`** and record in **`AGENTS.md`** that a **`mem_save`** to `skillgrid-init/{project-name}` is pending.
 
+## Anti-patterns
+
+- **Root `prd/` folder** – Never create `prd/INDEX.md` or new `prd/*.md` files at the repo root; all PRDs live under `.skillgrid/prd/`.
+- **Config‑only = brownfield** – Don’t treat a repo that has only IDE/agent setup (`.cursor`, `openspec/`, `.skillgrid/`, etc.) as brownfield; it’s still greenfield unless there’s product code.
+- **Skipping DESIGN.md** – Never defer the design document because “we’ll do it later”; at minimum create a stub with the token skeleton.
+- **Ignoring persistence** – Don’t skip Engram if you’ve chosen hybrid mode; the `mem_save` is the backup for session compactions.
+- **Blind overwrites** – Never overwrite an existing `openspec/config.yaml` without showing a diff and asking.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:

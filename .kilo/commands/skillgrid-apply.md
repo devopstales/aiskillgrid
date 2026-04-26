@@ -151,6 +151,14 @@ Use clear headings, e.g. `Implementing: <change> (schema: …)`, per-task progre
 - Inspect the repo; do not assume stack or layout.
 - Checklist format and PRD link live in **`/skillgrid-breakdown`**.
 
+## Anti-patterns
+
+- **Checking tasks off before the test passes** – Never mark a task as done until the test is green (or structural change is verified).
+- **Skipping TDD because “it’s simple”** – Every behavioural task starts with a failing test; if no test is written, you haven’t proven correctness.
+- **Code first, test later** – Writing production code without the test is an anti‑pattern; delete it and start with the test.
+- **Silent contract changes** – Never alter a public API, event schema, or error contract without updating the PRD, `design.md`, and specs.
+- **Stale Engram** – Don’t finish a substantive apply run without `mem_save`‑ing progress to the skillgrid change key.
+
 ## Completion report (required)
 
 End with a **Session wrap-up** the user can scan:
