@@ -134,6 +134,7 @@ Use clear headings, e.g. `Implementing: <change> (schema: …)`, per-task progre
 4. **Scope** — Smallest vertical slice that satisfies the current tasks; no unrelated refactors.
 5. **Contracts** — Preserve agreed APIs and error behavior at public boundaries; document contract changes in design/PRD when you must change them.
 6. **TDD** — When tests are in play: red–green–refactor; write the failing test first when the task calls for it.
+   - **TDD Iron Law:** No production code without a failing test first. If you wrote implementation code before the test, delete that code immediately and start over with the test.
    - **If the task requires a behavioural change (new feature, bug fix, or contract adjustment):**
      1. **Write (or update) a failing test** that clearly proves the intended behaviour.
      2. **Run the test suite** and observe it fail (or confirm the new test fails while nothing else breaks unexpectedly).
