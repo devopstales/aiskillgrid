@@ -48,10 +48,9 @@ Use **one question at a time**, **multiple choice when it helps**, **scope befor
 
 | Practice | What to do |
 |----------|------------|
-| **One question per message** | Avoid bundling multiple unrelated questions in one turn. If a topic needs depth, split into a sequence of single questions. |
-| **Multiple choice when it fits** | Prefer A/B/C (or similar) when it narrows intent faster than open-ended text; use open-ended when exploration is the point. |
+| **One question per message** | Only one question per message—if a topic needs more exploration, break it into multiple questions. Prefer multiple‑choice (A/B/C) when it narrows intent faster; use open‑ended when exploration is the point. |
 | **Context before grilling** | When the idea touches the codebase, skim relevant files, docs, or recent commits before detailed questions so questions are grounded. |
-| **Scope check early** | If the request bundles several independent subsystems (e.g. chat + billing + analytics in one breath), **name that** and help **decompose** before refining low-level details. Brainstorm the **first slice** here; other slices get their own plan cycles later. |
+| **Scope check early** | If the request describes multiple independent subsystems, flag this immediately. Don’t spend questions refining details of a project that needs to be decomposed first. Brainstorm the **first slice** here; other slices get their own plan cycles later. |
 | **“Too simple” is still worth clarifying** | Short or “obvious” ideas still need explicit goals, constraints, and success criteria—keep the design proportionate (a few sentences vs a longer outline), but don’t skip alignment. |
 | **Alternatives before commitment** | Before settling, surface **2–3 approaches** with tradeoffs and a recommendation (ties to **Diverge** / **Converge** steps). |
 | **Incremental buy-in** | When you present a emerging design, chunk it by section (architecture, data flow, errors, testing mindset) and **check** “does this still match what you want?” as you go; revise if not. |
