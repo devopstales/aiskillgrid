@@ -101,6 +101,8 @@ Why this works:
 - Each runs in a fresh context window → main session stays uncluttered
 - The merge step is small and benefits from full context, so it stays in the main agent
 
+**State channel (no extra checkout):** For Skillgrid + OpenSpec, the parent and `Task` subagents align on **`.skillgrid/tasks/context_<change-id>.md`** and **`openspec/changes/<id>/tasks.md`** in a **single working tree**—the same model as [obra/superpowers](https://github.com/obra/superpowers) subagent-driven work, but **without** git worktrees. Subagents read the handoff, spill long work to **`.skillgrid/tasks/research/<change-id>/`**, and return short paths; the orchestrator runs **`/skillgrid-apply`** with checkboxes and optional **`[HITL]`** / **`[AFK]`** tags (see `docs/workflow.md` — *Filesystem handoff* and *HITL vs AFK slices*).
+
 ## Worked example: invalid orchestration (do not build this)
 
 A `meta-orchestrator` persona whose job is "decide which other persona to call":

@@ -76,6 +76,9 @@ flowchart TD
 
 - Tie tests to **success criteria** from the PRD or change artifacts; avoid speculative coverage.
 - Prefer the repo’s existing test runner and patterns (`package.json`, `Makefile`, CI config).
+- Good tests describe **what** the system does through public interfaces. They should survive internal refactors and read like behavior specs, not implementation audits.
+- Prefer integration-style coverage for critical paths. Mock only at system boundaries such as external APIs, time/randomness, email/payment providers, or filesystem access when a real fixture is impractical.
+- Avoid tests that assert private methods, internal collaborator call counts/order, or direct storage details when the same behavior can be verified through a public retrieval/query interface.
 
 ## Notes
 

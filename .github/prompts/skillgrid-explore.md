@@ -67,6 +67,7 @@ flowchart TD
      * (If the change has no structured artifacts, treat it as a proposal-only scenario → `draft`)
    - After setting the status, continue with the rest of the PRD creation steps (numbering, INDEX.md update, cross-links). **Do not** create new PRD files at repo root `prd/`. `docs/PRD/` may mirror; keep numbering consistent with **`.skillgrid/prd/`**.
    - **Ticketing:** Read **`.skillgrid/config.json`** if present. If **`ticketing.provider`** is **`local`**, prefer the **INDEX** table + PRD **`Status:`** only. If **`github`**, **`gitlab`**, or **`jira`**, you may add an optional **External** column to **`.skillgrid/prd/INDEX.md`** (remote issue key / URL) when the team tracks work in that system; keep PRD files canonical.
+   - **Root `openspec/config.yaml`:** If **`openspec/config.yaml`** exists, skim **`context`**. If **Ticketing** or **Artifact store** lines are missing or contradict **`.skillgrid/config.json`**, offer to **merge** aligned lines (user approval) using the template in **`/skillgrid-init`** so **`openspec instructions`** matches the hub’s ticketing choice.
 
 3a. **Auto‑generate with openspec‑explore skill (optional)** — If the skill `openspec-explore` is available (check `.cursor/skills/`, `.kilo/skills/`, `.opencode/skills/`, `.agents/skills/`), offer to run it against a specific change. When invoked, call the skill with the change‑id and the canonical PRD path (adapt to your actual skill interface; it may be a sub‑agent prompt or a tool call).
 
@@ -207,7 +208,25 @@ rounded:
 8. **Code discovery** — Use **`graphify-out/`** and **`AGENTS.md`** for orientation, then **`rg` / IDE search** and targeted file reads. Optional: deeper external research when the question needs off-repo evidence (document sources).
    - **User flows** — Search for existing user‑flow documentation (flowcharts in `docs/`, `README`, Figma links, even inline Mermaid diagrams). If found, reference them in the exploration summary; they can seed later PRD journeys.
 
-8a. **Test landscape (optional)** — If the user is interested in quality or this is a brownfield project, scan for the testing setup. Do **not** implement anything; just map what’s there and note gaps that will matter when the change moves to the **Test** phase.
+8a. **Architecture deepening scan (optional)** — When the user asks to improve architecture, reduce coupling, make code easier to test, or find refactoring opportunities, look for **deepening candidates**:
+
+   - Use consistent terms in findings:
+     - **Module** — anything with an interface and implementation.
+     - **Interface** — everything callers must know: types, invariants, ordering, error modes, configuration, and performance expectations.
+     - **Depth** — leverage at the interface; deep modules hide meaningful behavior behind a small interface, shallow modules do not.
+     - **Seam** — where an interface lives and behavior can vary.
+     - **Adapter** — a concrete implementation at a seam.
+     - **Locality** — changes, bugs, and tests concentrate in one place.
+   - Apply the **deletion test** to suspected shallow modules: if deleting the module only removes pass-through code, it probably was not earning its keep; if deleting it spreads complexity across many callers, it is providing leverage.
+   - Classify dependencies before recommending a new seam:
+     - **In-process** — pure computation or in-memory state; usually deepenable directly.
+     - **Local-substitutable** — has local test stand-ins, such as an in-memory filesystem or test database.
+     - **Remote but owned** — internal network/service dependency; use a port plus production and test adapters only when that seam is real.
+     - **True external** — third-party dependency; inject an adapter and mock at that external edge.
+   - Prefer replacing shallow-module tests with behavior tests at the deepened module’s interface. The **interface is the test surface**; avoid tests that reach past it.
+   - Do not propose detailed new interfaces in the first pass. Present numbered candidates with **Files**, **Problem**, **Solution**, and **Benefits** in terms of locality, leverage, and testability. Ask which candidate the user wants to explore before designing interfaces.
+
+8b. **Test landscape (optional)** — If the user is interested in quality or this is a brownfield project, scan for the testing setup. Do **not** implement anything; just map what’s there and note gaps that will matter when the change moves to the **Test** phase.
 
    - Find test directories and test files (`**/*.test.*`, `**/*.spec.*`, `**/__tests__/`, etc.)
    - Identify the test runner from config or scripts (`vitest.config.*`, `jest.config.*`, `pytest`, `cargo test`, etc.)
@@ -216,7 +235,7 @@ rounded:
    - Note integration with CI (`.github/workflows/`, `Jenkinsfile`, etc.) – just flag, do not replicate
    - Summarize under a `### Testing` heading in **`.skillgrid/project/PROJECT.md`** if you are already updating that file, or include a short note in the session wrap‑up.
 
-8b. **Graphify freshness** — If **`graphify-out/`** is present but its contents are older than the most recent commit touching source code (check `git log -1 --format=%ct -- <src paths>` vs `stat graphify-out/`), offer to run **`graphify update .`** in a subagent or background task before deep code search. The updated graph ensures exploration works from current code.
+8c. **Graphify freshness** — If **`graphify-out/`** is present but its contents are older than the most recent commit touching source code (check `git log -1 --format=%ct -- <src paths>` vs `stat graphify-out/`), offer to run **`graphify update .`** in a subagent or background task before deep code search. The updated graph ensures exploration works from current code.
 
 9. **Ending** — There is no required ending. You may offer a short summary or suggest moving to **`/skillgrid-plan`** when the idea is ready to formalize.
 

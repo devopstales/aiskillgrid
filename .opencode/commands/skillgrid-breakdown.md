@@ -77,6 +77,8 @@ flowchart TD
 
 5. **OpenSpec `tasks.md` (canonical on disk)** — For the active change, produce or update `openspec/changes/<change-id>/tasks.md` from proposal, specs, and design. **Treat this file as the canonical checklist** when the project uses OpenSpec on disk.
 
+5a. **HITL / AFK tags** — Prefix each task line (or workstream) with **`[HITL]`** or **`[AFK]`** (see `docs/workflow.md` — *HITL vs AFK slices*). **Prefer AFK** when scoping slices; order tasks so human decisions (**HITL**) land before dependent **AFK** work. Keep the same tags in the PRD **Implementation tasks** block and in **`.skillgrid/tasks/context_<change-id>.md`** when it exists (handoff: what is blocked on a human vs ready for autonomous apply).
+
 6. **Keep PRD and `tasks.md` identical** — After any edit, **update both** the PRD Implementation tasks block and `openspec/changes/<change-id>/tasks.md` so workstreams and `- [ ]` / `- [x]` lines match. If only one location exists, say so in the PRD index or plan.
 
 7. **Link** — In the PRD, include ** `[tasks.md](openspec/changes/<change-id>/tasks.md)`** next to the Implementation tasks heading (adjust path as needed).
@@ -95,6 +97,7 @@ flowchart TD
 
 11a. **Validate with the user** — After the checklist is synced and `applyRequires` are met, present a summary and quiz the user:
    - **Summary**: Change id, PRD path, number of workstreams/slices, total tasks.
+   - **Slice list**: For each vertical slice, show **Title**, **Type** (`HITL` / `AFK`), **Blocked by**, and **User stories covered** when the PRD includes stories. This makes the breakdown independently reviewable before it becomes issues or tasks.
    - **Quiz** (one question at a time if needed):
    1. Does the granularity feel right? (too coarse / too fine)
    2. Are the dependency relationships correct?
@@ -140,8 +143,10 @@ flowchart TD
 When the PRD is large or the implementation crosses multiple layers, consider breaking the work into **tracer-bullet issues**. Each slice is a thin vertical slice that cuts through ALL integration layers end-to-end (schema, API, UI, tests). A completed slice is demoable or verifiable on its own.
 
 - Prefer many thin slices over few thick ones.
+- Each slice should deliver a narrow complete path through every relevant layer, not a horizontal task for only schema, API, UI, or tests.
 - Mark each slice as **HITL** (requires human interaction, e.g. architectural decision) or **AFK** (can be implemented and merged without human interaction).
 - Prefer AFK over HITL where possible.
+- If the PRD has numbered user stories, list which stories each slice covers. If a slice covers none, either update the PRD or remove the slice as orphan work.
 
 ## Optional: IDE personas
 
@@ -189,6 +194,8 @@ A concise description of this vertical slice. End-to-end behavior, not layer-by-
 ## Acceptance criteria
 - [ ] Criterion 1
 - [ ] Criterion 2
+## User stories covered
+- PRD story numbers or "N/A - infrastructure/supporting slice"
 ## Blocked by
 - Blocked by #[issue number] (or "None - can start immediately")
 ```

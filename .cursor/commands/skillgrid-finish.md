@@ -35,7 +35,8 @@ flowchart TD
     ENGRAM --> PREVIEW[Cleanup .skillgrid/preview/ if user agrees]
     PREVIEW --> PR[Create/update PR, CI checks]
     PR --> DONE[Set PRD status to done]
-    DONE --> END([Merge / deploy, suggest new cycle])
+    DONE --> CHECKPOINTS[Clean checkpoints for closed change]
+    CHECKPOINTS --> END([Merge / deploy, suggest new cycle])
 ```
 
 ## 1 — Optional: sync delta specs to main (before or without archive)
@@ -141,6 +142,26 @@ Do **not** require API access: if the user works in the web UI, list the **exact
 
 ---
 
+## 3c — Cleanup checkpoints
+
+When the change is **finished** (merged locally, PR created and ready, or intentionally discarded), clean up change-scoped checkpoint entries from **`.skillgrid/tasks/checkpoints.log`**.
+
+**Default behavior**
+
+- Keep checkpoints for **unrelated** changes.
+- Remove entries whose checkpoint name or context clearly belongs to the finishing change, for example:
+  - `before-apply-<name>`
+  - `before-apply-<name>-...`
+  - entries whose `contexts=` field includes `.skillgrid/tasks/context_<name>.md`
+- If the log becomes empty, leave an empty file or delete it—follow the repo’s existing style; either is acceptable.
+- Record the cleanup in the finish summary.
+
+**Do not clean checkpoints** when the user chooses **Leave as-is**; those checkpoints are still useful for resume and comparison.
+
+**Ambiguity rule:** If a checkpoint might belong to multiple changes, keep it and mention that you left it untouched.
+
+---
+
 ## 4 — Finish options (choose one)
 
 After archiving, present the user with exactly these four choices and act accordingly:
@@ -149,6 +170,7 @@ After archiving, present the user with exactly these four choices and act accord
    - Merge the change branch into `main` (or the default branch) locally: `git checkout main && git merge <branch>`
    - Push directly (if the team allows): `git push origin main`
    - Run any required CI checks that can be triggered locally; ensure all gates pass before pushing.
+   - Clean change-scoped checkpoints per **section 3c**.
    - Proceed to **post‑merge steps** (deprecation, deploy, documentation, PRD status → `done`).
 
 2. **Create a pull request**
@@ -157,18 +179,20 @@ After archiving, present the user with exactly these four choices and act accord
    - Trigger CI; wait for checks to pass (or note expected failures).
    - Once the PR is approved and merged by the team, update the PRD status to `done` (this may happen outside the session).
    - If you can’t merge now, leave the change in `devdone` status and note the PR URL.
+   - Clean change-scoped checkpoints per **section 3c** once the PR is ready or merged according to team practice.
 
 3. **Leave as‑is (do not merge yet)**
-   - Keep the branch and worktree intact; no further action.
+   - Keep the feature branch intact (and any optional local checkout the team uses); no further action.
    - The PRD status stays as `devdone` (or whatever it was).
    - Suggest the user return later with `/skillgrid-finish` to finalize.
 
 4. **Discard the change**
    - Confirm with the user that they want to permanently discard this change.
-   - Remove any `.worktree/` associated with the change: `git worktree remove .worktree/<slug>/ --force`
+   - **If** the team uses an **optional** extra git worktree (e.g. `.worktree/<slug>/` — not required by Skillgrid): remove it first: `git worktree remove .worktree/<slug>/ --force`
    - Delete the branch: `git branch -D <branch-name>`
    - Archive the `openspec/changes/<name>/` directory (already done in step 3) but set the PRD status to `archived` (or `done` with a note of discard). Optionally move the PRD to an archived section of the index.
    - Clean up any remaining preview files (step 3a already asked, but confirm again).
+   - Clean change-scoped checkpoints per **section 3c**.
 
 ### Post‑merge actions (only after options 1 or 2 complete)
 
@@ -193,7 +217,7 @@ After archiving, present the user with exactly these four choices and act accord
 
 End with a **Session wrap-up** the user can scan:
 
-1. **What I did** — Bullets: spec sync (if any), **`.skillgrid/project/`** final alignment (if applicable), archive moves, PR/CI prep, and Engram or closure steps completed.
+1. **What I did** — Bullets: spec sync (if any), **`.skillgrid/project/`** final alignment (if applicable), archive moves, PR/CI prep, checkpoint cleanup, and Engram or closure steps completed.
 2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
 3. **Suggested next command** — None for this change cycle—**merge / deploy**; for **new** work, start with **`/skillgrid-plan`** or **`/skillgrid-explore`**.
 

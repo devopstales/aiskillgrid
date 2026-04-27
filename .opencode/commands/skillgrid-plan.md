@@ -132,7 +132,7 @@ journey
 
 #### User stories (optional)
 
-Short “As a … I want … so that …” items when behavior is user-facing.
+For user-facing or API-client-facing changes, include a numbered list of “As a … I want … so that …” stories. Cover the main happy path, error/recovery paths, roles or clients, and any operational actors that must interact with the feature. Keep the list extensive enough for `/skillgrid-breakdown` to trace slices back to stories, but do not invent personas outside the PRD scope.
 
 #### Functional requirements
 
@@ -147,6 +147,12 @@ Include as relevant: performance, security, privacy, accessibility, compatibilit
 #### Success criteria
 
 How reviewers will know the work is done (acceptance-level checks, not a task list).
+
+#### Implementation Decisions
+
+Record decisions made while planning: modules or boundaries to build or modify, public interfaces or contracts affected, schema/API choices, interaction rules, and architectural tradeoffs. Keep this stable and high-level—avoid file-by-file implementation steps or code snippets that belong in `tasks.md`.
+
+If the change came from an architecture deepening pass, record the chosen **module**, its intended **interface** (including invariants and error modes, not just method names), the **seam** where adapters vary, the dependency category (in-process, local-substitutable, remote-owned, or true external), and what behavior tests will prove through that interface. Note rejected deepening candidates only when they affect scope or future planning.
 
 #### Author self-review (before “done” on the PRD draft)
 
@@ -191,6 +197,10 @@ Run the CLI steps below. After artifacts reach **apply-ready** (or when you have
 | **`jira`** | If a Jira CLI is available, create per team docs; otherwise add a **Jira** placeholder line in the PRD (e.g. “Jira: create Story in `PROJ` — link TBD”) using `ticketing.jira.projectKey` / `siteUrl` when present. |
 
 **Single source of truth:** PRD markdown and **`Status:`** on disk; remote issues are **mirrors** unless you automate more later.
+
+#### Root `openspec/config.yaml` (ticketing mirror)
+
+If **`openspec/config.yaml`** exists and **`openspec/`** is in use, **read** it after reading **`.skillgrid/config.json`**. Ensure the project-level **`context`** block includes **Ticketing** and **Artifact store** lines that match **`.skillgrid/config.json`** (see **`/skillgrid-init`** **OpenSpec project config (template)**). If **`context`** is missing those lines, or they disagree with `config.json`, **merge** the corrected lines into **`context`** (same merge discipline as init: do not clobber unrelated content; show a short diff if replacing a large block; keep total **`context`** under 50KB). This keeps **OpenSpec**-injected instructions aligned with the hub’s issue workflow before **`openspec instructions`** runs for the new change.
 
 ### Steps (CLI-driven artifact loop)
 
@@ -330,6 +340,12 @@ One file per major change or feature. Expand using **### PRD document format** i
 #### Non-functional requirements
 
 - **Performance / security / compatibility:** …
+
+#### Implementation Decisions
+
+- Modules / interfaces / seams: …
+- Dependency category and adapter strategy: …
+- Behavior test surface: …
 
 #### Testing Decisions
 A list of testing decisions that were made. Include:

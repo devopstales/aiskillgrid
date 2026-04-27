@@ -28,6 +28,7 @@ These align with **[docs/workflow.md](workflow.md)**. **Steps, skill lists, and 
 | Phase | Command | File | Purpose |
 |-------|---------|------|---------|
 | 0 | `/skillgrid-session` | [skillgrid-session.md](../.cursor/commands/skillgrid-session.md) | Session charter, context budget, MCP selection, checkpoints. |
+| 0 | `/skillgrid-checkpoint` | [skillgrid-checkpoint.md](../.cursor/commands/skillgrid-checkpoint.md) | Named workflow checkpoints under `.skillgrid/tasks/checkpoints.log`; create, verify, list, or clear. |
 | DEFINE | `/skillgrid-init` | [skillgrid-init.md](../.cursor/commands/skillgrid-init.md) | **`.skillgrid/config.json`** (ticketing + **artifact store** `hybrid` \| `openspec` \| `engram`), greenfield/brownfield, **OpenSpec** bootstrap when mode includes disk, Engram when mode includes memory, graphify, OpenCode, **`.skillgrid/`** tree. |
 | DEFINE | `/skillgrid-explore` | [skillgrid-explore.md](../.cursor/commands/skillgrid-explore.md) | OpenSpec explore; **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`); root `AGENTS.md`; semantic search. |
 | DEFINE | `/skillgrid-brainstorm` | [skillgrid-brainstorm.md](../.cursor/commands/skillgrid-brainstorm.md) | Clarify, research (`search-first`, `documentation-lookup`), refine ideas before planning. |

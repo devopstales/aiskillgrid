@@ -7,6 +7,11 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 * `/skillgrid-session`
 * Run at the start of an agent session when you need charter, context budget, MCP selection, and checkpoints. Restores **`.skillgrid/config.json`** (ticketing and artifact store) with **`AGENTS.md`**, **OpenSpec** listing, and PRDs in flight.
 
+## Checkpoint (optional)
+
+* `/skillgrid-checkpoint`
+* Create, verify, list, or clear named workflow checkpoints in **`.skillgrid/tasks/checkpoints.log`**. Checkpoints record branch, git SHA, dirty status, optional quick verification evidence, and active handoff files. They complement PRDs, OpenSpec changes, and **`context_<change-id>.md`**; they do **not** require git worktrees and do **not** create commits unless the user explicitly asks.
+
 ## Init
 
 * `/skillgrid-init`
@@ -48,13 +53,14 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 ## Breakdown
 
 * `/skillgrid-breakdown`
-* Sync PRD **Implementation tasks** with **`openspec/changes/<id>/tasks.md`**
+* Sync PRD **Implementation tasks** with **`openspec/changes/<id>/tasks.md`**; tag tasks with **`[HITL]`** or **`[AFK]`** (see *HITL vs AFK slices* below); order HITL decisions before dependent AFK work; **prefer AFK** when scoping slices
 * Optional vertical-slice issues per ticketing provider; **`local`** keeps work in PRD + `tasks.md` only
 
 ## Apply
 
 * `/skillgrid-apply`
-* Implement from `tasks.md` / **OpenSpec** apply instructions; TDD when appropriate; worktrees (for example **`.worktree/<slug>/`**) if the project uses them
+* Before every apply run that proceeds to implementation, automatically create a named **`/skillgrid-checkpoint create before-apply-<change-id>`** entry in **`.skillgrid/tasks/checkpoints.log`**.
+* Implement from `tasks.md` / **OpenSpec** apply instructions; TDD when appropriate; **per-change handoff** (`.skillgrid/tasks/context_<change-id>.md`) in a **single working tree**—optional feature branch in that clone is fine; do **not** assume git worktrees
 
 ## Test
 
@@ -74,7 +80,7 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 ## Finish
 
 * `/skillgrid-finish`
-* Archive **OpenSpec** change, optional sync of delta specs to main **specs**, preview cleanup, PR/merge, **PRD** **`Status: done`**
+* Archive **OpenSpec** change, optional sync of delta specs to main **specs**, preview cleanup, change-scoped checkpoint cleanup, PR/merge, **PRD** **`Status: done`**
 * Remote tracker hints (Git **issue** / merge keywords / Jira transition) only when **`artifactStore`** and ticketing imply an external system; **`local`** stays file-first.
 
 ---
@@ -98,6 +104,7 @@ project-root/
 │   │   ├── PRD01_<first-slug>.md
 │   │   └── PRD02_<next-slug>.md
 │   ├── tasks/
+│   │   ├── checkpoints.log
 │   │   ├── context_<change-id>.md
 │   │   └── research/
 │   │       └── <change-id>/
@@ -114,10 +121,77 @@ project-root/
 │   ├── changes/
 │   └── changes/archive/
 ├── graphify-out/
-├── .worktree/
-│   └── <first-slug>/
 └── src/ or app/ or lib/
 ```
+
+Optional (not part of the default Skillgrid path): a team may use an extra **git worktree** or a **`.worktree/<slug>/`** directory for their own process—the hub does not require it; isolation is **change id** + handoff + OpenSpec, not a second checkout.
+
+## Filesystem handoff (per-change)
+
+Keep **change-scoped** state on disk so the **orchestrator session** and **`Task` subagents** stay aligned without pasting long tool output in chat. Full behavioral rules: [`.configs/AGENTS.md`](../.configs/AGENTS.md) (Skillgrid section).
+
+| Path | Role |
+|------|------|
+| **`.skillgrid/tasks/context_<change-id>.md`** | Rolling handoff: goal, state, index of subagent work, HITL blockers (see below) |
+| **`.skillgrid/tasks/research/<change-id>/`** | Long research, scrapes, or subagent reports (one file per topic or run) |
+
+**Subagent contract**
+
+1. **Before work:** Read `context_<change-id>.md` (and any cited `research/…` files).  
+2. **During work:** Write lengthy output under `research/<change-id>/` with a **distinct** filename.  
+3. **After work:** Update the handoff (state, index row, next actions).  
+4. **Return to parent:** A short message with file paths to read before product code changes.
+
+**Cross-link** — In `openspec/changes/<change-id>/proposal.md`, include a line the reader cannot miss, e.g. `**Skillgrid session context:** .skillgrid/tasks/context_<change-id>.md`.
+
+### Handoff file skeleton (copy and trim)
+
+```markdown
+# Session context: <change-id>
+
+## Change / links
+- OpenSpec change: `openspec/changes/<change-id>/`
+- PRD: `.skillgrid/prd/...`
+- Branch (optional): …
+
+## Current goal
+…
+
+## State
+planning | research | todo | inprogress | blocked
+
+## HITL / human gates
+- … or *none — ready for AFK apply*
+
+## Subagent / research index
+| Topic | File |
+|------|------|
+| … | `.skillgrid/tasks/research/<change-id>/…` |
+
+## Last checkpoint
+…
+```
+
+## Parallel discovery
+
+When **independent** investigations can run without shared mutable state, multiple subagents (or parallel tool use) may each produce a **different** file under `.skillgrid/tasks/research/<change-id>/`. The **parent** merges summaries into the handoff before the next phase. If subtasks are **not** independent, run them **sequentially**. See [`.agents/skills_back/references/orchestration-patterns.md`](../.agents/skills_back/references/orchestration-patterns.md).
+
+## HITL vs AFK slices
+
+Classify work in **`tasks.md`** (and the handoff) so humans and agents know what automation is allowed.
+
+| Tag | Meaning |
+|-----|---------|
+| **`[HITL]`** | Needs a human before implementation or merge (architecture, design sign-off, product/security exception, unclear requirements). |
+| **`[AFK]`** | Can be implemented, verified, and merged under your policy **without** a human gate, given a clear spec and design. |
+
+**Rule:** **Prefer AFK** when scoping: narrow HITL to real decisions; use research + spec updates to turn uncertain work into a later **AFK** slice. Tag lines in `tasks.md` with **`[HITL]`** or **`[AFK]`**; order so HITL decisions that block work come **before** dependent AFK tasks. **`/skillgrid-apply`** should implement **AFK** items and **stop** (or require recorded approval in the handoff) when the next item is **HITL** unless a decision is already linked (e.g. ADR, approved note with date). **`/skillgrid-validate`** may still require explicit human sign-off for HITL-heavy changes, per project policy.
+
+## Search vs spec (multi-agent)
+
+- **Parallel search** — OK when research questions are **independent** (e.g. prior art vs API docs). Each subagent writes a **separate** file under `research/<change-id>/`; the parent updates the handoff, then spec work proceeds.  
+- **Spec (proposal + delta specs)** — Usually **after** research: one coherent pass (or a single subagent) updates `proposal.md` and delta specs so requirements stay consistent. **Do not** blindly fan out spec writers in parallel unless spec areas are **truly** independent and inputs are frozen.  
+- **After implementation** — **Parallel review** is still appropriate (e.g. spec verifier + code reviewer + security) when each report is an independent perspective.
 
 ## PRD (product requirements)
 
@@ -162,6 +236,8 @@ A PRD may map to one or more **OpenSpec** changes (commonly 1:1). If scope expan
 5. **`/skillgrid-finish`** — archive change, optional spec sync, PR; **Status** → `done`.
 
 **Context for agents** — The **OpenSpec** proposal may list `contextFiles`. The Skillgrid handoff file is **additional** context: one line in **`proposal.md`**: *Skillgrid session context:* `.skillgrid/tasks/context_<change-id>.md` (see **`/skillgrid-plan`**).
+
+**Project `openspec/config.yaml` —** Root **`context`** (injected into artifact instructions) should **mirror** **ticketing** and **artifact store** from **`.skillgrid/config.json`**, with the same merge discipline as **`/skillgrid-init`**, so agents running **`openspec instructions`** do not assume a different issue tracker. **`/skillgrid-plan`** and exploration passes refresh this when needed.
 
 **CLI** — Use the **OpenSpec** CLI as the project documents (`openspec status`, `openspec instructions tasks` during breakdown). **Artifact store** for whether **`openspec/`** exists: **`/skillgrid-init`** and **`.skillgrid/config.json` → `artifactStore.mode`**.
 

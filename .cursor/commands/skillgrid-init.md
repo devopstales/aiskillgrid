@@ -148,7 +148,8 @@ If the user picks GitHub or GitLab but does not know `defaultRepo` / `projectPat
    - **Do not** substitute other “init” flows for this step (e.g. `opencode init . --tools all --force` or any `init . --tools all --force` pattern). Those are different products; Skillgrid OpenSpec bootstrap is **`openspec`** with **`--tools none`** unless the user explicitly asks for more tools.  
    - If your installed `openspec --help` shows different flags, follow the CLI, but keep **`--tools none`** as the baseline to avoid unsolicited editor integrations.  
    - Typical output includes `openspec/config.yaml` (or equivalent), `openspec/specs/`, `openspec/changes/`, and `openspec/changes/archive/`; **match generated output**, do not hand-craft a conflicting tree. If `openspec/` already exists, summarize what is there and ask before overwriting. For **`artifactStore.mode`** **`engram`**, **do not** create `openspec/` unless the user explicitly asks to add it later.
-   - **`openspec/config.yaml` after init:** As soon as `openspec init` succeeds, ensure **`openspec/config.yaml`** exists and is populated for the project. If the CLI already wrote a minimal file, **merge**: keep a valid **`schema`** (default `spec-driven` unless the project uses another schema); fill or expand **`context`** from stack detection and this session; add **`rules`** if missing. If the file is absent, create it from **OpenSpec project config (template)** below. **`context`** must stay under **50KB** (OpenSpec hard limit). If a non-empty config already exists with custom content, do not blindly overwrite—show a short diff summary and ask before replacing.
+   - **`openspec/config.yaml` after init:** As soon as `openspec init` succeeds, ensure **`openspec/config.yaml`** exists and is populated for the project. If the CLI already wrote a minimal file, **merge**: keep a valid **`schema`** (default `spec-driven` unless the project uses another schema); fill or expand **`context`** from stack detection and this session; add **`rules`** if missing. If the file is absent, create it from **OpenSpec project config (template)** below. **`context`** must stay under **50KB** (OpenSpec hard limit). If a non-empty config already exists with custom content, do not blindly overwrite—show a short diff summary and ask before replacing.  
+   - **Ticketing in OpenSpec `context`:** **After** **`.skillgrid/config.json`** is written (Step 1), if **`openspec/config.yaml`** exists (this step) or is about to be created, ensure the project **`context`** block includes a **Ticketing** line that matches **`ticketing.provider`** in **`.skillgrid/config.json`** (same as the template), so `openspec instructions` does not default to a different tracker. Re-merge on later edits to **`config.json`** the same way **`/skillgrid-plan`** does.
 
 4. **Engram** — For **`artifactStore.mode`** **`engram`**, **`hybrid`**, and (optionally) **`openspec`** when the team wants cross-session recall: after you have detected context (stack, test tooling, layout), **`mem_save`** with a stable **`topic_key`** so reruns **update** instead of duplicating:
 
@@ -193,12 +194,15 @@ context: |
   Stack: <languages, frameworks, package manager>
   Layout: <e.g. src/, app/, packages/>
   Testing: <runner; where tests live>
-  Skillgrid: PRDs in .skillgrid/prd/; artifact store per .skillgrid/config.json artifactStore.mode; AGENTS.md
+  Skillgrid: PRDs in .skillgrid/prd/; AGENTS.md
+  Ticketing: <local|github|gitlab|jira> — canonical .skillgrid/config.json ticketing.provider; optional remote issues only per that provider; do not assume GitHub when local.
+  Artifact store: <hybrid|openspec|engram> — per .skillgrid/config.json artifactStore.mode
   Conventions: <AGENTS.md / team rules — keep brief>
 
 rules:
   proposal:
     - Tie to the PRD under .skillgrid/prd/ when one exists; name scope and non-goals.
+    - Optional remote issues (e.g. gh, glab, Jira) only when .skillgrid/config.json ticketing.provider matches; otherwise keep tracking in PRD and INDEX.
   specs:
     - Use clear requirements; scenarios (Given/When/Then) when they help acceptance.
   design:

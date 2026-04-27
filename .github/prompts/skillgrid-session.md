@@ -25,13 +25,12 @@ flowchart TD
     PRDS[Glob .skillgrid/prd/PRD*.md, check statuses]
     CONTEXT[Check .skillgrid/tasks/context_*.md for active changes]
     ENGRAM[mem_search for skillgrid-init and change keys]
-    WORKTREES[Check .worktree/ and git worktree list]
     DIRTY[git status --short]
     BUDGET[Decide what to load now vs later]
     TOOLS[Enable needed MCPs/CLIs]
     CHECKPOINT[Note resume marker]
     START --> CHARTER
-    CHARTER --> AGENTS --> OPS --> PRDS --> CONTEXT --> ENGRAM --> WORKTREES --> DIRTY
+    CHARTER --> AGENTS --> OPS --> PRDS --> CONTEXT --> ENGRAM --> DIRTY
     DIRTY --> BUDGET --> TOOLS --> CHECKPOINT --> DONE([Handoff to substantive phase])
 ```
 
@@ -46,9 +45,9 @@ flowchart TD
    - For each active change, check for **`.skillgrid/tasks/context_<change-id>.md`** — if one exists, display its `state`, `current goal`, and `last checkpoint` so the user can resume immediately.  
    - If Engram is available, `mem_search` for `skillgrid-init/{project-name}` and any change-scoped keys (`skillgrid/<change>/plan`, `skillgrid/<change>/verify-report`). Offer to load the full text via `mem_get_observation`.
 
-3. **Detect parallel work**  
-   - Check for **`.worktree/`** directories and any associated branches (`git worktree list`). Warn if multiple worktrees are active and which changes they map to.
+3. **Detect uncommitted and parallel work**  
    - Run `git status --short` to surface uncommitted work from a previous session.
+   - **Optional (only if your team uses extra checkouts):** if `.worktree/` exists or `git worktree list` shows more than the main worktree, note it briefly. Skillgrid’s default is a **single working tree** with per-change handoff (see `docs/workflow.md` — *Filesystem handoff*); do not require worktrees to resume a change.
 4. **Context budget** — Decide what must be loaded now versus later: rules, skills, MCP servers, and large files. Prefer minimal viable context until a phase needs depth.
 5. **Tooling** — Enable only the MCPs and CLIs needed for this session; defer the rest to avoid noise and token burn.
 6. **Checkpoint** — Note where to resume if interrupted (open change, branch, last task id, or spec section).
@@ -67,10 +66,10 @@ flowchart TD
 
 ## Anti-patterns
 
-- **Relying on chat history** – Never assume context from a previous chat; always run `/skillgrid-session` first to restore active changes, worktrees, and Engram state.
+- **Relying on chat history** – Never assume context from a previous chat; always run `/skillgrid-session` first to restore active changes, per-change handoff files, and Engram state.
 - **Loading everything** – Don’t enable all MCPs and files at once; use the context budget to load only what the imminent phase needs.
 - **Skipping the checkpoint** – Never start heavy work without noting a resume marker (change id, task number, branch, etc.).
-- **Ignoring parallel work** – Don’t forget to check for active `.worktree/` directories and uncommitted changes before modifying files.
+- **Ignoring dirty state** – Don’t forget uncommitted changes and `context_*.md` handoff before modifying files; optional worktrees are secondary.
 
 ## Completion report (required)
 

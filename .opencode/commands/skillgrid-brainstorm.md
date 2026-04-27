@@ -135,7 +135,7 @@ flowchart TD
    - **If no visual decisions were made** (only architecture, data flow, etc.), do nothing and note in the completion report: “No design tokens chosen — DESIGN.md unchanged.”
 6. **Validate** — When breadth or citations matter, run a deeper multi-source pass with explicit sources.
 7. **Refine** — Use divergent then convergent structure to sharpen a vague idea into a defensible direction.
-8. **OpenSpec `config.yaml`** — If **`openspec/`** exists on disk, read **`openspec/config.yaml`**. After **Converge** (or at **Handoff**), **merge** session-stable context into the file: update **`context`** with goals, constraints, chosen direction, and stack implications from the brainstorm; add or adjust **`rules`** if the session set norms for artifacts (**proposal**, **specs**, **design**, **tasks**). If the file is missing, create it from **OpenSpec project config (template)** below (same as **`/skillgrid-init`**). Keep **`context`** under **50KB**; keep a valid **`schema`** (default `spec-driven` unless the project uses another). **Merge**, do not clobber: if the file is already rich, show a short diff and confirm before replacing large sections. Skip this step if the project has no **`openspec/`** (e.g. Engram-only persistence).
+8. **OpenSpec `config.yaml`** — If **`openspec/`** exists on disk, read **`openspec/config.yaml`**. After **Converge** (or at **Handoff**), **merge** session-stable context into the file: update **`context`** with goals, constraints, chosen direction, and stack implications from the brainstorm; add or adjust **`rules`** if the session set norms for artifacts (**proposal**, **specs**, **design**, **tasks**). If the file is missing, create it from **OpenSpec project config (template)** below (same as **`/skillgrid-init`**). **Preserve** the **Ticketing** and **Artifact store** lines in **`context`** from **`.skillgrid/config.json`** (read that file if present); re-insert them if the merge would drop them. Keep **`context`** under **50KB**; keep a valid **`schema`** (default `spec-driven` unless the project uses another). **Merge**, do not clobber: if the file is already rich, show a short diff and confirm before replacing large sections. Skip this step if the project has no **`openspec/`** (e.g. Engram-only persistence).
 8. **Handoff to `/skillgrid-plan`** — Package the session’s output into a crisp brief that the planner can ingest without rereading the whole chat.
 
    - **Problem statement** — One sentence: what problem are we solving, and for whom?  
@@ -160,12 +160,15 @@ context: |
   Stack: <languages, frameworks, package manager>
   Layout: <e.g. src/, app/, packages/>
   Testing: <runner; where tests live>
-  Skillgrid: PRDs in .skillgrid/prd/; persistence per AGENTS.md (hybrid: openspec/ + Engram when used)
+  Skillgrid: PRDs in .skillgrid/prd/; AGENTS.md
+  Ticketing: <local|github|gitlab|jira> — canonical .skillgrid/config.json ticketing.provider; optional remote issues only per that provider; do not assume GitHub when local.
+  Artifact store: <hybrid|openspec|engram> — per .skillgrid/config.json artifactStore.mode
   Conventions: <AGENTS.md / team rules — keep brief>
 
 rules:
   proposal:
     - Tie to the PRD under .skillgrid/prd/ when one exists; name scope and non-goals.
+    - Optional remote issues (e.g. gh, glab, Jira) only when .skillgrid/config.json ticketing.provider matches; otherwise keep tracking in PRD and INDEX.
   specs:
     - Use clear requirements; scenarios (Given/When/Then) when they help acceptance.
   design:

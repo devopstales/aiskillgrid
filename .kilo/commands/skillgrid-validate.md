@@ -32,11 +32,8 @@ flowchart TD
     CTX --> FINISH[Suggest /skillgrid-finish]
     ASK -->|changes| FIX[Apply fixes, re-run checks]
     FIX --> SUM
-    ASK -->|rollback| WORKTREE{Worktree exists?}
-    WORKTREE -->|Yes| REMOVE[git worktree remove .worktree/<slug>/ --force]
-    WORKTREE -->|No| REVERT[Guide user on revert]
-    REMOVE --> RESET[Reset PRD status to draft]
-    REVERT --> RESET
+    ASK -->|rollback| ROLLBACK[Revert: reset branch or commits; optional git worktree remove if used]
+    ROLLBACK --> RESET[Reset PRD status to draft]
     RESET --> RESTART[Suggest /skillgrid-plan or /skillgrid-finish]
 ```
 
@@ -146,8 +143,8 @@ Handle responses:
 - **Approved:** continue to Phase 4.
 - **Changes requested:** apply fixes, re‑run affected checks, re‑prompt.
 - **Rollback:**
-  - If a worktree was used (`.worktree/<slug>/`): `git worktree remove .worktree/<slug>/ --force` and delete the associated branch.
-  - If applied directly, guide the user on reverting commits.
+  - **Default (single working tree):** guide reverting commits or resetting the feature branch; do not assume a second checkout (see `docs/workflow.md` — *Filesystem handoff*).
+  - **If** the team uses an **optional** `.worktree/<slug>/`, remove it with `git worktree remove .worktree/<slug>/ --force` before or as part of branch cleanup.
   - Reset PRD status to `draft` (or archive). Suggest next steps: `/skillgrid-plan` or `/skillgrid-finish`.
 - **No response:** wait; do not advance.
 
@@ -184,7 +181,7 @@ If your environment supports parallel subagents, you may fan out the review and 
 ## Anti-patterns
 
 - **Skipping user validation** – Never set status to `devdone` automatically; the combined review+security report must be approved by the user.
-- **No rollback option** – Don’t finish the gate without offering to revert the atomic change (worktree, branch, or commits) if the user rejects.
+- **No rollback option** – Don’t finish the gate without offering to revert the change (branch, commits, and only if used: optional worktree) if the user rejects.
 - **Weak claims** – Never state “the change passes” without running fresh checks and reading their results.
 - **Combining without review** – Don’t treat this as a substitute for a separate human review when the team requires it; still present all findings.
 
