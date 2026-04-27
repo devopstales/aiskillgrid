@@ -80,6 +80,7 @@ flowchart TD
 ## Notes
 
 - **Hybrid persistence:** Update the relevant `.skillgrid/tasks/context_<change-id>.md` with a short security sign‑off note after completion.
+- **Ticketing CLIs:** Tokens for **`gh`**, **`glab`**, or Jira integrations belong in **environment** or secret stores, not in **`.skillgrid/config.json`** (that file is for provider choice and non-secret paths/keys like Jira `projectKey`).
 - Tie findings to OpenSpec requirements or PRD success criteria if possible.
 - This command is **optional** for low‑risk changes; the automated scans in `/skillgrid-test` already cover the baseline.
 

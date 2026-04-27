@@ -1,7 +1,7 @@
 ---
 description: Prove behavior: automated tests, E2E, browser DevTools
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
-argument-hint: "[area, ticket id, or failing test]"
+argument-hint: "[area, issue id/key (per .skillgrid/config.json), or failing test]"
 ---
 
 <objective>
@@ -78,6 +78,7 @@ flowchart TD
 
 - Inspect the repo with tools; do not assume stack or layout.
 - **Hybrid persistence** is the default (`openspec/` + Engram); align with **`/skillgrid-init`** if layout is unclear.
+- **“Ticket” in arguments** means **issue id** in the sense of your tracker: e.g. GitHub **`#42`**, GitLab **iid**, Jira **`PROJ-123`**, or a PRD slice label when **`ticketing.provider`** is **`local`** (see **`.skillgrid/config.json`**).
 
 ## Anti-patterns
 

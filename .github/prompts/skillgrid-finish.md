@@ -120,7 +120,21 @@ Check **`.skillgrid/preview/`** for files related to the change you’re closing
 - Ask the user: *“Can I delete these preview files? [list]”*  
   On confirmation, remove them.
 - If the team keeps previews for reference, skip with a brief note.
-   ```
+
+---
+
+## 3b — Remote tracker hygiene (read `.skillgrid/config.json`)
+
+After the PR/merge path is clear, read **`.skillgrid/config.json`** and **`ticketing.provider`** (default mentally to **`local`** if missing). Suggest the matching closure habit:
+
+| Provider | Suggestion |
+|----------|------------|
+| **`local`** | Set PRD **`Status:`** to **`done`** and refresh **`.skillgrid/prd/INDEX.md`**. If the team uses the PRD Kanban script, note that a browser refresh may be needed. |
+| **`github`** | In the PR or merge commit body, use **`Fixes #123`** / **`Closes #123`** to close linked issues when applicable. |
+| **`gitlab`** | Use **`Closes …`** / issue references per [GitLab cross‑linking](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically) and team practice. |
+| **`jira`** | Transition or close the linked Jira issue per workflow; paste the Jira key in the ship notes if this change fulfilled it. |
+
+Do **not** require API access: if the user works in the web UI, list the **exact** follow‑up (issue keys, states) in the finish summary.
 
 ---
 

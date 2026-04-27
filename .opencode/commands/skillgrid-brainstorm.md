@@ -49,7 +49,10 @@ Use **one question at a time**, **multiple choice when it helps**, **scope befor
 | Practice | What to do |
 |----------|------------|
 | **One question per message** | Only one question per message—if a topic needs more exploration, break it into multiple questions. Prefer multiple‑choice (A/B/C) when it narrows intent faster; use open‑ended when exploration is the point. |
-| **Context before grilling** | When the idea touches the codebase, skim relevant files, docs, or recent commits before detailed questions so questions are grounded. |
+| **Context before Questioning** | When the idea touches the codebase, skim relevant files, docs, or recent commits before detailed questions so questions are grounded. |
+| **Dependency-ordered Questioning** | Before asking a question, identify which prior decisions it depends on. Prioritize decisions that block other decisions (e.g., data model before API shape, API shape before UI). When a question depends on a prior decision, name the dependency explicitly. |
+| **Recommended answer with each question** | For every question, provide your recommended answer. If the user is unsure, offer 2–3 concrete options and clearly label which one you recommend. |
+| **"I'll figure that out later" is not accepted** | Require a decision or explicitly mark it as an open question before moving on. Never let the user redirect to implementation details until all design branches are resolved. |
 | **Scope check early** | If the request describes multiple independent subsystems, flag this immediately. Don’t spend questions refining details of a project that needs to be decomposed first. Brainstorm the **first slice** here; other slices get their own plan cycles later. |
 | **“Too simple” is still worth clarifying** | Short or “obvious” ideas still need explicit goals, constraints, and success criteria—keep the design proportionate (a few sentences vs a longer outline), but don’t skip alignment. |
 | **Alternatives before commitment** | Before settling, surface **2–3 approaches** with tradeoffs and a recommendation (ties to **Diverge** / **Converge** steps). |
@@ -106,6 +109,10 @@ flowchart TD
 4. **Converge** — Rank approaches; state assumptions, risks, and tradeoffs explicitly.  
    - **Visual convergence:** If multiple design directions are viable, offer to generate quick mockups via SuperDesign (`/superdesign help me design <feature>`) and place them in `.skillgrid/preview/` for A/B selection.  
    - **Shape planning:** For UX-heavy features, offer to run Impeccable’s structured discovery interview to clarify the design brief before locking direction.
+4a. **Design Interview Complete** — When every major branch has a decision (or an explicitly noted open question) and you can state the full design back without gaps, stop questioning and produce a wrap-up summary with three sections:
+   - **Decisions made** (with brief rationale)
+   - **Assumptions accepted**
+   - **Open questions** still requiring resolution
 5. **Document architectural decisions** — After converge, write the session’s architectural choices to **`.skillgrid/project/ARCHITECTURE.md`**.  
    - If the file doesn’t exist, create it using the template from **`/skillgrid-init`**.  
    - Add a new row to the **Design decisions** table for each decision:
@@ -175,6 +182,7 @@ For a **dedicated research subagent** that leans on hub MCPs (**Exa**, **Firecra
 
 - Inspect the repo with tools when brainstorming touches implementation reality.
 - **Hybrid persistence** (`openspec/` + Engram) is the default; align with **`/skillgrid-init`** if the repo layout is unclear.
+- **Ticketing:** Do not create GitHub Issues (or other remote issues) unless **`.skillgrid/config.json`** **`ticketing.provider`** matches that system; **`local`** means PRDs + INDEX only until the user changes config.
 
 ## Anti-patterns
 

@@ -101,6 +101,8 @@ What this change includes and what is explicitly not included (prevents scope cr
 
 High-level only (not a full implementation plan): **packages, top-level dirs, or files** expected to be **created** or **modified**—enough to lock **boundaries** and inform **`/skillgrid-breakdown`**. Put **detailed** file-by-file steps, exact commands, and per-step code in **`openspec/.../tasks.md`** (via **`/skillgrid-breakdown`**) and keep that checklist in sync with the PRD. If the team also keeps a long-form implementation write-up, store it under something like `docs/.../plans/YYYY-MM-DD-<feature>.md` (or your repo’s path); do **not** paste that level of detail into the PRD body.
 
+Sketch out the major modules you will need to build or modify. Actively look for opportunities to extract deep modules that can be tested in isolation. A deep module encapsulates a lot of functionality in a simple, testable interface. Check with the user that these modules match their expectations and ask which modules they want tests written for.
+
 #### Feature diagram (optional)
 
 ```mermaid
@@ -156,6 +158,9 @@ Run once yourself (not a subagent). **(1) Coverage** — each goal and major **i
 - **Ask first** — e.g. schema, new deps, CI
 - **Never do** — e.g. secrets in repo, silent requirement changes
 
+#### Further Notes
+Any additional notes about the feature that don't fit elsewhere.
+
 #### Project fit (when the change affects how work is done)
 
 Concise notes on: **Commands** (real commands with flags), **structure** (paths for code, tests, docs), **code style** (one short illustrative pattern), **testing strategy** (levels and expectations). Skip subsections that are unchanged.
@@ -171,6 +176,21 @@ If present: numbered workstreams and checkboxes; should trace to requirements ab
 Run the CLI steps below. After artifacts reach **apply-ready** (or when you have a solid checkpoint), **`mem_save`** a short planning summary to **Engram** (change id, PRD path, links to `openspec/changes/<name>/`).
 
 **Input**: The argument after `/skillgrid-plan` is the change name (kebab-case), **or** a description of what to build. If the user only gave a description, derive a kebab-case name (e.g. “add user authentication” → `add-user-auth`).
+
+#### Ticketing (read `.skillgrid/config.json` first)
+
+1. **Read** **`.skillgrid/config.json`** if it exists. Take **`ticketing.provider`** (`local` | `github` | `gitlab` | `jira`).  
+2. **If the file is missing:** default to **`local`** and add a one-line note: run **`/skillgrid-init`** to set ticketing; do not call `gh` / `glab` / Jira CLIs for remote issues until configured.  
+3. **Optional remote issue** — Only if the user explicitly wants the PRD tracked as a **remote** issue, act by provider (do **not** fail the command if a CLI is missing; print the exact command for the human):
+
+| `provider` | Action |
+|--------------|--------|
+| **`local`** | No remote issue. Keep **`.skillgrid/prd/INDEX.md`** (and optional ticket table) authoritative. Optionally remind: `node .skillgrid/scripts/prd-kanban.mjs` for the local Kanban UI (see **`/skillgrid-init`**). |
+| **`github`** | Use PRD content for the body. If `gh` is available: `gh issue create` (honor `ticketing.github.defaultRepo` if set). Link the issue URL in the PRD title block or **Spec / change** line. If `gh` is missing, output the intended title/body and ask the user to create the issue in the browser. |
+| **`gitlab`** | If `glab` is available: `glab issue create` for the project in `ticketing.gitlab.projectPath` or default from repo. Link the issue URL in the PRD. If `glab` is missing, output title/body and suggest creating the issue in GitLab UI. |
+| **`jira`** | If a Jira CLI is available, create per team docs; otherwise add a **Jira** placeholder line in the PRD (e.g. “Jira: create Story in `PROJ` — link TBD”) using `ticketing.jira.projectKey` / `siteUrl` when present. |
+
+**Single source of truth:** PRD markdown and **`Status:`** on disk; remote issues are **mirrors** unless you automate more later.
 
 ### Steps (CLI-driven artifact loop)
 
@@ -310,6 +330,12 @@ One file per major change or feature. Expand using **### PRD document format** i
 #### Non-functional requirements
 
 - **Performance / security / compatibility:** …
+
+#### Testing Decisions
+A list of testing decisions that were made. Include:
+- A description of what makes a good test (only test external behavior, not implementation details)
+- Which modules will be tested
+- Prior art for the tests (i.e. similar types of tests in the codebase)
 
 #### Feature diagram (optional)
 

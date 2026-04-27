@@ -179,6 +179,7 @@ If your environment supports parallel subagents, you may fan out the review and 
 
 - Inspect the repo with tools; do not assume stack or layout.
 - This command is self‑contained; it does not invoke separate `/skillgrid-review` or `/skillgrid-security` commands.
+- **Ticketing:** Read **`.skillgrid/config.json`**. If **`ticketing.provider`** is not **`local`**, mention in the Phase 3 summary that **`/skillgrid-finish`** should align the remote issue (GitHub / GitLab / Jira) with **`devdone`** — PRD status on disk remains the primary signal for agents.
 
 ## Anti-patterns
 

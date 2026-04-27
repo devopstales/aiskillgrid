@@ -158,14 +158,6 @@ npm install -g @mariozechner/pi-coding-agent
 * generate user journey 
   * to Markdown Presentation Ecosystem format
   * to mermeade
-* design tools
-  * DESIGN.md
-  * taste-skill
-  * npxskillui
-  * impeccable
-  * cnnect prainstorming with design
-  * project level desig command ?? (not part of the main function workflow)
-  * https://app.superdesign.dev/
 * installer
   * Claude Code plugin
   * Cursor plugin

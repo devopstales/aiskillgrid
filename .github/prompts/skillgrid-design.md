@@ -82,3 +82,9 @@ Ask the user which mode they want, or infer from their argument.
 - Follow Impeccable's critique commands: it scores UX on visual hierarchy, cognitive load, emotional resonance, and more.
 - Write findings into the session. If this is part of a Validate pass, include them in the verify report.
 - Flag any anti-patterns Impeccable finds; update `DESIGN.md` with recommended fixes.
+
+## Notes
+
+- **Ticketing:** This command does not create GitHub, GitLab, or Jira issues; keep design work in **`DESIGN.md`** and **`.skillgrid/preview/`**. Remote issue creation belongs in **`/skillgrid-plan`** / **`/skillgrid-breakdown`** per **`.skillgrid/config.json`**.
+
+</process>

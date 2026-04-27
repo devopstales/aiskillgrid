@@ -62,7 +62,7 @@ The body defines role, scope, output shape, and (per repo convention) a **Compos
 | **Persona (this doc)** | `.cursor/agents/skillgrid-*.md` (and mirrors) | *Who* is answering: a single role and report format. |
 | **Slash command** | `.cursor/commands/*.md` | *When* to run a phase or workflow; may point agents at specific skills. |
 
-For the end-to-end Skillgrid phase list, see [skillgrid-workflow.md](../.skillgrid/scripts/skillgrid-workflow.md) and [commands.md](commands.md).
+For the end-to-end Skillgrid phase list, see [workflow.md](workflow.md) and [commands.md](commands.md).
 
 ---
 

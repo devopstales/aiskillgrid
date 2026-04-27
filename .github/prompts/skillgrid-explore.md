@@ -66,6 +66,7 @@ flowchart TD
      * Else if only a **`proposal.md`** (or other planning files) exists but no tasks or no completed tasks → `draft`
      * (If the change has no structured artifacts, treat it as a proposal-only scenario → `draft`)
    - After setting the status, continue with the rest of the PRD creation steps (numbering, INDEX.md update, cross-links). **Do not** create new PRD files at repo root `prd/`. `docs/PRD/` may mirror; keep numbering consistent with **`.skillgrid/prd/`**.
+   - **Ticketing:** Read **`.skillgrid/config.json`** if present. If **`ticketing.provider`** is **`local`**, prefer the **INDEX** table + PRD **`Status:`** only. If **`github`**, **`gitlab`**, or **`jira`**, you may add an optional **External** column to **`.skillgrid/prd/INDEX.md`** (remote issue key / URL) when the team tracks work in that system; keep PRD files canonical.
 
 3a. **Auto‑generate with openspec‑explore skill (optional)** — If the skill `openspec-explore` is available (check `.cursor/skills/`, `.kilo/skills/`, `.opencode/skills/`, `.agents/skills/`), offer to run it against a specific change. When invoked, call the skill with the change‑id and the canonical PRD path (adapt to your actual skill interface; it may be a sub‑agent prompt or a tool call).
 
@@ -224,6 +225,7 @@ rounded:
 - Explore the problem space, compare options, surface risks, sketch ASCII architecture.
 - Map integration points and hidden complexity in the codebase.
 - **When a change exists:** map insights to the table below and offer to update files—only if the user agrees.
+- **Stress-test an existing design** — If the user wants to validate an existing plan or design, apply the **grill-me protocol**: interview relentlessly about every aspect, walk down each branch of the decision tree, and produce a decisions/assumptions/open-questions summary.
 
 | Insight type | Where to capture |
 |--------------|------------------|
@@ -243,6 +245,8 @@ Follow a single script, force a single artifact, or rush to a conclusion. Long t
 - **Do not** copy meta-blocks meant for the agent (e.g. raw `<context>` / `<rules>`) into user-facing files—use them as constraints only.
 - **Do** question assumptions and visualize when it helps.
 - **Do** ground discussion in the repo when relevant.
+- **Do** use dependency-ordered questioning when exploring complex designs.
+- **Do** provide recommended answers with each question during design exploration.
 
 ## PRD template (use when a change has no PRD)
 

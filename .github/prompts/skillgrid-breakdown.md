@@ -90,17 +90,15 @@ flowchart TD
 
 11. **No orphan work** — Each task should map to a spec or agreed design; call out gaps before coding.
 
-11a. **Validate with the user** — After the checklist is synced and `applyRequires` are met, present a summary before advancing the status.
-
-   - Summarise:
-     - Change id and PRD path
-     - Number of workstreams and total tasks
-     - Which workstream(s) are parallelizable (if any)
-     - Any tasks flagged as blocking or high-risk
-     - Current `applyRequires` status (all `done`?)
-   - Ask: *“Does this breakdown look ready? Reply **approved** to set status to `todo` and proceed to `/skillgrid-apply`, or describe what should change.”*
-   - If the user requests changes, apply them to both the PRD and `tasks.md`, re-run `openspec status`, and repeat validation.
-   - Only after explicit approval should you set the PRD `Status:` to `todo` (step 12) and produce the completion report.
+11a. **Validate with the user** — After the checklist is synced and `applyRequires` are met, present a summary and quiz the user:
+   - **Summary**: Change id, PRD path, number of workstreams/slices, total tasks.
+   - **Quiz** (one question at a time if needed):
+   1. Does the granularity feel right? (too coarse / too fine)
+   2. Are the dependency relationships correct?
+   3. Should any slices be merged or split further?
+   4. Are the correct items marked as HITL and AFK?
+   - Iterate until the user approves.
+   - Only after explicit approval set the PRD `Status:` to `todo`.
 
 12. **PRD `Status`** — Set the change’s PRD **`Status:`** to **`todo`** (and INDEX / ticket table if used) before handoff. Next is **`inprogress`** in **`/skillgrid-apply`**.
 
@@ -135,6 +133,13 @@ flowchart TD
 - [ ] 2.1 …
 ```
 
+### Tracer-Bullet Vertical Slices
+When the PRD is large or the implementation crosses multiple layers, consider breaking the work into **tracer-bullet issues**. Each slice is a thin vertical slice that cuts through ALL integration layers end-to-end (schema, API, UI, tests). A completed slice is demoable or verifiable on its own.
+
+- Prefer many thin slices over few thick ones.
+- Mark each slice as **HITL** (requires human interaction, e.g. architectural decision) or **AFK** (can be implemented and merged without human interaction).
+- Prefer AFK over HITL where possible.
+
 ## Optional: IDE personas
 
 After you draft or sync **`tasks.md` and the PRD checklist**, you can spawn **`skillgrid-task-breakdown-auditor`** ([`.cursor/agents/skillgrid-task-breakdown-auditor.md`](../../.cursor/agents/skillgrid-task-breakdown-auditor.md)) for a planning-only audit (acceptance, ordering, testability) without a full code read.
@@ -158,5 +163,33 @@ End with a **Session wrap-up** the user can scan:
 1. **What I did** — Bullets: change id, updates to **`.skillgrid/prd/…`** and **`openspec/changes/.../tasks.md`**, and checklist sync status.
 2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
 3. **Suggested next command** — **`/skillgrid-apply`** to implement with the `openspec instructions apply` loop.
+
+#### Optional: Create remote issues for vertical slices (per `.skillgrid/config.json`)
+
+**Preflight:** Read **`.skillgrid/config.json`**. If missing, default to **`local`** and note that **`/skillgrid-init`** can set ticketing. **Do not** assume GitHub.
+
+For each **approved** vertical slice, optionally create a **remote** issue **in dependency order** (blockers first), or keep tracking **only** in `tasks.md` + PRD when `provider` is `local` or the user declines.
+
+| `ticketing.provider` | Behavior |
+|------------------------|----------|
+| **`local`** | No `gh` / `glab` / Jira calls. Keep slices in **PRD** + **`tasks.md`**; use **HITL** / **AFK** tags. Optionally reference the Kanban script from **`/skillgrid-init`**. |
+| **`github`** | If `gh` is available: `gh issue create` per slice with a body from the template below. If not, print title/body for manual creation. |
+| **`gitlab`** | If `glab` is available: `glab issue create` per slice. If not, print title/body for manual creation. |
+| **`jira`** | Use Jira CLI if installed and documented; else add a one-line “Jira key TBD” note per slice in the PRD or INDEX. |
+
+**Issue body template (GitHub / GitLab):**
+
+```markdown
+## Parent #[parent issue number if applicable]
+## What to build
+A concise description of this vertical slice. End-to-end behavior, not layer-by-layer.
+## Acceptance criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+## Blocked by
+- Blocked by #[issue number] (or "None - can start immediately")
+```
+
+**GitLab:** Prefer “Closes” / related links in the merge request to the created issue iid per team practice.
 
 </process>

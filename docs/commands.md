@@ -2,7 +2,7 @@
 
 Slash-style commands are **Markdown prompts** checked into this repo. Each file tells the agent what to do for that command; Cursor, Kilo, and OpenCode use YAML frontmatter (`name`, `id`, `category`, `description`, plus optional **`allowed-tools`** and **`argument-hint`**). Bodies use **`<objective>`** / **`<process>`** to separate intent from procedure. GitHub Copilot uses **`.github/prompts/`** with `description`, the same optional keys when present, and the same body.
 
-**Lifecycle overview:** [`.skillgrid/scripts/skillgrid-workflow.md`](../.skillgrid/scripts/skillgrid-workflow.md) maps phases to skills. **Skillgrid** commands wrap those phases; **OpenSpec (`opsx`)** commands target the OpenSpec CLI workflow directly. **Tooling and installers:** [`tools.md`](tools.md).
+**Lifecycle overview:** [docs/workflow.md](workflow.md) summarizes phases; each **`skillgrid-*.md`** command is the source of truth for checklists. **Skillgrid** commands wrap those phases; **OpenSpec (`opsx`)** commands target the OpenSpec CLI workflow directly. **Tooling and installers:** [`tools.md`](tools.md).
 
 **Mirroring:** Canonical slash commands and agent personas live under **`.cursor/commands/`** and **`.cursor/agents/`**. After editing, run **[`scripts/sync-ide-assets.sh`](../scripts/sync-ide-assets.sh)** (see [`tools.md`](tools.md)) to update **`.kilo/commands/`**, **`.opencode/commands/`**, **`.github/prompts/`**, and **`*/agents/`** mirrors. Use **`--check`** in CI to detect drift.
 
@@ -23,12 +23,12 @@ Invocation in the UI may show **`/command-id`** (for example `/skillgrid-plan` o
 
 ## Skillgrid (full workflow)
 
-These align with **`.skillgrid/scripts/skillgrid-workflow.md`**. **Steps, skill lists, and markdown templates** (project docs, PRD skeletons) are authored in each **`skillgrid-*.md`** command file. Update **`skillgrid-workflow.md`** when you change a phase’s skill index; **formatting templates** are maintained in **`/skillgrid-init`** and **`/skillgrid-plan`**, not in the workflow file’s table.
+These align with **[docs/workflow.md](workflow.md)**. **Steps, skill lists, and markdown templates** (project docs, PRD skeletons) are authored in each **`skillgrid-*.md`** command file. Update **docs/workflow.md** when you change how phases are described at a glance; **formatting templates** are maintained in **`/skillgrid-init`** and **`/skillgrid-plan`**, not in the workflow summary.
 
 | Phase | Command | File | Purpose |
 |-------|---------|------|---------|
 | 0 | `/skillgrid-session` | [skillgrid-session.md](../.cursor/commands/skillgrid-session.md) | Session charter, context budget, MCP selection, checkpoints. |
-| DEFINE | `/skillgrid-init` | [skillgrid-init.md](../.cursor/commands/skillgrid-init.md) | Greenfield/brownfield routing, bootstrap structure, graphify, OpenCode, baseline skills. |
+| DEFINE | `/skillgrid-init` | [skillgrid-init.md](../.cursor/commands/skillgrid-init.md) | **`.skillgrid/config.json`** (ticketing + **artifact store** `hybrid` \| `openspec` \| `engram`), greenfield/brownfield, **OpenSpec** bootstrap when mode includes disk, Engram when mode includes memory, graphify, OpenCode, **`.skillgrid/`** tree. |
 | DEFINE | `/skillgrid-explore` | [skillgrid-explore.md](../.cursor/commands/skillgrid-explore.md) | OpenSpec explore; **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`); root `AGENTS.md`; semantic search. |
 | DEFINE | `/skillgrid-brainstorm` | [skillgrid-brainstorm.md](../.cursor/commands/skillgrid-brainstorm.md) | Clarify, research (`search-first`, `documentation-lookup`), refine ideas before planning. |
 | PLAN | `/skillgrid-plan` | [skillgrid-plan.md](../.cursor/commands/skillgrid-plan.md) | PRDs and OpenSpec CLI artifact loop (hybrid Engram). |
@@ -65,6 +65,6 @@ Mirrors: **`.kilo/commands/`**, **`.opencode/commands/`**, **`.github/prompts/`*
 ## Related documentation
 
 - [`agents.md`](agents.md) — IDE agent personas (`.cursor/agents/` and mirrors).
-- [`.skillgrid/scripts/skillgrid-workflow.md`](../.skillgrid/scripts/skillgrid-workflow.md) — phase list and skill bullets per phase.
+- [docs/workflow.md](workflow.md) — phase list, **`.skillgrid/config.json`**, PRD and OpenSpec handoff.
 - [`skills.md`](skills.md) — full skill catalog and paths.
 - [`tools.md`](tools.md) — CLIs, MCPs, and `install.sh` dependencies.

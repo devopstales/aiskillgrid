@@ -40,6 +40,7 @@ flowchart TD
 1. **Charter** — Capture a short session note: goal, constraints, success criteria, and stack or repo assumptions. Align with how your project records session context (e.g. project playbook or `NOTE.md`).
 2. **Restore project memory (hybrid)**  
    - Read **`AGENTS.md`** and **`openspec/config.yaml`** (if present) for stack, conventions, and rules.  
+   - Read **`.skillgrid/config.json`** (if present) and note **`ticketing.provider`** and **`artifactStore.mode`** (`hybrid` \| `openspec` \| `engram`, per **`/skillgrid-init`** / SDD **`sdd-init`** contract) — do not assume GitHub when the provider is not `github`; do not assume `openspec/` exists when mode is **`engram`**. If the file is missing or **`artifactStore`** is absent, mention **`/skillgrid-init`** to set defaults (**`hybrid`** for artifact store).  
    - Run `openspec list --json` to identify active changes.  
    - Glob **`.skillgrid/prd/PRD*.md`** and check `Status:` lines to find work in flight.  
    - For each active change, check for **`.skillgrid/tasks/context_<change-id>.md`** — if one exists, display its `state`, `current goal`, and `last checkpoint` so the user can resume immediately.  
@@ -75,7 +76,7 @@ flowchart TD
 
 End with a **Session wrap-up** the user can scan:
 
-1. **What I did** — Bullets: Engram or memory steps run, `topic_key` or summaries saved, context loaded, and any repo paths refreshed.
+1. **What I did** — Bullets: Engram or memory steps run, `topic_key` or summaries saved, context loaded, **`ticketing.provider`** and **`artifactStore.mode`** from **`.skillgrid/config.json`** (if read), and any repo paths refreshed.
 2. **Token / usage** — If the product shows **input/output tokens**, **context used**, or **session cost** for this turn, report it. If not available, state **`Token usage: not shown in this environment`** (do not guess).
 3. **Suggested next command** — The user’s substantive task: usually **`/skillgrid-plan`**, **`/skillgrid-init`**, or **`/skillgrid-apply`** depending on their goal; state which you recommend and why in one line.
 
