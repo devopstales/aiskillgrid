@@ -166,3 +166,14 @@ Use clear markdown with:
 - Code references in format: `file.ts:123`
 - Specific, actionable recommendations
 - No vague suggestions like "consider reviewing"
+
+---
+
+## When Used From Skillgrid
+
+Keep OpenSpec verification in this skill. For Skillgrid work:
+
+- Use `skillgrid-spec-artifacts` to verify PRD, proposal, design, specs, and `tasks.md` alignment.
+- Use `skillgrid-subagent-orchestration` for two-stage review: spec compliance first, then code quality.
+- Use `skillgrid-hybrid-persistence` to persist verify reports and decisions.
+- Use `skillgrid-filesystem-handoff` to update `.skillgrid/tasks/context_<change-id>.md`.

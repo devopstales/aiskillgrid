@@ -21,6 +21,15 @@ Use Chrome DevTools MCP to give your agent eyes into the browser. This bridges t
 
 **When NOT to use:** Backend-only changes, CLI tools, or code that doesn't run in a browser.
 
+## When Used From Skillgrid
+
+For Skillgrid UI work, browser evidence should feed the active change artifacts:
+
+- Use `skillgrid-ui-design-artifacts` for visual decisions and preview placement.
+- Use `skillgrid-vertical-slices` to verify the current slice's user-visible path.
+- Write longer browser reports under `.skillgrid/tasks/research/<change-id>/`.
+- Update `.skillgrid/tasks/context_<change-id>.md` with the short result and blocker status.
+
 ## Setting Up Chrome DevTools MCP
 
 ### Installation

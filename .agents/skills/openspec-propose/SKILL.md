@@ -108,3 +108,14 @@ After completing all artifacts, summarize:
 - If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
+
+---
+
+## When Used From Skillgrid
+
+Keep OpenSpec mechanics in this skill. For Skillgrid work:
+
+- Use `skillgrid-prd-artifacts` before proposing when a PRD is required.
+- Use `skillgrid-spec-artifacts` to align `proposal.md`, `design.md`, delta specs, and `tasks.md` back to the PRD.
+- Use `skillgrid-hybrid-persistence` for Engram summaries and artifact-store mode.
+- Use `skillgrid-filesystem-handoff` for `.skillgrid/tasks/context_<change-id>.md`.

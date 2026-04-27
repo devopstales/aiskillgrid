@@ -61,3 +61,14 @@ After compaction:
 1. Save summary first.
 2. Recover context.
 3. Continue work.
+
+---
+
+## When Used From Skillgrid
+
+Engram complements Skillgrid's on-disk state; it does not replace it.
+
+- Use `.skillgrid/tasks/context_<change-id>.md` for active handoff state.
+- Use `.skillgrid/tasks/research/<change-id>/` for long reports and scrape output.
+- Use `mem_save` for concise durable decisions, discoveries, and pointers back to PRD/OpenSpec/handoff paths.
+- Follow `skillgrid-hybrid-persistence` for artifact-store modes and topic key conventions.

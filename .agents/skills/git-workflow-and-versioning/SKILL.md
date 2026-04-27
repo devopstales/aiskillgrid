@@ -13,6 +13,16 @@ Git is your safety net. Treat commits as save points, branches as sandboxes, and
 
 Always. Every code change flows through git.
 
+## When Used From Skillgrid
+
+For Skillgrid work, `/skillgrid-finish` owns the ship orchestration. This skill provides git hygiene:
+
+- keep changes reviewable by vertical slice
+- avoid mixing generated mirror updates with unrelated refactors
+- do not assume git worktrees unless the user or project explicitly opts in
+- use `skillgrid-checkpoints` for workflow checkpoints that are not commits
+- keep PRD status and OpenSpec archive rules in Skillgrid skills and commands
+
 ## Core Principles
 
 ### Trunk-Based Development (Recommended)

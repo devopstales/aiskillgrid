@@ -28,9 +28,28 @@ Summaries are taken from each skill’s frontmatter `description` (trimmed). For
 | `openspec-sync-specs` | [.agents/skills/openspec-sync-specs/SKILL.md](../.agents/skills/openspec-sync-specs/SKILL.md) | Merge delta specs into main specs without archiving. |
 | `openspec-archive-change` | [.agents/skills/openspec-archive-change/SKILL.md](../.agents/skills/openspec-archive-change/SKILL.md) | Archive a completed change. |
 
-### Skillgrid workflow (commands, not skills)
+### Skillgrid reusable primitives
 
-End-to-end **OpenSpec + PRD** procedures live in **slash commands** under [`.cursor/commands/`](../.cursor/commands/) (mirrored to `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). See [`commands.md`](commands.md) and [`workflow.md`](workflow.md). **`opsx-*`** commands are thin aliases of the matching **`skillgrid-*`** steps.
+End-to-end phase orchestration still lives in **slash commands** under [`.cursor/commands/`](../.cursor/commands/) (mirrored to `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). Reusable Skillgrid procedures live in the skills below and are referenced by the commands.
+
+| Skill | Path | Summary |
+|--------|------|---------|
+| `skillgrid-questioning` | [.agents/skills/skillgrid-questioning/SKILL.md](../.agents/skills/skillgrid-questioning/SKILL.md) | Ask only blocking questions and record answers into artifacts. |
+| `skillgrid-codebase-map` | [.agents/skills/skillgrid-codebase-map/SKILL.md](../.agents/skills/skillgrid-codebase-map/SKILL.md) | Map repo structure, graphify output, tests, design tokens, and conventions. |
+| `skillgrid-parallel-research` | [.agents/skills/skillgrid-parallel-research/SKILL.md](../.agents/skills/skillgrid-parallel-research/SKILL.md) | Coordinate parallel research, docs lookup, web evidence, and research spill files. |
+| `skillgrid-subagent-orchestration` | [.agents/skills/skillgrid-subagent-orchestration/SKILL.md](../.agents/skills/skillgrid-subagent-orchestration/SKILL.md) | Dispatch bounded subagents with handoff paths and two-stage review. |
+| `skillgrid-prd-artifacts` | [.agents/skills/skillgrid-prd-artifacts/SKILL.md](../.agents/skills/skillgrid-prd-artifacts/SKILL.md) | PRD naming, numbering, `INDEX.md`, title blocks, and lifecycle status. |
+| `skillgrid-spec-artifacts` | [.agents/skills/skillgrid-spec-artifacts/SKILL.md](../.agents/skills/skillgrid-spec-artifacts/SKILL.md) | Bridge PRDs to OpenSpec proposal, design, delta specs, tasks, and validation. |
+| `skillgrid-vertical-slices` | [.agents/skills/skillgrid-vertical-slices/SKILL.md](../.agents/skills/skillgrid-vertical-slices/SKILL.md) | Split PRDs/specs/tasks into testable, shippable slices with `[HITL]` / `[AFK]` tags. |
+| `skillgrid-ui-design-artifacts` | [.agents/skills/skillgrid-ui-design-artifacts/SKILL.md](../.agents/skills/skillgrid-ui-design-artifacts/SKILL.md) | Place UI decisions in `DESIGN.md`, previews, PRDs, and OpenSpec design docs. |
+| `skillgrid-issue-creation` | [.agents/skills/skillgrid-issue-creation/SKILL.md](../.agents/skills/skillgrid-issue-creation/SKILL.md) | Local/GitHub/GitLab/Jira issue behavior from `.skillgrid/config.json`. |
+| `skillgrid-hybrid-persistence` | [.agents/skills/skillgrid-hybrid-persistence/SKILL.md](../.agents/skills/skillgrid-hybrid-persistence/SKILL.md) | Coordinate on-disk artifacts and Engram memory. |
+| `skillgrid-filesystem-handoff` | [.agents/skills/skillgrid-filesystem-handoff/SKILL.md](../.agents/skills/skillgrid-filesystem-handoff/SKILL.md) | Maintain `context_<change-id>.md` and `research/<change-id>/` handoff files. |
+| `skillgrid-openspec-config` | [.agents/skills/skillgrid-openspec-config/SKILL.md](../.agents/skills/skillgrid-openspec-config/SKILL.md) | Keep `openspec/config.yaml` aligned with Skillgrid config. |
+| `skillgrid-project-docs` | [.agents/skills/skillgrid-project-docs/SKILL.md](../.agents/skills/skillgrid-project-docs/SKILL.md) | Refresh `DESIGN.md` and `.skillgrid/project/*` docs. |
+| `skillgrid-checkpoints` | [.agents/skills/skillgrid-checkpoints/SKILL.md](../.agents/skills/skillgrid-checkpoints/SKILL.md) | Manage `.skillgrid/tasks/checkpoints.log`. |
+
+Commands remain the source of truth for phase order, exit status, and final reports. Skills own reusable procedure details.
 
 ### Define and plan (product and tasks)
 

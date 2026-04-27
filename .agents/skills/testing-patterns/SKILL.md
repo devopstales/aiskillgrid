@@ -10,6 +10,17 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ---
 
+## When Used From Skillgrid
+
+For Skillgrid work, choose test types that prove the active PRD slice:
+
+- Map tests back to PRD success criteria and OpenSpec scenarios.
+- Use `skillgrid-vertical-slices` when deciding which path must be independently shippable.
+- Record final evidence in `.skillgrid/tasks/context_<change-id>.md` through `skillgrid-filesystem-handoff`.
+- Leave full phase gating to `/skillgrid-test` and `/skillgrid-validate`.
+
+---
+
 ## 1. Testing Pyramid
 
 ```

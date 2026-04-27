@@ -8,6 +8,15 @@ origin: ECC
 
 Comprehensive Playwright patterns for building stable, fast, and maintainable E2E test suites.
 
+## When Used From Skillgrid
+
+For Skillgrid work, E2E tests should prove the user-visible path for a PRD or vertical slice:
+
+- Link the journey to PRD success criteria.
+- Prefer critical flows over exhaustive browser coverage.
+- Store screenshots, traces, or summary evidence in the change handoff or research folder when relevant.
+- Use `skillgrid-vertical-slices` to decide which journey must pass before a slice is considered done.
+
 ## Test File Organization
 
 ```

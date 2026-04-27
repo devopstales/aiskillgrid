@@ -136,3 +136,13 @@ Main specs are now updated. The change remains active - archive when implementat
 - If something is unclear, ask for clarification
 - Show what you're changing as you go
 - The operation should be idempotent - running twice should give same result
+
+---
+
+## When Used From Skillgrid
+
+Keep spec sync mechanics in this skill. For Skillgrid work:
+
+- Use `skillgrid-spec-artifacts` to confirm the delta specs still trace to the PRD before syncing.
+- Use `skillgrid-hybrid-persistence` to save a short sync summary when hybrid persistence is active.
+- Use `skillgrid-project-docs` if synced specs imply durable architecture or project documentation updates.

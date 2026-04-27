@@ -286,3 +286,14 @@ But this summary is optional. Sometimes the thinking IS the value.
 - **Do visualize** - A good diagram is worth many paragraphs
 - **Do explore the codebase** - Ground discussions in reality
 - **Do question assumptions** - Including the user's and your own
+
+---
+
+## When Used From Skillgrid
+
+Keep OpenSpec exploration in this skill. For Skillgrid work:
+
+- Use `skillgrid-codebase-map` for repo mapping and graphify-backed discovery.
+- Use `skillgrid-parallel-research` for external research and long evidence gathering.
+- Use `skillgrid-prd-artifacts` when exploration backfills or checks PRD coverage.
+- Use `skillgrid-filesystem-handoff` for change-scoped context and research spill files.

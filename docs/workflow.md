@@ -1,6 +1,6 @@
 # Skillgrid workflow
 
-Runnable steps live in the slash command files (for example `.cursor/commands/skillgrid-*.md`, mirrored under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). The sections below are a compact index; open the matching `skillgrid-*` file for the full checklist and templates.
+Runnable steps live in the slash command files (for example `.cursor/commands/skillgrid-*.md`, mirrored under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). Commands own phase order, exit status, and completion reports. Reusable procedure details live in `.agents/skills/skillgrid-*/SKILL.md`; see `docs/skills.md` for the Skillgrid primitive catalog.
 
 ## Session (optional)
 

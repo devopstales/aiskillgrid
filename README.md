@@ -30,7 +30,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
  │Explor│        │      │        │ Code │    │   Prove  │  (specs) │  (SAST)  │        │  PR  │
  │Brain │        │Break │        │      │    │          │          │          │        │      │
  └──────┘        └──────┘        └──────┘    └──────────┴──────────┴──────────┘        └──────┘
- /skillgrid-init /skillgrid-plan /skillgrid-apply  /skillgrid-test /skillgrid-review /skillgrid-security /skillgrid-finish
+ /skillgrid-init /skillgrid-plan /skillgrid-apply  /skillgrid-test /skillgrid-validate /skillgrid-security /skillgrid-finish
 ```
 
 Also run **`/skillgrid-explore`** and **`/skillgrid-brainstorm`** in DEFINE, and **`/skillgrid-breakdown`** in PLAN. Use **`/skillgrid-validate`** when you want review and security in a single turn.

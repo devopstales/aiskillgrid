@@ -13,6 +13,15 @@ description: Semgrep static analysis for security vulnerabilities, code quality,
 - Setting up CI/CD security gates
 - Auditing legacy code for security debt
 
+## When Used From Skillgrid
+
+Semgrep is an automated evidence source for Skillgrid gates:
+
+- `/skillgrid-test` may run baseline scans.
+- `/skillgrid-security` and `/skillgrid-validate` interpret findings.
+- Critical or High findings block validation until triaged.
+- Long findings should be summarized in the handoff and stored under `.skillgrid/tasks/research/<change-id>/` when needed.
+
 ## Core Capabilities
 
 ### 1. Vulnerability Detection

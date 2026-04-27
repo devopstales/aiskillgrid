@@ -14,6 +14,14 @@ description: Trivy comprehensive security scanner — vulnerabilities, misconfig
 - Generating SBOMs for compliance
 - CI/CD security gates
 
+## When Used From Skillgrid
+
+Trivy is an automated evidence source for Skillgrid gates:
+
+- Use it during `/skillgrid-test` for dependency, filesystem, container, IaC, or secret baselines.
+- Escalate unresolved Critical or High findings to `/skillgrid-security` or `/skillgrid-validate`.
+- Store long scan summaries under `.skillgrid/tasks/research/<change-id>/` when they exceed a short handoff note.
+
 ## Core Capabilities
 
 ### 1. Vulnerability Scanning

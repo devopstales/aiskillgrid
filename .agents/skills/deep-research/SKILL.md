@@ -8,6 +8,10 @@ origin: ECC
 
 Produce thorough, cited research reports from multiple web sources. Prefer **two or more independent tools** when possible (e.g. Exa + Firecrawl, or Brave web search + Tavily) so coverage and ranking bias do not come from a single provider.
 
+## When Used From Skillgrid
+
+For Skillgrid work, use `skillgrid-parallel-research` to split research questions and manage handoff updates. Store long reports under `.skillgrid/tasks/research/<change-id>/`, cite web sources, and return a short recommendation with artifact paths instead of raw output in chat.
+
 ## When to Activate
 
 - User asks to research any topic in depth

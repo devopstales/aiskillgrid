@@ -21,7 +21,7 @@ Three layers, each with a distinct job:
 |-------|-----------|---------|------------------|
 | **Skill** | A workflow with steps and exit criteria | `code-review-and-quality` | The *how* — invoked from inside a persona or command |
 | **Persona** | A role with a perspective and an output format | `skillgrid-code-reviewer` | The *who* — adopts a viewpoint, produces a report |
-| **Command** | A user-facing entry point | `/skillgrid-review`, `/skillgrid-validate` | The *when* — composes workflows and skills |
+| **Command** | A user-facing entry point | `/skillgrid-validate`, `/skillgrid-validate` | The *when* — composes workflows and skills |
 
 The user (or a slash command) is the orchestrator. **Personas do not call other personas.** Skills are mandatory hops inside a persona's workflow.
 
@@ -35,8 +35,8 @@ Each `skillgrid-*` persona includes an **Indexing and memory** section: when Eng
 | `skillgrid-researcher` | `/skillgrid-brainstorm` (heavy research), optional `/skillgrid-explore` depth |
 | `skillgrid-design-critic` | `/skillgrid-plan` (with `DESIGN.md`) or direct spawn |
 | `skillgrid-task-breakdown-auditor` | `/skillgrid-breakdown` |
-| `skillgrid-spec-verifier` | `/skillgrid-review` (spec pass) or pre-merge traceability |
-| `skillgrid-code-reviewer` | `/skillgrid-review` |
+| `skillgrid-spec-verifier` | `/skillgrid-validate` (spec pass) or pre-merge traceability |
+| `skillgrid-code-reviewer` | `/skillgrid-validate` |
 | `skillgrid-test-engineer` | `/skillgrid-test` |
 | `skillgrid-security-auditor` | `/skillgrid-security` |
 
@@ -57,7 +57,7 @@ Pick this when you want one perspective on the current change and the user is in
 ### Slash command (single perspective)
 Pick this when the hub’s phase command already encodes skills and steps; spawn a persona when you want that phase in a **fresh subagent context**.
 
-- `/skillgrid-review` → often pairs with `skillgrid-code-reviewer` and/or `skillgrid-spec-verifier` (user chooses)
+- `/skillgrid-validate` → often pairs with `skillgrid-code-reviewer` and/or `skillgrid-spec-verifier` (user chooses)
 - `/skillgrid-test` → pairs with `skillgrid-test-engineer` when delegating test design
 - `/skillgrid-explore` → pairs with `skillgrid-explore-architect` for large repos
 
@@ -120,7 +120,7 @@ A `meta-orchestrator` persona whose job is "decide which other persona to call":
 Why this fails:
 - Pure routing layer with no domain value
 - Adds two paraphrasing hops → information loss + 2× token cost
-- The user already knows they want a review; let them call `/skillgrid-review` or spawn `skillgrid-code-reviewer` directly
+- The user already knows they want a review; let them call `/skillgrid-validate` or spawn `skillgrid-code-reviewer` directly
 - Replicates work that slash commands and `AGENTS.md` intent-mapping already do
 
 ## Rules for personas

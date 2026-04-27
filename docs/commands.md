@@ -23,7 +23,7 @@ Invocation in the UI may show **`/command-id`** (for example `/skillgrid-plan` o
 
 ## Skillgrid (full workflow)
 
-These align with **[docs/workflow.md](workflow.md)**. **Steps, skill lists, and markdown templates** (project docs, PRD skeletons) are authored in each **`skillgrid-*.md`** command file. Update **docs/workflow.md** when you change how phases are described at a glance; **formatting templates** are maintained in **`/skillgrid-init`** and **`/skillgrid-plan`**, not in the workflow summary.
+These align with **[docs/workflow.md](workflow.md)**. **Commands orchestrate phases**: objective, order, status-on-exit, and completion report. Reusable procedures now live in **`.agents/skills/skillgrid-*/SKILL.md`** and are referenced by commands. Update **docs/workflow.md** when phase descriptions change and **docs/skills.md** when reusable Skillgrid primitives change.
 
 | Phase | Command | File | Purpose |
 |-------|---------|------|---------|
@@ -36,9 +36,8 @@ These align with **[docs/workflow.md](workflow.md)**. **Steps, skill lists, and 
 | PLAN | `/skillgrid-breakdown` | [skillgrid-breakdown.md](../.cursor/commands/skillgrid-breakdown.md) | Spec completeness, `tasks.md`, TDD stance, ordering, graphify refresh when needed. |
 | BUILD | `/skillgrid-apply` | [skillgrid-apply.md](../.cursor/commands/skillgrid-apply.md) | OpenSpec apply, contracts (`api-and-interface-design`), TDD, small batches. |
 | VERIFY | `/skillgrid-test` | [skillgrid-test.md](../.cursor/commands/skillgrid-test.md) | Tests, E2E, browser tooling, debugging. |
-| REVIEW | `/skillgrid-review` | [skillgrid-review.md](../.cursor/commands/skillgrid-review.md) | OpenSpec verify, Engram reconciliation, code review, performance, data, docs. |
 | REVIEW | `/skillgrid-security` | [skillgrid-security.md](../.cursor/commands/skillgrid-security.md) | Security review, SAST, scanning, threat framing, deprecation/attack-surface hygiene. |
-| REVIEW | `/skillgrid-validate` | [skillgrid-validate.md](../.cursor/commands/skillgrid-validate.md) | **Combined gate:** full **`/skillgrid-review`** then **`/skillgrid-security`**. |
+| REVIEW | `/skillgrid-validate` | [skillgrid-validate.md](../.cursor/commands/skillgrid-validate.md) | **Combined gate:** OpenSpec/spec verification, code review, security review, evidence reconciliation, and sign-off. |
 | SHIP | `/skillgrid-finish` | [skillgrid-finish.md](../.cursor/commands/skillgrid-finish.md) | Archive or sync specs, git/PR, CI, docs/ADRs, ship checklist. |
 
 The same filenames exist under **`.kilo/commands/`**, **`.opencode/commands/`**, and **`.github/prompts/`**.

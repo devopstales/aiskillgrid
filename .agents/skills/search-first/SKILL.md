@@ -16,6 +16,10 @@ Use this skill when:
 - The user asks "add X functionality" and you're about to write code
 - Before creating a new utility, helper, or abstraction
 
+## When Used From Skillgrid
+
+For Skillgrid work, use `skillgrid-parallel-research` to orchestrate multiple research threads and this skill to decide whether to adopt, wrap, or build. Long findings belong under `.skillgrid/tasks/research/<change-id>/` and should be indexed from the handoff file.
+
 ## Workflow
 
 ```

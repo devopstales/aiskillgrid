@@ -11,6 +11,12 @@ SuperDesign helps you (1) find design inspirations/styles and (2) generate/itera
 
 ---
 
+# When Used From Skillgrid
+
+Use SuperDesign for UI exploration and draft generation. Use `skillgrid-ui-design-artifacts` to decide where resulting design decisions live: `DESIGN.md`, `.skillgrid/preview/`, PRD success criteria, or OpenSpec `design.md`.
+
+---
+
 # Core scenarios (what this skill handles)
 
 1. **superdesign init** — Analyze the repo and build UI context to `.superdesign/init/`

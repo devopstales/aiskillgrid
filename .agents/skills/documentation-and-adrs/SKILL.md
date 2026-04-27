@@ -20,6 +20,15 @@ Document decisions, not just code. The most valuable documentation captures the 
 
 **When NOT to use:** Don't document obvious code. Don't add comments that restate what the code already says. Don't write docs for throwaway prototypes.
 
+## When Used From Skillgrid
+
+For Skillgrid work:
+
+- Use `skillgrid-project-docs` for `.skillgrid/project/` and root `DESIGN.md`.
+- Use PRDs and OpenSpec artifacts for change-scoped product and technical intent.
+- Use ADRs only for durable architectural decisions that outlive one Skillgrid change.
+- `/skillgrid-finish` should verify docs are not stale before archive or PR handoff.
+
 ## Architecture Decision Records (ADRs)
 
 ADRs capture the reasoning behind significant technical decisions. They're the highest-value documentation you can write.

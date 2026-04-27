@@ -27,6 +27,15 @@ Simplify code by reducing complexity while preserving exact behavior. The goal i
 - The code is performance-critical and the "simpler" version would be measurably slower
 - You're about to rewrite the module entirely — simplifying throwaway code wastes effort
 
+## When Used From Skillgrid
+
+For Skillgrid review or validation, simplification is a quality pass after spec compliance:
+
+- First verify PRD/OpenSpec/task alignment through `skillgrid-spec-artifacts`.
+- Then use this skill for readability and maintainability issues.
+- If a subagent produced the code or plan, follow `skillgrid-subagent-orchestration` two-stage review.
+- Do not broaden the change beyond the active vertical slice.
+
 ## The Five Principles
 
 ### 1. Preserve Behavior Exactly

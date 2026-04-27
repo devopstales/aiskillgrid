@@ -9,6 +9,10 @@ description: Retrieve up-to-date documentation for software libraries, framework
 
 This skill enables retrieval of current documentation for software libraries and components by querying the Context7 API via curl. Use it instead of relying on potentially outdated training data.
 
+## When Used From Skillgrid
+
+For Skillgrid work, Context7 is a documentation lane coordinated by `skillgrid-parallel-research`. Keep raw extracts out of chat when long; write them under `.skillgrid/tasks/research/<change-id>/` and summarize decisions into PRD/OpenSpec artifacts.
+
 ## Workflow
 
 ### Step 1: Search for the Library

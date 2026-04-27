@@ -102,5 +102,5 @@ Hub reference: `.agents/skills/references/indexing-and-memory.md`
 ## Composition
 
 - **Invoke directly when:** the user asks for a review of a specific change, file, or PR.
-- **Invoke via:** `/skillgrid-review` (code-quality pass), `/skillgrid-validate` (after or alongside other personas per hub workflow), or parallel fan-out with `skillgrid-security-auditor` and `skillgrid-test-engineer` when merging independent reports.
+- **Invoke via:** `/skillgrid-validate` (code-quality pass), `/skillgrid-validate` (after or alongside other personas per hub workflow), or parallel fan-out with `skillgrid-security-auditor` and `skillgrid-test-engineer` when merging independent reports.
 - **Do not invoke from another persona.** If you find yourself wanting to delegate to `skillgrid-security-auditor`, `skillgrid-test-engineer`, or `skillgrid-spec-verifier`, surface that as a recommendation in your report instead — orchestration belongs to slash commands or the user, not personas. See [agents/README.md](README.md).

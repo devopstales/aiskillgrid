@@ -18,6 +18,15 @@ This skill ensures all code follows security best practices and identifies poten
 - Storing or transmitting sensitive data
 - Integrating third-party APIs
 
+## When Used From Skillgrid
+
+For Skillgrid work:
+
+- Automated security checks may run during `/skillgrid-test`.
+- Deeper review belongs in `/skillgrid-security` or `/skillgrid-validate`.
+- Critical or High findings block validation until fixed, explicitly accepted, or converted into tracked follow-up work.
+- Record security evidence in `.skillgrid/tasks/context_<change-id>.md` or `.skillgrid/tasks/research/<change-id>/` when long.
+
 ## Security Checklist
 
 ### 1. Secrets Management

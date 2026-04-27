@@ -8,86 +8,57 @@ argument-hint: "[extract | browse | tune | design | audit]"
 ---
 
 <objective>
-You are executing **`/skillgrid-design`** — an on-demand design workshop for the Skillgrid workflow.
 
-This command is **not part of the linear Plan → Breakdown → Apply pipeline**. It's a supporting workshop that bootstraps, tunes, and audits the project's visual identity. All paths converge on the single source of truth: root **`DESIGN.md`**.
+You are executing **`/skillgrid-design`** for the Skillgrid workflow.
+
+Run a focused design workshop for UI/UX direction and design-system artifacts.
+
+**Status on exit:** no PRD status change unless the user asks to update PRD criteria.
+
 </objective>
 
 <process>
 
-## Flow
+## Shared Skillgrid Skills
 
-```mermaid
-flowchart TD
-    START([User calls /skillgrid-design])
-    MODE{What do you need?}
-    START --> MODE
-    MODE -->|extract| SKILLUI[Run SkillUI on URL or repo]
-    MODE -->|browse| GETDESIGN[npx getdesign@latest list / add]
-    MODE -->|tune| TASTE[Adjust taste-skill dials]
-    MODE -->|design| SUPERDESIGN[SuperDesign canvas + draft]
-    MODE -->|audit| IMPECCABLE[Impeccable critique & audit]
+Before acting, load only the skills needed for the phase:
 
-    SKILLUI --> MERGE[Extract tokens + screenshots → merge into DESIGN.md]
-    GETDESIGN --> MERGE
-    TASTE --> UPDATE[Update DESIGN.md frontmatter]
-    
-    MERGE --> DESIGNMD[(DESIGN.md)]
-    UPDATE --> DESIGNMD
-    
-    SUPERDESIGN --> PREVIEW[Preview files → .skillgrid/preview/]
-    PREVIEW --> DESIGNMD
-    
-    IMPECCABLE --> REPORT[Design audit report]
-    REPORT --> DESIGNMD
+- `.agents/skills/skillgrid-questioning/SKILL.md` — ask only blocking questions and record answers.
+- `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, graphify output, tests, and conventions.
+- `.agents/skills/skillgrid-parallel-research/SKILL.md` — coordinate external research and long evidence capture.
+- `.agents/skills/skillgrid-subagent-orchestration/SKILL.md` — dispatch bounded subagents with handoff paths and two-stage review.
+- `.agents/skills/skillgrid-prd-artifacts/SKILL.md` — PRD numbering, `INDEX.md`, title blocks, and status lifecycle.
+- `.agents/skills/skillgrid-spec-artifacts/SKILL.md` — PRD-to-OpenSpec artifacts and validation.
+- `.agents/skills/skillgrid-vertical-slices/SKILL.md` — shippable slices, `[HITL]` / `[AFK]`, and testable increments.
+- `.agents/skills/skillgrid-ui-design-artifacts/SKILL.md` — UI decisions, previews, `DESIGN.md`, and OpenSpec design constraints.
+- `.agents/skills/skillgrid-issue-creation/SKILL.md` — local/GitHub/GitLab/Jira issue behavior from `.skillgrid/config.json`.
+- `.agents/skills/skillgrid-hybrid-persistence/SKILL.md` — disk plus Engram persistence.
+- `.agents/skills/skillgrid-filesystem-handoff/SKILL.md` — `context_<change-id>.md` and `research/<change-id>/`.
+- `.agents/skills/skillgrid-openspec-config/SKILL.md` — `openspec/config.yaml` overlay rules.
+- `.agents/skills/skillgrid-project-docs/SKILL.md` — `DESIGN.md` and `.skillgrid/project/*` docs.
+- `.agents/skills/skillgrid-checkpoints/SKILL.md` — `.skillgrid/tasks/checkpoints.log`.
 
-    DESIGNMD --> DONE([Handoff to next workflow phase])
-```
 
-## Modes
+## Phase-Specific Skills
 
-Ask the user which mode they want, or infer from their argument.
+Load these first for this command:
 
-### 1. Extract — pull a design system from a reference
+- `skillgrid-ui-design-artifacts`
+- `skillgrid-questioning`
+- `skillgrid-parallel-research`
+- `skillgrid-project-docs`
+- UI skills such as `superdesign`, `impeccable`, `frontend-design`, or `frontend-ui-engineering` as needed
 
-- **From a URL:** `skillui --url <reference-url>`  
-  Produces a complete `DESIGN.md`, token JSON files, and screenshots.
-- **From the repo itself:** `skillui --dir ./`  
-  Scans the local codebase for Tailwind/CSS tokens and builds a `DESIGN.md`.
-- After extraction, review the output and merge relevant tokens into the project's root `DESIGN.md`. Keep the `design_sources` frontmatter updated with provenance.
+## Steps
 
-### 2. Browse — pick from the getdesign.md collection
+1. Identify the surface, audience, and design decision to make.
+2. Load existing `DESIGN.md`, relevant project docs, and UI source context.
+3. Generate or compare design options when useful; keep long comparisons in `.skillgrid/preview/` or research files.
+4. Record the chosen direction in `DESIGN.md`, PRD success criteria, or OpenSpec `design.md` as appropriate.
+5. Call out accessibility, responsive, implementation, and testing implications.
 
-- **List available brands:** `npx getdesign@latest list`
-- **Search:** `npx getdesign@latest search "<query>"`
-- **Add one:** `npx getdesign@latest add <slug>` (e.g. `stripe`, `linear`, `notion`)
-- This drops a ready-made `DESIGN.md`. Review it, keep what fits, and update `design_sources`.
+## Completion Report
 
-### 3. Tune — adjust the aesthetic dials
-
-- Read the current `design_variance`, `motion_intensity`, and `visual_density` from `DESIGN.md` frontmatter.
-- Present the three dials (1–10) and ask the user what to change:
-  - **Design variance (1=conservative, 10=wild):** how far to push visuals from convention.
-  - **Motion intensity (1=static, 10=lively):** how much animation and transition.
-  - **Visual density (1=sparse, 10=dense):** how much information per screen.
-- Update the frontmatter. These dials guide all agents reading the file.
-
-### 4. Design — create mockups with SuperDesign
-
-- Ensure the skill is installed: `npx skills add superdesigndev/superdesign-skill`
-- Use `/superdesign help me design <feature description>` to generate visual mockups on the canvas.
-- Save screenshots or HTML exports to `.skillgrid/preview/` for later A/B selection.
-- Update `DESIGN.md` with any concrete tokens chosen from the mockups.
-
-### 5. Audit — critique the current UI
-
-- Ensure the skill is installed: `npx skills add pbakaus/impeccable`
-- Follow Impeccable's critique commands: it scores UX on visual hierarchy, cognitive load, emotional resonance, and more.
-- Write findings into the session. If this is part of a Validate pass, include them in the verify report.
-- Flag any anti-patterns Impeccable finds; update `DESIGN.md` with recommended fixes.
-
-## Notes
-
-- **Ticketing:** This command does not create GitHub, GitLab, or Jira issues; keep design work in **`DESIGN.md`** and **`.skillgrid/preview/`**. Remote issue creation belongs in **`/skillgrid-plan`** / **`/skillgrid-breakdown`** per **`.skillgrid/config.json`**.
+Report chosen direction, preview artifacts, docs updated, unresolved design risks, and the next command.
 
 </process>

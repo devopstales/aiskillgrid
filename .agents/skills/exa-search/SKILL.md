@@ -17,6 +17,10 @@ Neural search for web content, code, companies, and people via the Exa MCP serve
 - Running background research for any development task
 - User says "search for", "look up", "find", or "what's the latest on"
 
+## When Used From Skillgrid
+
+For Skillgrid work, Exa is one research provider coordinated by `skillgrid-parallel-research`. Put long findings under `.skillgrid/tasks/research/<change-id>/`, cite sources, and update the handoff with the short decision or open question.
+
 ## MCP Requirement
 
 Exa MCP server must be configured. Add to `~/.claude.json`:

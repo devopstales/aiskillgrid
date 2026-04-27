@@ -5,6 +5,10 @@ description: Use when the user wants to design, redesign, shape, critique, audit
 
 Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
 
+## When Used From Skillgrid
+
+Use this skill for UI quality, critique, and polish. Use `skillgrid-ui-design-artifacts` to record decisions into `DESIGN.md`, `.skillgrid/preview/`, PRDs, and OpenSpec `design.md`.
+
 ## Setup (non-optional)
 
 Two steps before any design work. Both are required. Skipping either produces generic output that ignores the project.

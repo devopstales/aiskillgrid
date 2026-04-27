@@ -21,6 +21,15 @@ Write a failing test before writing the code that makes it pass. For bug fixes, 
 
 **Related:** For browser-based changes, combine TDD with runtime verification using Chrome DevTools MCP — see the Browser Testing section below.
 
+## When Used From Skillgrid
+
+For Skillgrid implementation, tests prove vertical slices:
+
+- Tie test evidence to PRD success criteria and OpenSpec scenarios.
+- Use `skillgrid-vertical-slices` so each slice has one observable capability and one verification path.
+- Update `.skillgrid/tasks/context_<change-id>.md` with verification results through `skillgrid-filesystem-handoff`.
+- Let `/skillgrid-test` and `/skillgrid-validate` own the broader gate; this skill owns test-first implementation discipline.
+
 ## The TDD Cycle
 
 ```

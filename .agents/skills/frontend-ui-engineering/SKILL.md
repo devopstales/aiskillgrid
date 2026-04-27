@@ -17,6 +17,14 @@ Build production-quality user interfaces that are accessible, performant, and vi
 - Adding interactivity or state management
 - Fixing visual or UX issues
 
+## When Used From Skillgrid
+
+For Skillgrid work:
+
+- Use `skillgrid-ui-design-artifacts` to connect UI implementation to `DESIGN.md`, PRD criteria, previews, and OpenSpec `design.md`.
+- Use `skillgrid-vertical-slices` so UI changes land as testable user-visible capabilities.
+- Feed browser verification evidence back into the change handoff.
+
 ## Component Architecture
 
 ### File Structure

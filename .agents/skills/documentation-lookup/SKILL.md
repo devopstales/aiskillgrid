@@ -8,6 +8,10 @@ origin: ECC
 
 When the user asks about libraries, frameworks, or APIs, fetch current documentation via the Context7 MCP (tools `resolve-library-id` and `query-docs`) instead of relying on training data.
 
+## When Used From Skillgrid
+
+For Skillgrid work, documentation lookup is one research lane under `skillgrid-parallel-research`. Summarize relevant API constraints into PRD/OpenSpec artifacts and spill long notes to `.skillgrid/tasks/research/<change-id>/`.
+
 ## Core Concepts
 
 - **Context7**: MCP server that exposes live documentation; use it instead of training data for libraries and APIs.

@@ -11,132 +11,51 @@ argument-hint: "[create|verify|list|clear] [name]"
 
 You are executing **`/skillgrid-checkpoint`** for the Skillgrid workflow.
 
-Create or inspect lightweight workflow checkpoints without requiring git worktrees. A checkpoint records the current branch, git SHA, dirty status, optional quick verification evidence, and active Skillgrid context so the user or another agent can compare later.
+Create, verify, list, or clear named Skillgrid checkpoints.
 
-**Checkpoint store:** `.skillgrid/tasks/checkpoints.log`
+**Status on exit:** no PRD status change.
 
 </objective>
 
 <process>
 
-## Usage
+## Shared Skillgrid Skills
 
-```text
-/skillgrid-checkpoint create <name>
-/skillgrid-checkpoint verify <name>
-/skillgrid-checkpoint list
-/skillgrid-checkpoint clear
-```
+Before acting, load only the skills needed for the phase:
 
-If the action is missing, ask the user which action they want. If `create` or `verify` is missing a name, ask for the checkpoint name.
+- `.agents/skills/skillgrid-questioning/SKILL.md` — ask only blocking questions and record answers.
+- `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, graphify output, tests, and conventions.
+- `.agents/skills/skillgrid-parallel-research/SKILL.md` — coordinate external research and long evidence capture.
+- `.agents/skills/skillgrid-subagent-orchestration/SKILL.md` — dispatch bounded subagents with handoff paths and two-stage review.
+- `.agents/skills/skillgrid-prd-artifacts/SKILL.md` — PRD numbering, `INDEX.md`, title blocks, and status lifecycle.
+- `.agents/skills/skillgrid-spec-artifacts/SKILL.md` — PRD-to-OpenSpec artifacts and validation.
+- `.agents/skills/skillgrid-vertical-slices/SKILL.md` — shippable slices, `[HITL]` / `[AFK]`, and testable increments.
+- `.agents/skills/skillgrid-ui-design-artifacts/SKILL.md` — UI decisions, previews, `DESIGN.md`, and OpenSpec design constraints.
+- `.agents/skills/skillgrid-issue-creation/SKILL.md` — local/GitHub/GitLab/Jira issue behavior from `.skillgrid/config.json`.
+- `.agents/skills/skillgrid-hybrid-persistence/SKILL.md` — disk plus Engram persistence.
+- `.agents/skills/skillgrid-filesystem-handoff/SKILL.md` — `context_<change-id>.md` and `research/<change-id>/`.
+- `.agents/skills/skillgrid-openspec-config/SKILL.md` — `openspec/config.yaml` overlay rules.
+- `.agents/skills/skillgrid-project-docs/SKILL.md` — `DESIGN.md` and `.skillgrid/project/*` docs.
+- `.agents/skills/skillgrid-checkpoints/SKILL.md` — `.skillgrid/tasks/checkpoints.log`.
 
-## Flow
 
-```mermaid
-flowchart TD
-    START([User calls /skillgrid-checkpoint])
-    PARSE[Parse action and name]
-    PARSE --> CREATE{create?}
-    CREATE -->|Yes| QUICK[Run quick verification and git status]
-    QUICK --> LOG[Append checkpoints.log]
-    PARSE --> VERIFY{verify?}
-    VERIFY -->|Yes| READ[Read checkpoint entry]
-    READ --> COMPARE[Compare current state to checkpoint]
-    PARSE --> LIST{list?}
-    LIST -->|Yes| SHOW[Show log entries and status]
-    PARSE --> CLEAR{clear?}
-    CLEAR -->|Yes| TRIM[Keep last 5 entries unless user confirms more]
-    LOG --> DONE([Report checkpoint result])
-    COMPARE --> DONE
-    SHOW --> DONE
-    TRIM --> DONE
-```
+## Phase-Specific Skills
 
-## Create checkpoint
+Load these first for this command:
 
-1. **Preflight**
-   - Ensure `.skillgrid/tasks/` exists; create it if needed.
-   - Capture:
-     - timestamp: `date +%Y-%m-%d-%H:%M`
-     - checkpoint name from arguments
-     - branch: `git branch --show-current`
-     - SHA: `git rev-parse --short HEAD`
-     - dirty count: number of lines from `git status --short`
-     - active handoff files: `.skillgrid/tasks/context_*.md` (if any)
+- `skillgrid-checkpoints`
+- `skillgrid-filesystem-handoff`
 
-2. **Quick verification**
-   - Run the cheapest meaningful check available for the repo or current change. Prefer an existing quick command if obvious from project files.
-   - If no quick command is obvious, run `git status --short` only and record `verification=not-run`.
-   - Do **not** add new tooling or run long test suites unless the user asks.
+## Steps
 
-3. **Do not auto-commit**
-   - A checkpoint is a log entry by default.
-   - Only create a commit or stash when the user explicitly asks for that behavior in this command invocation. Never create commits as an implicit side effect.
+1. Determine action: create, verify, list, or clear.
+2. For create: record branch, SHA, dirty status, PRD, OpenSpec change, handoff, and optional verification evidence.
+3. For verify: compare current state with the recorded checkpoint and report drift without reverting.
+4. For list: show checkpoint names and active change links.
+5. For clear: remove only matching checkpoint entries, never unrelated change state.
 
-4. **Append log entry**
+## Completion Report
 
-   ```text
-   <timestamp> | <name> | branch=<branch> | sha=<sha> | dirty=<count> | verification=<pass|fail|not-run> | contexts=<paths-or-none>
-   ```
-
-5. **Report**
-   - Checkpoint name
-   - Branch and SHA
-   - Dirty count
-   - Verification result
-   - Log path
-
-## Verify checkpoint
-
-1. Read `.skillgrid/tasks/checkpoints.log`.
-2. Find the newest entry whose name matches the requested checkpoint.
-3. Compare current state to the checkpoint:
-   - current SHA vs checkpoint SHA
-   - current branch vs checkpoint branch
-   - file changes since checkpoint: `git diff --name-status <sha>...HEAD` when the SHA exists locally
-   - dirty working tree: `git status --short`
-   - quick verification now vs recorded verification (run the same quick check only if it is obvious and cheap)
-
-4. Report:
-
-   ```text
-   CHECKPOINT COMPARISON: <name>
-   ============================
-   Branch: <then> -> <now>
-   SHA: <then> -> <now>
-   Files changed since checkpoint: <count>
-   Dirty files now: <count>
-   Verification then: <pass|fail|not-run>
-   Verification now: <pass|fail|not-run>
-   ```
-
-If the checkpoint SHA is missing (rebased, pruned, or from another clone), say so and fall back to branch/name/status comparison.
-
-## List checkpoints
-
-Show all entries in `.skillgrid/tasks/checkpoints.log` with:
-
-- name
-- timestamp
-- branch
-- SHA
-- dirty count
-- verification result
-- status relative to current HEAD (`current`, `behind`, `ahead`, `unknown`)
-
-If the log does not exist, say no checkpoints exist yet and suggest `/skillgrid-checkpoint create <name>`.
-
-## Clear checkpoints
-
-By default, keep the last **5** log entries and remove older entries. If the user asks to clear all checkpoints, confirm before deleting the whole log.
-
-`/skillgrid-finish` cleans up **change-scoped** checkpoint entries automatically when a change is finished or discarded. It should keep unrelated entries and keep ambiguous entries rather than guessing.
-
-## Notes
-
-- `/skillgrid-apply` automatically creates a **`before-apply-<change-id>`** checkpoint before product-code edits when the apply instruction proceeds to implementation.
-- Checkpoints complement, but do not replace, git commits, PRDs, OpenSpec changes, or `.skillgrid/tasks/context_<change-id>.md`.
-- Prefer named checkpoints around phase boundaries: before `/skillgrid-apply`, after a coherent AFK slice, before `/skillgrid-validate`, and before `/skillgrid-finish`.
-- Keep the output concise; do not paste long diffs unless the user asks.
+Report checkpoint action, affected entries, drift or evidence, and next recommended command.
 
 </process>

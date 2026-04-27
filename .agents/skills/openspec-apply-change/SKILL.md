@@ -154,3 +154,15 @@ This skill supports the "actions on a change" model:
 
 - **Can be invoked anytime**: Before all artifacts are done (if tasks exist), after partial implementation, interleaved with other actions
 - **Allows artifact updates**: If implementation reveals design issues, suggest updating artifacts - not phase-locked, work fluidly
+
+---
+
+## When Used From Skillgrid
+
+Keep OpenSpec implementation mechanics in this skill. For Skillgrid work:
+
+- Confirm `skillgrid-spec-artifacts` says apply-required artifacts are ready.
+- Create or reference the `skillgrid-checkpoints` entry before implementation begins.
+- Update `.skillgrid/tasks/context_<change-id>.md` through `skillgrid-filesystem-handoff`.
+- Use `skillgrid-vertical-slices` to keep implementation increments independently testable.
+- Use `skillgrid-hybrid-persistence` for durable apply summaries when hybrid persistence is active.

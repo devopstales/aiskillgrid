@@ -112,3 +112,14 @@ All artifacts complete. All tasks complete.
 - Show clear summary of what happened
 - If sync is requested, use openspec-sync-specs approach (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
+
+---
+
+## When Used From Skillgrid
+
+Keep archive mechanics in this skill. For Skillgrid work:
+
+- Use `skillgrid-prd-artifacts` to set the PRD and `INDEX.md` status to `done` only when the phase completes successfully.
+- Use `skillgrid-checkpoints` to clean up change-scoped checkpoint entries.
+- Use `skillgrid-project-docs` to verify durable project docs are not stale.
+- Use `skillgrid-hybrid-persistence` to save the archive/ship summary.
