@@ -47,6 +47,20 @@ PRD intent
   -> validate/apply/archive
 ```
 
+### Concept Mapping
+
+Use this mapping when translating product intent into OpenSpec:
+
+| Skillgrid / PRD concept | OpenSpec artifact | Ownership |
+|---|---|---|
+| Product problem, user goal, scope, success criteria | `proposal.md` | What changes and why |
+| Technical approach, boundaries, tradeoffs | `design.md` | How the system changes |
+| Observable behavior and edge cases | `specs/**/spec.md` delta specs | Verifiable requirements and scenarios |
+| Vertical-slice work checklist | `tasks.md` | Ordered implementation and verification |
+| Current session state, blockers, evidence | `.skillgrid/tasks/context_<change-id>.md` | Rolling handoff and next action |
+
+Do not let these drift. If one artifact changes the meaning of the work, refresh the others or record an explicit deferral.
+
 ### Change Id
 
 - Prefer the existing change id if the PRD already links one.
@@ -74,6 +88,8 @@ Use `openspec instructions` output as constraints. Do not paste raw `context`, `
 - Delta specs define requirements and scenarios that can be verified.
 - `tasks.md` is the implementation checklist and should be compatible with `skillgrid-vertical-slices`.
 - PRD implementation tasks and OpenSpec `tasks.md` should not diverge; if one changes materially, refresh the other.
+- If the PRD, proposal, delta specs, and `tasks.md` disagree, stop and reconcile before `/skillgrid-apply`.
+- External issues and Engram notes are indexes or summaries until their content is imported into PRD/OpenSpec artifacts.
 
 ### Tracer-Bullet Breakdown
 

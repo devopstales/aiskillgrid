@@ -53,6 +53,8 @@ Rules:
 
 `.skillgrid/prd/INDEX.md` is the ordered work index. Keep it sorted by `PRD<NN>`.
 
+Use the ordered PRD sequence as Skillgrid's lightweight roadmap or milestone view. A broad initiative should appear as several ordered PRDs, where each PRD is one independently reviewable slice.
+
 Each entry should include at least:
 
 - PRD file
@@ -242,6 +244,15 @@ If ticketing is `local`, `External` may be omitted or set to `local`.
 - OpenSpec `proposal.md`, `design.md`, delta specs, and `tasks.md` are the technical contract.
 - Every PRD should link to exactly one primary `openspec/changes/<change-id>/` unless it is intentionally an umbrella PRD.
 - If a PRD becomes too broad, split it into ordered PRDs instead of expanding one mega-PRD.
+
+### Source-Of-Truth Rules
+
+- PRD owns product intent: user-facing problem, goals, scope, success criteria, and slice boundary.
+- OpenSpec delta specs own verifiable technical behavior and scenarios.
+- OpenSpec `tasks.md` owns the implementable checklist; detailed file-by-file steps do not belong in the PRD body.
+- External tracker issues mirror PRD slices or blockers for coordination. If an external issue changes product intent, import that decision back into the PRD or OpenSpec artifacts.
+- Engram memory summarizes durable decisions and pointers. It must not become the only place a requirement lives.
+- When artifacts disagree, stop and reconcile before creating more PRDs, issues, or tasks.
 
 ## Commands
 

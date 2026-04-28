@@ -2,6 +2,17 @@
 
 Runnable steps live in the slash command files (for example `.cursor/commands/skillgrid-*.md`, mirrored under `.kilo/commands/`, `.opencode/commands/`, `.github/prompts/`). Commands own phase order, exit status, and completion reports. Reusable procedure details live in `.agents/skills/skillgrid-*/SKILL.md`; see `docs/skills.md` for the Skillgrid primitive catalog.
 
+## Execution Model
+
+Skillgrid is a file-first workflow layer. It borrows the useful state-machine discipline of heavier systems without adopting their runtime, database, cost ledger, or mandatory worktree model. Each active change should have:
+
+* **Current state** — phase, status, active artifacts, blockers, and next recommended action in `.skillgrid/tasks/context_<change-id>.md`.
+* **Stop condition** — what must be true before the next phase can start, usually written in the command completion report, PRD success criteria, OpenSpec scenarios, or `tasks.md`.
+* **Evidence output** — tests, preview files, review reports, checkpoints, or research files that prove the state change.
+* **Reassessment** — after each vertical slice, update the handoff with what changed, evidence, blockers, changed assumptions, and the next slice or command.
+
+Think of the hierarchy as **PRD sequence -> PRD slice -> OpenSpec tasks**. A sequence of ordered PRDs can behave like a milestone or roadmap, each PRD should be a reviewable slice of product intent, and `openspec/changes/<id>/tasks.md` is the task-level implementation checklist for that slice.
+
 ## Session (optional)
 
 * `/skillgrid-session`
@@ -76,6 +87,7 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 * Before every apply run that proceeds to implementation, automatically create a named **`/skillgrid-checkpoint create before-apply-<change-id>`** entry in **`.skillgrid/tasks/checkpoints.log`**.
 * Critically review the selected task before editing; stop if instructions, verification, or scope are unclear.
 * Implement from `tasks.md` / **OpenSpec** apply instructions; use Red-Green-Refactor for behavioral code unless an exception is explicit; **per-change handoff** (`.skillgrid/tasks/context_<change-id>.md`) in a **single working tree**—optional feature branch in that clone is fine; do **not** assume git worktrees
+* After each slice or delegated task, reassess: update the handoff with completed work, evidence, blockers, changed assumptions, and the next recommended slice.
 * Delegated implementation uses a double-review loop: spec compliance first, then code quality/security/maintainability. Accepted review fixes go back through the implementer and the same review stage repeats before the task is marked complete.
 
 ## Test
@@ -243,6 +255,8 @@ A PRD may map to one or more **OpenSpec** changes (commonly 1:1). If scope expan
 
 **OpenSpec** in this workflow is the **on-disk** spec system for a change: `openspec/changes/<change-id>/` holds **proposal**, **delta specs**, **`tasks.md`**, and related artifacts; `openspec/specs/` holds **main** specs where the project uses them; `openspec/changes/archive/` stores **completed** changes after finish.
 
+OpenSpec is the secondary technical spec backend, not the whole Skillgrid workflow. Skillgrid owns PRDs, the ordered work index, handoff state, checkpoints, previews, ticketing links, and phase/status flow around OpenSpec.
+
 **Change id** — The directory name **`openspec/changes/<change-id>/`** (kebab-case) matches **`.skillgrid/tasks/context_<change-id>.md`** and `openspec list` output. Tie each Skillgrid handoff to **one** change id per active slice of work.
 
 **How PRD and OpenSpec connect**
@@ -260,3 +274,16 @@ A PRD may map to one or more **OpenSpec** changes (commonly 1:1). If scope expan
 **CLI** — Use the **OpenSpec** CLI as the project documents (`openspec status`, `openspec instructions tasks` during breakdown). **Artifact store** for whether **`openspec/`** exists: **`/skillgrid-init`** and **`.skillgrid/config.json` → `artifactStore.mode`**.
 
 **Persistence** — **`artifactStore.mode`**: **`hybrid`** (disk + Engram), **`openspec`**, or **`engram`**. The init command records this; **`/skillgrid-session`** loads it for cold starts.
+
+## Source Of Truth
+
+Avoid duplicating requirements as independent truth across PRDs, OpenSpec, external issues, and memory:
+
+| Artifact | Owns |
+|----------|------|
+| **PRD** | Product intent, user-facing problem, scope, success criteria, and slice boundary. |
+| **OpenSpec delta specs** | Verifiable technical behavior and scenarios for the active change. |
+| **`tasks.md`** | Ordered implementation work and verification checklist for the slice. |
+| **Handoff** | Current state, blockers, evidence index, and next action. |
+| **External tracker** | Coordination mirror, assignment, and discussion; not canonical intent unless imported back. |
+| **Engram** | Durable cross-session memory summary; not a replacement for repo artifacts. |

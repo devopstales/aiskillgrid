@@ -43,6 +43,20 @@ PRD03_billing-settings.md
 
 Use `skillgrid-prd-artifacts` to renumber and update `INDEX.md`.
 
+### Roadmap Hierarchy
+
+Use this lightweight hierarchy when planning larger work:
+
+```text
+PRD sequence -> PRD slice -> tasks.md work items
+```
+
+- A sequence of ordered PRDs can represent a milestone or roadmap outcome.
+- Each PRD should own one independently reviewable product slice.
+- `openspec/changes/<change-id>/tasks.md` should contain task-level work for that slice.
+
+Do not create a separate runtime or database to model this hierarchy. The ordered PRD index, OpenSpec change, and handoff file are enough.
+
 ### Task Tags
 
 Use tags in `tasks.md` and PRD implementation tasks when the project follows HITL/AFK discipline:
@@ -62,6 +76,8 @@ Each slice should state:
 - docs or artifact update
 - checkpoint name when relevant
 - rollback or validation risk if high
+
+After completion, the handoff should record a slice summary: what changed, evidence, blockers, changed assumptions, and the next recommended slice.
 
 ### Slice Template
 

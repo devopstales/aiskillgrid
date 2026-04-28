@@ -137,7 +137,7 @@ When agents return:
 1. Read every summary and cited output file.
 2. Check for conflicting findings, overlapping file edits, or inconsistent assumptions.
 3. Run the relevant full verification, not only lane-specific checks.
-4. Update the handoff with integrated findings and decisions.
+4. Update the handoff with integrated findings, decisions, evidence, changed assumptions, and the next recommended action.
 
 ### Apply Dispatch Loop
 
@@ -158,8 +158,21 @@ For `/skillgrid-apply` implementation delegation:
 9. Dispatch code quality reviewer with `code-quality-reviewer-prompt.md` only after spec review passes.
 10. If quality review returns `NEEDS_CHANGES`, evaluate the feedback, send required fixes back to the implementer, and repeat quality review.
 11. Mark the task complete and update handoff only after both review stages pass.
+12. Add a slice completion summary to the handoff: result, evidence, blockers, changed assumptions, and next recommended slice or command.
 
 Do not skip review loops. A reviewer finding means the implementer fixes it and the same stage reviews again. Spec compliance always comes before code quality.
+
+### Work Unit Reassessment
+
+After any delegated work unit, reassess before dispatching the next one:
+
+- Did the result still match the PRD and OpenSpec scope?
+- Did implementation reveal a missing requirement, hidden dependency, or broader slice?
+- Are HITL blockers now cleared or newly introduced?
+- Is the next `[AFK]` task still safe to run from existing artifacts?
+- Does the handoff point to the latest evidence and next action?
+
+If the answer changes the plan, pause implementation and update PRD/OpenSpec/tasks before continuing.
 
 ### Receiving Review Feedback
 

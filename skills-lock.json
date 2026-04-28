@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "ccc": {
+      "source": "cocoindex-io/cocoindex-code",
+      "sourceType": "github",
+      "skillPath": "skills/ccc/SKILL.md",
+      "computedHash": "485211ec7ef033f784261d1dba56770fea20163aebdd482950e8d4878b74c6b2"
+    },
     "context7": {
       "source": "intellectronica/agent-skills",
       "sourceType": "github",

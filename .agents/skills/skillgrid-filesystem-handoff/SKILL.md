@@ -24,6 +24,8 @@ Use this skill whenever a Skillgrid change needs durable in-repo state shared be
 
 The handoff file is the rolling state for one change. The research directory holds long reports, scrapes, browser evidence, or subagent output.
 
+Treat the handoff as the current-state file for the change. It should answer: where are we, what is blocked, what evidence exists, and what should happen next.
+
 ### Handoff Contents
 
 Keep `context_<change-id>.md` concise and skimmable. Use this template:
@@ -74,6 +76,23 @@ Keep `context_<change-id>.md` concise and skimmable. Use this template:
 ```
 
 Do not turn the handoff into a raw transcript. Link to research files when details are long.
+
+### Slice Completion Summary
+
+After every completed vertical slice, delegated task, review loop, or blocked apply attempt, update the handoff with a compact reassessment:
+
+```markdown
+## Last slice summary
+
+- **Slice/task:** <identifier or title>
+- **Result:** completed | blocked | needs-review | reverted
+- **Evidence:** <test command, preview, checkpoint, review report, or research file>
+- **Changed assumptions:** <none, or what changed since planning>
+- **Blockers:** <none, or HITL/technical blocker>
+- **Next recommended action:** <next command or slice>
+```
+
+This replaces long transcript-style progress logs. Keep details in research files and link them from the summary.
 
 ### Research Spill Files
 
