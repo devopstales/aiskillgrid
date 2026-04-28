@@ -81,7 +81,6 @@ You need a working **bash**, **rsync**, and **jq** for a full install with MCP m
 | [docs/skills.md](docs/skills.md) | Catalog of all skills with paths and summaries |
 | [docs/commands.md](docs/commands.md) | Slash commands and where they live per IDE |
 | [docs/tools.md](docs/tools.md) | Install toolchain and workflow CLIs / IDEs |
-| [docs/openspec-vs-gsd.md](docs/openspec-vs-gsd.md) | OpenSpec vs GSD-2; Antigravity Kit vs GSD-2 (name check) |
 | [docs/TODO.md](docs/TODO.md) | IDE matrix and internal notes |
 
 ---

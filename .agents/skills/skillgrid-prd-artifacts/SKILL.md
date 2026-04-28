@@ -21,6 +21,18 @@ Use this skill when a Skillgrid command needs to create or update files under `.
 - Do not create new PRDs at repository root `prd/`.
 - `docs/PRD/` may mirror or link to canonical PRDs, but `.skillgrid/prd/` owns the workflow state.
 
+### Synthesize From Context First
+
+When creating a PRD from the current conversation or an existing OpenSpec change, do not start with a broad interview. First synthesize what is already known:
+
+1. Explore the repo and existing Skillgrid/OpenSpec artifacts if you have not already.
+2. Summarize the user-facing problem, desired solution, constraints, and out-of-scope items from current context.
+3. Sketch the major modules, surfaces, or system boundaries likely to be built or modified.
+4. Look for deep-module opportunities: simple, stable interfaces that encapsulate meaningful behavior and can be tested in isolation.
+5. Ask only for decisions that remain genuinely blocking. Use `skillgrid-questioning` for those.
+
+If the user explicitly wants a GitHub/GitLab/Jira issue, hand off to `skillgrid-issue-creation` after the canonical PRD exists. Do not make the remote issue the only source of product intent.
+
 ### File Naming
 
 Use:
@@ -108,6 +120,10 @@ Prefer this copy-ready template:
 
 <What is wrong or missing, who is affected, and why it matters now.>
 
+#### Solution
+
+<The user-facing solution and the outcome the user should experience.>
+
 #### Goals
 
 - <Measurable or clearly verifiable outcome>
@@ -125,6 +141,11 @@ Prefer this copy-ready template:
 
 - <Explicitly excluded capability or future work>
 
+#### User stories
+
+1. As a <actor>, I want <feature or behavior>, so that <benefit>.
+2. As a <actor>, I want <feature or behavior>, so that <benefit>.
+
 #### Decomposition
 
 <If this PRD is part of a sequence, explain the slice boundary and adjacent PRDs. If it is too broad, split it before continuing.>
@@ -132,6 +153,19 @@ Prefer this copy-ready template:
 #### Codebase touchpoints
 
 - `<directory-or-module>` — <why it is likely involved>
+
+#### Implementation decisions
+
+- <Module, interface, schema, API, state, or interaction decision that shapes implementation.>
+- <Deep-module opportunity or boundary that should remain testable in isolation.>
+
+Do not include fragile code snippets here. Prefer stable module names, interfaces, responsibilities, and contracts over exact implementation steps.
+
+#### Testing decisions
+
+- <External behavior that must be tested, not implementation details.>
+- <Modules or boundaries that need tests.>
+- <Prior art in the codebase for similar tests.>
 
 #### User Journeys
 
@@ -190,6 +224,10 @@ Use a simple table when creating or refreshing `.skillgrid/prd/INDEX.md`:
 
 ```markdown
 # Skillgrid PRD Index
+
+Local Kanban dashboard:
+
+Run `node .skillgrid/scripts/prd-kanban.mjs`, then open `http://127.0.0.1:8787`.
 
 | Order | PRD | Status | Spec / change | External |
 |---|---|---|---|---|

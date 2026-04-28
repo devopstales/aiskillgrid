@@ -3,7 +3,7 @@
 # Usage:
 #   ./scripts/sync-ide-assets.sh           # write .kilo, .opencode, .github/prompts, .github/agents
 #   ./scripts/sync-ide-assets.sh --check   # exit 1 if any mirror differs (CI)
-# Removes command/prompt files under mirrors when the matching file is deleted from .cursor/commands/.
+# Removes command/prompt/agent files under mirrors when the matching source file is deleted.
 set -uo pipefail
 shopt -s nullglob
 
@@ -49,6 +49,19 @@ done
 for dest in "$ROOT/.kilo/agents" "$ROOT/.opencode/agents" "$ROOT/.github/agents"; do
   for f in "$ROOT/.cursor/agents"/*.md; do
     sync_pair "$f" "$dest/$(basename "$f")"
+  done
+  # Drop mirror files removed from .cursor/agents (e.g. disabled personas)
+  for f in "$dest"/*.md; do
+    [[ -f "$f" ]] || continue
+    base="$(basename "$f")"
+    if [[ ! -f "$ROOT/.cursor/agents/$base" ]]; then
+      if [[ $CHECK -eq 1 ]]; then
+        echo "ORPHAN: $f (no longer in .cursor/agents)" >&2
+        EXIT=1
+      else
+        rm -f "$f"
+      fi
+    fi
   done
 done
 

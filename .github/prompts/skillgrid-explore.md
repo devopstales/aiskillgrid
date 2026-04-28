@@ -24,6 +24,7 @@ Before acting, load only the skills needed for the phase:
 - `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, graphify output, tests, and conventions.
 - `.agents/skills/skillgrid-parallel-research/SKILL.md` — coordinate external research and long evidence capture.
 - `.agents/skills/skillgrid-subagent-orchestration/SKILL.md` — dispatch bounded subagents with handoff paths and two-stage review.
+- `.agents/skills/skillgrid-import-artifacts/SKILL.md` — import existing PRDs and OpenSpec changes into canonical PRDs.
 - `.agents/skills/skillgrid-prd-artifacts/SKILL.md` — PRD numbering, `INDEX.md`, title blocks, and status lifecycle.
 - `.agents/skills/skillgrid-spec-artifacts/SKILL.md` — PRD-to-OpenSpec artifacts and validation.
 - `.agents/skills/skillgrid-vertical-slices/SKILL.md` — shippable slices, `[HITL]` / `[AFK]`, and testable increments.
@@ -42,6 +43,7 @@ Load these first for this command:
 
 - `skillgrid-codebase-map`
 - `skillgrid-parallel-research`
+- `skillgrid-import-artifacts`
 - `skillgrid-prd-artifacts`
 - `skillgrid-project-docs`
 - `skillgrid-filesystem-handoff`
@@ -49,11 +51,12 @@ Load these first for this command:
 ## Steps
 
 1. Select the topic, change, or repo area to explore; ask only if the target is unclear.
-2. Inventory OpenSpec changes, PRDs, project docs, handoff files, tests, and graphify output where present.
-3. Backfill missing PRDs only when needed, following `skillgrid-prd-artifacts`.
-4. Use parallel research/subagents for independent repo, docs, or web questions; spill long output to `.skillgrid/tasks/research/<change-id>/`.
-5. Refresh `.skillgrid/project/*` and `DESIGN.md` only for stable discovered facts.
-6. Stop when the scope is clear enough to recommend `/skillgrid-brainstorm` or `/skillgrid-plan`.
+2. Inventory OpenSpec changes, legacy PRDs, canonical PRDs, project docs, handoff files, tests, and graphify output where present.
+3. If existing PRDs or OpenSpec changes lack canonical `.skillgrid/prd/` coverage, automatically invoke `skillgrid-import-artifacts` import/backfill behavior.
+4. Import root `prd/`, `docs/PRD/`, or `docs/prd/` PRDs into `.skillgrid/prd/` when unambiguous; report ambiguous matches instead of silently merging them.
+5. Use `skillgrid-parallel-research` local templates for independent repo, docs, or web research lanes; spill long output to `.skillgrid/tasks/research/<change-id>/`.
+6. Refresh `.skillgrid/project/*` and `DESIGN.md` only for stable discovered facts.
+7. Stop when the scope is clear enough to recommend `/skillgrid-brainstorm` or `/skillgrid-plan`.
 
 ## Completion Report
 

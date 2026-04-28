@@ -21,7 +21,7 @@ Three layers, each with a distinct job:
 |-------|-----------|---------|------------------|
 | **Skill** | A workflow with steps and exit criteria | `code-review-and-quality` | The *how* — invoked from inside a persona or command |
 | **Persona** | A role with a perspective and an output format | `skillgrid-code-reviewer` | The *who* — adopts a viewpoint, produces a report |
-| **Command** | A user-facing entry point | `/skillgrid-validate`, `/skillgrid-validate` | The *when* — composes workflows and skills |
+| **Command** | A user-facing entry point | `/skillgrid-validate`, `/skillgrid-apply` | The *when* — composes workflows and skills |
 
 The user (or a slash command) is the orchestrator. **Personas do not call other personas.** Skills are mandatory hops inside a persona's workflow.
 
@@ -129,6 +129,20 @@ Why this fails:
 2. **Personas do not invoke other personas.** Composition is the job of slash commands or the user. On Claude Code this is also a hard platform constraint — *"subagents cannot spawn other subagents"* — so the rule is enforced for you.
 3. A persona may invoke skills (the *how*).
 4. Every persona file ends with a "Composition" block stating where it fits.
+
+## Consistency contract
+
+All agents in this directory follow the same contract, adapted from the focused agent style used by [GSD agents](https://github.com/gsd-build/get-shit-done/tree/main/agents):
+
+1. **Frontmatter:** include `name`, `description`, `tools`, and `color`.
+2. **Single job:** state the persona's role in the first paragraph and stay inside it.
+3. **Mandatory context:** read the relevant request, artifacts, and project rules before producing findings or edits.
+4. **Scope discipline:** say what is out of scope and recommend another persona or command instead of doing that work.
+5. **Structured output:** use the persona's report template and classify findings consistently.
+6. **No hidden orchestration:** do not call or impersonate another persona.
+7. **No source edits unless assigned:** reviewer, verifier, critic, researcher, and auditor personas produce reports; implementation remains with the parent session or `/skillgrid-apply`.
+
+Generic names such as `spec-verifier`, `task-breakdown-auditor`, `explore-architect`, and `design-critic` are compatibility aliases. Prefer the `skillgrid-*` names for new workflows because they include the full Skillgrid handoff and memory contract.
 
 ## Claude Code interop
 

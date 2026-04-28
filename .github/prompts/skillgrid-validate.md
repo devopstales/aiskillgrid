@@ -51,10 +51,11 @@ Load these first for this command:
 1. Re-read PRD, OpenSpec artifacts, tasks, handoff, and evidence.
 2. Verify implementation against PRD goals, delta specs, and task checkboxes.
 3. Apply two-stage review: spec compliance first, then quality/security/maintainability.
-4. Run or delegate review/security checks as needed.
-5. Resolve, accept, or track every blocking issue.
-6. Ask for user sign-off when required.
-7. Save a concise verify report and update handoff/memory.
+4. Request or run independent review with fresh artifact context, not chat history; use parallel reviewers only for independent perspectives.
+5. Evaluate incoming review feedback before applying it; clarify unclear items, push back on incorrect or out-of-scope suggestions, and fix accepted issues one at a time.
+6. Resolve, accept, or track every blocking issue; do not proceed with open critical or important findings.
+7. Ask for user sign-off when required.
+8. Save a concise verify report and update handoff/memory.
 
 ## Completion Report
 

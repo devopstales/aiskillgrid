@@ -52,10 +52,11 @@ Load these first for this command:
 
 1. Select the PRD/change or infer it from the handoff.
 2. Map PRD success criteria and OpenSpec scenarios to test evidence.
-3. Run focused unit, integration, E2E, browser, build, lint, type, and security checks as appropriate.
-4. Triage failures by root cause; do not mask failures.
-5. Store long evidence under `.skillgrid/tasks/research/<change-id>/` and summarize in the handoff.
-6. Recommend `/skillgrid-apply` for fixes or `/skillgrid-validate` when ready.
+3. Confirm new or changed behavior has tests through public interfaces; bug fixes should include a reproduction test that failed before the fix.
+4. Run focused unit, integration, E2E, browser, build, lint, type, and security checks as appropriate.
+5. Triage failures by root cause; do not mask failures or accept skipped tests as success.
+6. Store long evidence under `.skillgrid/tasks/research/<change-id>/` and summarize in the handoff.
+7. Recommend `/skillgrid-apply` for fixes or `/skillgrid-validate` when ready.
 
 ## Completion Report
 

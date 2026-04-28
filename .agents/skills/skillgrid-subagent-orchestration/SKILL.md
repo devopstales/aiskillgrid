@@ -19,6 +19,18 @@ Use this skill when a Skillgrid phase dispatches subagents for parallel discover
 
 The parent session owns workflow state and final decisions. Subagents provide bounded work products.
 
+### Fresh Context Only
+
+Construct every subagent prompt from durable artifacts:
+
+- PRD
+- OpenSpec proposal, design, specs, and `tasks.md`
+- `.skillgrid/tasks/context_<change-id>.md`
+- cited files under `.skillgrid/tasks/research/<change-id>/`
+- the specific task, scope, constraints, expected output path, and return format
+
+Never paste session history or chain-of-thought into a subagent prompt. If a subagent needs more context, add the missing durable artifact path or a concise task-specific excerpt and re-dispatch.
+
 ### Prompt Contract
 
 Every Skillgrid subagent prompt should include:
@@ -30,6 +42,13 @@ Every Skillgrid subagent prompt should include:
 - `.skillgrid/tasks/context_<change-id>.md`
 - expected output path under `.skillgrid/tasks/research/<change-id>/` when output is long
 - exact return format: short summary plus file paths
+
+Prompts should be:
+
+- **Focused:** one clear task or problem domain
+- **Self-contained:** enough artifact paths and concise excerpts to succeed without session history
+- **Constrained:** explicit boundaries on what not to change or inspect
+- **Specific about output:** exact summary, status, files, and blocker format
 
 Use this prompt skeleton:
 
@@ -62,6 +81,32 @@ Return format:
 - Blocker: <none or short blocker>
 ```
 
+Bad prompt: "Fix all validation issues."
+
+Good prompt: "Review `openspec/changes/<change-id>/tasks.md` against PRD success criteria 1-3. Write gaps to `<path>`. Do not edit files. Return pass/needs-changes plus the path."
+
+### Local Prompt Templates
+
+Use local templates when a Skillgrid phase repeatedly dispatches the same role:
+
+- `skillgrid-subagent-orchestration/implementer-prompt.md`
+- `skillgrid-subagent-orchestration/spec-reviewer-prompt.md`
+- `skillgrid-subagent-orchestration/code-quality-reviewer-prompt.md`
+
+These templates are role prompts, not shared memory. Fill them with fresh task context each time.
+
+### Model Selection
+
+Use the least capable model that can reliably complete the role:
+
+| Work type | Model tier |
+|---|---|
+| Complete 1-2 file mechanical task with clear acceptance criteria | cheap / fast |
+| Multi-file integration, debugging, or local pattern matching | standard |
+| Design, architecture, spec review, code quality review, security judgment, broad repo reasoning | most capable |
+
+If a subagent reports `NEEDS_CONTEXT` or `BLOCKED`, change the prompt context, split the task, or select a more capable model before retrying. Do not repeat the same failing dispatch unchanged.
+
 ### Parallelization
 
 Parallelize independent work:
@@ -71,7 +116,62 @@ Parallelize independent work:
 - test strategy vs security review
 - multiple design directions
 
-Do not parallelize tasks that edit the same artifact unless one parent reconciles them.
+Use one subagent per independent problem domain. Before parallel dispatch, verify:
+
+- each subagent has a different scope and output path
+- no shared mutable state is required
+- subagents will not edit the same files
+- one result is unlikely to invalidate the others
+- the parent can review and integrate all returns
+
+Do not parallelize:
+
+- related failures that may share one root cause
+- exploratory work where the parent does not yet know the domains
+- implementation tasks that touch overlapping files or artifacts
+- tasks that depend on a prior human decision
+- multiple implementation subagents inside the same worktree unless their file ownership is explicit and non-overlapping
+
+When agents return:
+
+1. Read every summary and cited output file.
+2. Check for conflicting findings, overlapping file edits, or inconsistent assumptions.
+3. Run the relevant full verification, not only lane-specific checks.
+4. Update the handoff with integrated findings and decisions.
+
+### Apply Dispatch Loop
+
+For `/skillgrid-apply` implementation delegation:
+
+1. Parent reads PRD, OpenSpec artifacts, `tasks.md`, handoff, and relevant research.
+2. Parent reviews the plan critically before edits. If instructions are unclear, verification is missing, or scope conflicts with artifacts, stop and resolve the plan before implementation.
+3. Parent selects one `[AFK]` task or small vertical slice. Stop on `[HITL]` unless the handoff links the recorded decision.
+4. Dispatch a fresh implementer with `implementer-prompt.md` and the full task text plus required context. Do not make the implementer read the plan and infer scope.
+5. Require TDD for behavioral code unless the task explicitly records a non-TDD exception: failing test, expected failure, minimal implementation, green verification, then refactor.
+6. Handle implementer status:
+   - `DONE`: proceed to spec review.
+   - `DONE_WITH_CONCERNS`: read concerns and resolve correctness or scope doubts before review.
+   - `NEEDS_CONTEXT`: provide missing context and re-dispatch.
+   - `BLOCKED`: change something before retrying: add context, split the task, use a more capable model, or escalate to the user.
+7. Dispatch spec reviewer with `spec-reviewer-prompt.md`.
+8. If spec review returns `NEEDS_CHANGES`, evaluate the feedback, send required fixes back to the implementer, and repeat spec review.
+9. Dispatch code quality reviewer with `code-quality-reviewer-prompt.md` only after spec review passes.
+10. If quality review returns `NEEDS_CHANGES`, evaluate the feedback, send required fixes back to the implementer, and repeat quality review.
+11. Mark the task complete and update handoff only after both review stages pass.
+
+Do not skip review loops. A reviewer finding means the implementer fixes it and the same stage reviews again. Spec compliance always comes before code quality.
+
+### Receiving Review Feedback
+
+Treat reviewer output as technical evidence, not orders:
+
+1. Read all feedback before reacting.
+2. Restate or clarify unclear items before implementation.
+3. Verify each item against the codebase, PRD, OpenSpec artifacts, and tests.
+4. Push back with concise technical reasoning when feedback is wrong, breaks existing behavior, violates YAGNI, or conflicts with recorded decisions.
+5. Implement accepted items one at a time, testing each fix before moving on.
+
+For external reviewer feedback, be especially skeptical of suggestions that add unused "professional" features. Check whether the capability is actually required by the PRD, OpenSpec scenarios, or existing callers before expanding scope.
 
 ### Two-Stage Review
 
@@ -81,6 +181,30 @@ For subagent-generated plans, code, or reports:
 2. Check quality: correctness, maintainability, security, performance, and evidence.
 
 Critical issues block progress until fixed, accepted, or converted into explicit follow-up work.
+
+Request review early and often:
+
+- after each delegated implementation slice
+- after completing a major feature
+- before validating or finishing a change
+- when stuck and a fresh perspective can reduce risk
+
+The reviewer prompt must include the implemented scope, requirements or task text, relevant artifact paths, and the diff range or file set to review. Never ask a reviewer to infer scope from chat history.
+
+### Red Flags
+
+Never:
+
+- dispatch a subagent with vague scope or missing artifact paths
+- let subagents inherit unstated session context
+- ignore subagent questions or blockers
+- retry the same failed prompt unchanged
+- accept "close enough" when spec compliance found gaps
+- accept reviewer feedback without verifying it
+- proceed with unfixed critical or important review findings
+- start code quality review before spec compliance passes
+- move to the next implementation slice while either review has open issues
+- use parallel implementation agents as a substitute for clear task boundaries
 
 ### Return Discipline
 

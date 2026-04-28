@@ -58,6 +58,21 @@ For Skillgrid work, choose test types that prove the active PRD slice:
 
 ---
 
+## 3.1 Behavior-First Tests
+
+Prefer tests that exercise public interfaces and observable outcomes. They should read like durable specifications and survive internal refactors.
+
+Avoid tests that:
+
+- assert private helper behavior directly
+- over-mock internal collaborators
+- verify database rows, files, or call counts when the public result is what matters
+- pass while the user-facing behavior is broken
+
+For Skillgrid TDD, implement one vertical behavior at a time. Write one failing test, make that behavior pass, then repeat. Do not write a large batch of imagined tests before implementation.
+
+---
+
 ## 4. Unit Test Principles
 
 ### Good Unit Tests

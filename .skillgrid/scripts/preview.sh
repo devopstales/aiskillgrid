@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Scaffold an HTML file under .skillgrid/preview/ for "pick a preview" brainstorms.
+# Scaffold an HTML file under .skillgrid/preview/ for A/B/C "pick a preview" brainstorms.
 #
 # Usage:
 #   .skillgrid/scripts/preview.sh [slug]
@@ -15,7 +15,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Scaffold a file under .skillgrid/preview/ for "pick a preview" brainstorms.
+Scaffold a file under .skillgrid/preview/ for A/B/C "pick a preview" brainstorms.
 
 Usage:
   .skillgrid/scripts/preview.sh [slug]
@@ -67,7 +67,10 @@ Short label for this brainstorm preview.
 ## Option B
 - …
 
-_Pick A or B (or name a variant) in chat._
+## Option C
+- …
+
+_Pick A, B, C, or name a variant in chat._
 EOF
   echo "Wrote: $OUT"
   echo "$OUT"
@@ -99,13 +102,17 @@ cat >"$OUT" <<EOF
 </head>
 <body>
   <h1>Preview: ${SLUG}</h1>
-  <p class="hint">Replace the placeholders; open this file in a browser. Reply in chat with A, B, or edits.</p>
+  <p class="hint">Replace the placeholders; open this file in a browser. Reply in chat with A, B, C, or edits.</p>
   <div class="opt">
     <h2>Option A</h2>
     <p>…</p>
   </div>
   <div class="opt">
     <h2>Option B</h2>
+    <p>…</p>
+  </div>
+  <div class="opt">
+    <h2>Option C</h2>
     <p>…</p>
   </div>
 </body>

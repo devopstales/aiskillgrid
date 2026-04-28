@@ -7,6 +7,11 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 * `/skillgrid-session`
 * Run at the start of an agent session when you need charter, context budget, MCP selection, and checkpoints. Restores **`.skillgrid/config.json`** (ticketing and artifact store) with **`AGENTS.md`**, **OpenSpec** listing, and PRDs in flight.
 
+## Help (optional)
+
+* `/skillgrid-help`
+* Explain command order, phase goals, artifact layout, and common next steps. With `current-state`, inspect **`.skillgrid/prd/INDEX.md`**, active **`context_*.md`** files, and **`openspec/changes/`** to recommend the next command without changing files.
+
 ## Checkpoint (optional)
 
 * `/skillgrid-checkpoint`
@@ -29,7 +34,14 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 * `/skillgrid-explore`
 * Map the codebase; parallel discovery; optional research memos under **`.skillgrid/tasks/research/<change-id>/`**
 * Refresh **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`) and **root `DESIGN.md`**
-* PRD backfill and coverage vs **OpenSpec** changes; align **`INDEX.md`**; optional **External** column when ticketing is not **`local`**
+* Automatically import/backfill existing PRDs and **OpenSpec** changes that lack canonical **`.skillgrid/prd/`** coverage; align **`INDEX.md`**; optional **External** column when ticketing is not **`local`**
+
+## Import (optional)
+
+* `/skillgrid-import`
+* Import legacy PRDs from **`prd/`**, **`docs/PRD/`**, **`docs/prd/`**, obvious **`PRD*.md`** paths, and existing **OpenSpec** changes into canonical **`.skillgrid/prd/PRD<NN>_<slug>.md`** files and **`.skillgrid/prd/INDEX.md`**.
+* Use this directly when you already know the PRD path or change id, or let **`/skillgrid-explore`** invoke the same import/backfill rules during inventory.
+* Import is conservative: it does not delete source PRDs, silently merge ambiguous matches, create remote issues, or implement product code.
 
 ## Design (optional)
 
@@ -39,7 +51,8 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 ## Brainstorm
 
 * `/skillgrid-brainstorm`
-* Clarify goals; diverge and converge; optional previews in **`.skillgrid/preview/`**
+* Explore project context first; clarify goals one decision at a time; propose **2-3 approaches** with tradeoffs before converging; optional previews in **`.skillgrid/preview/`**
+* Present the selected direction for approval before it becomes PRD/spec/task input. Small changes can have short designs, but assumptions must still be explicit.
 * Record architecture decisions in **`.skillgrid/project/ARCHITECTURE.md`**
 * No remote issues unless **`.skillgrid/config.json`** says so (see init).
 
@@ -48,6 +61,7 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 * `/skillgrid-plan`
 * PRD first: **`.skillgrid/prd/PRD<NN>_<slug>.md`**, **`.skillgrid/prd/INDEX.md`**
 * **OpenSpec** change scaffold and artifact loop; hybrid **Engram** handoff
+* `tasks.md` should be executable by a fresh agent: concrete scope, no placeholders, vertical slices, and test-first steps for behavioral work.
 * Optional remote issues only per **`ticketing.provider`** in **`.skillgrid/config.json`**
 
 ## Breakdown
@@ -60,12 +74,15 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 
 * `/skillgrid-apply`
 * Before every apply run that proceeds to implementation, automatically create a named **`/skillgrid-checkpoint create before-apply-<change-id>`** entry in **`.skillgrid/tasks/checkpoints.log`**.
-* Implement from `tasks.md` / **OpenSpec** apply instructions; TDD when appropriate; **per-change handoff** (`.skillgrid/tasks/context_<change-id>.md`) in a **single working tree**—optional feature branch in that clone is fine; do **not** assume git worktrees
+* Critically review the selected task before editing; stop if instructions, verification, or scope are unclear.
+* Implement from `tasks.md` / **OpenSpec** apply instructions; use Red-Green-Refactor for behavioral code unless an exception is explicit; **per-change handoff** (`.skillgrid/tasks/context_<change-id>.md`) in a **single working tree**—optional feature branch in that clone is fine; do **not** assume git worktrees
+* Delegated implementation uses a double-review loop: spec compliance first, then code quality/security/maintainability. Accepted review fixes go back through the implementer and the same review stage repeats before the task is marked complete.
 
 ## Test
 
 * `/skillgrid-test`
 * Quality gates, functional tests, automated security baselines; tie to PRD success criteria. **Issue id** in arguments follows the configured ticketing provider.
+* Confirm behavior is tested through public interfaces. Bug fixes need a reproduction test that failed before the fix unless a documented exception exists.
 
 ## Security (optional)
 
@@ -76,6 +93,7 @@ Runnable steps live in the slash command files (for example `.cursor/commands/sk
 
 * `/skillgrid-validate`
 * Single gate: review + security + user sign-off; **rollback** path if the user rejects
+* Request independent review with fresh artifact context, then receive feedback skeptically: clarify unclear items, verify against the codebase and specs, push back on incorrect or out-of-scope suggestions, and fix accepted findings one at a time. Critical and important findings block completion until fixed, accepted as explicit risk, or converted into follow-up work.
 
 ## Finish
 

@@ -52,11 +52,13 @@ Load these first for this command:
 ## Steps
 
 1. State the current idea and identify the few decisions that matter.
-2. Ask at most 1-2 blocking questions at a time, offering defaults when safe.
-3. Explore alternatives, constraints, and tradeoffs; use parallel research when independent questions exist.
-4. For UI work, create or compare directions and record durable choices through `skillgrid-ui-design-artifacts`.
-5. Capture accepted decisions in PRD drafts, OpenSpec design notes, project docs, or Engram as appropriate.
-6. Recommend `/skillgrid-plan` when the scope is ready.
+2. Explore project context before asking questions; if the idea spans independent subsystems, propose decomposition before refinement.
+3. Ask one blocking question at a time when decisions depend on each other, offering defaults when safe.
+4. Explore 2-3 approaches with tradeoffs and a recommendation; use `skillgrid-parallel-research` local templates when independent research questions exist.
+5. For UI work, create or compare directions and record durable choices through `skillgrid-ui-design-artifacts`.
+6. Present the accepted direction or design and get approval, even if the final design is short.
+7. Capture accepted decisions in PRD drafts, OpenSpec design notes, project docs, or Engram as appropriate.
+8. Recommend `/skillgrid-plan` when the scope is ready.
 
 ## Completion Report
 

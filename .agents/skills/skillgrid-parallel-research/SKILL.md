@@ -32,6 +32,24 @@ Bad splits:
 - broad web crawling “just in case”
 - research without a decision it will inform
 
+### Independent Domain Check
+
+Dispatch parallel lanes only when the domains are genuinely independent:
+
+- each lane can understand its question without waiting on another lane
+- lanes do not need to edit the same artifact
+- one lane's answer is unlikely to invalidate another lane's work
+- each lane has a different evidence target, subsystem, or decision
+
+Use one lane per problem domain. If failures or research questions may share a root cause, investigate together first or run a small parent-led pass before dispatching.
+
+Do not use parallel lanes when:
+
+- the work requires a full-system synthesis before the questions are known
+- lanes would compete for the same files, credentials, browser session, or external quota
+- the user needs one sequential decision before later research makes sense
+- a single root-cause fix might answer all questions
+
 ### Tool Choice
 
 | Need | Prefer |
@@ -59,6 +77,24 @@ The parent chat should receive:
 - recommendation
 - unresolved risks
 
+Each lane prompt should be focused and self-contained:
+
+- **Specific scope:** one subsystem, source set, question, test area, or design direction
+- **Clear goal:** the decision the lane must inform
+- **Constraints:** what not to inspect, change, or assume
+- **Expected output:** file path, evidence summary, recommendation, and blockers
+
+Avoid broad prompts such as "research this feature". Prefer "compare current router docs against our existing routing layer and write the migration risks to `<path>`".
+
+### Local Prompt Templates
+
+Use local templates for repeated research roles:
+
+- `skillgrid-parallel-research/research-lane-prompt.md` - one independent repo, docs, web, security, UI, or test-strategy lane
+- `skillgrid-parallel-research/research-synthesis-prompt.md` - decision-oriented synthesis across completed lane outputs
+
+Construct each prompt from durable artifacts: PRD, OpenSpec paths when present, handoff path, concrete research question, output path, and expected return format. Do not paste session history or chain-of-thought into research prompts.
+
 ### Handoff Update
 
 After research completes, update `.skillgrid/tasks/context_<change-id>.md` with:
@@ -70,7 +106,7 @@ After research completes, update `.skillgrid/tasks/context_<change-id>.md` with:
 
 ### Parallel Research Plan Template
 
-Use before launching several research lanes:
+Use before launching several research lanes. Each lane should use `research-lane-prompt.md` and write a distinct file:
 
 ```markdown
 ## Parallel Research Plan: <change-id>
@@ -82,7 +118,17 @@ Use before launching several research lanes:
 | prior-art | <How do others solve this?> | `deep-research` / `exa-search` | `.skillgrid/tasks/research/<change-id>/prior-art.md` | <decision> |
 ```
 
+Before launch, sanity-check the plan:
+
+- [ ] Every lane has a unique question.
+- [ ] Every lane has a unique output path.
+- [ ] No two lanes are expected to edit the same artifact.
+- [ ] The parent knows how the lane results will be synthesized.
+- [ ] The stop condition is clear.
+
 ### Research Synthesis Template
+
+Use `research-synthesis-prompt.md` after lane reports are complete:
 
 ```markdown
 # Research Synthesis: <change-id>

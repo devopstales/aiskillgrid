@@ -54,6 +54,18 @@ Good issue units:
 
 Avoid issue spam for every tiny checkbox when the PRD and `tasks.md` already track the work well.
 
+### QA Session Intake
+
+When the user is reporting bugs conversationally:
+
+1. Listen first and ask at most 2-3 short clarifying questions.
+2. Capture expected behavior, actual behavior, reproduction steps, and whether the issue is consistent or intermittent.
+3. Explore the relevant codebase area only to learn domain language and behavior boundaries; do not turn the issue body into an implementation diagnosis.
+4. Decide whether the report is one issue or several independently fixable issues.
+5. If using a remote tracker, create issues in dependency order so blockers can reference real issue numbers.
+
+Remote issues from QA should be durable and user-facing. Avoid file paths, line numbers, private function names, or guesses about root cause unless the user explicitly asks for an implementation ticket.
+
 ### Issue Body
 
 Issue bodies should include:
@@ -107,6 +119,32 @@ Use this template:
 ## Notes
 
 <Provider-specific labels, Jira component, GitHub milestone, or human decision needed.>
+```
+
+For user-reported bugs, prefer this behavior-oriented template:
+
+```markdown
+## What happened
+
+<Actual behavior in the user's words, using project domain language.>
+
+## What I expected
+
+<Expected behavior.>
+
+## Steps to reproduce
+
+1. <Concrete step>
+2. <Concrete step>
+
+## Scope and blockers
+
+- Slice: <single issue or part of a breakdown>
+- Blocked by: <issue/task or None>
+
+## Additional context
+
+<Concise observations that help reproduce or understand impact. No stale file paths or line numbers.>
 ```
 
 ### INDEX External Column Template

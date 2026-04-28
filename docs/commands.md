@@ -27,11 +27,13 @@ These align with **[docs/workflow.md](workflow.md)**. **Commands orchestrate pha
 
 | Phase | Command | File | Purpose |
 |-------|---------|------|---------|
+| 0 | `/skillgrid-help` | [skillgrid-help.md](../.cursor/commands/skillgrid-help.md) | Explain workflow commands, artifact layout, phases, and current-state next steps. |
 | 0 | `/skillgrid-session` | [skillgrid-session.md](../.cursor/commands/skillgrid-session.md) | Session charter, context budget, MCP selection, checkpoints. |
 | 0 | `/skillgrid-checkpoint` | [skillgrid-checkpoint.md](../.cursor/commands/skillgrid-checkpoint.md) | Named workflow checkpoints under `.skillgrid/tasks/checkpoints.log`; create, verify, list, or clear. |
 | DEFINE | `/skillgrid-init` | [skillgrid-init.md](../.cursor/commands/skillgrid-init.md) | **`.skillgrid/config.json`** (ticketing + **artifact store** `hybrid` \| `openspec` \| `engram`), greenfield/brownfield, **OpenSpec** bootstrap when mode includes disk, Engram when mode includes memory, graphify, OpenCode, **`.skillgrid/`** tree. |
-| DEFINE | `/skillgrid-explore` | [skillgrid-explore.md](../.cursor/commands/skillgrid-explore.md) | OpenSpec explore; **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`); root `AGENTS.md`; semantic search. |
+| DEFINE | `/skillgrid-explore` | [skillgrid-explore.md](../.cursor/commands/skillgrid-explore.md) | OpenSpec/PRD inventory, automatic import/backfill, **`.skillgrid/project/`** (`ARCHITECTURE`, `STRUCTURE`, `PROJECT`), root `AGENTS.md`, semantic search. |
 | DEFINE | `/skillgrid-brainstorm` | [skillgrid-brainstorm.md](../.cursor/commands/skillgrid-brainstorm.md) | Clarify, research (`search-first`, `documentation-lookup`), refine ideas before planning. |
+| DEFINE/PLAN | `/skillgrid-import` | [skillgrid-import.md](../.cursor/commands/skillgrid-import.md) | Import legacy PRDs and existing OpenSpec changes into canonical `.skillgrid/prd/` files and `INDEX.md`. |
 | PLAN | `/skillgrid-plan` | [skillgrid-plan.md](../.cursor/commands/skillgrid-plan.md) | PRDs and OpenSpec CLI artifact loop (hybrid Engram). |
 | PLAN | `/skillgrid-breakdown` | [skillgrid-breakdown.md](../.cursor/commands/skillgrid-breakdown.md) | Spec completeness, `tasks.md`, TDD stance, ordering, graphify refresh when needed. |
 | BUILD | `/skillgrid-apply` | [skillgrid-apply.md](../.cursor/commands/skillgrid-apply.md) | OpenSpec apply, contracts (`api-and-interface-design`), TDD, small batches. |

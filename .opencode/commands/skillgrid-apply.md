@@ -47,6 +47,7 @@ Load these first for this command:
 - `skillgrid-spec-artifacts`
 - `skillgrid-vertical-slices`
 - `skillgrid-filesystem-handoff`
+- `skillgrid-subagent-orchestration`
 - `skillgrid-hybrid-persistence`
 - implementation skills such as `test-driven-development`, `api-and-interface-design`, or UI skills as needed
 
@@ -55,10 +56,13 @@ Load these first for this command:
 1. Confirm PRD, OpenSpec change, and `tasks.md` are apply-ready.
 2. Create `before-apply-<change-id>` checkpoint before edits.
 3. Read the handoff and any cited research.
-4. Implement one vertical slice or small task batch at a time.
-5. Use TDD or focused verification proportional to risk.
-6. Update task checkboxes and handoff state as work completes.
-7. Pause on ambiguous requirements, failing verification, or HITL blockers.
+4. Critically review the selected task before editing; stop if instructions, expected tests, or scope are unclear.
+5. Implement one vertical slice or small task batch at a time.
+6. For behavioral code, use TDD: write one failing test, verify RED, implement minimum code, verify GREEN, then refactor.
+7. When delegating implementation or review, use `skillgrid-subagent-orchestration` templates: implementer, spec reviewer, then code quality reviewer.
+8. Evaluate review feedback technically, send accepted required fixes back to the implementer, and re-review before marking any task complete.
+9. Update task checkboxes and handoff state as work completes.
+10. Pause on ambiguous requirements, failing verification, or HITL blockers.
 
 ## Completion Report
 

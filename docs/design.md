@@ -52,13 +52,14 @@ design_sources:
 
 ## 3. Design Toolchain
 
-The workflow integrates five design‑specific tools. None are mandatory; install only the ones you need.
+The workflow integrates design‑specific tools. None are mandatory; install only the ones you need.
 
 | Tool | What it does | Install |
 |------|-------------|---------|
 | **getdesign.md** | Browse a curated collection of 69+ brand design systems (Stripe, Linear, Notion, etc.) and copy one as a starting point. | No install – use `npx getdesign@latest` |
 | **SkillUI** | Extract a complete `DESIGN.md` and token files from a live URL or the local codebase. | `npm install -g skillui` (or `npx skillui`) |
 | **taste-skill** | Tune the “personality” of the design with three 1–10 dials: variance, motion, density. | `npx skills add taste-skill` |
+| **Huashu-Design** | Create high-fidelity HTML prototypes, design variants, and three-direction visual explorations. | Included skill: `.agents/skills/huashu-design/` |
 | **SuperDesign** | Generate visual mockups directly in your IDE canvas using natural language. | `npx skills add superdesigndev/superdesign-skill` |
 | **Impeccable** | Audit an existing UI for UX quality (hierarchy, cognitive load, emotion) and detect anti‑patterns. | `npx skills add pbakaus/impeccable` |
 
@@ -82,7 +83,7 @@ Design is not a standalone phase – it intersects with the existing Skillgrid c
 
 ### 4.3 Brainstorm (`/skillgrid-brainstorm`)
 - Can use `getdesign.md` to search for inspiration and `skillui` to extract references.
-- When multiple visual directions exist, can generate **A/B previews** via SuperDesign, stored in `.skillgrid/preview/`.
+- When multiple visual directions exist, can scaffold **A/B/C preview HTML** with `.skillgrid/scripts/preview.sh <slug>`, then fill it with Huashu-Design, SuperDesign, or other UI-tool output under `.skillgrid/preview/`.
 - If the session settles on specific tokens or components, it writes them into `DESIGN.md`.
 - The **taste‑skill** dials can be adjusted during brainstorming to guide the aesthetic direction.
 
@@ -106,6 +107,7 @@ flowchart TD
     MODE -->|extract| SKILLUI[Run SkillUI on URL or repo]
     MODE -->|browse| GETDESIGN[npx getdesign@latest list / add]
     MODE -->|tune| TASTE[Adjust taste-skill dials]
+    MODE -->|design| HUASHU[Huashu-Design A/B/C HTML variants]
     MODE -->|design| SUPERDESIGN[SuperDesign canvas + draft]
     MODE -->|audit| IMPECCABLE[Impeccable critique & audit]
 
@@ -116,7 +118,8 @@ flowchart TD
     MERGE --> DESIGNMD[(DESIGN.md)]
     UPDATE --> DESIGNMD
     
-    SUPERDESIGN --> PREVIEW[Preview files → .skillgrid/preview/]
+    HUASHU --> PREVIEW[Preview HTML or exports → .skillgrid/preview/]
+    SUPERDESIGN --> PREVIEW
     PREVIEW --> DESIGNMD
     
     IMPECCABLE --> REPORT[Design audit report]
@@ -153,11 +156,13 @@ Ask the user which mode they want, or infer from their argument.
   - **Visual density (1=sparse, 10=dense):** how much information per screen.
 - Update the frontmatter. These dials guide all agents reading the file.
 
-#### 4. Design — create mockups with SuperDesign
+#### 4. Design — create A/B/C mockups with Huashu-Design or SuperDesign
 
+- Prefer Huashu-Design for HTML-based design variants, direction-advisor work, and three clearly differentiated options.
 - Ensure the skill is installed: `npx skills add superdesigndev/superdesign-skill`
 - Use `/superdesign help me design <feature description>` to generate visual mockups on the canvas.
-- Save screenshots or HTML exports to `.skillgrid/preview/` for later A/B selection.
+- For multiple UI options or browser-viewable comparisons, scaffold an A/B/C preview with `.skillgrid/scripts/preview.sh <change-or-surface-slug>` and ask the user to open the generated `.skillgrid/preview/*.html` file locally.
+- Save screenshots, HTML exports, or optional Markdown comparison notes to `.skillgrid/preview/` for later A/B/C selection.
 - Update `DESIGN.md` with any concrete tokens chosen from the mockups.
 
 #### 5. Audit — critique the current UI

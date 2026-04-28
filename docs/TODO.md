@@ -165,11 +165,6 @@ npm install -g @mariozechner/pi-coding-agent
   * node
   * skill.sh
 
-For Phase 2 subagent dispatch, copy the two‑stage review: spec‑reviewer subagent → implementer fixes → code‑quality‑reviewer subagent → task complete. The Superpowers prompts are at ./implementer-prompt.md, ./spec-reviewer-prompt.md, ./code-quality-reviewer-prompt.md.
-
-Model‑selection strategy: add to Apply (or a new subagent‑dispatch skill) the rule: cheap model for 1–2 file tasks with complete specs, standard for integration, most capable for design/review.
-
-
 ## Sources
 
 * [X] [andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills)

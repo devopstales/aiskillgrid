@@ -47,18 +47,19 @@ Load these first for this command:
 - `skillgrid-questioning`
 - `skillgrid-parallel-research`
 - `skillgrid-project-docs`
-- UI skills such as `superdesign`, `impeccable`, `frontend-design`, or `frontend-ui-engineering` as needed
+- UI skills such as `huashu-design`, `superdesign`, `impeccable`, `frontend-design`, or `frontend-ui-engineering` as needed
 
 ## Steps
 
 1. Identify the surface, audience, and design decision to make.
 2. Load existing `DESIGN.md`, relevant project docs, and UI source context.
-3. Generate or compare design options when useful; keep long comparisons in `.skillgrid/preview/` or research files.
-4. Record the chosen direction in `DESIGN.md`, PRD success criteria, or OpenSpec `design.md` as appropriate.
-5. Call out accessibility, responsive, implementation, and testing implications.
+3. When the user asks for multiple UI options, A/B/C directions, or browser-viewable previews, run or offer `.skillgrid/scripts/preview.sh <change-or-surface-slug>` to scaffold a default HTML preview under `.skillgrid/preview/`. Use `.skillgrid/scripts/preview.sh --md <slug>` only when a text-only comparison is enough.
+4. Generate or compare three differentiated design options when useful. Prefer `huashu-design` for HTML-based design variants and direction-advisor work; fill scaffolded preview HTMLs, attach SuperDesign exports, or keep long comparisons in `.skillgrid/preview/` or research files.
+5. Record the chosen direction in `DESIGN.md`, PRD success criteria, or OpenSpec `design.md` as appropriate after the user picks or approves a direction.
+6. Call out accessibility, responsive, implementation, and testing implications.
 
 ## Completion Report
 
-Report chosen direction, preview artifacts, docs updated, unresolved design risks, and the next command.
+Report chosen direction, preview artifacts, docs updated, unresolved design risks, and the next command. If an HTML preview was generated, include the exact file path and prompt the user to open it locally for review.
 
 </process>

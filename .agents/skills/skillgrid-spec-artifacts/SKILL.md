@@ -75,6 +75,32 @@ Use `openspec instructions` output as constraints. Do not paste raw `context`, `
 - `tasks.md` is the implementation checklist and should be compatible with `skillgrid-vertical-slices`.
 - PRD implementation tasks and OpenSpec `tasks.md` should not diverge; if one changes materially, refresh the other.
 
+### Tracer-Bullet Breakdown
+
+When converting a PRD, proposal, or design into `tasks.md`, draft independently grabbable vertical slices before writing a flat checklist.
+
+Work from existing conversation context and artifacts first. If the source is a remote issue, fetch it with comments through the configured provider workflow, then convert it into Skillgrid artifacts instead of treating the remote issue as the source of truth.
+
+Each slice should be a tracer bullet:
+
+- a narrow but complete path through every layer needed for the behavior
+- demoable or verifiable on its own
+- thin enough to review independently
+- tagged `[AFK]` when an agent can implement it from existing artifacts
+- tagged `[HITL]` only when it truly needs human input, credentials, approval, architecture choice, or design review
+
+Avoid horizontal slices such as "build all backend", "build all frontend", or "write all tests". Prefer many thin slices over a few thick ones.
+
+Before creating external issues, present the proposed slice breakdown for approval:
+
+- **Title:** short user-visible capability
+- **Type:** `[HITL]` or `[AFK]`
+- **Blocked by:** dependency slice, decision, credential, or `None`
+- **User stories covered:** PRD story numbers when available
+- **Acceptance criteria:** observable checks for this slice
+
+Ask whether the granularity, dependencies, and HITL/AFK tags are correct. Iterate until approved. Then, if `.skillgrid/config.json` enables a remote tracker and the user wants tracker-backed work, hand off to `skillgrid-issue-creation`. Create/link issues in dependency order so blocker references are real.
+
 ### Proposal Template
 
 Use when OpenSpec instructions do not provide a stronger template:
@@ -195,10 +221,26 @@ The system SHALL <observable behavior>.
 ```markdown
 # Tasks: <change-id>
 
+## Execution note
+
+Implement task-by-task. For behavioral code, use Red-Green-Refactor: write one failing test, verify it fails for the expected reason, implement the minimum code, verify green, then refactor while green.
+
+## Slice breakdown
+
+1. **<Slice title>**
+   - **Type:** `[AFK]`
+   - **Blocked by:** None
+   - **User stories covered:** <PRD story numbers or "not specified">
+   - **Acceptance criteria:**
+     - [ ] <Observable result>
+
 ## Implementation
 
-- [ ] `[HITL]` <Decision, approval, credential, or manual setup needed before autonomous work>
-- [ ] `[AFK]` <Vertical slice: user-visible result, touched surfaces, and verification>
+- [ ] `[HITL]` <Decision, approval, credential, or manual setup needed before dependent autonomous work>
+- [ ] `[AFK]` Write one failing behavior test for <slice behavior>; expected failure: <why it should fail now>
+- [ ] `[AFK]` Implement the minimum code for <slice behavior>
+- [ ] `[AFK]` Verify the focused test passes, then run the relevant wider check
+- [ ] `[AFK]` Refactor only after green, keeping tests green
 
 ## Verification
 
@@ -217,7 +259,11 @@ Before `/skillgrid-apply` starts implementation, confirm:
 - Required OpenSpec artifacts are present.
 - `openspec status` says apply-required artifacts are complete.
 - `tasks.md` contains verifiable, ordered work.
+- `tasks.md` uses tracer-bullet vertical slices rather than horizontal layer-only tasks.
+- Slice granularity, dependencies, and HITL/AFK tags have been approved or explicitly recorded as assumptions.
 - Human-blocked tasks are tagged `[HITL]`; autonomous tasks are tagged `[AFK]` when the repo uses those tags.
+- Behavioral tasks name the first failing test or explain why TDD is not applicable.
+- Tasks do not contain placeholders such as `TBD`, "add appropriate handling", or "write tests" without concrete behavior and verification.
 
 ## Commands
 

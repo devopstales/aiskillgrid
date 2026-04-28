@@ -53,9 +53,12 @@ Load these first for this command:
 2. Create/update `.skillgrid/prd/PRD<NN>_<slug>.md` and `.skillgrid/prd/INDEX.md`.
 3. Split oversized work into ordered PRDs when vertical slices can ship independently.
 4. Create/update `.skillgrid/tasks/context_<change-id>.md` for the active change.
-5. Create or refresh `openspec/changes/<change-id>/` artifacts using the OpenSpec CLI and `skillgrid-spec-artifacts`.
-6. Create external issues only when `.skillgrid/config.json` configures a remote provider.
-7. Save a concise Engram summary when hybrid persistence is active.
+5. Use `skillgrid-parallel-research` local templates when planning needs independent repo, docs, or prior-art lanes before specs.
+6. Create or refresh `openspec/changes/<change-id>/` artifacts using the OpenSpec CLI and `skillgrid-spec-artifacts`.
+7. Ensure `tasks.md` is executable by a fresh agent: concrete file paths when known, no placeholders, one vertical slice at a time, and TDD-first steps for behavioral code.
+8. Self-review PRD/OpenSpec/tasks for coverage, contradictions, missing verification, and placeholder text before reporting completion.
+9. Create external issues only when `.skillgrid/config.json` configures a remote provider.
+10. Save a concise Engram summary when hybrid persistence is active.
 
 ## Completion Report
 

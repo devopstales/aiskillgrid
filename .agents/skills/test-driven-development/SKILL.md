@@ -41,6 +41,18 @@ For Skillgrid implementation, tests prove vertical slices:
    Test FAILS        Test PASSES         Tests still PASS
 ```
 
+### Iron Rule
+
+For behavioral production code:
+
+```text
+No production code before a failing test.
+```
+
+If exploratory code was written first, treat it as throwaway learning. Do not keep adapting it while claiming TDD. Start the durable implementation from a failing behavior test unless the user explicitly accepts a non-TDD exception.
+
+Do not write all tests first and then all code. That is a horizontal slice. Use tracer bullets: one behavior test, minimal implementation, repeat.
+
 ### Step 1: RED — Write a Failing Test
 
 Write the test first. It must fail. A test that passes immediately proves nothing.
@@ -87,6 +99,16 @@ With tests green, improve the code without changing behavior:
 - Optimize if necessary
 
 Run tests after every refactor step to confirm nothing broke.
+
+### Verify RED And GREEN
+
+Always verify both sides of the loop:
+
+- RED: the new test fails for the expected reason, not a typo or bad setup.
+- GREEN: the focused test passes and relevant surrounding tests still pass.
+- REFACTOR: every cleanup step keeps the suite green.
+
+If the test passes immediately, change the test; it did not prove the missing behavior. If the test fails for the wrong reason, fix the test setup before implementation.
 
 ## The Prove-It Pattern (Bug Fixes)
 
@@ -181,6 +203,17 @@ Is it a critical user flow that must work end-to-end?
 ```
 
 ## Writing Good Tests
+
+### Behavior Through Public Interfaces
+
+Tests should verify behavior through public interfaces. They should describe what the system does, not how internals happen to be arranged. A good test should survive an internal refactor that preserves behavior.
+
+Avoid:
+
+- testing private methods
+- asserting internal collaborator calls unless the interaction is the public contract
+- querying hidden storage directly when a public read path exists
+- mocking internal collaborators just to make setup easier
 
 ### Test State, Not Interactions
 
@@ -370,6 +403,8 @@ For detailed testing patterns, examples, and anti-patterns across frameworks, se
 
 - Writing code without any corresponding tests
 - Tests that pass on the first run (they may not be testing what you think)
+- Writing many tests before implementing the first vertical behavior
+- Refactoring while RED
 - "All tests pass" but no tests were actually run
 - Bug fixes without reproduction tests
 - Tests that test framework behavior instead of application behavior
