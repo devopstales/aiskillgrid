@@ -1,5 +1,5 @@
 ---
-description: Bootstrap workflow: structure, graphify, hybrid persistence (OpenSpec + Engram)
+description: Bootstrap workflow: structure, CocoIndex (ccc), graphify, hybrid persistence (OpenSpec + Engram)
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[optional: app purpose, stack, or brownfield notes]"
 ---
@@ -22,6 +22,8 @@ Before acting, load only the skills needed for the phase:
 
 - `.agents/skills/skillgrid-questioning/SKILL.md` — ask only blocking questions and record answers.
 - `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, graphify output, tests, and conventions.
+- `.agents/skills/ccc/SKILL.md` — CocoIndex Code: `ccc init`, `ccc index`, `ccc search`; optional MCP `cocoindex-code`.
+- `.agents/skills/references/indexing-and-memory.md` — Engram, graphify (`graphify-out/`, `graphify update .`), **ccc**, and MCP memory ordering.
 - `.agents/skills/skillgrid-parallel-research/SKILL.md` — coordinate external research and long evidence capture.
 - `.agents/skills/skillgrid-subagent-orchestration/SKILL.md` — dispatch bounded subagents with handoff paths and two-stage review.
 - `.agents/skills/skillgrid-prd-artifacts/SKILL.md` — PRD numbering, `INDEX.md`, title blocks, and status lifecycle.
@@ -42,6 +44,7 @@ Load these first for this command:
 
 - `skillgrid-questioning`
 - `skillgrid-codebase-map`
+- `ccc`
 - `skillgrid-openspec-config`
 - `skillgrid-project-docs`
 - `skillgrid-hybrid-persistence`
@@ -52,11 +55,13 @@ Load these first for this command:
 2. Create or merge `.skillgrid/config.json` with local-first defaults when missing.
 3. If artifact store includes OpenSpec, initialize or align `openspec/` and `openspec/config.yaml`.
 4. Create or refresh `.skillgrid/project/` docs and root `DESIGN.md` using discovered repo facts.
-5. Record durable setup decisions through Engram when available and appropriate.
-6. Recommend `/skillgrid-explore` for brownfield mapping or `/skillgrid-plan` for a clear first change.
+5. **CocoIndex (`ccc`) (semantic index):** If the **`ccc`** CLI is installed, from the repository root ensure the project is initialized (**`ccc init`** when needed—see [`ccc` skill](../.agents/skills/ccc/SKILL.md)), then run **`ccc index`** so **`ccc search`** and the optional [**`cocoindex-code`** MCP](../.configs/mcp/command/cocoindex-code.json) have a fresh index. If the CLI is missing or the user opts out, skip and note that in the completion report; do not fail init.
+6. **graphify (initial index):** If the `graphify` CLI is installed (e.g. `uv tool install graphifyy`), run **`graphify .`** from the repository root—or in a Chat session, **`/graphify .`**. That creates or refreshes **`graphify-out/`** (including `graph.json` for the optional [graphify MCP](../.configs/mcp/python/graphify.json) and `GRAPH_REPORT.md` for agents). If the CLI is missing or the user opts out, skip and note that in the completion report; do not fail init.
+7. Record durable setup decisions through Engram when available and appropriate.
+8. Recommend `/skillgrid-explore` for brownfield mapping or `/skillgrid-plan` for a clear first change.
 
 ## Completion Report
 
-Report config choices, created/aligned artifacts, project docs touched, memory saves, and recommended next command.
+Report config choices, created/aligned artifacts, project docs touched, **ccc** / **graphify** indexing (if run), memory saves, and recommended next command.
 
 </process>

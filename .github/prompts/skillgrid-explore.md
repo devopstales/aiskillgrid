@@ -22,6 +22,8 @@ Before acting, load only the skills needed for the phase:
 
 - `.agents/skills/skillgrid-questioning/SKILL.md` — ask only blocking questions and record answers.
 - `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, graphify output, tests, and conventions.
+- `.agents/skills/ccc/SKILL.md` — CocoIndex Code: `ccc init`, `ccc index`, `ccc search`; optional MCP `cocoindex-code`.
+- `.agents/skills/references/indexing-and-memory.md` — Engram, graphify (`graphify-out/`, `graphify update .`), **ccc**, and MCP memory ordering.
 - `.agents/skills/skillgrid-parallel-research/SKILL.md` — coordinate external research and long evidence capture.
 - `.agents/skills/skillgrid-subagent-orchestration/SKILL.md` — dispatch bounded subagents with handoff paths and two-stage review.
 - `.agents/skills/skillgrid-import-artifacts/SKILL.md` — import existing PRDs and OpenSpec changes into canonical PRDs.
@@ -42,6 +44,7 @@ Before acting, load only the skills needed for the phase:
 Load these first for this command:
 
 - `skillgrid-codebase-map`
+- `ccc`
 - `skillgrid-parallel-research`
 - `skillgrid-import-artifacts`
 - `skillgrid-prd-artifacts`
@@ -51,7 +54,7 @@ Load these first for this command:
 ## Steps
 
 1. Select the topic, change, or repo area to explore; ask only if the target is unclear.
-2. Inventory OpenSpec changes, legacy PRDs, canonical PRDs, project docs, handoff files, tests, and graphify output where present.
+2. Inventory OpenSpec changes, legacy PRDs, canonical PRDs, project docs, handoff files, tests, **`graphify-out/`** when present, and use **`ccc search`** when the CocoIndex index exists—follow **`ccc`**, **`skillgrid-codebase-map`**, and **`indexing-and-memory`** skills.
 3. If existing PRDs or OpenSpec changes lack canonical `.skillgrid/prd/` coverage, automatically invoke `skillgrid-import-artifacts` import/backfill behavior.
 4. Import root `prd/`, `docs/PRD/`, or `docs/prd/` PRDs into `.skillgrid/prd/` when unambiguous; report ambiguous matches instead of silently merging them.
 5. Use `skillgrid-parallel-research` local templates for independent repo, docs, or web research lanes; spill long output to `.skillgrid/tasks/research/<change-id>/`.

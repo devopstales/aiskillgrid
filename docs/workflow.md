@@ -37,7 +37,8 @@ Think of the hierarchy as **PRD sequence -> PRD slice -> OpenSpec tasks**. A seq
 * Create **`.skillgrid/`** tree: **`project/`**, **`prd/`**, **`tasks/`**, **`preview/`**, **`scripts/`** as needed; never put PRDs at the repository root.
 * **Greenfield / brownfield** routing, **`DESIGN.md`**, **`.skillgrid/project/*.md`**, **root `AGENTS.md`**
 * When artifact store includes OpenSpec: **`openspec init`** (baseline `openspec/`, **`config.yaml`**, changes tree). When it includes Engram: **`mem_save`** with a stable `topic_key` (for example `skillgrid-init/{project-name}`).
-* **Graphify** (optional, project policy)
+* **CocoIndex (`ccc`)** (optional): when the CLI is installed, from the repo root run **`ccc init`** if the tree is not yet a CocoIndex project, then **`ccc index`** so **`ccc search`** (and the **`cocoindex-code`** MCP) stay fresh; see [`.agents/skills/ccc/SKILL.md`](../.agents/skills/ccc/SKILL.md). If missing, skip and document; init still succeeds.
+* **Graphify** (optional): when the CLI is installed (`uv tool install graphifyy`), run **`graphify .`** from the repository root during init (IDE: **`/graphify .`**) so **`graphify-out/`** exists; afterward use **`graphify update .`** after substantive code changes per **`AGENTS.md`**. If the CLI is missing, skip and document; init still succeeds.
 * If brownfield, recommend **`/skillgrid-explore`** before large structural work.
 
 ## Explore (optional)

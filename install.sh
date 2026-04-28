@@ -34,7 +34,7 @@
 #   3. Dependency check  → optional install of missing tools
 #   4. MCP merge         → jq-smerge .configs/mcp/*.json into one object
 #   5. IDE setup         → per-IDE setup_*() writes normalized config files
-#   6. Optional tools    → -t selects tools; CLIs via uv (Python) + hub npm (Node) + brew + brave-search-cli curl|sh, then copy + openspec init
+#   6. Optional tools    → -t selects tools; CLIs via uv (Python; graphifyy, cocoindex-code[full]→ccc) + hub npm (Node) + brew + brave-search-cli curl|sh, then copy + openspec init
 #
 # DEPENDENCIES:
 #   Runtime:  bash 3.2+ (incl. macOS /bin/bash), rsync, jq
@@ -132,7 +132,7 @@ Options:
   -o, --opencode        Setup configuration for opencode
   -a, --antigravity     Setup configuration for Google Antigravity
   -A, --all             Setup for all supported IDEs (Default if none selected)
-  -t, --tools           Interactive prompt to select optional tools (openspec, graphify, dmux, engram, brave-search-cli)
+  -t, --tools           Interactive prompt to select optional tools (openspec, graphify, dmux, engram, brave-search-cli, cocoindex-code)
   -d, --deps            Check and install dependencies before install
   -y, --yes             Non-interactive mode (skip prompts)
   --no-mcp              Skip MCP server configuration
@@ -142,7 +142,7 @@ Options:
   -h, --help            Show this help message
 
 Interactive mode: On TTY with no IDE flags, choose IDEs (1-5 or a=all) and MCP servers.
-Use -t to pick optional tools interactively (openspec, graphifyy, dmux, engram, brave-search-cli — brew / hub npm / uv / official Brave install.sh when selected; see docs/tools.md).
+Use -t to pick optional tools interactively (openspec, graphifyy, dmux, engram, brave-search-cli, cocoindex-code/ccc — brew / hub npm / uv / official Brave install.sh when selected; see docs/tools.md).
 EOF
 }
 
@@ -407,7 +407,7 @@ tool_is_selected() {
     return 1
 }
 
-# Ensure uv is available (for graphifyy: uv tool install)
+# Ensure uv is available (for graphifyy, cocoindex-code[full] → ccc: uv tool install)
 ensure_uv() {
     command -v uv &>/dev/null && return 0
     if [ "$DRY_RUN" = true ]; then
@@ -498,6 +498,23 @@ install_optional_tool_clis() {
         fi
     fi
 
+    # CocoIndex Code — publishes the `ccc` CLI (https://github.com/cocoindex-io/cocoindex-code)
+    if tool_is_selected cocoindex-code; then
+        ensure_uv || true
+        if [ "$DRY_RUN" = true ]; then
+            echo "[DRY-RUN] uv tool install --upgrade 'cocoindex-code[full]'"
+        elif command -v uv &>/dev/null; then
+            log_info "Installing/upgrading cocoindex-code[full] (ccc) via uv tool install..."
+            if uv tool install --upgrade 'cocoindex-code[full]'; then
+                log_success "cocoindex-code (ccc) installed or upgraded"
+            else
+                log_warn "cocoindex-code: uv tool install --upgrade failed"
+            fi
+        else
+            log_warn "cocoindex-code: uv missing — run: uv tool install --upgrade 'cocoindex-code[full]'"
+        fi
+    fi
+
     if tool_is_selected openspec; then
         install_openspec_cli || true
     fi
@@ -559,7 +576,7 @@ install_optional_tool_clis() {
     echo ""
 }
 
-# Interactive optional tools (openspec, graphify, dmux, engram, brave-search-cli)
+# Interactive optional tools (openspec, graphify, dmux, engram, brave-search-cli, cocoindex-code)
 interactive_tools_selection() {
     [ "$TOOLS_INTERACTIVE" = true ] || return 0
     [ "$NON_INTERACTIVE" != true ] || {
@@ -584,8 +601,9 @@ interactive_tools_selection() {
     echo "  3) dmux — tmux pane manager (hub npx, or npm -g fallback)"
     echo "  4) engram — Engram MCP CLI (brew gentleman-programming/tap)"
     echo "  5) brave-search-cli — Brave Search CLI, bx (curl | sh from brave/brave-search-cli)"
+    echo "  6) cocoindex-code — CocoIndex Code, ccc (uv tool install --upgrade 'cocoindex-code[full]')"
     echo ""
-    echo "  a — all five   |   n — none   |   e.g. 1,3 — pick by number"
+    echo "  a — all six   |   n — none   |   e.g. 1,3 — pick by number"
     echo ""
 
     local choice
@@ -604,8 +622,8 @@ interactive_tools_selection() {
         lower=$(printf '%s' "$choice" | tr '[:upper:]' '[:lower:]')
         case "$lower" in
             a|all)
-                SELECTED_TOOLS=("openspec" "graphify" "dmux" "engram" "brave-search-cli")
-                log_info "Optional tools: openspec, graphify, dmux, engram, brave-search-cli"
+                SELECTED_TOOLS=("openspec" "graphify" "dmux" "engram" "brave-search-cli" "cocoindex-code")
+                log_info "Optional tools: openspec, graphify, dmux, engram, brave-search-cli, cocoindex-code"
                 return 0
                 ;;
             n|no|none|skip)
@@ -627,7 +645,8 @@ interactive_tools_selection() {
                 3) SELECTED_TOOLS+=("dmux") ;;
                 4) SELECTED_TOOLS+=("engram") ;;
                 5) SELECTED_TOOLS+=("brave-search-cli") ;;
-                *) invalid="invalid index: $tok (use 1–5, a, or n)"; break ;;
+                6) SELECTED_TOOLS+=("cocoindex-code") ;;
+                *) invalid="invalid index: $tok (use 1–6, a, or n)"; break ;;
             esac
         done
 
@@ -636,7 +655,7 @@ interactive_tools_selection() {
             continue
         fi
         if [ ${#SELECTED_TOOLS[@]} -eq 0 ]; then
-            log_warn "Pick at least one number (1–5), a for all, or n for none"
+            log_warn "Pick at least one number (1–6), a for all, or n for none"
             continue
         fi
         log_info "Optional tools: selected ${#SELECTED_TOOLS[@]} tool(s)"
@@ -1119,7 +1138,7 @@ fi
 # Interactive MCP selection (if eligible)
 interactive_mcp_selection
 
-# Optional tools — must run before --deps counts (openspec / graphify / dmux / engram)
+# Optional tools — must run before --deps counts (openspec / graphify / dmux / engram / brave-search-cli / cocoindex-code)
 interactive_tools_selection
 
 # Handle --deps flag (check and optionally install)

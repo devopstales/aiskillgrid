@@ -15,28 +15,37 @@ Use these when the project or IDE has them enabled (merged `mcp.json`, `install.
 - **Role:** Repo knowledge graph (`graphify-out/`, e.g. `GRAPH_REPORT.md`) for communities / hot spots.
 - **When:** Broad architecture or “how is this codebase structured?”—especially if `AGENTS.md` or project rules mention graphify.
 - **Refresh:** After substantive code or layout changes, run `graphify update .` (see `.configs/AGENTS.md` and `.cursor/rules/graphify.md`).
+- **Init:** **`graphify .`** from repo root when building the graph the first time (e.g. **`/skillgrid-init`**); then **`graphify update .`** for incremental refresh.
+
+## CocoIndex Code (`ccc`)
+
+- **Skill:** `.agents/skills/ccc/SKILL.md`
+- **Role:** Semantic search over the repo (`ccc search`); MCP fragment **`cocoindex-code`** runs `ccc mcp` when merged from `.configs/mcp/command/cocoindex-code.json`.
+- **Init:** From project root, **`ccc init`** if not initialized, then **`ccc index`** (also part of **`/skillgrid-init`** when the CLI is installed). Re-run **`ccc index`** after large refactors or many new files.
+- **When:** “Where is X implemented?” in natural language, impact analysis, finding patterns before edit—pair with **`rg`** for exact symbols.
 
 ## Code search (structural)
 
-- **Role:** Find symbols, strings, and call sites with **ripgrep** (`rg`), IDE search, and LSP (go-to-definition, references)—not a separate index product in this hub.
-- **When:** “Where is X implemented?”, impact analysis, or verifying patterns before edit. Prefer scoped search over reading entire directories.
+- **Role:** Find symbols, strings, and call sites with **ripgrep** (`rg`), IDE search, and LSP—exact matches, not semantic index results.
+- **When:** Unique identifiers, known file paths, or verifying a hypothesis from **`ccc search`**.
 
 ## MCP in-memory server (`memory-npx`)
 
 - **Config fragment:** `.configs/mcp/node/memory.json` (`@modelcontextprotocol/server-memory`)
-- **Role:** Lightweight structured recall; use when enabled and appropriate to the task (not a substitute for Engram project memory).
+- **Role:** Lightweight structured recall; use when enabled and appropriate (not a substitute for Engram project memory).
 
 ## Per-change handoff (Skillgrid)
 
-When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. **Use these for subagent / parent sync** in the current effort; they are not a replacement for **Engram** (cross-session) or **graphify** (whole-repo map). See `docs/workflow.md` — *Filesystem handoff*.
+When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. Use these for subagent / parent sync; they are not a replacement for **Engram**, **graphify**, or **ccc**. See `docs/workflow.md` — *Filesystem handoff*.
 
 ## Suggested order
 
 1. Rules + `mem_context` / quick `mem_search` (if memory MCPs available)  
 2. For an active **change** with a handoff file: read **`.skillgrid/tasks/context_<change-id>.md`** (when present)  
 3. `graphify-out/` skim if present  
-4. `rg` / IDE search (and LSP) for concrete code locations  
-5. Read files / run tests as usual  
-6. `mem_save` (or SDD persistence) for durable outputs the next session must see  
+4. **`ccc search`** when the CocoIndex index is fresh (after **`ccc index`**)  
+5. `rg` / IDE search (and LSP) for concrete code locations  
+6. Read files / run tests as usual  
+7. `mem_save` (or SDD persistence) for durable outputs the next session must see  
 
-Narrative overview: [`docs/memory.md`](../../../docs/memory.md).
+Narrative overview: [`docs/memory.md`](../../docs/memory.md).

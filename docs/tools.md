@@ -28,7 +28,7 @@ If you **rename or remove** a persona file under **`.cursor/agents/`**, delete t
 
 Use **[uv](https://docs.astral.sh/uv/)** for everything Python: global CLIs and per-skill environments. Do not standardize on **pipx** in this repo (legacy docs may still mention it—prefer `uv`).
 
-- **Global CLIs (replaces pipx):** `uv tool install <package>`, e.g. `uv tool install graphifyy`, `uv tool install tavily-cli`
+- **Global CLIs (replaces pipx):** `uv tool install <package>`, e.g. `uv tool install graphifyy`, `uv tool install --upgrade 'cocoindex-code[full]'` (**`ccc`**), `uv tool install tavily-cli`. Hub [`install.sh`](../install.sh) **`-t`** can install **cocoindex-code** (menu **6**) among optional tools.
 - **Upgrade:** `uv tool upgrade <name>`
 - **Per-skill venvs:** in a directory with `pyproject.toml` / `uv.lock`, run `uv sync` and `uv run …`
 
@@ -52,7 +52,7 @@ MCP server fragments under [`.configs/mcp/node/`](../.configs/mcp/node/) use **`
 
 For **reproducible, lockfile-pinned** runs (maintenance and CI in this repo), run **`npm ci`** in the hub, then use **`npx` without `-y`** so the same versions as [package-lock.json](../package-lock.json) are used from `node_modules`. Optional later improvement: set MCP `cwd` to the hub root so `npx` always prefers local `node_modules` (depends on your IDE’s MCP working directory).
 
-## Context enginearing
+## Context engineering
 
 * [ ] [carl](https://github.com/ChristopherKahler/carl)
 * [ ] [paul](https://github.com/ChristopherKahler/paul)
@@ -67,21 +67,34 @@ For **reproducible, lockfile-pinned** runs (maintenance and CI in this repo), ru
 * [ ] [superpowers](https://github.com/obra/superpowers)
 * [ ] [Archon](https://github.com/coleam00/Archon)
 
-## Web scrapper
+## Web research and scraping (inventory)
 
-Hub inventory (MCP fragments + skills + researcher persona): **[web-scraping-and-research.md](web-scraping-and-research.md)**.
+Canonical tables and skills: **[web-scraping-and-research.md](web-scraping-and-research.md)**. Hub MCP fragments live under [`.configs/mcp/`](../.configs/mcp/) and are merged by [`install.sh`](../install.sh); **merged server keys** match the JSON top-level names below.
 
-* [ ] [context7]()
-* [ ] [exa]()
-* [ ] [deepwiki]()
-* [ ] [Brave Search]()
-* [ ] [firecrawl-cli]()
+| Tool | Fragment | Key (example) |
+|------|----------|----------------|
+| [Context7](https://context7.com) | [.configs/mcp/http/context7.json](../.configs/mcp/http/context7.json) | `context7` |
+| [Exa](https://exa.ai) | [.configs/mcp/http/exa.json](../.configs/mcp/http/exa.json) | `exa-http` |
+| [DeepWiki](https://deepwiki.com) | [.configs/mcp/http/deepwiki.json](../.configs/mcp/http/deepwiki.json) | `deepwiki` |
+| [Firecrawl](https://firecrawl.dev) | [.configs/mcp/node/fireclaw.json](../.configs/mcp/node/fireclaw.json) | `firecrawl` (`npx -y firecrawl-mcp`) |
+
+**Brave Search** and **Tavily** are documented as **skills / CLIs** in [web-scraping-and-research.md](web-scraping-and-research.md); they are not default MCP fragments in this repo unless you add them.
+
+Quick checklist:
+
+* [X] Context7 — MCP fragment + [documentation-lookup](../.agents/skills/documentation-lookup/SKILL.md) / [context7](../.agents/skills/context7/SKILL.md)
+* [X] Exa — MCP + [exa-search](../.agents/skills/exa-search/SKILL.md)
+* [X] DeepWiki — MCP
+* [X] Firecrawl — MCP + [deep-research](../.agents/skills/deep-research/SKILL.md)
+* [ ] [Brave Search API](https://api.search.brave.com) — `brave-*` / `bx` skills (see web-scraping doc)
+* [ ] Per-session install: [Tavily](https://tavily.com) CLI via `uv tool install tavily-cli` (optional)
 
 ## Memory and codebase index
 
 Conceptual overview: **[memory.md](memory.md)** (what each layer is for).
 
-* [X] [graphify](https://github.com/safishamsi/graphify) 
+* [X] [CocoIndex Code (`ccc`)](https://github.com/cocoindex-io/cocoindex-code) — MCP [cocoindex-code.json](../.configs/mcp/command/cocoindex-code.json); skill [ccc](../.agents/skills/ccc/SKILL.md); during **`/skillgrid-init`**: **`ccc init`** (if needed) then **`ccc index`**
+* [X] [graphify](https://github.com/safishamsi/graphify) — PyPI [`graphifyy`](https://pypi.org/project/graphifyy/); MCP [graphify.json](../.configs/mcp/python/graphify.json); init **`graphify .`**, refresh **`graphify update .`**
 * [X] [Engram](https://github.com/Gentleman-Programming/engram)
 * [ ] [context-mode](https://github.com/mksglu/context-mode)
 

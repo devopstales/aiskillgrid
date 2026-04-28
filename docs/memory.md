@@ -4,18 +4,19 @@ This document explains **what we use for “memory” in the broad sense**: dura
 
 ---
 
-## Mental model: three layers
+## Mental model: complementary layers
 
 | Layer | Question it answers | Planned tools |
 |--------|---------------------|----------------|
 | **Cross-session memory** | What did we decide, discover, or agree to last time? | **Engram** (primary) |
 | **Repo index / map** | How is this codebase structured; where are the hot spots? | **graphify** (`graphify-out/`) |
+| **Semantic code search** | Where is this *concept* or behavior implemented (natural language)? | **CocoIndex Code** (`ccc search`; MCP **`cocoindex-code`**) |
 | **Structural code search** | Where is this symbol, string, or pattern implemented? | **ripgrep** (`rg`), IDE search, **LSP** |
 | **Per-change handoff (Skillgrid)** | For one OpenSpec **change id**, what is the rolling goal, state, and where are subagent reports? | **`.skillgrid/tasks/context_<change-id>.md`** and **`.skillgrid/tasks/research/<change-id>/`**, documented in `docs/workflow.md` (*Filesystem handoff*) |
 
-Those layers are **complementary**. Engram does not replace reading source; graphify does not replace exact search for a function name.
+Those layers are **complementary**. Engram does not replace reading source; graphify does not replace exact search for a function name; **`ccc`** does not replace **`rg`** for a unique string.
 
-**Handoff vs Engram vs graphify:** The **context file** and **research/** spill are **on-disk, git-friendly state** for a single change—shared by the parent session and `Task` subagents without pasting long tool output into chat. **Engram** is for **cross-session** or **durable** observations (`mem_save`, `mem_search`) and compaction survival; the handoff can *point* to Engram topics but should not duplicate every memo. **graphify** remains the **structural** map of the repo (`graphify-out/`); the handoff **references** key paths or follow-up work, it does not replace a graph or `rg` for “where is X implemented.”
+**Handoff vs Engram vs graphify vs ccc:** The **context file** and **research/** spill are **on-disk, git-friendly state** for a single change—shared by the parent session and `Task` subagents without pasting long tool output into chat. **Engram** is for **cross-session** or **durable** observations (`mem_save`, `mem_search`) and compaction survival; the handoff can *point* to Engram topics but should not duplicate every memo. **graphify** remains the **structural** map of the repo (`graphify-out/`); **ccc** is the **semantic** index for concept-style lookup (`ccc search`). The handoff **references** key paths or follow-up work; it does not replace graphify, ccc, or `rg` for “where is X implemented.”
 
 ---
 
@@ -41,10 +42,18 @@ Besides **memory protocol**, this hub vendors the **[Engram `skills/`](https://g
 
 **Overlaps hub workflow:** `engram-sdd-flow` is a short phase list for Engram-product context; prefer hub **`skillgrid-*`** commands (see [`commands.md`](commands.md)) and optional **`openspec-*`** skills when this repo is the source of truth.
 
+### CocoIndex Code (`ccc`) — semantic repo index
+
+- **Purpose:** Natural-language **semantic search** over the repository (`ccc search`) and optional MCP **`cocoindex-code`** ([fragment](../.configs/mcp/command/cocoindex-code.json))—complements **graphify** (architecture graph) and **`rg`** (exact text).
+- **First setup / init:** From the repo root, **`ccc init`** when the directory is not yet a CocoIndex project, then **`ccc index`**; **`/skillgrid-init`** includes this when the CLI is installed. See [`.agents/skills/ccc/SKILL.md`](../.agents/skills/ccc/SKILL.md).
+- **When to refresh:** After large refactors, many new files, or before heavy `ccc search` sessions when the tree changed; run **`ccc index`** (or **`ccc search --refresh`** per skill).
+- **Commit policy:** CocoIndex keeps project metadata in-repo (per upstream defaults—e.g. index config); align `.gitignore` with team policy.
+
 ### graphify — repository knowledge graph
 
 - **Purpose:** Generated **artifacts** under `graphify-out/` (e.g. `GRAPH_REPORT.md`, optional wiki index) so agents can orient on **architecture**, communities, and important nodes without embedding the whole tree in context.
-- **When to refresh:** After substantive code or layout changes; convention in this hub is `graphify update .` (see [`.configs/AGENTS.md`](../.configs/AGENTS.md) and [`.cursor/rules/graphify.md`](../.cursor/rules/graphify.md)).
+- **First build / init:** From the repo root, **`graphify .`** (or IDE **`/graphify .`**) populates `graphify-out/`; Skillgrid **`/skillgrid-init`** includes this step when the CLI is installed.
+- **When to refresh:** After substantive code or layout changes; convention in this hub is **`graphify update .`** (see [`.configs/AGENTS.md`](../.configs/AGENTS.md) and [`.cursor/rules/graphify.md`](../.cursor/rules/graphify.md)).
 - **Commit policy:** Either commit `graphify-out/` for a shared snapshot or keep it local/regenerated after clone—choose per project and document it for contributors.
 
 ### Optional: context-mode
@@ -58,8 +67,9 @@ Besides **memory protocol**, this hub vendors the **[Engram `skills/`](https://g
 
 1. **Rules + memory:** If Engram is connected, use `mem_context` / targeted `mem_search` before contradicting past decisions.
 2. **Map:** If `graphify-out/` exists, skim `GRAPH_REPORT.md` (and wiki index if present) per `AGENTS.md`.
-3. **Code:** Use `rg` / IDE search and LSP, then read files or run tests.
-4. **Persist:** After meaningful decisions or session work, `mem_save` / `mem_session_summary` (and SDD persistence rules when in Engram or OpenSpec modes).
+3. **Concepts in code:** If **ccc** is installed and indexed, use **`ccc search "<natural language>"`** before broad directory reads; pair with **`rg`** / LSP for exact symbols.
+4. **Code:** Use `rg` / IDE search and LSP, then read files or run tests.
+5. **Persist:** After meaningful decisions or session work, `mem_save` / `mem_session_summary` (and SDD persistence rules when in Engram or OpenSpec modes).
 
 A shorter checklist for skills and personas: [`.agents/skills/references/indexing-and-memory.md`](../.agents/skills/references/indexing-and-memory.md) (if present in your checkout).
 

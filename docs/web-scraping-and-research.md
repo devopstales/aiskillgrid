@@ -4,6 +4,14 @@ This hub does **not** ship a single “web scraper” product. Instead it combin
 
 For **install and MCP merging**, see [`tools.md`](tools.md) and [`install.sh`](../install.sh). Fragment paths below are under [`.configs/mcp/`](../.configs/mcp/).
 
+## Repo indexing (CocoIndex `ccc`) — not web scraping
+
+**CocoIndex Code** indexes **your repository** for semantic **`ccc search`** and optional MCP [**`cocoindex-code`**](../.configs/mcp/command/cocoindex-code.json). It does **not** fetch arbitrary websites.
+
+- **Skill:** [.agents/skills/ccc/SKILL.md](../.agents/skills/ccc/SKILL.md)
+- **Bootstrap:** **`ccc init`** then **`ccc index`** at the repo root (also **`/skillgrid-init`** when the CLI is installed)
+- **Overview:** [memory.md](memory.md) · [.agents/skills/references/indexing-and-memory.md](../.agents/skills/references/indexing-and-memory.md)
+
 ---
 
 ## MCP servers in this repo (research-relevant)
@@ -66,7 +74,7 @@ Full skill index with summaries: [`skills.md`](skills.md) (sections **Brave Sear
 
 ## `tools.md` checklist vs this repo
 
-The **Web scrapper** bullet list in [`tools.md`](tools.md) (Context7, Exa, DeepWiki, Brave Search, firecrawl-cli) mixes **MCP** tracking with **CLI/API** ideas. **MCP fragments** that ship in this repo are the JSON files under [`.configs/mcp/`](../.configs/mcp/) in the first table. **Brave** and **Context7** also have **Agent Skills** (`brave-*`, `context7`, `documentation-lookup`) documented above—those work independently of whether a Brave MCP fragment exists in your merge.
+The **Web research and scraping** section in [`tools.md`](tools.md) is a short checklist with **real links** and fragment keys; full MCP and skill tables live in this file. **MCP fragments** that ship in this repo are the JSON files under [`.configs/mcp/`](../.configs/mcp/) in the first table above. **Brave** and **additional CLIs** also have **Agent Skills** (`brave-*`, `context7`, `documentation-lookup`) documented above—those work independently of whether a Brave MCP fragment exists in your merge.
 
 ---
 

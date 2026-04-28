@@ -25,6 +25,8 @@ Before acting, load only the skills needed for the phase:
 
 - `.agents/skills/skillgrid-questioning/SKILL.md` — ask only blocking questions and record answers.
 - `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, graphify output, tests, and conventions.
+- `.agents/skills/ccc/SKILL.md` — CocoIndex Code: `ccc init`, `ccc index`, `ccc search`; optional MCP `cocoindex-code`.
+- `.agents/skills/references/indexing-and-memory.md` — Engram, graphify (`graphify-out/`, `graphify update .`), **ccc**, and MCP memory ordering.
 - `.agents/skills/skillgrid-parallel-research/SKILL.md` — coordinate external research and long evidence capture.
 - `.agents/skills/skillgrid-subagent-orchestration/SKILL.md` — dispatch bounded subagents with handoff paths and two-stage review.
 - `.agents/skills/skillgrid-prd-artifacts/SKILL.md` — PRD numbering, `INDEX.md`, title blocks, and status lifecycle.
@@ -44,6 +46,8 @@ Before acting, load only the skills needed for the phase:
 Load these first for this command:
 
 - `skillgrid-questioning`
+- `skillgrid-codebase-map`
+- `ccc`
 - `skillgrid-parallel-research`
 - `skillgrid-ui-design-artifacts`
 - `skillgrid-project-docs`
