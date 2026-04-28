@@ -120,10 +120,27 @@ Use the **same** Engram MCP entry everywhere you run agents (Cursor, OpenCode, C
   * [ ] [Skill-1](https://github.com/testdino-hq/playwright-skill)
   * [ ] [Skill-2](https://github.com/lackeyjb/playwright-skill)
 
+## Skills
+
+* [ ] [opencode-conductor](https://github.com/derekbar90/opencode-conductor)
+* [ ] [antigravity-kit](https://github.com/vudovn/antigravity-kit)
+* [ ] [ecc](https://github.com/affaan-m/everything-claude-code)
+* https://dev.to/uenyioha/porting-claude-codes-agent-teams-to-opencode-4hol
+
+## Agents (cli)
+
+* claude
+* codex
+* opencode
+  * kilo cli
+* gemini
+* copilot
 
 ## Agent multiplexers
 
-* [ ] [dmux](https://github.com/standardagents/dmux)
-* [ ] [mux](https://github.com/coder/mux)
-* [ ] [superset](https://github.com/superset-sh/superset)
-* [ ] [toad](https://github.com/batrachianai/toad)
+* [ ] [dmux](https://github.com/standardagents/dmux) - Terminal
+* [ ] [toad](https://github.com/batrachianai/toad) - Terminal in it's own window 
+* [ ] [mux](https://github.com/coder/mux) - Separate App
+* [ ] [superset](https://github.com/superset-sh/superset) - Separate App
+* [ ] [conductor]() - Separate App
+* [ ] [Archon](https://github.com/coleam00/archon) - Server Based

@@ -137,16 +137,11 @@ npm install -g @mariozechner/pi-coding-agent
 # Plans and Bugs
 
 * env bariables
-* commands
-  * `/skillgirid-plan` sas `/osx:apply` is the next
 * mcp
 * planning
   * database structure
   * mermaid graph in db plan
-* ticketing integration
-  * github
-  * gitlab
-  * jira cloud
+* web ui
   * web based kamban UI
 * paralelism
   * subagent-driven-development or executing-plans
@@ -155,15 +150,17 @@ npm install -g @mariozechner/pi-coding-agent
     * checkpoint commands
     * create separate git branch for prds and work on that
     * at the and create PR
-* generate user journey 
-  * to Markdown Presentation Ecosystem format
-  * to mermeade
+  * Agent Orcrestration
+    * https://dev.to/uenyioha/porting-claude-codes-agent-teams-to-opencode-4hol
+    * https://github.com/code-yeongyu/oh-my-openagent
+    * https://github.com/agnusdei1207/opencode-orchestrator
 * installer
   * Claude Code plugin
   * Cursor plugin
   * opencode plugin
   * node
   * skill.sh
+  * brew
 
 ## Sources
 
