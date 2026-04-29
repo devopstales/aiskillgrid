@@ -10,7 +10,7 @@ You are executing **`/skillgrid-finish`** for the Skillgrid workflow.
 
 Close a Skillgrid change: final docs alignment, optional spec sync/archive, tracker hygiene, PR handoff, and checkpoint cleanup.
 
-**Status on exit:** set the PRD and `INDEX.md` entry to `done` when the change is finished successfully.
+**Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.finish` when the change is finished successfully (default: `done`).
 
 </objective>
 
@@ -63,6 +63,6 @@ Load these first for this command:
 
 ## Completion Report
 
-Report spec sync/archive result, docs alignment, tracker updates, checkpoint cleanup, PR/CI status, status set to `done`, and remaining risks.
+Report spec sync/archive result, docs alignment, tracker updates, checkpoint cleanup, PR/CI status, configured status set for `finish`, and remaining risks.
 
 </process>

@@ -50,7 +50,7 @@ Load these first for this command:
 
 ## Steps
 
-1. Read `.skillgrid/config.json` if present; report `ticketing.provider` and `artifactStore.mode`.
+1. Read `.skillgrid/config.json` if present; report `ticketing.provider`, `artifactStore.mode`, and `prdWorkflow` status columns / phase mapping.
 2. List active PRDs under `.skillgrid/prd/` and note their `Status:` values.
 3. Check `.skillgrid/tasks/context_*.md` for resumable changes and last checkpoint references.
 4. If Engram is available, search for project and active-change keys; load details only when needed.

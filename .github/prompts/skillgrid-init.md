@@ -51,17 +51,23 @@ Load these first for this command:
 
 ## Steps
 
-1. Ask only for blocking setup choices: ticketing provider and artifact-store mode.
-2. Create or merge `.skillgrid/config.json` with local-first defaults when missing.
-3. If artifact store includes OpenSpec, initialize or align `openspec/` and `openspec/config.yaml`.
-4. Create or refresh `.skillgrid/project/` docs and root `DESIGN.md` using discovered repo facts.
-5. **CocoIndex (`ccc`) (semantic index):** If the **`ccc`** CLI is installed, from the repository root ensure the project is initialized (**`ccc init`** when needed—see [`ccc` skill](../.agents/skills/ccc/SKILL.md)), then run **`ccc index`** so **`ccc search`** and the optional [**`cocoindex-code`** MCP](../.configs/mcp/command/cocoindex-code.json) have a fresh index. If the CLI is missing or the user opts out, skip and note that in the completion report; do not fail init.
-6. **graphify (initial index):** If the `graphify` CLI is installed (e.g. `uv tool install graphifyy`), run **`graphify .`** from the repository root—or in a Chat session, **`/graphify .`**. That creates or refreshes **`graphify-out/`** (including `graph.json` for the optional [graphify MCP](../.configs/mcp/python/graphify.json) and `GRAPH_REPORT.md` for agents). If the CLI is missing or the user opts out, skip and note that in the completion report; do not fail init.
-7. Record durable setup decisions through Engram when available and appropriate.
-8. Recommend `/skillgrid-explore` for brownfield mapping or `/skillgrid-plan` for a clear first change.
+1. Ask only for blocking setup choices: ticketing provider, artifact-store mode, and PRD workflow source.
+2. For PRD workflow source, offer:
+   - `skillgrid-default` preset: `draft`, `todo`, `inprogress`, `devdone`, `done`.
+   - provider preset for GitHub/GitLab/Jira when the project wants remote-like local columns.
+   - provider import when credentials/tooling can discover project columns or statuses.
+   - custom ordered statuses with phase-to-status mapping.
+3. Create or merge `.skillgrid/config.json` with local-first defaults when missing, including `prdWorkflow.statuses`, `fallbackStatus`, and `phaseStatusMap`.
+4. If provider workflow import fails or is unavailable, record the reason and ask for a preset or custom fallback; do not fail init solely because remote status discovery failed.
+5. If artifact store includes OpenSpec, initialize or align `openspec/` and `openspec/config.yaml`.
+6. Create or refresh `.skillgrid/project/` docs and root `DESIGN.md` using discovered repo facts.
+7. **CocoIndex (`ccc`) (semantic index):** If the **`ccc`** CLI is installed, from the repository root ensure the project is initialized (**`ccc init`** when needed—see [`ccc` skill](../.agents/skills/ccc/SKILL.md)), then run **`ccc index`** so **`ccc search`** and the optional [**`cocoindex-code`** MCP](../.configs/mcp/command/cocoindex-code.json) have a fresh index. If the CLI is missing or the user opts out, skip and note that in the completion report; do not fail init.
+8. **graphify (initial index):** If the `graphify` CLI is installed (e.g. `uv tool install graphifyy`), run **`graphify .`** from the repository root—or in a Chat session, **`/graphify .`**. That creates or refreshes **`graphify-out/`** (including `graph.json` for the optional [graphify MCP](../.configs/mcp/python/graphify.json) and `GRAPH_REPORT.md` for agents). If the CLI is missing or the user opts out, skip and note that in the completion report; do not fail init.
+9. Record durable setup decisions through Engram when available and appropriate.
+10. Recommend `/skillgrid-explore` for brownfield mapping or `/skillgrid-plan` for a clear first change.
 
 ## Completion Report
 
-Report config choices, created/aligned artifacts, project docs touched, **ccc** / **graphify** indexing (if run), memory saves, and recommended next command.
+Report config choices, PRD workflow source/statuses/phase mapping, provider import result or fallback, created/aligned artifacts, project docs touched, **ccc** / **graphify** indexing (if run), memory saves, and recommended next command.
 
 </process>

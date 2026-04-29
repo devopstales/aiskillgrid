@@ -13,7 +13,7 @@ You are executing **`/skillgrid-validate`** for the Skillgrid workflow.
 
 Run the combined review gate: spec compliance, code quality, security, and user sign-off.
 
-**Status on exit:** set the PRD and `INDEX.md` entry to `devdone` only when validation passes or accepted risks are explicit.
+**Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.validate` only when validation passes or accepted risks are explicit (default: `devdone`).
 
 </objective>
 
@@ -65,6 +65,6 @@ Load these first for this command:
 
 ## Completion Report
 
-Report validation result, issues found/resolved/accepted, evidence paths, status set to `devdone` if passed, and recommended `/skillgrid-finish`.
+Report validation result, issues found/resolved/accepted, evidence paths, configured status set for `validate` if passed, and recommended `/skillgrid-finish`.
 
 </process>

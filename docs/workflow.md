@@ -16,7 +16,7 @@ Think of the hierarchy as **PRD sequence -> PRD slice -> OpenSpec tasks**. A seq
 ## Session (optional)
 
 * `/skillgrid-session`
-* Run at the start of an agent session when you need charter, context budget, MCP selection, and checkpoints. Restores **`.skillgrid/config.json`** (ticketing and artifact store) with **`AGENTS.md`**, **OpenSpec** listing, and PRDs in flight.
+* Run at the start of an agent session when you need charter, context budget, MCP selection, and checkpoints. Restores **`.skillgrid/config.json`** (ticketing, artifact store, and PRD workflow) with **`AGENTS.md`**, **OpenSpec** listing, and PRDs in flight.
 
 ## Help (optional)
 
@@ -35,6 +35,8 @@ Think of the hierarchy as **PRD sequence -> PRD slice -> OpenSpec tasks**. A seq
 * **`.skillgrid/config.json`** (created or merged early):
   * **Question 1 — Ticketing:** `local` (PRDs + index, optional local Kanban script), or `github` / `gitlab` / `jira` for remote issue workflows in later commands.
   * **Question 2 — Artifact store:** `hybrid` (strongly recommended default), `openspec`, or `engram` — where spec and handoff data live: on-disk `openspec/`, Engram memory, or both. Same contract as the hub’s spec-driven init skills: `engram` does not add `openspec/` by default; `openspec` is disk-first; `hybrid` uses both.
+  * **Question 3 — PRD workflow:** `skillgrid-default`, provider preset, provider import, or custom ordered statuses. This writes **`prdWorkflow.statuses`**, **`fallbackStatus`**, and **`phaseStatusMap`** so local Kanban columns and PRD status transitions match the project.
+  * **Provider workflow import:** GitHub/GitLab/Jira status discovery is best-effort. If credentials or project metadata are unavailable, record the reason and fall back to a preset or custom workflow.
 * Create **`.skillgrid/`** tree: **`project/`**, **`prd/`**, **`tasks/`**, **`preview/`**, **`scripts/`** as needed; never put PRDs at the repository root.
 * **Greenfield / brownfield** routing, **`DESIGN.md`**, **`.skillgrid/project/*.md`**, **root `AGENTS.md`**
 * When artifact store includes OpenSpec: **`openspec init`** (baseline `openspec/`, **`config.yaml`**, changes tree). When it includes Engram: **`mem_save`** with a stable `topic_key` (for example `skillgrid-init/{project-name}`).
@@ -126,7 +128,7 @@ project-root/
 ├── AGENTS.md
 ├── DESIGN.md
 ├── .skillgrid/
-│   ├── config.json                 # ticketing.provider; artifactStore.mode (hybrid | openspec | engram)
+│   ├── config.json                 # ticketing.provider; artifactStore.mode; prdWorkflow statuses/mapping
 │   ├── project/
 │   │   ├── ARCHITECTURE.md
 │   │   ├── STRUCTURE.md
@@ -246,17 +248,18 @@ A PRD may map to one or more **OpenSpec** changes (commonly 1:1). If scope expan
 
 **PRD** stays the product intent source until superseded: keep it **consistent** with `openspec/changes/<id>/proposal.md` and delta specs when both exist. Detailed file-by-file steps belong in **`tasks.md`**, not in the PRD body.
 
-**Status lifecycle (`Status:` on the PRD and in `INDEX.md`)** — align with the workflow commands (authoritative list in **`/skillgrid-init`**):
+**Status lifecycle (`Status:` on the PRD and in `INDEX.md`)** — read **`.skillgrid/config.json`**. The authoritative list is **`prdWorkflow.statuses`**, and command transitions use **`prdWorkflow.phaseStatusMap`**. If `prdWorkflow` is missing, use the default lifecycle:
 
 | When this command completes (phase) | Set `Status` to |
 |------------------------------------|-----------------|
-| **`/skillgrid-plan`** | `draft` |
-| **`/skillgrid-breakdown`** | `todo` |
-| **`/skillgrid-apply`** | `inprogress` |
-| **`/skillgrid-validate`** | `devdone` |
-| **`/skillgrid-finish`** | `done` |
+| **`/skillgrid-plan`** | `phaseStatusMap.plan` (default `draft`) |
+| **`/skillgrid-breakdown`** | `phaseStatusMap.breakdown` (default `todo`) |
+| **`/skillgrid-apply`** | `phaseStatusMap.apply` (default `inprogress`) |
+| **`/skillgrid-validate`** | `phaseStatusMap.validate` (default `devdone`) |
+| **`/skillgrid-finish`** | `phaseStatusMap.finish` (default `done`) |
 
-- Use **single-token** values (`inprogress` has no space). Overwrite the previous value as work advances.  
+- Use **single-token** status ids (`inprogress` has no space); dashboard labels may be human-readable. Overwrite the previous value as work advances.
+- `.skillgrid/scripts/skillgrid-ui.mjs` renders Kanban columns in configured `prdWorkflow.statuses` order and validates status updates against that list.
 - Markdown **skeletons** for the PRD live in **`/skillgrid-plan`** (Part A — *PRD file templates*), not duplicated here.
 
 ## OpenSpec
@@ -269,15 +272,15 @@ OpenSpec is the secondary technical spec backend, not the whole Skillgrid workfl
 
 **How PRD and OpenSpec connect**
 
-1. **`/skillgrid-plan`** — PRD first, then create or refresh the **OpenSpec** change. **Status** → `draft`. Optional **Engram** `mem_save` with a stable `topic_key` (hybrid or engram **artifact** store).  
-2. **`/skillgrid-breakdown`** — **`tasks.md`**; PRD **Status** → `todo`.  
-3. **`/skillgrid-apply`** — **Status** → `inprogress`.  
-4. **`/skillgrid-validate`** — **Status** → `devdone`.  
-5. **`/skillgrid-finish`** — archive change, optional spec sync, PR; **Status** → `done`.
+1. **`/skillgrid-plan`** — PRD first, then create or refresh the **OpenSpec** change. **Status** → `phaseStatusMap.plan` (default `draft`). Optional **Engram** `mem_save` with a stable `topic_key` (hybrid or engram **artifact** store).  
+2. **`/skillgrid-breakdown`** — **`tasks.md`**; PRD **Status** → `phaseStatusMap.breakdown` (default `todo`).  
+3. **`/skillgrid-apply`** — **Status** → `phaseStatusMap.apply` (default `inprogress`).  
+4. **`/skillgrid-validate`** — **Status** → `phaseStatusMap.validate` (default `devdone`).  
+5. **`/skillgrid-finish`** — archive change, optional spec sync, PR; **Status** → `phaseStatusMap.finish` (default `done`).
 
 **Context for agents** — The **OpenSpec** proposal may list `contextFiles`. The Skillgrid handoff file is **additional** context: one line in **`proposal.md`**: *Skillgrid session context:* `.skillgrid/tasks/context_<change-id>.md` (see **`/skillgrid-plan`**).
 
-**Project `openspec/config.yaml` —** Root **`context`** (injected into artifact instructions) should **mirror** **ticketing** and **artifact store** from **`.skillgrid/config.json`**, with the same merge discipline as **`/skillgrid-init`**, so agents running **`openspec instructions`** do not assume a different issue tracker. **`/skillgrid-plan`** and exploration passes refresh this when needed.
+**Project `openspec/config.yaml` —** Root **`context`** (injected into artifact instructions) should **mirror** **ticketing**, **artifact store**, and **PRD workflow** from **`.skillgrid/config.json`**, with the same merge discipline as **`/skillgrid-init`**, so agents running **`openspec instructions`** do not assume a different issue tracker or status lifecycle. **`/skillgrid-plan`** and exploration passes refresh this when needed.
 
 **CLI** — Use the **OpenSpec** CLI as the project documents (`openspec status`, `openspec instructions tasks` during breakdown). **Artifact store** for whether **`openspec/`** exists: **`/skillgrid-init`** and **`.skillgrid/config.json` → `artifactStore.mode`**.
 

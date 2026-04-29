@@ -30,6 +30,7 @@ When OpenSpec is active, `openspec/config.yaml` context should mention:
 
 - ticketing provider from `.skillgrid/config.json`
 - artifact store mode from `.skillgrid/config.json`
+- PRD workflow source, status ids, and phase-to-status mapping from `.skillgrid/config.json`
 - canonical PRD path: `.skillgrid/prd/`
 - handoff path: `.skillgrid/tasks/context_<change-id>.md`
 
@@ -59,6 +60,11 @@ context: |
   - Local mode uses `.skillgrid/prd/INDEX.md` and PRD `Status:` as the work tracker.
   - Remote issues are created only when the provider is configured.
 
+  PRD workflow:
+  - Source: <preset|custom|provider-import>
+  - Statuses: <ordered status ids, e.g. draft, todo, inprogress, devdone, done>
+  - Phase status map: plan=<status>, breakdown=<status>, apply=<status>, validate=<status>, finish=<status>
+
   Artifact store:
   - Mode: <hybrid|openspec|engram>
   - PRDs: `.skillgrid/prd/`
@@ -83,6 +89,7 @@ When changing config, summarize:
 - **Read:** `openspec/config.yaml`
 - **Ticketing provider:** `<provider>`
 - **Artifact store:** `<mode>`
+- **PRD workflow:** `<source>; <ordered-statuses>`
 
 ## Changes made
 

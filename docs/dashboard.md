@@ -20,6 +20,12 @@ Configuration:
 
 CLI flags (`--port`, `--host`, `--prd-dir`) take precedence. The old `PRD_KANBAN_*` names are still accepted for compatibility, but new scripts should use `SKILLGRID_UI_*`.
 
+PRD workflow columns come from `.skillgrid/config.json` when `prdWorkflow.statuses` is configured. If no workflow is configured, the dashboard uses the legacy default:
+
+```text
+draft | todo | inprogress | devdone | done
+```
+
 ## Data Sources
 
 The dashboard reads existing Skillgrid artifacts. It does not add a database, daemon, telemetry layer, platform adapter, or workflow engine.
@@ -37,15 +43,11 @@ The dashboard reads existing Skillgrid artifacts. It does not add a database, da
 
 ### Board
 
-The Board view keeps the PRD Kanban columns:
-
-```text
-draft | todo | inprogress | devdone | done
-```
+The Board view renders PRD Kanban columns in `prdWorkflow.statuses` order. Each status `id` is written to PRD `status`, while each optional `label` is used for display.
 
 Cards show the PRD title, file, change id, current handoff phase, latest event status, blocked badge, preview link, external link, and a Workflow shortcut.
 
-Dragging a card or changing its status dropdown updates only the PRD `status` field.
+Dragging a card or changing its status dropdown updates only the PRD `status` field. The server rejects status ids that are not in the configured workflow.
 
 ### Workflow
 

@@ -84,27 +84,51 @@ Adapt only when the repository has an explicit stronger template.
 
 ### Status Lifecycle
 
-Skillgrid status values are:
+Read `.skillgrid/config.json` before changing PRD `Status:` values. The source of truth is:
+
+```json
+{
+  "prdWorkflow": {
+    "fallbackStatus": "draft",
+    "statuses": [
+      { "id": "draft", "label": "Draft" },
+      { "id": "todo", "label": "Todo" },
+      { "id": "inprogress", "label": "In Progress" },
+      { "id": "devdone", "label": "Dev Done" },
+      { "id": "done", "label": "Done" }
+    ],
+    "phaseStatusMap": {
+      "plan": "draft",
+      "breakdown": "todo",
+      "apply": "inprogress",
+      "validate": "devdone",
+      "finish": "done"
+    }
+  }
+}
+```
+
+When `prdWorkflow` is missing, use the default lifecycle:
 
 ```text
 draft -> todo -> inprogress -> devdone -> done
 ```
 
-Commands own phase transitions:
+Commands own phase transitions through `prdWorkflow.phaseStatusMap`:
 
 | Phase | Command | Status on successful exit |
 |---|---|---|
-| Plan | `/skillgrid-plan` | `draft` |
-| Breakdown | `/skillgrid-breakdown` | `todo` |
-| Apply | `/skillgrid-apply` | `inprogress` |
-| Validate | `/skillgrid-validate` | `devdone` |
-| Finish | `/skillgrid-finish` | `done` |
+| Plan | `/skillgrid-plan` | `phaseStatusMap.plan` (default `draft`) |
+| Breakdown | `/skillgrid-breakdown` | `phaseStatusMap.breakdown` (default `todo`) |
+| Apply | `/skillgrid-apply` | `phaseStatusMap.apply` (default `inprogress`) |
+| Validate | `/skillgrid-validate` | `phaseStatusMap.validate` (default `devdone`) |
+| Finish | `/skillgrid-finish` | `phaseStatusMap.finish` (default `done`) |
 
-When backfilling an existing change:
+When backfilling an existing change, map evidence to the configured workflow:
 
-- archived OpenSpec change -> `done`
-- tasks with completed checkboxes -> `inprogress`
-- proposal-only or planning-only -> `draft`
+- archived OpenSpec change -> `phaseStatusMap.finish`
+- tasks with completed checkboxes -> `phaseStatusMap.apply`
+- proposal-only or planning-only -> `phaseStatusMap.plan`
 
 ### Required PRD Sections
 

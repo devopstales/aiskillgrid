@@ -51,6 +51,8 @@ description: Senior code reviewer that evaluates changes across five dimensions 
 
 The body defines role, scope, output shape, and (per repo convention) a **Composition** section at the end. Do not rely on unsupported frontmatter fields for Claude Code–style plugins (see [.cursor/agents/README.md](../.cursor/agents/README.md)).
 
+Every `skillgrid-*` persona also includes an **Identity and discipline** section before **Mandatory Context**. This section makes the persona's identity explicit, keeps report-first roles read-only unless the parent assigns edits, prevents hidden persona-to-persona orchestration, and forbids duplicate search after delegated exploration or research.
+
 ---
 
 ## Skills vs `agents/` vs commands
@@ -63,6 +65,16 @@ The body defines role, scope, output shape, and (per repo convention) a **Compos
 | **Slash command** | `.cursor/commands/*.md` | *When* to run a phase or workflow; may point agents at specific skills. |
 
 For the end-to-end Skillgrid phase list, see [workflow.md](workflow.md) and [commands.md](commands.md).
+
+## Discipline Rules
+
+Skillgrid borrows the useful parts of `oh-my-openagent` agent discipline without adopting its runtime:
+
+- **Identity:** a persona should identify as its frontmatter `name` and stay in that role.
+- **Tool posture:** reviewer, verifier, auditor, critic, researcher, and explorer personas are report-first; implementation remains with `/skillgrid-apply` or the parent session unless explicitly assigned.
+- **Anti-duplication:** once exploration or research has been delegated for a scope, the parent or sibling persona should not repeat the same search.
+- **Hard blocks:** no commits without explicit request, no speculative claims about unread code or sources, no deleted tests to pass, and no type/error suppression shortcuts.
+- **Checks:** `scripts/sync-ide-assets.sh --check` verifies `skillgrid-*` personas have required frontmatter and core sections before mirror drift is accepted.
 
 ---
 

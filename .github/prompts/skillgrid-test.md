@@ -10,7 +10,7 @@ You are executing **`/skillgrid-test`** for the Skillgrid workflow.
 
 Run quality gates and collect verification evidence for the active PRD/spec slice.
 
-**Status on exit:** no automatic PRD status change; validation owns `devdone`.
+**Status on exit:** no automatic PRD status change; validation owns `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.validate` (default: `devdone`).
 
 </objective>
 

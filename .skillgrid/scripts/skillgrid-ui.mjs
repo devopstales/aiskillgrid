@@ -20,7 +20,28 @@ import crypto from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const STATUSES = new Set(['draft', 'todo', 'inprogress', 'devdone', 'done']);
+const DEFAULT_WORKFLOW_PHASES = ['brainstorm', 'design', 'plan', 'breakdown', 'apply', 'test', 'security', 'validate', 'finish'];
+const DEFAULT_PRD_WORKFLOW = Object.freeze({
+  source: 'preset',
+  preset: 'skillgrid-default',
+  fallbackStatus: 'draft',
+  statuses: Object.freeze([
+    Object.freeze({ id: 'draft', label: 'Draft' }),
+    Object.freeze({ id: 'todo', label: 'Todo' }),
+    Object.freeze({ id: 'inprogress', label: 'In Progress' }),
+    Object.freeze({ id: 'devdone', label: 'Dev Done' }),
+    Object.freeze({ id: 'done', label: 'Done' }),
+  ]),
+  phaseStatusMap: Object.freeze({
+    plan: 'draft',
+    breakdown: 'todo',
+    apply: 'inprogress',
+    validate: 'devdone',
+    finish: 'done',
+  }),
+  providerMapping: Object.freeze({}),
+});
+const STATUS_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const PRD_NAME_RE = /^PRD\d{2}_.+\.md$/;
 
 const STATIC = {
@@ -781,8 +802,14 @@ const STATIC = {
   padding: 0;
 }
 `,
-  '/app.js': `const STATUSES = ['draft', 'todo', 'inprogress', 'devdone', 'done'];
-const PHASES = ['brainstorm', 'design', 'plan', 'breakdown', 'apply', 'test', 'security', 'validate', 'finish'];
+  '/app.js': `const DEFAULT_STATUS_COLUMNS = [
+  { id: 'draft', label: 'Draft' },
+  { id: 'todo', label: 'Todo' },
+  { id: 'inprogress', label: 'In Progress' },
+  { id: 'devdone', label: 'Dev Done' },
+  { id: 'done', label: 'Done' },
+];
+const DEFAULT_PHASES = ['brainstorm', 'design', 'plan', 'breakdown', 'apply', 'test', 'security', 'validate', 'finish'];
 
 if (typeof marked !== 'undefined') {
   marked.setOptions({ gfm: true, breaks: true });
@@ -834,6 +861,22 @@ let cards = [];
 let dashboard = { prds: [], graph: { available: false } };
 let activeView = 'board';
 let selectedChangeId = null;
+
+function statusColumns() {
+  const configured = dashboard.prdWorkflow && dashboard.prdWorkflow.statuses;
+  return Array.isArray(configured) && configured.length ? configured : DEFAULT_STATUS_COLUMNS;
+}
+
+function statusLabel(statusId) {
+  const match = statusColumns().find((status) => status.id === statusId);
+  return match ? match.label : statusId;
+}
+
+function workflowPhases() {
+  return Array.isArray(dashboard.workflowPhases) && dashboard.workflowPhases.length
+    ? dashboard.workflowPhases
+    : DEFAULT_PHASES;
+}
 
 function showBanner(message, isError) {
   bannerEl.textContent = message;
@@ -918,13 +961,14 @@ async function loadPrds() {
 
 function render() {
   boardEl.innerHTML = '';
-  for (const status of STATUSES) {
+  for (const statusDef of statusColumns()) {
+    const status = statusDef.id;
     const col = document.createElement('section');
     col.className = 'column';
     col.dataset.status = status;
 
     const h = document.createElement('h2');
-    h.textContent = status;
+    h.textContent = statusDef.label || status;
     col.appendChild(h);
 
     const body = document.createElement('div');
@@ -1014,10 +1058,11 @@ function renderCard(c) {
   const sel = document.createElement('select');
   sel.className = 'card-move';
   sel.setAttribute('aria-label', \`Move \${c.file}\`);
-  for (const s of STATUSES) {
+  for (const statusDef of statusColumns()) {
+    const s = statusDef.id;
     const opt = document.createElement('option');
     opt.value = s;
-    opt.textContent = s;
+    opt.textContent = statusDef.label || s;
     if (s === c.status) opt.selected = true;
     sel.appendChild(opt);
   }
@@ -1083,7 +1128,7 @@ function renderWorkflowList() {
     item.appendChild(title);
     const meta = document.createElement('span');
     meta.className = 'workflow-item-meta';
-    meta.textContent = c.status + ' / ' + (c.changeId || c.file);
+    meta.textContent = statusLabel(c.status) + ' / ' + (c.changeId || c.file);
     item.appendChild(meta);
     workflowList.appendChild(item);
   }
@@ -1100,7 +1145,7 @@ function renderWorkflowDetail(c) {
   header.appendChild(h);
   const meta = document.createElement('div');
   meta.className = 'card-meta';
-  meta.textContent = 'Change: ' + c.changeId + ' / PRD: ' + c.file + ' / Status: ' + c.status;
+  meta.textContent = 'Change: ' + c.changeId + ' / PRD: ' + c.file + ' / Status: ' + statusLabel(c.status);
   header.appendChild(meta);
   const headerLinks = document.createElement('div');
   headerLinks.className = 'artifact-list';
@@ -1129,7 +1174,7 @@ function renderWorkflowDetail(c) {
   const phaseList = document.createElement('div');
   phaseList.className = 'phase-list';
   const phaseMap = (c.workflow && c.workflow.phases) || {};
-  for (const phase of PHASES) {
+  for (const phase of workflowPhases()) {
     const latest = phaseMap[phase];
     const row = document.createElement('div');
     row.className = 'phase-row';
@@ -1323,6 +1368,109 @@ function repoRootFromPrdRoot(prdRoot) {
   return path.dirname(skillgridRootFromPrdRoot(prdRoot));
 }
 
+function configError(message) {
+  const err = new Error(`invalid .skillgrid/config.json prdWorkflow: ${message}`);
+  err.code = 'invalid_config';
+  return err;
+}
+
+function cloneDefaultPrdWorkflow() {
+  return {
+    source: DEFAULT_PRD_WORKFLOW.source,
+    preset: DEFAULT_PRD_WORKFLOW.preset,
+    fallbackStatus: DEFAULT_PRD_WORKFLOW.fallbackStatus,
+    statuses: DEFAULT_PRD_WORKFLOW.statuses.map((status) => ({ ...status })),
+    phaseStatusMap: { ...DEFAULT_PRD_WORKFLOW.phaseStatusMap },
+    providerMapping: {},
+  };
+}
+
+function normalizeStatusId(value, fieldName) {
+  const id = String(value ?? '').trim();
+  if (!STATUS_ID_RE.test(id)) {
+    throw configError(`${fieldName} must be a single token using letters, numbers, dots, underscores, or hyphens`);
+  }
+  return id;
+}
+
+function statusIdSet(prdWorkflow) {
+  return new Set(prdWorkflow.statuses.map((status) => status.id));
+}
+
+function normalizePrdWorkflow(config = {}) {
+  const raw = config && typeof config === 'object' ? config.prdWorkflow : null;
+  if (raw == null) return cloneDefaultPrdWorkflow();
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw configError('must be an object when present');
+  }
+
+  const statusesRaw = raw.statuses;
+  if (!Array.isArray(statusesRaw) || statusesRaw.length === 0) {
+    throw configError('statuses must be a non-empty array');
+  }
+
+  const seen = new Set();
+  const statuses = statusesRaw.map((entry, index) => {
+    const item = typeof entry === 'string' ? { id: entry } : entry;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw configError(`statuses[${index}] must be a string or object`);
+    }
+    const id = normalizeStatusId(item.id, `statuses[${index}].id`);
+    if (seen.has(id)) throw configError(`duplicate status id "${id}"`);
+    seen.add(id);
+    const label = String(item.label ?? id).trim() || id;
+    return { id, label };
+  });
+
+  const ids = new Set(statuses.map((status) => status.id));
+  const fallbackStatus = normalizeStatusId(raw.fallbackStatus ?? statuses[0].id, 'fallbackStatus');
+  if (!ids.has(fallbackStatus)) {
+    throw configError(`fallbackStatus "${fallbackStatus}" is not listed in statuses`);
+  }
+
+  const phaseStatusMap = {};
+  const rawPhaseMap = raw.phaseStatusMap && typeof raw.phaseStatusMap === 'object' && !Array.isArray(raw.phaseStatusMap)
+    ? raw.phaseStatusMap
+    : {};
+  for (const [phase, status] of Object.entries(rawPhaseMap)) {
+    const phaseId = normalizeStatusId(phase, 'phaseStatusMap key');
+    const statusId = normalizeStatusId(status, `phaseStatusMap.${phaseId}`);
+    if (!ids.has(statusId)) {
+      throw configError(`phaseStatusMap.${phaseId} points to unknown status "${statusId}"`);
+    }
+    phaseStatusMap[phaseId] = statusId;
+  }
+
+  const providerMapping = raw.providerMapping && typeof raw.providerMapping === 'object' && !Array.isArray(raw.providerMapping)
+    ? raw.providerMapping
+    : {};
+
+  return {
+    source: typeof raw.source === 'string' && raw.source.trim() ? raw.source.trim() : 'custom',
+    preset: typeof raw.preset === 'string' && raw.preset.trim() ? raw.preset.trim() : null,
+    fallbackStatus,
+    statuses,
+    phaseStatusMap,
+    providerMapping,
+  };
+}
+
+async function readSkillgridConfig(prdRoot) {
+  const configPath = path.join(skillgridRootFromPrdRoot(prdRoot), 'config.json');
+  if (!existsSync(configPath)) return {};
+  try {
+    return JSON.parse(await fs.readFile(configPath, 'utf8'));
+  } catch (e) {
+    const err = new Error(`invalid .skillgrid/config.json: ${e.message || e}`);
+    err.code = 'invalid_config';
+    throw err;
+  }
+}
+
+async function loadPrdWorkflow(prdRoot) {
+  return normalizePrdWorkflow(await readSkillgridConfig(prdRoot));
+}
+
 function envWithLegacy(currentName, legacyName) {
   const current = process.env[currentName];
   if (current != null && current !== '') return current;
@@ -1510,10 +1658,10 @@ function composeWithFrontMatter(front, body) {
   return `---\n${front}\n---\n${body}`;
 }
 
-function effectiveStatusString(statusRaw) {
+function effectiveStatusString(statusRaw, prdWorkflow = DEFAULT_PRD_WORKFLOW) {
   const s = statusRaw != null ? String(statusRaw).trim().replace(/^`|`$/g, '') : '';
-  if (s && STATUSES.has(s)) return s;
-  return 'draft';
+  if (s && statusIdSet(prdWorkflow).has(s)) return s;
+  return prdWorkflow.fallbackStatus;
 }
 
 /** Update only `status:` in front matter; preserve body bytes as string content after split. */
@@ -1528,12 +1676,13 @@ function applyStatusToDocument(rawBuf, newStatus) {
 
 function extractPrdFromRaw(rawBuf, fileName, opts = {}) {
   const includeBody = Boolean(opts.includeBody);
+  const prdWorkflow = opts.prdWorkflow || DEFAULT_PRD_WORKFLOW;
   const rawStr = rawBuf.toString('utf8');
   const revision = sha256Hex(rawBuf);
   const { front, body } = splitFrontMatter(rawStr);
   const bodyOut = body;
   const st = getYamlField(front, 'status') || getMarkdownMetaField(bodyOut, 'Status');
-  const status = effectiveStatusString(st);
+  const status = effectiveStatusString(st, prdWorkflow);
   let title = fileName;
   const t = getYamlField(front, 'title');
   if (t) title = t;
@@ -1566,7 +1715,8 @@ function extractPrdFromRaw(rawBuf, fileName, opts = {}) {
   return out;
 }
 
-async function getPrdDetail(prdRoot, fileParam) {
+async function getPrdDetail(prdRoot, fileParam, prdWorkflow = null) {
+  const workflow = prdWorkflow || await loadPrdWorkflow(prdRoot);
   const decoded = decodeURIComponent(fileParam || '');
   if (!decoded || decoded !== path.basename(decoded)) {
     const err = new Error('not_found');
@@ -1580,10 +1730,10 @@ async function getPrdDetail(prdRoot, fileParam) {
     throw err;
   }
   const raw = await fs.readFile(full);
-  return enrichPrd(prdRoot, extractPrdFromRaw(raw, path.basename(full), { includeBody: true }));
+  return enrichPrd(prdRoot, extractPrdFromRaw(raw, path.basename(full), { includeBody: true, prdWorkflow: workflow }));
 }
 
-async function listPrds(prdRoot) {
+async function listPrds(prdRoot, prdWorkflow = DEFAULT_PRD_WORKFLOW) {
   const entries = await fs.readdir(prdRoot, { withFileTypes: true });
   const out = [];
   for (const ent of entries) {
@@ -1592,13 +1742,13 @@ async function listPrds(prdRoot) {
     const full = path.join(prdRoot, ent.name);
     const raw = await fs.readFile(full);
     try {
-      const meta = extractPrdFromRaw(raw, ent.name);
+      const meta = extractPrdFromRaw(raw, ent.name, { prdWorkflow });
       out.push(meta);
     } catch {
       out.push({
         file: ent.name,
         title: ent.name,
-        status: 'draft',
+        status: prdWorkflow.fallbackStatus,
         revision: sha256Hex(raw),
         changeId: fallbackChangeId(ent.name),
         specPath: null,
@@ -1841,11 +1991,13 @@ async function enrichPrd(prdRoot, prd) {
 
 async function buildDashboardData(prdRoot) {
   const repoRoot = repoRootFromPrdRoot(prdRoot);
-  const prds = await Promise.all((await listPrds(prdRoot)).map((prd) => enrichPrd(prdRoot, prd)));
+  const prdWorkflow = await loadPrdWorkflow(prdRoot);
+  const prds = await Promise.all((await listPrds(prdRoot, prdWorkflow)).map((prd) => enrichPrd(prdRoot, prd)));
   return {
     prds,
+    prdWorkflow,
     agentActions: collectAgentActions(prds),
-    workflowPhases: ['brainstorm', 'design', 'plan', 'breakdown', 'apply', 'test', 'security', 'validate', 'finish'],
+    workflowPhases: DEFAULT_WORKFLOW_PHASES,
     graph: {
       available: existsSync(path.join(repoRoot, 'graphify-out', 'graph.html')),
       path: 'graphify-out/graph.html',
@@ -1854,7 +2006,8 @@ async function buildDashboardData(prdRoot) {
   };
 }
 
-async function updateStatus(prdRoot, fileParam, body, currentRevision) {
+async function updateStatus(prdRoot, fileParam, body, currentRevision, prdWorkflow = null) {
+  const workflow = prdWorkflow || await loadPrdWorkflow(prdRoot);
   const full = safeResolvedPath(prdRoot, fileParam);
   if (!full) {
     const err = new Error('not_found');
@@ -1873,7 +2026,7 @@ async function updateStatus(prdRoot, fileParam, body, currentRevision) {
     err.code = 'conflict';
     throw err;
   }
-  if (!STATUSES.has(body.status)) {
+  if (!statusIdSet(workflow).has(body.status)) {
     const err = new Error('invalid_status');
     err.code = 'invalid_status';
     throw err;
@@ -2085,4 +2238,18 @@ async function main() {
   });
 }
 
-main();
+export {
+  DEFAULT_PRD_WORKFLOW,
+  DEFAULT_WORKFLOW_PHASES,
+  applyStatusToDocument,
+  buildDashboardData,
+  effectiveStatusString,
+  extractPrdFromRaw,
+  loadPrdWorkflow,
+  normalizePrdWorkflow,
+  updateStatus,
+};
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

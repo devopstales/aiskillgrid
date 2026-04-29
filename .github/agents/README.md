@@ -130,17 +130,40 @@ Why this fails:
 3. A persona may invoke skills (the *how*).
 4. Every persona file ends with a "Composition" block stating where it fits.
 
+## Agent discipline
+
+Skillgrid personas follow the lightweight discipline adapted from `oh-my-openagent/src/agents`, without copying its runtime or model fallback system:
+
+1. **Identity is explicit:** each persona declares its designated identity and must stay in that role.
+2. **Tool posture matches the role:** reviewer, verifier, auditor, critic, researcher, and explorer personas are report-first. They do not edit files unless the parent prompt explicitly assigns that work.
+3. **No duplicate delegation:** when exploration or research has already been delegated for the same scope, do not repeat the same search. Continue only with non-overlapping work or wait for the delegated result.
+4. **No speculative claims:** cite read artifacts, source URLs, commands, or evidence. Mark unknowns instead of inventing facts.
+5. **Hard blocks:** no commits without explicit user request, no deleting or weakening tests to pass, no type/error suppression as a shortcut, and no hidden persona orchestration.
+
+## Role coverage assessment
+
+The current Skillgrid set covers the useful `oh-my-openagent` role families without adding new personas yet:
+
+| Inspiration | Skillgrid coverage | Decision |
+|-------------|--------------------|----------|
+| Librarian / external reference search | `skillgrid-researcher` | Covered. Keep cited research in one persona. |
+| Explore / contextual grep | `skillgrid-explore-architect` plus platform explore subagents | Covered. Use direct explore subagents for broad read-only search, and this persona for durable architecture docs. |
+| Oracle / Metis / Momus consultation and plan critique | `skillgrid-spec-verifier`, `skillgrid-task-breakdown-auditor`, `skillgrid-code-reviewer`, and slash-command review gates | Covered as review modes for now. Add a new consultant only if repeated workflows need a distinct report format. |
+| Sisyphus / Atlas orchestrators | `/skillgrid-*` slash commands and parent session | Do not add a meta-orchestrator persona; orchestration remains command-owned. |
+
 ## Consistency contract
 
 All agents in this directory follow the same contract, adapted from the focused agent style used by [GSD agents](https://github.com/gsd-build/get-shit-done/tree/main/agents):
 
 1. **Frontmatter:** include `name`, `description`, `tools`, and `color`.
 2. **Single job:** state the persona's role in the first paragraph and stay inside it.
-3. **Mandatory context:** read the relevant request, artifacts, and project rules before producing findings or edits.
-4. **Scope discipline:** say what is out of scope and recommend another persona or command instead of doing that work.
-5. **Structured output:** use the persona's report template and classify findings consistently.
-6. **No hidden orchestration:** do not call or impersonate another persona.
-7. **No source edits unless assigned:** reviewer, verifier, critic, researcher, and auditor personas produce reports; implementation remains with the parent session or `/skillgrid-apply`.
+3. **Identity and discipline:** include an "Identity and discipline" section before "Mandatory Context".
+4. **Mandatory context:** read the relevant request, artifacts, and project rules before producing findings or edits.
+5. **Scope discipline:** say what is out of scope and recommend another persona or command instead of doing that work.
+6. **Structured output:** use the persona's report template and classify findings consistently.
+7. **No hidden orchestration:** do not call or impersonate another persona.
+8. **No source edits unless assigned:** reviewer, verifier, critic, researcher, and auditor personas produce reports; implementation remains with the parent session or `/skillgrid-apply`.
+9. **Sync check enforcement:** `scripts/sync-ide-assets.sh --check` fails when `skillgrid-*` personas are missing required frontmatter or required sections.
 
 Generic names such as `spec-verifier`, `task-breakdown-auditor`, `explore-architect`, and `design-critic` are compatibility aliases. Prefer the `skillgrid-*` names for new workflows because they include the full Skillgrid handoff and memory contract.
 
@@ -159,7 +182,8 @@ Plugin agents do not support `hooks`, `mcpServers`, or `permissionMode` frontmat
 
 1. Create `agents/skillgrid-<slug>.md` with the same frontmatter format used by existing personas; set `name: skillgrid-<slug>` in frontmatter (keep the `skillgrid-` prefix for hub personas).
 2. Define the role, scope, output format, and rules.
-3. Add a **Composition** block at the bottom (Invoke directly when / Invoke via / Do not invoke from another persona).
-4. Add the persona to the table at the top of this file.
-5. Mirror the file to `.kilo/agents/`, `.opencode/agents/`, and `.github/agents/`.
-6. If the persona enables a new orchestration pattern, document it in `.agents/skills_back/references/orchestration-patterns.md` (or promote it into `docs/`) rather than inventing the pattern in the persona file itself.
+3. Add an **Identity and discipline** block before **Mandatory Context**.
+4. Add a **Composition** block at the bottom (Invoke directly when / Invoke via / Do not invoke from another persona).
+5. Add the persona to the table at the top of this file.
+6. Mirror the file to `.kilo/agents/`, `.opencode/agents/`, and `.github/agents/`.
+7. If the persona enables a new orchestration pattern, document it in `.agents/skills_back/references/orchestration-patterns.md` (or promote it into `docs/`) rather than inventing the pattern in the persona file itself.

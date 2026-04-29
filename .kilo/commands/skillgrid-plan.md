@@ -13,7 +13,7 @@ You are executing **`/skillgrid-plan`** for the Skillgrid workflow.
 
 Create or update the PRD first, then create or refresh the OpenSpec change and required planning artifacts.
 
-**Status on exit:** set the PRD and `INDEX.md` entry to `draft` after successful plan creation.
+**Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.plan` after successful plan creation (default: `draft`).
 
 </objective>
 
@@ -69,6 +69,6 @@ Load these first for this command:
 
 ## Completion Report
 
-Report PRD path, OpenSpec change path, issue links if any, status set to `draft`, memory saves, and recommended `/skillgrid-breakdown`.
+Report PRD path, OpenSpec change path, issue links if any, configured status set for `plan`, memory saves, and recommended `/skillgrid-breakdown`.
 
 </process>

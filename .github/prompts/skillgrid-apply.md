@@ -10,7 +10,7 @@ You are executing **`/skillgrid-apply`** for the Skillgrid workflow.
 
 Implement from approved Skillgrid and OpenSpec tasks in small verified batches.
 
-**Status on exit:** set the PRD and `INDEX.md` entry to `inprogress` once implementation starts; keep it there until validation.
+**Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.apply` once implementation starts; keep it there until validation (default: `inprogress`).
 
 </objective>
 

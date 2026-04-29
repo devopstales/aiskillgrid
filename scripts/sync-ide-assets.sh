@@ -93,11 +93,32 @@ def frontmatter(text: str):
     return fields, text[match.end() :]
 
 
+def verify_agent_contract(src: Path, fields: dict, body: str):
+    if not src.name.startswith("skillgrid-"):
+        return
+    required_fields = ["name", "description", "tools", "color"]
+    for field in required_fields:
+        if not fields.get(field):
+            print(f"sync-ide-assets: {src} missing frontmatter field: {field}", file=sys.stderr)
+            sys.exit(2)
+    required_sections = [
+        "## Identity and discipline",
+        "## Mandatory Context",
+        "## Rules",
+        "## Composition",
+    ]
+    for section in required_sections:
+        if section not in body:
+            print(f"sync-ide-assets: {src} missing required section: {section}", file=sys.stderr)
+            sys.exit(2)
+
+
 def render_agent(src: Path) -> str:
     text = src.read_text(encoding="utf-8")
     fields, body = frontmatter(text)
     if fields is None:
         return text
+    verify_agent_contract(src, fields, body)
 
     description = fields.get("description")
     if not description:

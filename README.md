@@ -4,6 +4,19 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ---
 
+## Highlights
+
+| Feature | What it does | Why it matters |
+|---|---|---|
+| Skillgrid workflow | Guides work through init, explore, brainstorm, plan, breakdown, apply, test, validate, and finish. | Keeps agent work tied to explicit phases, artifacts, and exit checks. |
+| Multi-IDE command hub | Ships `/skillgrid-*` and `/opsx-*` commands for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. | One workflow can travel across the IDEs and agents you use. |
+| Agent skills catalog | Provides reusable skills for TDD, review, security, UI design, research, graphify, Engram, OpenSpec, and more. | Agents get focused operating procedures instead of ad hoc chat instructions. |
+| Local Skillgrid dashboard | Runs `node .skillgrid/scripts/skillgrid-ui.mjs` for PRD Kanban, Workflow, Subagents, previews, and graphify links. | Product intent, events, previews, and subagent activity are visible in one local web UI. |
+| File-first handoff | Stores PRDs, OpenSpec changes, handoff files, event logs, previews, checkpoints, and research under the repo. | Work survives context resets without requiring a database or hosted service. |
+| Installer sanity check | Runs `./install.sh --sanity-check` to verify expected tools, hub files, and script syntax. | Setup problems are caught before copying configs into a project. |
+
+---
+
 ## What you get
 
 - **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, graphify, Engram memory protocol, and more). See [docs/skills.md](docs/skills.md).
@@ -18,7 +31,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 **Phase 0** (`/skillgrid-session`) plus the Skillgrid **`/skillgrid-*`** steps summarized in [docs/workflow.md](docs/workflow.md), including optional **`/skillgrid-validate`** as a single review-and-security gate. The diagram below is a six-phase mental model; exact steps and templates live in each command file. **OpenSpec**-focused steps also have **`/opsx-*`** aliases (see [docs/commands.md](docs/commands.md)).
 
-**Init** writes **`.skillgrid/config.json`**: **ticketing** (`local` or a remote issue backend) and **artifact store** (`hybrid` is the strongly recommended default, or `openspec` / `engram` for constrained setups) — so later commands know whether to use **`openspec/`** on disk, **Engram** memory, or both. See **`/skillgrid-init`** and [docs/workflow.md](docs/workflow.md).
+**Init** writes **`.skillgrid/config.json`**: **ticketing** (`local` or a remote issue backend), **artifact store** (`hybrid` is the strongly recommended default, or `openspec` / `engram` for constrained setups), and **PRD workflow** (`prdWorkflow.statuses` and phase mapping) — so later commands know whether to use **`openspec/`** on disk, **Engram** memory, or both, and which local Kanban/status lifecycle to follow. See **`/skillgrid-init`** and [docs/workflow.md](docs/workflow.md).
 
 ```
   PHASE 0 (optional at session start)
@@ -42,18 +55,39 @@ Also run **`/skillgrid-explore`**, **`/skillgrid-design`**, and **`/skillgrid-br
 
 Hub maintainers: after cloning, run **`npm ci`** in this repository root once so [package-lock.json](package-lock.json) pins Node tools under `node_modules/`.
 
-From this repository, run the installer against **your** project directory:
+1. Verify this hub is ready:
+
+```bash
+./install.sh --sanity-check
+```
+
+2. From this repository, install Skillgrid into **your** project directory:
 
 ```bash
 ./install.sh -p /path/to/your/project
 ```
+
+3. In your project, start with Skillgrid:
+
+```text
+/skillgrid-init
+```
+
+4. Open the local dashboard when you want PRDs, workflow events, previews, subagent actions, and graphify in one place:
+
+```bash
+node .skillgrid/scripts/skillgrid-ui.mjs
+```
+
+Then open `http://127.0.0.1:8787`.
 
 Common variants:
 
 - **All supported IDEs and defaults:** `./install.sh -p /path/to/project -A -y`
 - **Dry run:** `./install.sh -p /path/to/project -n`
 - **Dependencies only:** `./install.sh -d`
-- **Optional CLIs** (OpenSpec, graphify, dmux, Engram): add `-t` in an interactive terminal
+- **Sanity check only:** `./install.sh --sanity-check`
+- **Optional CLIs** (OpenSpec, graphify, dmux, Engram, Brave Search, CocoIndex): add `-t` in an interactive terminal
 
 You need a working **bash**, **rsync**, and **jq** for a full install with MCP merge; **Node** and **`npm ci`** in this repo help with pinned **npx**-based tools. For Python CLIs, use **uv** (see [docs/tools.md](docs/tools.md)).
 

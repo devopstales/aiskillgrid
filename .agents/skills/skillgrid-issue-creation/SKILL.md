@@ -38,8 +38,19 @@ Skillgrid works without a remote tracker. In `local` mode:
 
 - PRD files are the ticket source.
 - `.skillgrid/prd/INDEX.md` is the work board.
-- `Status:` is the lifecycle field.
+- `Status:` is the lifecycle field, using `.skillgrid/config.json` `prdWorkflow.statuses` when configured.
 - External issue columns are optional and should not be created unless useful.
+
+### Provider Workflow Mapping
+
+Remote trackers may use different columns or statuses per project. During `/skillgrid-init`, `prdWorkflow` may be configured from a preset, custom list, or provider import.
+
+Rules:
+
+- Do not assume GitHub/GitLab/Jira status names from the provider alone.
+- When creating or updating issues, read `prdWorkflow.providerMapping` if present.
+- PRD `Status:` remains Skillgrid's local state; remote issue state should mirror or map to it, not replace it.
+- If provider import is unavailable or stale, continue with the configured local `prdWorkflow.statuses` and report the mapping gap.
 
 ### Issue Scope
 
@@ -152,7 +163,7 @@ For user-reported bugs, prefer this behavior-oriented template:
 ```markdown
 | Order | PRD | Status | Spec / change | External |
 |---|---|---|---|---|
-| 01 | [`PRD01_<slug>.md`](PRD01_<slug>.md) | `todo` | `openspec/changes/<change-id>/` | `<issue-key-or-url>` |
+| 01 | [`PRD01_<slug>.md`](PRD01_<slug>.md) | `<configured-status>` | `openspec/changes/<change-id>/` | `<issue-key-or-url>` |
 ```
 
 ### Backlinks

@@ -10,7 +10,7 @@ You are executing **`/skillgrid-breakdown`** for the Skillgrid workflow.
 
 Turn an accepted PRD/OpenSpec change into an implementation checklist synced with `tasks.md`.
 
-**Status on exit:** set the PRD and `INDEX.md` entry to `todo` when the checklist is approved.
+**Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.breakdown` when the checklist is approved (default: `todo`).
 
 </objective>
 
@@ -62,6 +62,6 @@ Load these first for this command:
 
 ## Completion Report
 
-Report selected PRD/change, task count, HITL blockers, AFK-ready slices, status set to `todo`, and recommended `/skillgrid-apply`.
+Report selected PRD/change, task count, HITL blockers, AFK-ready slices, configured status set for `breakdown`, and recommended `/skillgrid-apply`.
 
 </process>

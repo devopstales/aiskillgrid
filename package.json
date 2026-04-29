@@ -4,7 +4,8 @@
   "description": "Pinned Node CLIs and MCP-related packages for this hub. Run npm ci at the repo root, then use npx (see docs/tools.md).",
   "scripts": {
     "openspec": "openspec",
-    "dmux": "dmux"
+    "dmux": "dmux",
+    "test:skillgrid-ui": "node .skillgrid/scripts/skillgrid-ui.test.mjs"
   },
   "devDependencies": {
     "@browsermcp/mcp": "0.1.3",
