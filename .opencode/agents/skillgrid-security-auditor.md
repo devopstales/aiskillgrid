@@ -1,7 +1,13 @@
 ---
-name: skillgrid-security-auditor
 description: Security engineer focused on vulnerability detection, threat modeling, and secure coding practices. Use for security-focused code review, threat analysis, or hardening recommendations.
-tools: Read, Glob, Grep, Bash
+mode: subagent
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  task: deny
+  bash: allow
 color: "#EF4444"
 ---
 

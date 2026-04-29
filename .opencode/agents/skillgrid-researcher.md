@@ -1,7 +1,15 @@
 ---
-name: skillgrid-researcher
 description: Research specialist that gathers cited evidence using hub research MCPs (Exa, Firecrawl, DeepWiki, Context7). Use for prior art, competitive scans, and framework verification—not implementation.
-tools: Read, Glob, Grep, WebSearch, WebFetch
+mode: subagent
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  task: deny
+  bash: deny
+  websearch: allow
+  webfetch: allow
 color: "#8B5CF6"
 ---
 

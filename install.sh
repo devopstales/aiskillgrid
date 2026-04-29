@@ -25,6 +25,9 @@
 #     # Check/install dependencies only
 #     ./install.sh -d
 #
+#     # Read-only sanity check for hub dependencies and expected files
+#     ./install.sh --sanity-check
+#
 #     # Uninstall managed folders from a project
 #     ./install.sh -p /path/to/project -u
 #
@@ -54,6 +57,7 @@ TOOLS_INTERACTIVE=false
 DRY_RUN=false
 UNINSTALL=false
 CHECK_DEPS=false
+SANITY_CHECK=false
 ALL_IDES=false
 NON_INTERACTIVE=false
 MERGE_MCP=true
@@ -134,6 +138,7 @@ Options:
   -A, --all             Setup for all supported IDEs (Default if none selected)
   -t, --tools           Interactive prompt to select optional tools (openspec, graphify, dmux, engram, brave-search-cli, cocoindex-code)
   -d, --deps            Check and install dependencies before install
+  --sanity-check        Verify hub dependencies and expected files without installing or writing
   -y, --yes             Non-interactive mode (skip prompts)
   --no-mcp              Skip MCP server configuration
   -n, --dry-run         Show what would be installed without making changes
@@ -834,6 +839,113 @@ show_dependencies() {
     fi
 }
 
+sanity_ok() {
+    echo "  ✓ $1"
+}
+
+sanity_fail() {
+    echo "  ✗ $1"
+    SANITY_FAILURES=$((SANITY_FAILURES + 1))
+}
+
+sanity_check_command() {
+    local name="$1"
+    local check_cmd="$2"
+    local hint="$3"
+
+    if eval "$check_cmd" &>/dev/null; then
+        sanity_ok "$name"
+    else
+        if [ -n "$hint" ]; then
+            sanity_fail "$name — $hint"
+        else
+            sanity_fail "$name"
+        fi
+    fi
+}
+
+sanity_check_file() {
+    local label="$1"
+    local file_path="$2"
+
+    if [ -e "$file_path" ]; then
+        sanity_ok "$label"
+    else
+        sanity_fail "$label — missing $file_path"
+    fi
+}
+
+run_sanity_check() {
+    SANITY_FAILURES=0
+
+    echo "=== install.sh Sanity Check ==="
+    echo ""
+
+    echo "Core commands:"
+    for dep in "${CORE_DEPENDENCIES[@]}"; do
+        IFS=':' read -r name brew pip npm check_cmd <<< "$dep"
+        [ -z "$check_cmd" ] && continue
+        local hint=""
+        if [ -n "$brew" ]; then
+            hint="install with: brew install $brew"
+        elif [ -n "$npm" ]; then
+            hint="install with: npm install -g $npm"
+        elif [ -n "$pip" ]; then
+            hint="install with: pip3 install $pip"
+        fi
+        sanity_check_command "$name" "$check_cmd" "$hint"
+    done
+
+    echo ""
+    echo "IDE and security CLIs:"
+    for dep in "${IDE_DEPENDENCIES[@]}"; do
+        IFS='|' read -r name brew pip npm check_cmd ide_flag <<< "$dep"
+        [ -z "$check_cmd" ] && continue
+        local hint=""
+        if [ -n "$brew" ]; then
+            hint="install with: brew install $brew"
+        elif [ -n "$npm" ]; then
+            hint="install with: npm install -g $npm"
+        elif [ -n "$pip" ]; then
+            hint="install with: pip3 install $pip"
+        fi
+        sanity_check_command "$name" "$check_cmd" "$hint"
+    done
+
+    echo ""
+    echo "Optional Skillgrid tools:"
+    sanity_check_command "uv" "command -v uv" "install with: brew install uv"
+    sanity_check_command "graphify" "command -v graphify || command -v graphifyy" "install with: uv tool install graphifyy"
+    sanity_check_command "cocoindex-code (ccc)" "command -v ccc" "install with: uv tool install --upgrade 'cocoindex-code[full]'"
+    sanity_check_command "dmux" "command -v dmux || [ -x \"$SCRIPT_DIR/node_modules/.bin/dmux\" ]" "run npm ci or install dmux"
+    sanity_check_command "engram" "command -v engram" "install with: brew install gentleman-programming/tap/engram"
+    sanity_check_command "brave-search-cli (bx)" "command -v bx" "install from brave-search-cli"
+
+    echo ""
+    echo "Hub files:"
+    sanity_check_file "AGENTS.md template" "$SCRIPT_DIR/.configs/AGENTS.md"
+    sanity_check_file "MCP config fragments" "$SCRIPT_DIR/.configs/mcp"
+    sanity_check_file "Skill catalog" "$SCRIPT_DIR/.agents/skills"
+    sanity_check_file "Skillgrid UI script" "$SCRIPT_DIR/.skillgrid/scripts/skillgrid-ui.mjs"
+    sanity_check_file "Preview script" "$SCRIPT_DIR/.skillgrid/scripts/preview.sh"
+    sanity_check_file "IDE sync script" "$SCRIPT_DIR/scripts/sync-ide-assets.sh"
+    sanity_check_file "Node package manifest" "$SCRIPT_DIR/package.json"
+
+    echo ""
+    echo "Hub script checks:"
+    sanity_check_command "skillgrid-ui.mjs syntax" "node --check \"$SCRIPT_DIR/.skillgrid/scripts/skillgrid-ui.mjs\"" "check Node and the dashboard script"
+    sanity_check_command "sync-ide-assets.sh syntax" "bash -n \"$SCRIPT_DIR/scripts/sync-ide-assets.sh\"" "check sync script syntax"
+
+    echo ""
+    if [ "$SANITY_FAILURES" -eq 0 ]; then
+        log_success "Sanity check passed"
+        return 0
+    fi
+
+    log_error "Sanity check found $SANITY_FAILURES issue(s)"
+    return 1
+}
+
 install_dependencies() {
     echo "=== Installing Dependencies ==="
     echo ""
@@ -1090,6 +1202,11 @@ while [[ $# -gt 0 ]]; do
             CHECK_DEPS=true
             shift
             ;;
+        --sanity-check)
+            SANITY_CHECK=true
+            NON_INTERACTIVE=true
+            shift
+            ;;
         -y|--yes)
             NON_INTERACTIVE=true
             shift
@@ -1125,6 +1242,11 @@ done
 
 # Get the directory where this script is located (needed for interactive MCP selection)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ "$SANITY_CHECK" = true ]; then
+    run_sanity_check
+    exit $?
+fi
 
 # Interactive IDE selection (if eligible)
 interactive_ide_selection

@@ -1,7 +1,13 @@
 ---
-name: skillgrid-task-breakdown-auditor
 description: Audits tasks.md and PRD task lists for acceptance criteria, ordering, parallelism, and testability—before implementation. Use after /skillgrid-breakdown.
-tools: Read, Glob, Grep
+mode: subagent
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  task: deny
+  bash: deny
 color: "#6366F1"
 ---
 

@@ -19,10 +19,11 @@ Use this skill whenever a Skillgrid change needs durable in-repo state shared be
 
 ```text
 .skillgrid/tasks/context_<change-id>.md
+.skillgrid/tasks/events/<change-id>.jsonl
 .skillgrid/tasks/research/<change-id>/
 ```
 
-The handoff file is the rolling state for one change. The research directory holds long reports, scrapes, browser evidence, or subagent output.
+The handoff file is the rolling state for one change. The event log is the append-only workflow timeline. The research directory holds long reports, scrapes, browser evidence, or subagent output.
 
 Treat the handoff as the current-state file for the change. It should answer: where are we, what is blocked, what evidence exists, and what should happen next.
 
@@ -76,6 +77,40 @@ Keep `context_<change-id>.md` concise and skimmable. Use this template:
 ```
 
 Do not turn the handoff into a raw transcript. Link to research files when details are long.
+
+### Handoff Event Log
+
+Append workflow events to:
+
+```text
+.skillgrid/tasks/events/<change-id>.jsonl
+```
+
+Each line is one JSON object. Keep entries short and stable so the local dashboard can render them:
+
+```json
+{"time":"2026-04-28T08:00:00Z","changeId":"planning-dashboard","prd":"PRD02_dashboard.md","node":"apply","phase":"apply","status":"started","summary":"Started AFK slice 2","artifacts":[".skillgrid/tasks/context_planning-dashboard.md"]}
+{"time":"2026-04-28T08:12:00Z","changeId":"planning-dashboard","node":"apply","phase":"apply","status":"blocked","summary":"Missing HITL design approval","blocker":"Approve option B preview","artifacts":[".skillgrid/preview/planning-dashboard-options.html"]}
+```
+
+Supported fields:
+
+- `time`: ISO timestamp.
+- `changeId`: OpenSpec/Skillgrid change id.
+- `prd`: optional PRD filename.
+- `node`: workflow node or command id, for example `plan`, `apply`, `test`, `validate`.
+- `phase`: Skillgrid phase.
+- `status`: `started`, `progress`, `passed`, `failed`, `blocked`, `completed`, or `skipped`.
+- `summary`: one-line event summary.
+- `blocker`: optional HITL or technical blocker.
+- `artifacts`: optional paths to PRDs, handoff files, previews, reports, checks, or research.
+- `external`: optional issue key or URL.
+- `agent` / `subagent`: optional subagent name for the dashboard Subagents view.
+- `role`: optional role such as `implementer`, `spec-reviewer`, `code-quality-reviewer`, `design-critic`, or `security-auditor`.
+- `task`: optional short delegated task label.
+- `output`: optional primary output path when it is not already listed in `artifacts`.
+
+Do not replace `context_<change-id>.md` with events. The event log is the timeline; the handoff remains the current-state summary.
 
 ### Slice Completion Summary
 

@@ -116,6 +116,14 @@ Preview artifacts should be named by change and direction:
 .skillgrid/preview/<change-id>-option-notes.md
 ```
 
+Link previews from the PRD title block and handoff so the local dashboard can find them reliably:
+
+```markdown
+- **Preview:** `.skillgrid/preview/<change-id>-options.html`
+```
+
+The dashboard also discovers `.skillgrid/preview/<change-id>*.html` and `.skillgrid/preview/<prd-slug>*.html`, but explicit links are preferred when the preview name is not obvious.
+
 Clean up or archive previews in `/skillgrid-finish` when they are no longer useful.
 
 ### Preview Template

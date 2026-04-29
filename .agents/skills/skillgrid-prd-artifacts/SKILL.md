@@ -74,6 +74,8 @@ Every PRD should start with:
 - **Spec / change:** `openspec/changes/<change-id>/`
 - **Session context:** `.skillgrid/tasks/context_<change-id>.md`
 - **Status:** `draft`
+- **Preview:** optional `.skillgrid/preview/<change-id>-options.html`
+- **External:** optional issue key or URL
 - **Depends on:** optional PRD dependencies
 - **Tech / stack:** optional one-line summary
 ```
@@ -115,6 +117,8 @@ Prefer this copy-ready template:
 - **Spec / change:** `openspec/changes/<change-id>/`
 - **Session context:** `.skillgrid/tasks/context_<change-id>.md`
 - **Status:** `draft`
+- **Preview:** optional `.skillgrid/preview/<change-id>-options.html`
+- **External:** local
 - **Depends on:** None
 - **Tech / stack:** <languages/frameworks/services that matter for this slice>
 
@@ -229,7 +233,7 @@ Use a simple table when creating or refreshing `.skillgrid/prd/INDEX.md`:
 
 Local Kanban dashboard:
 
-Run `node .skillgrid/scripts/prd-kanban.mjs`, then open `http://127.0.0.1:8787`.
+Run `node .skillgrid/scripts/skillgrid-ui.mjs`, then open `http://127.0.0.1:8787`.
 
 | Order | PRD | Status | Spec / change | External |
 |---|---|---|---|---|

@@ -1,7 +1,13 @@
 ---
-name: skillgrid-test-engineer
 description: QA engineer specialized in test strategy, test writing, and coverage analysis. Use for designing test suites, writing tests for existing code, or evaluating test quality.
-tools: Read, Glob, Grep, Bash
+mode: subagent
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  task: deny
+  bash: allow
 color: "#10B981"
 ---
 

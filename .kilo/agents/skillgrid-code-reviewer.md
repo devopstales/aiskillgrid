@@ -1,7 +1,13 @@
 ---
-name: skillgrid-code-reviewer
 description: Senior code reviewer that evaluates changes across five dimensions — correctness, readability, architecture, security, and performance. Use for thorough code review before merge.
-tools: Read, Glob, Grep, Bash
+mode: subagent
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  task: deny
+  bash: allow
 color: "#F59E0B"
 ---
 

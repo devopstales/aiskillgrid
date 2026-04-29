@@ -1,7 +1,13 @@
 ---
-name: design-critic
 description: Critiques UX/UI flows and API boundaries in design docs (e.g. DESIGN.md)—states, errors, accessibility—not a full code review. Use with /skillgrid-design.
-tools: Read, Glob, Grep
+mode: subagent
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  task: deny
+  bash: deny
 color: "#EC4899"
 ---
 

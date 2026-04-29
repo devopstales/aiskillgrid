@@ -24,6 +24,14 @@ If you **rename or remove** a persona file under **`.cursor/agents/`**, delete t
 
 **Base (system or Homebrew):** `brew`, `rsync`, `jq`, **Node (LTS)** + `npx`, **Python 3**.
 
+Run the installer sanity check when setting up a machine or debugging missing tool errors:
+
+```bash
+./install.sh --sanity-check
+```
+
+This is read-only. It verifies core commands, IDE/security CLIs, optional Skillgrid tools, expected hub files, and local script syntax. It exits nonzero when required or expected items are missing.
+
 ### Python: `uv` only
 
 Use **[uv](https://docs.astral.sh/uv/)** for everything Python: global CLIs and per-skill environments. Do not standardize on **pipx** in this repo (legacy docs may still mention it—prefer `uv`).
@@ -125,7 +133,6 @@ Use the **same** Engram MCP entry everywhere you run agents (Cursor, OpenCode, C
 * [ ] [opencode-conductor](https://github.com/derekbar90/opencode-conductor)
 * [ ] [antigravity-kit](https://github.com/vudovn/antigravity-kit)
 * [ ] [ecc](https://github.com/affaan-m/everything-claude-code)
-* https://dev.to/uenyioha/porting-claude-codes-agent-teams-to-opencode-4hol
 
 ## Agents (cli)
 

@@ -1,7 +1,13 @@
 ---
-name: spec-verifier
 description: Verifies that implementation and tasks trace to delta specs, proposals, and PRDs. Use for SDD/OpenSpec alignment checks without a full code-style review.
-tools: Read, Glob, Grep, Bash
+mode: subagent
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  task: deny
+  bash: allow
 color: "#3B82F6"
 ---
 

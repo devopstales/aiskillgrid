@@ -4,6 +4,8 @@ Slash-style commands are **Markdown prompts** checked into this repo. Each file 
 
 **Lifecycle overview:** [docs/workflow.md](workflow.md) summarizes phases; each **`skillgrid-*.md`** command is the source of truth for checklists. **Skillgrid** commands wrap those phases; **OpenSpec (`opsx`)** commands target the OpenSpec CLI workflow directly. **Tooling and installers:** [`tools.md`](tools.md).
 
+**Local dashboard:** run **`node .skillgrid/scripts/skillgrid-ui.mjs`**, then open **`http://127.0.0.1:8787`**. The dashboard provides a Kanban **Board**, a **Workflow** view backed by `.skillgrid/tasks/events/<change-id>.jsonl`, a **Subagents** activity view, preview links from `.skillgrid/preview/`, and a **Graph** link when `graphify-out/graph.html` exists. Full UI docs: [`dashboard.md`](dashboard.md).
+
 **Mirroring:** Canonical slash commands and agent personas live under **`.cursor/commands/`** and **`.cursor/agents/`**. After editing, run **[`scripts/sync-ide-assets.sh`](../scripts/sync-ide-assets.sh)** (see [`tools.md`](tools.md)) to update **`.kilo/commands/`**, **`.opencode/commands/`**, **`.github/prompts/`**, and **`*/agents/`** mirrors. Use **`--check`** in CI to detect drift.
 
 ---

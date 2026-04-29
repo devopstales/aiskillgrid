@@ -1,7 +1,13 @@
 ---
-name: explore-architect
 description: Explores and documents brownfield systems—architecture, repo structure, onboarding narrative—without implementing production code. Use with /skillgrid-explore.
-tools: Read, Glob, Grep, Bash
+mode: subagent
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  task: deny
+  bash: allow
 color: "#14B8A6"
 ---
 

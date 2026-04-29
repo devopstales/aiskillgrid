@@ -22,6 +22,7 @@ Think of the hierarchy as **PRD sequence -> PRD slice -> OpenSpec tasks**. A seq
 
 * `/skillgrid-help`
 * Explain command order, phase goals, artifact layout, and common next steps. With `current-state`, inspect **`.skillgrid/prd/INDEX.md`**, active **`context_*.md`** files, and **`openspec/changes/`** to recommend the next command without changing files.
+* Local dashboard: run **`node .skillgrid/scripts/skillgrid-ui.mjs`**, then open **`http://127.0.0.1:8787`**. It includes **Board**, **Workflow**, and **Subagents** views, preview links, event-log status, and a **Graph** link when **`graphify-out/graph.html`** exists. Full UI docs: [`docs/dashboard.md`](dashboard.md).
 
 ## Checkpoint (optional)
 
@@ -137,12 +138,14 @@ project-root/
 │   ├── tasks/
 │   │   ├── checkpoints.log
 │   │   ├── context_<change-id>.md
+│   │   ├── events/
+│   │   │   └── <change-id>.jsonl
 │   │   └── research/
 │   │       └── <change-id>/
 │   │           └── <topic-or-agent>_<optional-date>.md
 │   ├── preview/
 │   └── scripts/
-│       ├── prd-kanban.mjs
+│       ├── skillgrid-ui.mjs
 │       └── preview.sh
 ├── .cursor/
 │   └── commands/
@@ -164,6 +167,7 @@ Keep **change-scoped** state on disk so the **orchestrator session** and **`Task
 | Path | Role |
 |------|------|
 | **`.skillgrid/tasks/context_<change-id>.md`** | Rolling handoff: goal, state, index of subagent work, HITL blockers (see below) |
+| **`.skillgrid/tasks/events/<change-id>.jsonl`** | Append-only workflow timeline rendered by the local dashboard |
 | **`.skillgrid/tasks/research/<change-id>/`** | Long research, scrapes, or subagent reports (one file per topic or run) |
 
 **Subagent contract**
@@ -174,6 +178,8 @@ Keep **change-scoped** state on disk so the **orchestrator session** and **`Task
 4. **Return to parent:** A short message with file paths to read before product code changes.
 
 **Cross-link** — In `openspec/changes/<change-id>/proposal.md`, include a line the reader cannot miss, e.g. `**Skillgrid session context:** .skillgrid/tasks/context_<change-id>.md`.
+
+**Event log** — Append one JSON object per line under **`.skillgrid/tasks/events/<change-id>.jsonl`** for phase starts, progress, blockers, review outcomes, and completions. Required dashboard fields are **`time`**, **`changeId`**, **`node`** or **`phase`**, **`status`**, and **`summary`**. Optional fields include **`prd`**, **`blocker`**, **`artifacts`**, and **`external`**. The event log is a timeline; **`context_<change-id>.md`** remains the current-state summary.
 
 ### Handoff file skeleton (copy and trim)
 
@@ -236,6 +242,7 @@ A PRD may map to one or more **OpenSpec** changes (commonly 1:1). If scope expan
 - **Index:** **`.skillgrid/prd/INDEX.md`** — one row or bullet per PRD, sorted by `NN`, with links to the matching **OpenSpec** change when it exists.  
 - **Do not** create new PRDs under a root `prd/` folder; use **`.skillgrid/prd/`** only (see **`/skillgrid-init`**).  
 - Title block: **file**, **Spec / change** (path under `openspec/changes/…`), optional **Session context** (`.skillgrid/tasks/context_<change-id>.md`), and **`Status:`** (table below).
+- Optional title block fields **Preview** and **External** help the dashboard link generated preview HTMLs and tracker issues.
 
 **PRD** stays the product intent source until superseded: keep it **consistent** with `openspec/changes/<id>/proposal.md` and delta specs when both exist. Detailed file-by-file steps belong in **`tasks.md`**, not in the PRD body.
 

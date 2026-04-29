@@ -138,6 +138,9 @@ When agents return:
 2. Check for conflicting findings, overlapping file edits, or inconsistent assumptions.
 3. Run the relevant full verification, not only lane-specific checks.
 4. Update the handoff with integrated findings, decisions, evidence, changed assumptions, and the next recommended action.
+5. Append a short event to `.skillgrid/tasks/events/<change-id>.jsonl` when the return starts, completes, blocks, or changes workflow state.
+
+Event entries should follow `skillgrid-filesystem-handoff` and include `time`, `changeId`, `node`, `phase`, `status`, `summary`, and useful `artifacts`. For delegated work, also include `agent` or `subagent`, `role`, `task`, and `output` when known so the dashboard Subagents view can show who did what.
 
 ### Apply Dispatch Loop
 
@@ -159,6 +162,7 @@ For `/skillgrid-apply` implementation delegation:
 10. If quality review returns `NEEDS_CHANGES`, evaluate the feedback, send required fixes back to the implementer, and repeat quality review.
 11. Mark the task complete and update handoff only after both review stages pass.
 12. Add a slice completion summary to the handoff: result, evidence, blockers, changed assumptions, and next recommended slice or command.
+13. Append workflow events for apply start, blocker, implementation done, spec review outcome, quality review outcome, and final task completion.
 
 Do not skip review loops. A reviewer finding means the implementer fixes it and the same stage reviews again. Spec compliance always comes before code quality.
 

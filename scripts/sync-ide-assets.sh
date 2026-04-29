@@ -46,7 +46,7 @@ for dest in "$ROOT/.kilo/commands" "$ROOT/.opencode/commands"; do
   done
 done
 
-for dest in "$ROOT/.kilo/agents" "$ROOT/.opencode/agents" "$ROOT/.github/agents"; do
+for dest in "$ROOT/.github/agents"; do
   for f in "$ROOT/.cursor/agents"/*.md; do
     sync_pair "$f" "$dest/$(basename "$f")"
   done
@@ -64,6 +64,97 @@ for dest in "$ROOT/.kilo/agents" "$ROOT/.opencode/agents" "$ROOT/.github/agents"
     fi
   done
 done
+
+# Kilo/OpenCode agents use OpenCode's Markdown agent schema:
+# - the filename is the agent name
+# - access is configured through permission, not comma-separated tools
+if ! python3 - "$ROOT" "$CHECK" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+check = sys.argv[2] == "1"
+cur = root / ".cursor/agents"
+dest_dirs = [root / ".kilo/agents", root / ".opencode/agents"]
+drift = False
+
+
+def frontmatter(text: str):
+    match = re.match(r"^---\n(.*?)\n---\n?", text, re.DOTALL)
+    if not match:
+        return None, text
+    fields = {}
+    for line in match.group(1).splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        fields[key.strip()] = value.strip()
+    return fields, text[match.end() :]
+
+
+def render_agent(src: Path) -> str:
+    text = src.read_text(encoding="utf-8")
+    fields, body = frontmatter(text)
+    if fields is None:
+        return text
+
+    description = fields.get("description")
+    if not description:
+        print(f"sync-ide-assets: missing description: {src}", file=sys.stderr)
+        sys.exit(2)
+
+    tools = {tool.strip() for tool in fields.get("tools", "").split(",") if tool.strip()}
+    lines = [
+        "---",
+        f"description: {description}",
+        "mode: subagent",
+        "permission:",
+        "  read: allow",
+        "  glob: allow",
+        "  grep: allow",
+        "  edit: deny",
+        "  task: deny",
+        f"  bash: {'allow' if 'Bash' in tools else 'deny'}",
+    ]
+    if "WebSearch" in tools:
+        lines.append("  websearch: allow")
+    if "WebFetch" in tools:
+        lines.append("  webfetch: allow")
+    if color := fields.get("color"):
+        lines.append(f"color: {color}")
+    lines.append("---")
+    return "\n".join(lines) + "\n" + body
+
+
+files = sorted(cur.glob("*.md"))
+for dest_dir in dest_dirs:
+    for src in files:
+        out = render_agent(src)
+        dest = dest_dir / src.name
+        if check:
+            if not dest.exists() or dest.read_text(encoding="utf-8") != out:
+                print(f"DRIFT: {dest}", file=sys.stderr)
+                drift = True
+        else:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(out, encoding="utf-8")
+
+    # Drop mirror files removed from .cursor/agents (e.g. disabled personas)
+    for dest in sorted(dest_dir.glob("*.md")):
+        src = cur / dest.name
+        if not src.exists():
+            if check:
+                print(f"ORPHAN: {dest} (no longer in .cursor/agents)", file=sys.stderr)
+                drift = True
+            else:
+                dest.unlink()
+
+sys.exit(1 if drift else 0)
+PY
+then
+  EXIT=1
+fi
 
 # GitHub Copilot prompts: description-only frontmatter + body
 if ! python3 - "$ROOT" "$CHECK" <<'PY'
