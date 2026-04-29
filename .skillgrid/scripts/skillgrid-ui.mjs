@@ -7,7 +7,9 @@
  * Run:  node skillgrid-ui.mjs
  * Open: http://127.0.0.1:8787
  *
- * Env: PRD_KANBAN_PORT, PRD_KANBAN_HOST, PRD_KANBAN_DIR  |  Flags: --port --host --prd-dir
+ * Env: SKILLGRID_UI_PORT, SKILLGRID_UI_HOST, SKILLGRID_UI_DIR
+ * Legacy env: PRD_KANBAN_PORT, PRD_KANBAN_HOST, PRD_KANBAN_DIR
+ * Flags: --port --host --prd-dir
  */
 import http from 'node:http';
 import fs from 'node:fs/promises';
@@ -1321,10 +1323,16 @@ function repoRootFromPrdRoot(prdRoot) {
   return path.dirname(skillgridRootFromPrdRoot(prdRoot));
 }
 
+function envWithLegacy(currentName, legacyName) {
+  const current = process.env[currentName];
+  if (current != null && current !== '') return current;
+  return process.env[legacyName];
+}
+
 function parseArgs(argv) {
-  let port = Number(process.env.PRD_KANBAN_PORT) || 8787;
-  let host = process.env.PRD_KANBAN_HOST || '127.0.0.1';
-  let prdDirOpt = process.env.PRD_KANBAN_DIR || null;
+  let port = Number(envWithLegacy('SKILLGRID_UI_PORT', 'PRD_KANBAN_PORT')) || 8787;
+  let host = envWithLegacy('SKILLGRID_UI_HOST', 'PRD_KANBAN_HOST') || '127.0.0.1';
+  let prdDirOpt = envWithLegacy('SKILLGRID_UI_DIR', 'PRD_KANBAN_DIR') || null;
 
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -1338,10 +1346,11 @@ function parseArgs(argv) {
       console.log(`Usage: node skillgrid-ui.mjs [--port N] [--host addr] [--prd-dir path]
 
 Default PRD dir: ../prd next to this script (Skillgrid layout), else walk up for .skillgrid/prd, else <cwd>/.skillgrid/prd
-Explicit --prd-dir / PRD_KANBAN_DIR: absolute or relative to cwd
+Explicit --prd-dir / SKILLGRID_UI_DIR: absolute or relative to cwd
 
 Requires: Node.js 18+ (no repo packages; browser uses CDN for markdown preview)
-Env: PRD_KANBAN_PORT, PRD_KANBAN_HOST, PRD_KANBAN_DIR`);
+Env: SKILLGRID_UI_PORT, SKILLGRID_UI_HOST, SKILLGRID_UI_DIR
+Deprecated compatibility env: PRD_KANBAN_PORT, PRD_KANBAN_HOST, PRD_KANBAN_DIR`);
       process.exit(0);
     }
   }
@@ -2056,7 +2065,7 @@ async function main() {
   const { port, host, prdDir } = parseArgs(process.argv);
   if (!existsSync(prdDir)) {
     console.error(`PRD directory not found: ${prdDir}`);
-    console.error('Pass --prd-dir <path> or set PRD_KANBAN_DIR');
+    console.error('Pass --prd-dir <path> or set SKILLGRID_UI_DIR (PRD_KANBAN_DIR is deprecated but still accepted)');
     process.exit(1);
   }
 

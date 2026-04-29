@@ -21,7 +21,7 @@ Read `.skillgrid/config.json` when it exists.
 
 | Mode | Meaning |
 |---|---|
-| `hybrid` or missing | Use on-disk Skillgrid/OpenSpec artifacts and Engram summaries. |
+| `hybrid` or missing | Strongly recommended default. Use on-disk Skillgrid/OpenSpec artifacts and Engram summaries. |
 | `openspec` | Use on-disk artifacts first; Engram is optional for durable decisions if available. |
 | `engram` | Use Engram for durable summaries; do not assume `openspec/` exists. |
 
@@ -39,6 +39,21 @@ If `artifactStore` is missing, treat `hybrid` as the default and recommend `/ski
 | Durable cross-session memory | Engram `mem_save` |
 
 Do not paste long research or complete handoff files into Engram. Save concise durable facts with paths back to disk artifacts.
+
+In `engram` mode, save concrete equivalents rather than vague summaries:
+
+| Disk artifact | Engram topic key |
+|---|---|
+| `.skillgrid/prd/PRD<NN>_<slug>.md` | `skillgrid/<change-id>/prd` |
+| `.skillgrid/prd/INDEX.md` | `skillgrid/index` |
+| `openspec/changes/<change-id>/proposal.md` | `skillgrid/<change-id>/proposal` |
+| `openspec/changes/<change-id>/specs/*/spec.md` | `skillgrid/<change-id>/spec` |
+| `openspec/changes/<change-id>/tasks.md` | `skillgrid/<change-id>/tasks` |
+| `.skillgrid/tasks/context_<change-id>.md` | `skillgrid/<change-id>/context` |
+| `.skillgrid/tasks/research/<change-id>/...` | `skillgrid/<change-id>/research/<topic>` |
+| `.skillgrid/tasks/events/<change-id>.jsonl` | `skillgrid/<change-id>/events` |
+| `.skillgrid/tasks/checkpoints.log` | `skillgrid/<change-id>/checkpoint` |
+| `.skillgrid/preview/*.html` / `DESIGN.md` changes | `skillgrid/<change-id>/design` |
 
 ### Engram Topic Keys
 

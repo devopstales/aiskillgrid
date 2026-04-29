@@ -18,7 +18,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 **Phase 0** (`/skillgrid-session`) plus the Skillgrid **`/skillgrid-*`** steps summarized in [docs/workflow.md](docs/workflow.md), including optional **`/skillgrid-validate`** as a single review-and-security gate. The diagram below is a six-phase mental model; exact steps and templates live in each command file. **OpenSpec**-focused steps also have **`/opsx-*`** aliases (see [docs/commands.md](docs/commands.md)).
 
-**Init** writes **`.skillgrid/config.json`**: **ticketing** (`local` or a remote issue backend) and **artifact store** (`hybrid` by default, or `openspec` or `engram`) — so later commands know whether to use **`openspec/`** on disk, **Engram** memory, or both. See **`/skillgrid-init`** and [docs/workflow.md](docs/workflow.md).
+**Init** writes **`.skillgrid/config.json`**: **ticketing** (`local` or a remote issue backend) and **artifact store** (`hybrid` is the strongly recommended default, or `openspec` / `engram` for constrained setups) — so later commands know whether to use **`openspec/`** on disk, **Engram** memory, or both. See **`/skillgrid-init`** and [docs/workflow.md](docs/workflow.md).
 
 ```
   PHASE 0 (optional at session start)
@@ -31,9 +31,10 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
  │Brain │        │Break │        │      │    │          │          │          │        │      │
  └──────┘        └──────┘        └──────┘    └──────────┴──────────┴──────────┘        └──────┘
  /skillgrid-init /skillgrid-plan /skillgrid-apply  /skillgrid-test /skillgrid-validate /skillgrid-security /skillgrid-finish
+ /skillgrid-design optional in DEFINE for UI/UX direction, previews, and DESIGN.md
 ```
 
-Also run **`/skillgrid-explore`** and **`/skillgrid-brainstorm`** in DEFINE, and **`/skillgrid-breakdown`** in PLAN. Use **`/skillgrid-validate`** when you want review and security in a single turn.
+Also run **`/skillgrid-explore`**, **`/skillgrid-design`**, and **`/skillgrid-brainstorm`** in DEFINE as needed, and **`/skillgrid-breakdown`** in PLAN. Use **`/skillgrid-validate`** when you want review and security in a single turn.
 
 ---
 

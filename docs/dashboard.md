@@ -10,6 +10,16 @@ node .skillgrid/scripts/skillgrid-ui.mjs
 
 Then open `http://127.0.0.1:8787`.
 
+Configuration:
+
+| Setting | Env var | Deprecated compatibility |
+|---|---|---|
+| Port | `SKILLGRID_UI_PORT` | `PRD_KANBAN_PORT` |
+| Host | `SKILLGRID_UI_HOST` | `PRD_KANBAN_HOST` |
+| PRD directory | `SKILLGRID_UI_DIR` | `PRD_KANBAN_DIR` |
+
+CLI flags (`--port`, `--host`, `--prd-dir`) take precedence. The old `PRD_KANBAN_*` names are still accepted for compatibility, but new scripts should use `SKILLGRID_UI_*`.
+
 ## Data Sources
 
 The dashboard reads existing Skillgrid artifacts. It does not add a database, daemon, telemetry layer, platform adapter, or workflow engine.

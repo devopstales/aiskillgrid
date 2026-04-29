@@ -34,7 +34,7 @@ Think of the hierarchy as **PRD sequence -> PRD slice -> OpenSpec tasks**. A seq
 * `/skillgrid-init`
 * **`.skillgrid/config.json`** (created or merged early):
   * **Question 1 — Ticketing:** `local` (PRDs + index, optional local Kanban script), or `github` / `gitlab` / `jira` for remote issue workflows in later commands.
-  * **Question 2 — Artifact store:** `hybrid` (default), `openspec`, or `engram` — where spec and handoff data live: on-disk `openspec/`, Engram memory, or both. Same contract as the hub’s spec-driven init skills: `engram` does not add `openspec/` by default; `openspec` is disk-first; `hybrid` uses both.
+  * **Question 2 — Artifact store:** `hybrid` (strongly recommended default), `openspec`, or `engram` — where spec and handoff data live: on-disk `openspec/`, Engram memory, or both. Same contract as the hub’s spec-driven init skills: `engram` does not add `openspec/` by default; `openspec` is disk-first; `hybrid` uses both.
 * Create **`.skillgrid/`** tree: **`project/`**, **`prd/`**, **`tasks/`**, **`preview/`**, **`scripts/`** as needed; never put PRDs at the repository root.
 * **Greenfield / brownfield** routing, **`DESIGN.md`**, **`.skillgrid/project/*.md`**, **root `AGENTS.md`**
 * When artifact store includes OpenSpec: **`openspec init`** (baseline `openspec/`, **`config.yaml`**, changes tree). When it includes Engram: **`mem_save`** with a stable `topic_key` (for example `skillgrid-init/{project-name}`).
@@ -281,7 +281,28 @@ OpenSpec is the secondary technical spec backend, not the whole Skillgrid workfl
 
 **CLI** — Use the **OpenSpec** CLI as the project documents (`openspec status`, `openspec instructions tasks` during breakdown). **Artifact store** for whether **`openspec/`** exists: **`/skillgrid-init`** and **`.skillgrid/config.json` → `artifactStore.mode`**.
 
-**Persistence** — **`artifactStore.mode`**: **`hybrid`** (disk + Engram), **`openspec`**, or **`engram`**. The init command records this; **`/skillgrid-session`** loads it for cold starts.
+**Persistence** — **`artifactStore.mode`**: **`hybrid`** (disk + Engram), **`openspec`**, or **`engram`**. The init command records this; **`/skillgrid-session`** loads it for cold starts. Use **`hybrid`** unless a project explicitly cannot keep on-disk artifacts or cannot run Engram: disk gives reviewable, git-visible source files, while Engram gives compact recall across sessions and compactions.
+
+| Mode | Use when | Artifact contract |
+|------|----------|-------------------|
+| **`hybrid`** | Recommended default for most teams and repos. | Create PRDs, OpenSpec changes, handoff, research, events, checkpoints, and previews on disk; save concise Engram summaries with stable topic keys that point back to those paths. |
+| **`openspec`** | Engram is unavailable or the project wants repo-only state. | Same on-disk artifacts as `hybrid`; Engram saves are optional durable notes only. |
+| **`engram`** | Disk specs are not allowed or a lightweight memory-only setup is required. | Do not assume `openspec/` exists. Store the equivalents below as Engram observations and include enough path or issue references to recover external context. |
+
+Concrete Engram-mode equivalents:
+
+| Disk artifact in hybrid/openspec | Engram-mode equivalent |
+|----------------------------------|------------------------|
+| `.skillgrid/prd/PRD<NN>_<slug>.md` | `mem_save` topic `skillgrid/<change-id>/prd` with problem, goals, scope, requirements, success criteria, status, and links to any external issue. |
+| `.skillgrid/prd/INDEX.md` | `mem_save` topic `skillgrid/index` with ordered PRDs, statuses, active change ids, and external tracker links. |
+| `openspec/changes/<change-id>/proposal.md` | `mem_save` topic `skillgrid/<change-id>/proposal` with intent, non-goals, design summary, and context references. |
+| `openspec/changes/<change-id>/specs/*/spec.md` | `mem_save` topic `skillgrid/<change-id>/spec` with requirements and scenarios written in verifiable language. |
+| `openspec/changes/<change-id>/tasks.md` | `mem_save` topic `skillgrid/<change-id>/tasks` with ordered `[HITL]` / `[AFK]` tasks and verification steps. |
+| `.skillgrid/tasks/context_<change-id>.md` | `mem_save` topic `skillgrid/<change-id>/context` with current state, blockers, evidence, and next action. |
+| `.skillgrid/tasks/research/<change-id>/...` | `mem_save` topic `skillgrid/<change-id>/research/<topic>` with concise findings and source links; avoid dumping large scrape output. |
+| `.skillgrid/tasks/events/<change-id>.jsonl` | `mem_save` topic `skillgrid/<change-id>/events` with milestone events, status changes, blockers, and evidence pointers. |
+| `.skillgrid/tasks/checkpoints.log` | `mem_save` topic `skillgrid/<change-id>/checkpoint` with checkpoint name, branch/SHA when available, dirty status, and verification evidence. |
+| `.skillgrid/preview/*.html` and root `DESIGN.md` updates | `mem_save` topic `skillgrid/<change-id>/design` with selected direction, preview/export links, tokens, accessibility notes, and unresolved risks. |
 
 ## Source Of Truth
 

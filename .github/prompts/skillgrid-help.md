@@ -32,6 +32,7 @@ Use these files as the source of truth:
 1. If no argument is provided, show the short path:
    - `/skillgrid-init`
    - `/skillgrid-explore`
+   - `/skillgrid-design` optional
    - `/skillgrid-brainstorm`
    - `/skillgrid-plan`
    - `/skillgrid-breakdown`
