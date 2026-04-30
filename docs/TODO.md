@@ -162,11 +162,65 @@ npm install -g @mariozechner/pi-coding-agent
   * skill.sh
   * brew
 
-## Sources
+# Tools
 
+## Memory
+
+* [ ] [Cleave](https://cleave.dev/)
+* [X] [CocoIndex-Code](https://github.com/cocoindex-io/cocoindex-code)
+* [ ] [GitNexus](https://github.com/abhigyanpatwari/GitNexus)
+* [?] [graphify](https://github.com/safishamsi/graphify) 
+* [X] [Engram](https://github.com/Gentleman-Programming/engram)
+* [ ] [context-mode](https://github.com/mksglu/context-mode)
+
+## Design Tools
+
+* [ ] [taste-skill](https://github.com/Leonxlnx/taste-skill)
+* [ ] [npxskillui](https://github.com/amaancoderx/npxskillui)
+* [ ] [impeccable](https://github.com/pbakaus/impeccable)
+
+## Browser tools
+
+* [ ] [agent-browser](https://github.com/vercel-labs/agent-browser)
+* [ ] [PlayWright-mcp](https://github.com/microsoft/playwright-mcp)
+  * [ ] [Skill-1](https://github.com/testdino-hq/playwright-skill)
+  * [ ] [Skill-2](https://github.com/lackeyjb/playwright-skill)
+* [X] [Context7—MCP]()
+* [X] [exa-MCP]()
+* [X] [DeepWiki—MCP]
+* [X] [Firecrawl—MCP]()
+* [ ] [Brave Search API](https://api.search.brave.com)
+* [ ] [Tavily](https://tavily.com)
+
+## Skills
+
+* [ ] [opencode-conductor](https://github.com/derekbar90/opencode-conductor)
+* [ ] [Antigravity Kit](https://github.com/vudovn/antigravity-kit)
 * [X] [andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills)
 * [ ] [Everything Claude Code](https://github.com/affaan-m/everything-claude-code)
-* [ ] [Antigravity Kit](https://github.com/vudovn/antigravity-kit)
+
+## Agents (cli)
+
+* claude
+* codex
+* opencode
+  * kilo cli
+* gemini
+* copilot
+
+## Agent multiplexers
+
+* [ ] [dmux](https://github.com/standardagents/dmux) - Terminal
+* [ ] [toad](https://github.com/batrachianai/toad) - Terminal in it's own window 
+* [ ] [mux](https://github.com/coder/mux) - Separate App
+* [ ] [superset](https://github.com/superset-sh/superset) - Separate App
+* [ ] [conductor]() - Separate App
+* [ ] [Archon](https://github.com/coleam00/archon) - Server Based
+
+## Sources
+
+
+
 * [ ] [Aemini Skills](https://github.com/google-gemini/gemini-skills/)
 * [ ] [context-mode](https://github.com/mksglu/context-mode/tree/main/configs)
 * [ ] [antigravity-awesome-skills](https://github.com/sickn33/antigravity-awesome-skills)
@@ -180,5 +234,3 @@ npm install -g @mariozechner/pi-coding-agent
   * [ ] [agent-skills](https://github.com/addyosmani/agent-skills)
   * [ ] [Archon](https://github.com/coleam00/Archon)
   * [ ] [omegon-pi](https://github.com/styrene-lab/omegon-pi)
-* tools
-  * [ ] [Cleave]
