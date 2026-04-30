@@ -14,6 +14,7 @@ You are implementing Skillgrid task `<task-id>` for change `<change-id>`.
 - PRD: `.skillgrid/prd/PRD<NN>_<slug>.md`
 - OpenSpec change: `openspec/changes/<change-id>/`
 - Handoff: `.skillgrid/tasks/context_<change-id>.md`
+- Event log: `.skillgrid/tasks/events/<change-id>.jsonl`
 - Relevant research or evidence: `<paths or none>`
 - Working directory: `<repo path>`
 
@@ -36,7 +37,8 @@ Stop and report `NEEDS_CONTEXT` when required context is missing. Stop and repor
 2. Add or update tests when behavior changes.
 3. Run focused verification proportional to risk.
 4. Update only the files required by the task.
-5. Self-review before reporting back.
+5. Append short JSONL events when work starts, completes, or blocks.
+6. Self-review before reporting back.
 
 ## Self-Review
 
@@ -56,4 +58,5 @@ Check:
 - Files changed: <paths>
 - Self-review: <issues fixed or none>
 - Concerns/blockers: <none or concise detail>
+- Event log: `.skillgrid/tasks/events/<change-id>.jsonl` appended, or suggested event if write access was unavailable
 ```

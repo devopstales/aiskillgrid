@@ -19,6 +19,7 @@ You are reviewing spec compliance for Skillgrid task `<task-id>` in change `<cha
 - OpenSpec change: `openspec/changes/<change-id>/`
 - Tasks: `openspec/changes/<change-id>/tasks.md`
 - Handoff: `.skillgrid/tasks/context_<change-id>.md`
+- Event log: `.skillgrid/tasks/events/<change-id>.jsonl`
 - Relevant evidence: `<paths or none>`
 
 ## Review Rules
@@ -28,6 +29,7 @@ You are reviewing spec compliance for Skillgrid task `<task-id>` in change `<cha
 - Look for missing requirements, extra behavior, misunderstood requirements, and unchecked task boxes.
 - Do not perform broad code-quality review here unless quality affects spec compliance.
 - Do not approve "close enough"; unresolved spec gaps return to the implementer.
+- Append a short JSONL event for the review verdict when write-capable; otherwise include a suggested event object in the report.
 
 ## Report Format
 
@@ -46,4 +48,8 @@ You are reviewing spec compliance for Skillgrid task `<task-id>` in change `<cha
 ## Evidence Checked
 
 - <files, tests, specs, or diffs inspected>
+
+## Event
+
+- <appended path or suggested JSON object>
 ```

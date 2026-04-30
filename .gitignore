@@ -7,3 +7,8 @@ node_modules
 !install.sh
 install*.sh*
 !install.sh
+
+.skillgrid/prd/
+.skillgrid/tasks/*.md
+.skillgrid/tasks/events/*.jsonl
+.skillgrid/tasks/events/*.json

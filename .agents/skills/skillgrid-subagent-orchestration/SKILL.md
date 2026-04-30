@@ -26,6 +26,7 @@ Construct every subagent prompt from durable artifacts:
 - PRD
 - OpenSpec proposal, design, specs, and `tasks.md`
 - `.skillgrid/tasks/context_<change-id>.md`
+- `.skillgrid/tasks/events/<change-id>.jsonl`
 - cited files under `.skillgrid/tasks/research/<change-id>/`
 - the specific task, scope, constraints, expected output path, and return format
 
@@ -40,6 +41,7 @@ Every Skillgrid subagent prompt should include:
 - PRD path
 - OpenSpec change path when present
 - `.skillgrid/tasks/context_<change-id>.md`
+- `.skillgrid/tasks/events/<change-id>.jsonl`
 - expected output path under `.skillgrid/tasks/research/<change-id>/` when output is long
 - exact return format: short summary plus file paths
 
@@ -65,20 +67,26 @@ Read first:
 - PRD: `.skillgrid/prd/PRD<NN>_<slug>.md`
 - OpenSpec: `openspec/changes/<change-id>/`
 - Handoff: `.skillgrid/tasks/context_<change-id>.md`
+- Event log: `.skillgrid/tasks/events/<change-id>.jsonl`
 
 Write long output to:
 `.skillgrid/tasks/research/<change-id>/<topic>.md`
+
+Append events to:
+`.skillgrid/tasks/events/<change-id>.jsonl`
 
 Constraints:
 - Do not modify product code unless explicitly assigned implementation work.
 - Keep scope limited to the goal above.
 - If blocked, write the blocker and stop.
+- Append a short JSONL event when write-capable. If read-only, return a suggested event object for the parent to append.
 - Return only a short summary with file paths.
 
 Return format:
 - Wrote: `<path>`
 - Finding: <one sentence>
 - Blocker: <none or short blocker>
+- Event: <appended path or suggested JSON object>
 ```
 
 Bad prompt: "Fix all validation issues."

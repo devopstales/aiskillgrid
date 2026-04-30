@@ -15,6 +15,32 @@ Use this skill when a Skillgrid command needs user input before it can safely pl
 
 ## Critical Patterns
 
+### Intent Gate
+
+Before a Skillgrid command turns a user request into artifacts, implementation, validation, or shipping work, classify the intent. This is the Skillgrid-native analogue of IntentGate: decide what the user is actually asking for before acting on the literal wording.
+
+Use these categories:
+
+| Intent | Meaning | Next action |
+|---|---|---|
+| `explore` | User wants understanding, discovery, comparison, or repo mapping. | Stay read-first; recommend `/skillgrid-explore` or `/skillgrid-brainstorm`. |
+| `plan` | User wants a PRD, design, OpenSpec change, tasks, or strategic interview. | Use `/skillgrid-brainstorm`, `/skillgrid-plan`, or `/skillgrid-breakdown` before edits. |
+| `apply` | User wants implementation of approved tasks. | Require apply-ready PRD/OpenSpec/tasks and HITL/AFK boundaries. |
+| `test` | User wants proof, browser evidence, E2E, or regression checks. | Use `/skillgrid-test` and attach evidence to the handoff. |
+| `validate` | User wants review, security, spec compliance, or sign-off. | Use `/skillgrid-validate` or focused review personas. |
+| `finish` | User wants archive, PR, release, or ship cleanup. | Use `/skillgrid-finish` after validation passes. |
+| `blocked` | Scope, authority, safety, or prerequisites are unclear. | Ask the smallest blocking question or record a `[HITL]` blocker. |
+
+Intent gate checklist:
+
+1. Read available project evidence first: `.skillgrid/config.json`, `.skillgrid/prd/INDEX.md`, active `context_*.md` files, `openspec/changes/`, and relevant docs.
+2. If the evidence clearly identifies the next command or phase, proceed without asking.
+3. If two plausible intents would cause materially different work, ask one multiple-choice question with a recommended default.
+4. Before execution, confirm the request is not only exploration, planning, review, or validation.
+5. When a change id exists, record the gate result in `.skillgrid/tasks/context_<change-id>.md` under current state, blockers, or accepted assumptions.
+
+Do not use the intent gate as a ceremony for obvious single-command requests. It should prevent wrong-phase work, not slow down clear tasks.
+
 ### Ask Only Blocking Questions
 
 Ask when the answer changes:

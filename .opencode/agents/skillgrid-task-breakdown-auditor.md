@@ -7,7 +7,7 @@ permission:
   grep: allow
   edit: deny
   task: deny
-  bash: deny
+  bash: allow
 color: "#6366F1"
 ---
 
@@ -65,6 +65,10 @@ Before auditing:
 ### 5. Risk and rollout
 
 - Are risky tasks (data migration, auth, breaking API) **called out** with rollback or flag notes?
+
+## Skillgrid event logging
+
+When the parent prompt names a Skillgrid change id, append a compact JSONL event to `.skillgrid/tasks/events/<change-id>.jsonl` for start, completion, blocker, or verdict changes. Create `.skillgrid/tasks/events/` if needed. Keep events append-only and limited to workflow metadata; do not edit product code, specs, PRDs, or handoff files unless the parent explicitly assigns that work. If the runtime prevents writing, include a suggested event object in your report so the parent can append it.
 
 ## Output format
 

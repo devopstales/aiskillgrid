@@ -1,7 +1,7 @@
 ---
 name: skillgrid-researcher
 description: Research specialist that gathers cited evidence using hub research MCPs (Exa, Firecrawl, DeepWiki, Context7). Use for prior art, competitive scans, and framework verification—not implementation.
-tools: Read, Glob, Grep, WebSearch, WebFetch
+tools: Read, Glob, Grep, WebSearch, WebFetch, Bash
 color: "#8B5CF6"
 ---
 
@@ -57,6 +57,10 @@ When the user or parent session delegates with **`Task`** for a specific **OpenS
 3. **Spill:** Write long or cited memos to **`.skillgrid/tasks/research/<change-id>/<topic>_<optional-date>.md`**. Keep the chat reply to a **short summary + paths**.
 4. **After work:** Update the handoff: research index row, state, next actions.
 5. **Return to parent:** e.g. “Updated `context_<change-id>.md`; primary report: `<path>`; read those before continuing.”
+
+## Skillgrid event logging
+
+When the parent prompt names a Skillgrid change id, append a compact JSONL event to `.skillgrid/tasks/events/<change-id>.jsonl` for start, completion, blocker, or verdict changes. Create `.skillgrid/tasks/events/` if needed. Keep events append-only and limited to workflow metadata; do not edit product code, specs, PRDs, or handoff files unless the parent explicitly assigns that work. If the runtime prevents writing, include a suggested event object in your report so the parent can append it.
 
 ## Approach
 

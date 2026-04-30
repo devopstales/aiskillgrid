@@ -860,7 +860,31 @@ const ticketClose = document.getElementById('ticket-close');
 let cards = [];
 let dashboard = { prds: [], graph: { available: false } };
 let activeView = 'board';
+let selectedWorkflowFile = null;
 let selectedChangeId = null;
+
+function selectWorkflowCard(card) {
+  selectedWorkflowFile = card ? card.file : null;
+  selectedChangeId = card ? card.changeId : null;
+}
+
+function selectedWorkflowCard() {
+  if (selectedWorkflowFile) {
+    const byFile = cards.find((c) => c.file === selectedWorkflowFile);
+    if (byFile) return byFile;
+  }
+  if (selectedChangeId) {
+    const byChange = cards.find((c) => c.changeId === selectedChangeId);
+    if (byChange) return byChange;
+  }
+  return cards[0] || null;
+}
+
+function ensureWorkflowSelection() {
+  const card = selectedWorkflowCard();
+  selectWorkflowCard(card);
+  return card;
+}
 
 function statusColumns() {
   const configured = dashboard.prdWorkflow && dashboard.prdWorkflow.statuses;
@@ -929,8 +953,8 @@ function setView(view) {
   for (const tab of tabEls) {
     tab.classList.toggle('is-active', tab.dataset.view === view);
   }
-  if (view === 'workflow' && !selectedChangeId && cards.length) {
-    selectedChangeId = cards[0].changeId;
+  if (view === 'workflow' && cards.length) {
+    ensureWorkflowSelection();
   }
   renderWorkflow();
   renderAgents();
@@ -953,7 +977,7 @@ async function loadPrds() {
   dashboard = await res.json();
   cards = dashboard.prds || [];
   graphLink.hidden = !(dashboard.graph && dashboard.graph.available);
-  if (!selectedChangeId && cards.length) selectedChangeId = cards[0].changeId;
+  ensureWorkflowSelection();
   render();
   renderWorkflow();
   renderAgents();
@@ -1046,7 +1070,7 @@ function renderCard(c) {
   workflowButton.textContent = 'Workflow';
   workflowButton.addEventListener('click', (e) => {
     e.stopPropagation();
-    selectedChangeId = c.changeId;
+    selectWorkflowCard(c);
     setView('workflow');
   });
   links.appendChild(workflowButton);
@@ -1100,14 +1124,13 @@ function renderPillLink(label, href, external) {
 }
 
 function renderWorkflow() {
+  const card = ensureWorkflowSelection();
   renderWorkflowList();
-  const card = cards.find((c) => c.changeId === selectedChangeId) || cards[0];
   if (!card) {
     workflowDetail.className = 'workflow-empty';
     workflowDetail.textContent = 'No PRDs found in .skillgrid/prd.';
     return;
   }
-  selectedChangeId = card.changeId;
   renderWorkflowDetail(card);
 }
 
@@ -1117,9 +1140,9 @@ function renderWorkflowList() {
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'workflow-item';
-    item.classList.toggle('is-active', c.changeId === selectedChangeId);
+    item.classList.toggle('is-active', c.file === selectedWorkflowFile);
     item.addEventListener('click', () => {
-      selectedChangeId = c.changeId;
+      selectWorkflowCard(c);
       renderWorkflow();
     });
     const title = document.createElement('span');

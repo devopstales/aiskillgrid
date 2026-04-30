@@ -13,13 +13,14 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 | Agent skills catalog | Provides reusable skills for TDD, review, security, UI design, research, graphify, Engram, OpenSpec, and more. | Agents get focused operating procedures instead of ad hoc chat instructions. |
 | Local Skillgrid dashboard | Runs `node .skillgrid/scripts/skillgrid-ui.mjs` for PRD Kanban, Workflow, Subagents, previews, and graphify links. | Product intent, events, previews, and subagent activity are visible in one local web UI. |
 | File-first handoff | Stores PRDs, OpenSpec changes, handoff files, event logs, previews, checkpoints, and research under the repo. | Work survives context resets without requiring a database or hosted service. |
+| Intent-gated loop | Adds `/skillgrid-loop` for the next safe phase or `[AFK]` slice, with explicit HITL and verification stop conditions. | Long-running agent work stays bounded by artifacts, evidence, and user authority. |
 | Installer sanity check | Runs `./install.sh --sanity-check` to verify expected tools, hub files, and script syntax. | Setup problems are caught before copying configs into a project. |
 
 ---
 
 ## What you get
 
-- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, graphify, Engram memory protocol, and more). See [docs/skills.md](docs/skills.md).
+- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, built-in `playwright` and `git-master`, graphify, Engram memory protocol, and more). See [docs/skills.md](docs/skills.md).
 - **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/commands.md](docs/commands.md).
 - **Workflow** — End-to-end phases from init through finish in [docs/workflow.md](docs/workflow.md).
 - **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, graphify, dmux, Engram, and other optional tools from [docs/tools.md](docs/tools.md)).
@@ -29,7 +30,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ## Workflow
 
-**Phase 0** (`/skillgrid-session`) plus the Skillgrid **`/skillgrid-*`** steps summarized in [docs/workflow.md](docs/workflow.md), including optional **`/skillgrid-validate`** as a single review-and-security gate. The diagram below is a six-phase mental model; exact steps and templates live in each command file. **OpenSpec**-focused steps also have **`/opsx-*`** aliases (see [docs/commands.md](docs/commands.md)).
+**Phase 0** (`/skillgrid-session`) plus the Skillgrid **`/skillgrid-*`** steps summarized in [docs/workflow.md](docs/workflow.md), including optional **`/skillgrid-loop`** for controlled AFK progression and **`/skillgrid-validate`** as a single review-and-security gate. The diagram below is a six-phase mental model; exact steps and templates live in each command file. **OpenSpec**-focused steps also have **`/opsx-*`** aliases (see [docs/commands.md](docs/commands.md)).
 
 **Init** writes **`.skillgrid/config.json`**: **ticketing** (`local` or a remote issue backend), **artifact store** (`hybrid` is the strongly recommended default, or `openspec` / `engram` for constrained setups), and **PRD workflow** (`prdWorkflow.statuses` and phase mapping) — so later commands know whether to use **`openspec/`** on disk, **Engram** memory, or both, and which local Kanban/status lifecycle to follow. See **`/skillgrid-init`** and [docs/workflow.md](docs/workflow.md).
 
@@ -47,7 +48,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
  /skillgrid-design optional in DEFINE for UI/UX direction, previews, and DESIGN.md
 ```
 
-Also run **`/skillgrid-explore`**, **`/skillgrid-design`**, and **`/skillgrid-brainstorm`** in DEFINE as needed, and **`/skillgrid-breakdown`** in PLAN. Use **`/skillgrid-validate`** when you want review and security in a single turn.
+Also run **`/skillgrid-explore`**, **`/skillgrid-design`**, and **`/skillgrid-brainstorm`** in DEFINE as needed, and **`/skillgrid-breakdown`** in PLAN. Use **`/skillgrid-loop`** only after artifacts identify a safe next phase or `[AFK]` slice; use **`/skillgrid-validate`** when you want review and security in a single turn.
 
 ---
 

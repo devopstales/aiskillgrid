@@ -54,6 +54,10 @@ Prefer outputs under **`.skillgrid/project/`** when the project uses Skillgrid l
 
 Also respect root **`AGENTS.md`** updates when the user asks for agent-facing rules.
 
+## Skillgrid event logging
+
+When the parent prompt names a Skillgrid change id, append a compact JSONL event to `.skillgrid/tasks/events/<change-id>.jsonl` for start, completion, blocker, or verdict changes. Create `.skillgrid/tasks/events/` if needed. Keep events append-only and limited to workflow metadata; do not edit product code, specs, PRDs, or handoff files unless the parent explicitly assigns that work. If the runtime prevents writing, include a suggested event object in your report so the parent can append it.
+
 ## Approach
 
 1. **Clarify the question** — What decision or onboarding gap should exploration close?

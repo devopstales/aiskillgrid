@@ -26,6 +26,10 @@ Before designing or reviewing tests:
 3. If this is a Skillgrid change, read `.skillgrid/tasks/context_<change-id>.md` and the active `tasks.md` verification items.
 4. For browser behavior, inspect available E2E/browser-testing guidance before recommending manual-only checks.
 
+## Skillgrid event logging
+
+When the parent prompt names a Skillgrid change id, append a compact JSONL event to `.skillgrid/tasks/events/<change-id>.jsonl` for start, completion, blocker, or verdict changes. Create `.skillgrid/tasks/events/` if needed. Keep events append-only and limited to workflow metadata; do not edit product code, specs, PRDs, or handoff files unless the parent explicitly assigns that work. If the runtime prevents writing, include a suggested event object in your report so the parent can append it.
+
 ## Approach
 
 ### 1. Analyze Before Writing

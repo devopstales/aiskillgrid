@@ -32,7 +32,7 @@ Before acting, load only the skills needed for the phase:
 - `.agents/skills/skillgrid-ui-design-artifacts/SKILL.md` — UI decisions, previews, `DESIGN.md`, and OpenSpec design constraints.
 - `.agents/skills/skillgrid-issue-creation/SKILL.md` — local/GitHub/GitLab/Jira issue behavior from `.skillgrid/config.json`.
 - `.agents/skills/skillgrid-hybrid-persistence/SKILL.md` — disk plus Engram persistence.
-- `.agents/skills/skillgrid-filesystem-handoff/SKILL.md` — `context_<change-id>.md` and `research/<change-id>/`.
+- `.agents/skills/skillgrid-filesystem-handoff/SKILL.md` — `context_<change-id>.md`, `events/<change-id>.jsonl`, and `research/<change-id>/`.
 - `.agents/skills/skillgrid-openspec-config/SKILL.md` — `openspec/config.yaml` overlay rules.
 - `.agents/skills/skillgrid-project-docs/SKILL.md` — `DESIGN.md` and `.skillgrid/project/*` docs.
 - `.agents/skills/skillgrid-checkpoints/SKILL.md` — `.skillgrid/tasks/checkpoints.log`.
@@ -51,18 +51,25 @@ Load these first for this command:
 - `skillgrid-issue-creation`
 - `skillgrid-hybrid-persistence`
 
+## Event Log Rule
+
+For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if needed and append short JSONL events to `.skillgrid/tasks/events/<change-id>.jsonl` when this command starts, completes, blocks, skips, dispatches/receives subagents, or changes workflow state. If a delegated agent cannot write, require it to return a suggested event object and append that event from the parent session before advancing.
+
 ## Steps
 
-1. Derive or confirm the change id and PRD title; ask only if scope is unclear.
-2. Create/update `.skillgrid/prd/PRD<NN>_<slug>.md` and `.skillgrid/prd/INDEX.md`.
-3. Split oversized work into ordered PRDs when vertical slices can ship independently.
-4. Create/update `.skillgrid/tasks/context_<change-id>.md` for the active change.
-5. Use `skillgrid-parallel-research` local templates when planning needs independent repo, docs, or prior-art lanes before specs.
-6. Create or refresh `openspec/changes/<change-id>/` artifacts using the OpenSpec CLI and `skillgrid-spec-artifacts`.
-7. Ensure `tasks.md` is executable by a fresh agent: concrete file paths when known, no placeholders, one vertical slice at a time, and TDD-first steps for behavioral code.
-8. Self-review PRD/OpenSpec/tasks for coverage, contradictions, missing verification, and placeholder text before reporting completion.
-9. Create external issues only when `.skillgrid/config.json` configures a remote provider.
-10. Save a concise Engram summary when hybrid persistence is active.
+1. Run the `skillgrid-questioning` intent gate. Continue only when the request is `plan` or a clearly approved continuation from `explore`/`brainstorm`.
+2. If the gate finds `apply`, `test`, `validate`, or `finish`, stop and recommend the correct command instead of creating planning artifacts from execution intent.
+3. Derive or confirm the change id and PRD title; ask only if scope is unclear.
+4. Use decision-tree interview mode until goal, scope, non-goals, acceptance criteria, and HITL/AFK boundaries are explicit or recorded as open questions.
+5. Create/update `.skillgrid/prd/PRD<NN>_<slug>.md` and `.skillgrid/prd/INDEX.md`.
+6. Split oversized work into ordered PRDs when vertical slices can ship independently.
+7. Create/update `.skillgrid/tasks/context_<change-id>.md` for the active change, including the intent gate result and accepted assumptions.
+8. Use `skillgrid-parallel-research` local templates when planning needs independent repo, docs, or prior-art lanes before specs.
+9. Create or refresh `openspec/changes/<change-id>/` artifacts using the OpenSpec CLI and `skillgrid-spec-artifacts`.
+10. Ensure `tasks.md` is executable by a fresh agent: concrete file paths when known, no placeholders, one vertical slice at a time, `[HITL]` / `[AFK]` labels, and TDD-first steps for behavioral code.
+11. Self-review PRD/OpenSpec/tasks for coverage, contradictions, missing verification, and placeholder text before reporting completion.
+12. Create external issues only when `.skillgrid/config.json` configures a remote provider.
+13. Save a concise Engram summary when hybrid persistence is active.
 
 ## Completion Report
 

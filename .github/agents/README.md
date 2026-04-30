@@ -151,6 +151,20 @@ The current Skillgrid set covers the useful `oh-my-openagent` role families with
 | Oracle / Metis / Momus consultation and plan critique | `skillgrid-spec-verifier`, `skillgrid-task-breakdown-auditor`, `skillgrid-code-reviewer`, and slash-command review gates | Covered as review modes for now. Add a new consultant only if repeated workflows need a distinct report format. |
 | Sisyphus / Atlas orchestrators | `/skillgrid-*` slash commands and parent session | Do not add a meta-orchestrator persona; orchestration remains command-owned. |
 
+## Discipline-agent fan-out
+
+Skillgrid treats discipline agents as independent specialist perspectives that the parent command merges. The parent owns scope, state, and final decisions; personas provide bounded reports.
+
+| Phase | Primary personas | Output |
+|-------|------------------|--------|
+| Explore / Brainstorm | `skillgrid-explore-architect`, `skillgrid-researcher` | Repo map, cited research, alternatives, unresolved questions. |
+| Plan / Design | `skillgrid-design-critic`, `skillgrid-task-breakdown-auditor` | Design critique, task readiness, HITL/AFK quality. |
+| Apply | Implementer subagent plus `skillgrid-spec-verifier` and `skillgrid-code-reviewer` when delegated | One AFK slice, spec compliance report, code-quality report. |
+| Test | `skillgrid-test-engineer` | Test strategy, missing coverage, Playwright/browser evidence. |
+| Security / Validate | `skillgrid-security-auditor`, `skillgrid-spec-verifier`, `skillgrid-code-reviewer`, optional `skillgrid-test-engineer` | Independent go/no-go reports merged by the parent. |
+
+Fan-out is valid only when each persona has a different perspective and no shared mutable output. The parent must read every report, reconcile conflicts, update the handoff, and run final verification before advancing status.
+
 ## Consistency contract
 
 All agents in this directory follow the same contract, adapted from the focused agent style used by [GSD agents](https://github.com/gsd-build/get-shit-done/tree/main/agents):

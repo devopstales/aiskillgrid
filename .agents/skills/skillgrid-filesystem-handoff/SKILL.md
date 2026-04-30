@@ -78,13 +78,15 @@ Keep `context_<change-id>.md` concise and skimmable. Use this template:
 
 Do not turn the handoff into a raw transcript. Link to research files when details are long.
 
-### Handoff Event Log
+### Required Handoff Event Log
 
 Append workflow events to:
 
 ```text
 .skillgrid/tasks/events/<change-id>.jsonl
 ```
+
+Create `.skillgrid/tasks/events/` before the first append if it does not exist. Every Skillgrid command, parent session, and write-capable Skillgrid subagent must append an event when it starts work, completes a phase, blocks, skips a phase, or changes workflow state. If a subagent is read-only or cannot write, it must return a suggested event object and the parent must append it before advancing.
 
 Each line is one JSON object. Keep entries short and stable so the local dashboard can render them:
 
@@ -188,9 +190,11 @@ Add to `.skillgrid/tasks/context_<change-id>.md`:
 Every subagent prompt for a Skillgrid change should include:
 
 - the handoff path
+- the event log path
 - the PRD path
 - the OpenSpec change path when present
 - the expected output file under `research/<change-id>/`
+- a requirement to append a short event when write-capable, or return a suggested event object when read-only
 - a requirement to return a short summary with file paths
 
 After a subagent returns, the parent session must read the handoff and cited research files before editing product code or changing workflow state.
