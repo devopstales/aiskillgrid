@@ -19,8 +19,11 @@ During initialization, decide:
 - PRD workflow: default statuses, provider-style statuses, imported statuses, or custom statuses.
 - Optional indexing: graphify and ccc.
 - Optional persistent memory: Engram.
+- Skill registry: `.skillgrid/project/SKILL_REGISTRY.md` for compact rules used in subagent prompts.
 
 The recommended default for most users is a hybrid model: keep reviewable files in the repository and save concise durable memory summaries.
+
+When Engram is enabled, active changes should also have a compact `skillgrid/<change-id>/state` memory entry. It helps a later session recover the phase, blockers, artifact paths, and next action without trusting chat history.
 
 ## First Feature
 
@@ -148,6 +151,21 @@ Finish should handle closure tasks such as:
 - Cleaning up previews or checkpoints when appropriate.
 - Preparing git or PR handoff when requested.
 - Confirming docs and evidence are not stale.
+- Saving final Engram closure/state summaries when memory is available.
+
+If your team intentionally shares Engram memories through git, run:
+
+```bash
+engram sync
+```
+
+after significant finish work, and use:
+
+```bash
+engram sync --import
+```
+
+on another machine after cloning. Review `.engram/` before committing because it may contain prompts, decisions, and sensitive project context.
 
 ## Resuming Work
 
@@ -170,9 +188,12 @@ The agent should inspect the durable state:
 - Active handoff files.
 - Event logs.
 - Relevant memory.
+- Skill registry.
 - Open change artifacts.
 
 Then it should recommend the next command.
+
+If Engram returns memory search hits, the agent should retrieve full observations before relying on them. Search previews are not enough for requirements, blocker state, task status, or user decisions.
 
 ## What To Expect After Each Phase
 

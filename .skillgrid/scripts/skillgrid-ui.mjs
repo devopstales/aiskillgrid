@@ -64,6 +64,7 @@ const STATIC = {
       <a id="graph-link" class="tab tab-link" href="/graphify/graph.html" target="_blank" rel="noreferrer" hidden>Graph</a>
     </nav>
     <p id="banner" class="banner" hidden></p>
+    <div id="system-status" class="system-status" aria-live="polite"></div>
     <button type="button" id="refresh" class="btn">Refresh</button>
   </header>
   <main class="dashboard-shell">
@@ -146,6 +147,29 @@ const STATIC = {
   background: #fee2e2;
   color: #991b1b;
   border-color: #f87171;
+}
+
+.system-status {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+
+.status-chip {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid #d4d4d8;
+  background: #fff;
+  color: #3f3f46;
+  font-size: 0.82rem;
+}
+
+.status-chip strong {
+  color: #18181b;
 }
 
 .btn {
@@ -844,6 +868,7 @@ const workflowDetail = document.getElementById('workflow-detail');
 const agentsView = document.getElementById('agents-view');
 const agentsList = document.getElementById('agents-list');
 const bannerEl = document.getElementById('banner');
+const systemStatusEl = document.getElementById('system-status');
 const refreshBtn = document.getElementById('refresh');
 const graphLink = document.getElementById('graph-link');
 const tabEls = Array.from(document.querySelectorAll('[data-view]'));
@@ -977,10 +1002,43 @@ async function loadPrds() {
   dashboard = await res.json();
   cards = dashboard.prds || [];
   graphLink.hidden = !(dashboard.graph && dashboard.graph.available);
+  renderSystemStatus();
   ensureWorkflowSelection();
   render();
   renderWorkflow();
   renderAgents();
+}
+
+function renderSystemStatus() {
+  systemStatusEl.innerHTML = '';
+  const memory = dashboard.memory || {};
+  const engram = memory.engram || {};
+  const registry = memory.skillRegistry || {};
+
+  const engramText = engram.available
+    ? \`Engram: \${engram.memories || 0} memories / \${engram.sessions || 0} sessions\`
+    : 'Engram: no .engram manifest';
+  systemStatusEl.appendChild(renderStatusChip(engramText));
+
+  const registryText = registry.available
+    ? \`Skill registry: \${registry.skills || 0} skills\`
+    : 'Skill registry: missing';
+  systemStatusEl.appendChild(renderStatusChip(registryText));
+}
+
+function renderStatusChip(text) {
+  const chip = document.createElement('span');
+  chip.className = 'status-chip';
+  const [label, rest] = String(text).split(/:\s*/, 2);
+  if (rest !== undefined) {
+    const strong = document.createElement('strong');
+    strong.textContent = label + ':';
+    chip.appendChild(strong);
+    chip.appendChild(document.createTextNode(' ' + rest));
+  } else {
+    chip.textContent = text;
+  }
+  return chip;
 }
 
 function render() {
@@ -1972,6 +2030,74 @@ async function listResearchArtifacts(repoRoot, changeId) {
     .sort((a, b) => a.path.localeCompare(b.path));
 }
 
+async function readEngramManifest(repoRoot) {
+  const manifestPath = path.join(repoRoot, '.engram', 'manifest.json');
+  if (!existsSync(manifestPath)) {
+    return {
+      available: false,
+      path: '.engram/manifest.json',
+      chunks: 0,
+      sessions: 0,
+      memories: 0,
+      prompts: 0,
+    };
+  }
+  try {
+    const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+    const chunks = Array.isArray(manifest.chunks) ? manifest.chunks : [];
+    return {
+      available: true,
+      path: '.engram/manifest.json',
+      chunks: chunks.length,
+      sessions: chunks.reduce((sum, chunk) => sum + Number(chunk.sessions || 0), 0),
+      memories: chunks.reduce((sum, chunk) => sum + Number(chunk.memories || 0), 0),
+      prompts: chunks.reduce((sum, chunk) => sum + Number(chunk.prompts || 0), 0),
+    };
+  } catch (e) {
+    return {
+      available: false,
+      path: '.engram/manifest.json',
+      error: String(e.message || e),
+      chunks: 0,
+      sessions: 0,
+      memories: 0,
+      prompts: 0,
+    };
+  }
+}
+
+async function readSkillRegistryMetadata(repoRoot) {
+  const registryPath = path.join(repoRoot, '.skillgrid', 'project', 'SKILL_REGISTRY.md');
+  if (!existsSync(registryPath)) {
+    return {
+      available: false,
+      path: '.skillgrid/project/SKILL_REGISTRY.md',
+      skills: 0,
+      conventions: 0,
+    };
+  }
+  const text = await fs.readFile(registryPath, 'utf8');
+  const skills = (text.match(/^###\s+\S+/gm) || []).length;
+  const conventionsSection = text.match(/^##\s+Project Conventions\s*$([\s\S]*?)(?=^##\s+|$)/im);
+  const conventions = conventionsSection
+    ? conventionsSection[1].split(/\r?\n/).filter((line) => /^\|\s*`?[^|-]/.test(line.trim())).length
+    : 0;
+  return {
+    available: true,
+    path: '.skillgrid/project/SKILL_REGISTRY.md',
+    skills,
+    conventions,
+  };
+}
+
+async function readMemoryMetadata(repoRoot) {
+  const [engram, skillRegistry] = await Promise.all([
+    readEngramManifest(repoRoot),
+    readSkillRegistryMetadata(repoRoot),
+  ]);
+  return { engram, skillRegistry };
+}
+
 async function enrichPrd(prdRoot, prd) {
   const repoRoot = repoRootFromPrdRoot(prdRoot);
   const changeId = prd.changeId || fallbackChangeId(prd.file);
@@ -2020,6 +2146,7 @@ async function buildDashboardData(prdRoot) {
     prds,
     prdWorkflow,
     agentActions: collectAgentActions(prds),
+    memory: await readMemoryMetadata(repoRoot),
     workflowPhases: DEFAULT_WORKFLOW_PHASES,
     graph: {
       available: existsSync(path.join(repoRoot, 'graphify-out', 'graph.html')),

@@ -28,6 +28,7 @@ Construct every subagent prompt from durable artifacts:
 - `.skillgrid/tasks/context_<change-id>.md`
 - `.skillgrid/tasks/events/<change-id>.jsonl`
 - cited files under `.skillgrid/tasks/research/<change-id>/`
+- `.skillgrid/project/SKILL_REGISTRY.md` when present, using only compact rules relevant to the delegated task
 - the specific task, scope, constraints, expected output path, and return format
 
 Never paste session history or chain-of-thought into a subagent prompt. If a subagent needs more context, add the missing durable artifact path or a concise task-specific excerpt and re-dispatch.
@@ -43,6 +44,7 @@ Every Skillgrid subagent prompt should include:
 - `.skillgrid/tasks/context_<change-id>.md`
 - `.skillgrid/tasks/events/<change-id>.jsonl`
 - expected output path under `.skillgrid/tasks/research/<change-id>/` when output is long
+- selected compact rules from `.skillgrid/project/SKILL_REGISTRY.md` under `## Project Standards` when relevant
 - exact return format: short summary plus file paths
 
 Prompts should be:
@@ -68,6 +70,11 @@ Read first:
 - OpenSpec: `openspec/changes/<change-id>/`
 - Handoff: `.skillgrid/tasks/context_<change-id>.md`
 - Event log: `.skillgrid/tasks/events/<change-id>.jsonl`
+- Skill registry: `.skillgrid/project/SKILL_REGISTRY.md` (parent has selected relevant compact rules below)
+
+## Project Standards
+
+<Paste only relevant compact rules from the registry.>
 
 Write long output to:
 `.skillgrid/tasks/research/<change-id>/<topic>.md`

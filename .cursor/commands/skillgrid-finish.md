@@ -65,11 +65,15 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 4. Archive OpenSpec changes when appropriate.
 5. Update tracker state according to `.skillgrid/config.json`.
 6. Clean up change-scoped checkpoints and previews when safe.
-7. Save Engram closure summary when available.
-8. Use `git-master` for branch, diff, commit, and PR hygiene. Create commits or PRs only when explicitly requested by the user.
+7. Save Engram closure summary when available:
+   - Update `skillgrid/<change-id>/state` to the final phase/status and next action.
+   - Save `skillgrid/<change-id>/archive` or equivalent closure notes with paths to final PRD, OpenSpec archive, validation evidence, and remaining risks.
+   - If recovering prior memory during finish, use `mem_search` to find IDs and `mem_get_observation(id)` before relying on any recovered content.
+8. If `.engram/` team sharing is used or requested, recommend `engram sync` after significant finish work; do not run it unless the user or project policy explicitly asks because `.engram/` may contain sensitive context.
+9. Use `git-master` for branch, diff, commit, and PR hygiene. Create commits or PRs only when explicitly requested by the user.
 
 ## Completion Report
 
-Report spec sync/archive result, docs alignment, tracker updates, checkpoint cleanup, PR/CI status, configured status set for `finish`, and remaining risks.
+Report spec sync/archive result, docs alignment, tracker updates, checkpoint cleanup, Engram closure/state update or skip reason, optional `engram sync` guidance, PR/CI status, configured status set for `finish`, and remaining risks.
 
 </process>

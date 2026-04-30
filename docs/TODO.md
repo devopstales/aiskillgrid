@@ -178,6 +178,7 @@ npm install -g @mariozechner/pi-coding-agent
 * [ ] [taste-skill](https://github.com/Leonxlnx/taste-skill)
 * [ ] [npxskillui](https://github.com/amaancoderx/npxskillui)
 * [ ] [impeccable](https://github.com/pbakaus/impeccable)
+* [ ] [open-design](https://github.com/nexu-io/open-design)
 
 ## Browser tools
 
@@ -217,9 +218,11 @@ npm install -g @mariozechner/pi-coding-agent
 * [ ] [conductor]() - Separate App
 * [ ] [Archon](https://github.com/coleam00/archon) - Server Based
 
+## Modell selector
+
+* [ ] [cc-switch](https://github.com/farion1231/cc-switch)
+
 ## Sources
-
-
 
 * [ ] [Aemini Skills](https://github.com/google-gemini/gemini-skills/)
 * [ ] [context-mode](https://github.com/mksglu/context-mode/tree/main/configs)

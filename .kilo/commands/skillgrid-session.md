@@ -36,6 +36,7 @@ Before acting, load only the skills needed for the phase:
 - `.agents/skills/skillgrid-issue-creation/SKILL.md` — local/GitHub/GitLab/Jira issue behavior from `.skillgrid/config.json`.
 - `.agents/skills/skillgrid-hybrid-persistence/SKILL.md` — disk plus Engram persistence.
 - `.agents/skills/skillgrid-filesystem-handoff/SKILL.md` — `context_<change-id>.md`, `events/<change-id>.jsonl`, and `research/<change-id>/`.
+- `.agents/skills/skillgrid-skill-registry/SKILL.md` — `.skillgrid/project/SKILL_REGISTRY.md` for compact skill and convention rules.
 - `.agents/skills/skillgrid-openspec-config/SKILL.md` — `openspec/config.yaml` overlay rules.
 - `.agents/skills/skillgrid-project-docs/SKILL.md` — `DESIGN.md` and `.skillgrid/project/*` docs.
 - `.agents/skills/skillgrid-checkpoints/SKILL.md` — `.skillgrid/tasks/checkpoints.log`.
@@ -50,6 +51,7 @@ Load these first for this command:
 - `skillgrid-questioning`
 - `skillgrid-codebase-map`
 - `ccc`
+- `skillgrid-skill-registry`
 
 ## Event Log Rule
 
@@ -60,11 +62,14 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 1. Read `.skillgrid/config.json` if present; report `ticketing.provider`, `artifactStore.mode`, and `prdWorkflow` status columns / phase mapping.
 2. List active PRDs under `.skillgrid/prd/` and note their `Status:` values.
 3. Check `.skillgrid/tasks/context_*.md` for resumable changes and last checkpoint references.
-4. If Engram is available, search for project and active-change keys; load details only when needed.
-5. Keep context minimal: load deeper skills, docs, and OpenSpec files only for the next substantive phase.
+4. If `.skillgrid/project/SKILL_REGISTRY.md` exists, note it as the local skill registry for future subagent prompts; refresh only when skills or project convention files changed.
+5. If Engram is available, search for project and active-change keys, especially `skillgrid-init/<project>` and `skillgrid/<change-id>/state`.
+6. For every Engram hit that will influence state, blockers, requirements, or decisions, call `mem_get_observation(id)` before relying on it. Do not act on truncated `mem_search` snippets.
+7. Reconcile recovered Engram state against disk artifacts. In `hybrid` or `openspec` mode, PRDs, OpenSpec files, and handoff files win when they disagree with memory.
+8. Keep context minimal: load deeper skills, docs, and OpenSpec files only for the next substantive phase.
 
 ## Completion Report
 
-Report loaded context, active changes, handoff files, memory lookups, and the recommended next command.
+Report loaded context, active changes, handoff files, skill registry status, memory lookups including full-observation retrievals, stale or conflicting memory if found, and the recommended next command.
 
 </process>

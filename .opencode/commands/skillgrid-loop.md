@@ -50,8 +50,8 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 
 ## Steps
 
-1. Run the `skillgrid-questioning` intent gate and identify the active change id from arguments, `.skillgrid/tasks/context_*.md`, `.skillgrid/prd/INDEX.md`, or `openspec/changes/`.
-2. Read the active PRD, OpenSpec artifacts, `tasks.md`, handoff file, latest checkpoint, and cited research before taking any phase action.
+1. Run the `skillgrid-questioning` intent gate and identify the active change id from arguments, `.skillgrid/tasks/context_*.md`, `.skillgrid/prd/INDEX.md`, `openspec/changes/`, or the full retrieved Engram observation for `skillgrid/<change-id>/state`.
+2. Read the active PRD, OpenSpec artifacts, `tasks.md`, handoff file, latest checkpoint, and cited research before taking any phase action. If Engram lookup is needed, use `mem_search` only to find IDs and `mem_get_observation(id)` before relying on the content.
 3. Determine the next safe action:
    - no PRD or unclear scope -> route to `/skillgrid-brainstorm` or `/skillgrid-plan`;
    - PRD exists but tasks are incomplete -> route to `/skillgrid-breakdown`;
@@ -62,7 +62,8 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 4. Advance only one phase transition or one small `[AFK]` slice at a time.
 5. After each unit, update the handoff with result, evidence, changed assumptions, blockers, and the next recommended action.
 6. Append an event under `.skillgrid/tasks/events/<change-id>.jsonl` when loop starts, advances, blocks, or completes.
-7. Reassess before continuing. Do not continue just because there are unchecked tasks.
+7. When Engram is available, save or update the compact `skillgrid/<change-id>/state` snapshot with phase, status, artifact store, PRD/OpenSpec/handoff paths, blockers, next action, and `last_updated`.
+8. Reassess before continuing. Do not continue just because there are unchecked tasks.
 
 ## Stop Conditions
 
@@ -79,6 +80,6 @@ Stop immediately when any condition applies:
 
 ## Completion Report
 
-Report the phase or slice advanced, evidence paths, handoff/event updates, the stop condition if any, and the next recommended command.
+Report the phase or slice advanced, evidence paths, handoff/event updates, Engram state snapshot update or skip reason, the stop condition if any, and the next recommended command.
 
 </process>

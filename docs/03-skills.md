@@ -50,11 +50,14 @@ These skills manage the Skillgrid-specific workflow:
 - Issue creation rules.
 - Hybrid persistence.
 - Filesystem handoff.
+- Skill registry generation.
 - OpenSpec config alignment.
 - Project docs.
 - Checkpoints.
 
 These are the backbone of the solution. They keep product intent, technical tasks, memory, and agent handoffs connected.
+
+During init or session refresh, Skillgrid can generate `.skillgrid/project/SKILL_REGISTRY.md`. That registry is project-local context for parent sessions: it lists available skills, compact rules, and project convention files so subagent prompts can receive only the relevant standards instead of rediscovering every skill.
 
 ### Planning And Product Skills
 

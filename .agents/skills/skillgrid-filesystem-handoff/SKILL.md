@@ -43,12 +43,14 @@ Keep `context_<change-id>.md` concise and skimmable. Use this template:
 - **Phase:** plan | breakdown | apply | test | validate | finish
 - **Status:** active | blocked | paused | ready-for-next-command
 - **Last updated:** <YYYY-MM-DD>
+- **Engram state:** `skillgrid/<change-id>/state` if Engram is available
 
 ## Active artifacts
 
 - PRD: `.skillgrid/prd/PRD<NN>_<slug>.md`
 - OpenSpec: `openspec/changes/<change-id>/`
 - Tasks: `openspec/changes/<change-id>/tasks.md`
+- Event log: `.skillgrid/tasks/events/<change-id>.jsonl`
 - Preview: `.skillgrid/preview/<file>` if any
 
 ## Decisions
@@ -77,6 +79,12 @@ Keep `context_<change-id>.md` concise and skimmable. Use this template:
 ```
 
 Do not turn the handoff into a raw transcript. Link to research files when details are long.
+
+### Engram State Alignment
+
+When Engram is available, mirror only the compact current-state index to `skillgrid/<change-id>/state`. The handoff remains the in-repo current-state file; the Engram snapshot helps a fresh session find the right files and last known phase after compaction.
+
+Update the snapshot whenever the handoff phase, status, blocker list, active artifacts, or next recommended action changes. Do not copy the full handoff into Engram unless the project explicitly runs in `artifactStore.mode: engram`.
 
 ### Required Handoff Event Log
 

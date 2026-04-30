@@ -53,6 +53,28 @@ Optional capabilities may use:
 
 Missing optional tools should not block the basic workflow. They reduce capability, not the value of the whole system.
 
+## Engram Setup
+
+Engram is optional but recommended for cross-session memory. When selected in the optional tools prompt, the installer checks for the `engram` CLI and the bundled MCP fragment:
+
+```text
+.configs/mcp/command/engram.json
+```
+
+The fragment starts Engram as an MCP server with:
+
+```bash
+engram mcp --tools=agent
+```
+
+If the CLI is missing, install it with:
+
+```bash
+brew install gentleman-programming/tap/engram
+```
+
+The installer reports whether the Engram MCP server is included in the merged IDE config. Missing Engram should not block installing Skillgrid; it only means memory-backed recovery and summaries are unavailable until configured.
+
 ## What Gets Installed
 
 The exact result depends on selected options and the target IDEs, but the intended shape is:
@@ -61,6 +83,7 @@ The exact result depends on selected options and the target IDEs, but the intend
 |---|---|---|
 | Shared rules | `AGENTS.md` | Project-wide agent behavior and operating principles |
 | Skills | `.agents/skills/` | Reusable agent procedures and checklists |
+| Skill registry | `.skillgrid/project/SKILL_REGISTRY.md` | Generated compact rules and convention pointers for subagents |
 | Cursor commands | `.cursor/commands/` | Slash command prompts for Cursor |
 | Kilo commands | `.kilo/commands/` | Slash command prompts for Kilo |
 | OpenCode commands | `.opencode/commands/` | Slash command prompts for OpenCode |

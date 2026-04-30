@@ -23,6 +23,7 @@ Each layer answers a different question.
 | Engram | What should survive sessions? | Durable observations and summaries |
 | Handoff | What is happening in this change right now? | `.skillgrid/tasks/context_<change-id>.md` |
 | Research spill | Where is the long evidence? | `.skillgrid/tasks/research/<change-id>/` |
+| Skill registry | Which compact rules should subagents receive? | `.skillgrid/project/SKILL_REGISTRY.md` |
 | graphify | How is the repo structured? | `graphify-out/` |
 | ccc | Where is this concept in code? | semantic code index |
 | rg and LSP | Where is this exact symbol or string? | live source lookup |
@@ -42,6 +43,16 @@ Use it for:
 
 Do not use Engram as a dumping ground for huge files or as a replacement for reading the repository. It should remember what matters and point back to durable artifacts.
 
+For active Skillgrid changes, use a compact state key:
+
+```text
+skillgrid/<change-id>/state
+```
+
+This state observation should contain only the current phase, status, artifact-store mode, PRD/OpenSpec/handoff/event paths, blockers, next action, and last updated timestamp. It is a recovery index, not a second copy of the PRD or task list.
+
+When recovering from Engram, search is only step one. `mem_search` returns short previews; use `mem_get_observation(id)` before relying on recovered requirements, blocker state, task status, or decisions.
+
 Your AI agent automatically remembers decisions, bugs, and context across sessions. You don't need to do anything -- but when you do:
 
 ```bash
@@ -49,7 +60,11 @@ engram projects list          # See all projects with memory counts
 engram projects consolidate   # Fix name drift ("my-app" vs "My-App")
 engram search "auth bug"      # Find a past decision from the terminal
 engram tui                    # Visual memory browser
+engram sync                   # Export project memories to .engram/ for intentional team sharing
+engram sync --import          # Import committed .engram/ memories on another machine
 ```
+
+Commit `.engram/` only when your team explicitly wants shared memory in git. It can contain prompts, decisions, and project context, so treat it like a reviewable knowledge artifact.
 
 ## Per-Change Handoff
 
@@ -82,6 +97,16 @@ Long research does not belong in chat. Subagent reports, web research, audits, a
 ```
 
 The parent session can then summarize only what matters and keep a pointer to the full evidence.
+
+## Skill Registry
+
+The project skill registry records the locally available skills, compact actionable rules, and project convention files:
+
+```text
+.skillgrid/project/SKILL_REGISTRY.md
+```
+
+It is generated or refreshed by `/skillgrid-init` and can be checked during `/skillgrid-session`. Parent sessions use it before launching subagents, selecting only the compact rules relevant to the delegated task.
 
 ## graphify
 
@@ -127,7 +152,8 @@ This is still essential. Memory and semantic indexing should not replace reading
 flowchart TD
   Start[Start Session] --> Recall[Recall Engram]
   Recall --> Handoff[Read Handoff]
-  Handoff --> Map[Inspect graphify]
+  Handoff --> Registry[Read Skill Registry]
+  Registry --> Map[Inspect graphify]
   Map --> Semantic[Use ccc For Concepts]
   Semantic --> Exact[Use rg Or LSP]
   Exact --> Read[Read Source Files]

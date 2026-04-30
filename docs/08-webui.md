@@ -24,6 +24,8 @@ AI work can become invisible when it lives only in chat. The web UI gives users 
 - What subagents did.
 - Which previews exist.
 - Whether graph output is available.
+- Whether Engram shared-memory export metadata exists.
+- Whether the project skill registry exists.
 - What event history has been recorded.
 
 This turns AISkillGrid from a prompt library into an observable workflow.
@@ -41,6 +43,7 @@ flowchart TD
   Workflow --> Events[Event Logs]
   Subagents --> Reports[Research And Reports]
   Graph --> Graphify[graphify Output]
+  WebUI --> Memory[Engram And Registry Status]
 ```
 
 ## Board View
@@ -120,8 +123,12 @@ The dashboard reads files that already belong to the Skillgrid workflow:
 | `.skillgrid/tasks/research/<change-id>/` | Reports and research artifacts |
 | `.skillgrid/preview/` | Preview links |
 | `graphify-out/` | Graph view |
+| `.engram/manifest.json` | Engram export counts, when team memory sync is used |
+| `.skillgrid/project/SKILL_REGISTRY.md` | Skill registry availability and skill count |
 
 No separate database is required for the core local dashboard model.
+
+The dashboard reads `.engram/manifest.json` directly when it exists. It does not call the Engram CLI or expose memory contents.
 
 ## Practical Advantage
 

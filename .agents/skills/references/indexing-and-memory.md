@@ -5,10 +5,35 @@ Use these when the project or IDE has them enabled (merged `mcp.json`, `install.
 ## Engram (persistent memory MCP)
 
 - **Typical tools:** `mem_context`, `mem_search`, `mem_get_observation`, `mem_save`, `mem_session_summary` (exact set depends on server config).
-- **Role:** Cross-session facts, **Skillgrid** / OpenSpec artifact keys when the project uses **Engram** (e.g. `skillgrid-init/{project}`, `skillgrid/{change}/verify-report`), and decisions worth recalling.
-- **Rule:** `mem_search` previews are short; use `mem_get_observation(id)` for full content before relying on an artifact.
+- **Role:** Cross-session facts, **Skillgrid** / OpenSpec artifact keys when the project uses **Engram** (e.g. `skillgrid-init/{project}`, `skillgrid/{change}/state`, `skillgrid/{change}/verify-report`), and decisions worth recalling.
+- **Rule:** `mem_search` previews are short; `mem_get_observation(id)` is mandatory before relying on recovered artifact, blocker, task, status, or decision content.
 - **When:** Session start, before claiming “we already decided…”, after locking a decision worth replaying.
 - **Discipline:** `.agents/skills/memory-protocol/SKILL.md` (Engram memory protocol).
+
+### Skillgrid Recovery Keys
+
+Use stable keys for change recovery:
+
+```text
+skillgrid-init/<project>
+skillgrid/<change>/state
+skillgrid/<change>/prd
+skillgrid/<change>/proposal
+skillgrid/<change>/spec
+skillgrid/<change>/tasks
+skillgrid/<change>/context
+skillgrid/<change>/verify-report
+skillgrid/<change>/archive
+```
+
+`skillgrid/<change>/state` is the compact index: phase, status, paths, blockers, next action, and last updated. It points to canonical disk artifacts in hybrid/openspec mode and to concrete Engram artifact observations in engram mode.
+
+Recovery is always two-step:
+
+1. `mem_search` the stable topic key to get candidate IDs.
+2. `mem_get_observation(id)` for full untruncated content before acting.
+
+If disk artifacts and Engram disagree, treat disk artifacts as canonical in `hybrid` / `openspec` mode, then update the state snapshot once the correct state is known.
 
 ## Graphify
 
@@ -40,7 +65,7 @@ When the project uses **Skillgrid** and a named OpenSpec **change** is active, t
 
 ## Suggested order
 
-1. Rules + `mem_context` / quick `mem_search` (if memory MCPs available)  
+1. Rules + `mem_context` / quick `mem_search` (if memory MCPs available; retrieve full observations before relying on hits)  
 2. For an active **change** with a handoff file: read **`.skillgrid/tasks/context_<change-id>.md`** (when present)  
 3. `graphify-out/` skim if present  
 4. **`ccc search`** when the CocoIndex index is fresh (after **`ccc index`**)  

@@ -545,15 +545,18 @@ install_optional_tool_clis() {
 
     if tool_is_selected engram; then
         if command -v engram &>/dev/null; then
-            log_info "engram CLI already installed"
+            local engram_path
+            engram_path=$(command -v engram)
+            log_info "engram CLI already installed: $engram_path"
         elif [ "$DRY_RUN" = true ]; then
             echo "[DRY-RUN] brew install gentleman-programming/tap/engram"
+            echo "[DRY-RUN] verify MCP fragment: .configs/mcp/command/engram.json"
         elif command -v brew &>/dev/null; then
             log_info "Installing engram (Homebrew)..."
             if brew install gentleman-programming/tap/engram; then
                 log_success "engram installed"
             else
-                log_warn "engram: brew install failed"
+                log_warn "engram: brew install failed — install manually with: brew install gentleman-programming/tap/engram"
             fi
         else
             log_warn "engram: Homebrew not found — run: brew install gentleman-programming/tap/engram"
@@ -735,6 +738,43 @@ merge_mcp_configs() {
 
     # Return the merged JSON
     echo "$merged_json"
+}
+
+verify_engram_setup() {
+    [ "$MERGE_MCP" = true ] || {
+        log_info "Engram MCP: skipped because --no-mcp was used"
+        return 0
+    }
+
+    local merged_mcp="$1"
+    local fragment="$SCRIPT_DIR/.configs/mcp/command/engram.json"
+
+    if [ ! -f "$fragment" ]; then
+        log_warn "Engram MCP: missing fragment .configs/mcp/command/engram.json"
+        return 0
+    fi
+
+    if command -v engram &>/dev/null; then
+        log_success "Engram CLI available: $(command -v engram)"
+    else
+        log_warn "Engram CLI not on PATH — install with: brew install gentleman-programming/tap/engram"
+    fi
+
+    if [ -z "$merged_mcp" ]; then
+        log_warn "Engram MCP: no merged MCP config was produced"
+        return 0
+    fi
+
+    if ! command -v jq &>/dev/null; then
+        log_warn "Engram MCP: jq missing, cannot verify merged server list"
+        return 0
+    fi
+
+    if printf '%s' "$merged_mcp" | jq -e '.mcpServers.engram' >/dev/null 2>&1; then
+        log_success "Engram MCP server included in merged config"
+    else
+        log_warn "Engram MCP server not included in merged config — select it during MCP setup or use all MCP servers"
+    fi
 }
 
 show_dependencies() {
@@ -925,6 +965,7 @@ run_sanity_check() {
     echo "Hub files:"
     sanity_check_file "AGENTS.md template" "$SCRIPT_DIR/.configs/AGENTS.md"
     sanity_check_file "MCP config fragments" "$SCRIPT_DIR/.configs/mcp"
+    sanity_check_file "Engram MCP fragment" "$SCRIPT_DIR/.configs/mcp/command/engram.json"
     sanity_check_file "Skill catalog" "$SCRIPT_DIR/.agents/skills"
     sanity_check_file "Skillgrid UI script" "$SCRIPT_DIR/.skillgrid/scripts/skillgrid-ui.mjs"
     sanity_check_file "Preview script" "$SCRIPT_DIR/.skillgrid/scripts/preview.sh"
@@ -1849,6 +1890,7 @@ main() {
     if [ "$MERGE_MCP" = true ]; then
         MERGED_MCP=$(merge_mcp_configs)
     fi
+    verify_engram_setup "$MERGED_MCP"
 
     # Setup selected IDEs
     echo ""
