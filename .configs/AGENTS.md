@@ -168,7 +168,7 @@ To check whether embeddings exist, inspect **`.gitnexus/meta.json`** — the `st
 
 ## Skillgrid: per-change handoff (filesystem context)
 
-When the project uses **Skillgrid** + **OpenSpec**, keep **change-scoped** state on disk so the main session and **`Task` / subagents** stay aligned without pasting long tool output in chat. Full layout, handoff **template**, and subagent **contract** live in **`docs/workflow.md`** (*Filesystem handoff* and *Parallel discovery*).
+When the project uses **Skillgrid** + **OpenSpec**, keep **change-scoped** state on disk so the main session and **`Task` / subagents** stay aligned without pasting long tool output in chat. Full layout, handoff **template**, and subagent **contract** live in **`docs/02-workflow-usage.md`** (*Filesystem handoff* and *Parallel discovery*).
 
 **Paths (`<change-id>` = directory name under `openspec/changes/<change-id>/`):**
 
@@ -197,7 +197,7 @@ Deeper patterns live under **`.agents/skills/`** (e.g. `firecrawl-scrape`, `exa-
 
 ## Engram (persistent memory MCP)
 
-If **Engram** is enabled in your MCP config (see **`.configs/mcp/`** and **docs/tools.md**), use it for facts that should survive **compaction and new sessions**. It complements **on-disk** handoff and PRD/OpenSpec, not a replacement for reading the repo.
+If **Engram** is enabled in your MCP config (see **`.configs/mcp/`** and **docs/01-installation.md**), use it for facts that should survive **compaction and new sessions**. It complements **on-disk** handoff and PRD/OpenSpec, not a replacement for reading the repo.
 
 **When to `mem_save` (promptly, not only at end of task):** decisions, non-obvious **bugfix** learnings, discovered patterns, **config** or product preferences, and pointers to where the detail lives (stable **`topic_key`**, e.g. `skillgrid/{change}/…`).
 

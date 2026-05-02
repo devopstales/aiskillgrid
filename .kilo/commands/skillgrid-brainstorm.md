@@ -57,6 +57,18 @@ Load these first for this command:
 
 For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if needed and append short JSONL events to `.skillgrid/tasks/events/<change-id>.jsonl` when this command starts, completes, blocks, skips, dispatches/receives subagents, or changes workflow state. If a delegated agent cannot write, require it to return a suggested event object and append that event from the parent session before advancing.
 
+## Alignment Gate
+
+Before creating or updating PRDs, run a shared-understanding gate for ambiguous work:
+
+- Ask one blocking question at a time.
+- Include a recommended answer when the codebase, domain, or user intent supports one.
+- Record accepted answers as assumptions, decisions, non-goals, risks, or open questions in durable artifacts.
+- Keep unresolved product, domain, visual, credential, destructive, or release choices `[HITL]`.
+- Use discuss/assumptions mode when a full interview would be too slow: read the relevant artifacts, state assumptions, and ask the user to correct only what is wrong.
+
+Do not send product alignment into an unattended Build Loop.
+
 ## Steps
 
 1. Run the `skillgrid-questioning` intent gate: classify the request as `explore`, `plan`, `apply`, `test`, `validate`, `finish`, or `blocked` before shaping the idea.

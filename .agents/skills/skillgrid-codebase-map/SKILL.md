@@ -54,6 +54,19 @@ Capture:
 - existing PRD/OpenSpec/Skillgrid artifacts
 - known risky areas or god nodes
 
+### Agent-Friendly Architecture
+
+Planning quality depends on module shape. While mapping, call out whether the target area has deep, testable modules with small interfaces or shallow/tangled modules that will make AFK implementation risky.
+
+Record:
+
+- proposed modules or boundaries a change is likely to touch;
+- public interfaces that should stay small and stable;
+- test seams and feedback loops already available;
+- missing tests, god modules, circular dependencies, or broad side effects that should route the work through exploration/refactoring before large apply loops.
+
+Prefer updating the journey plan to include a small architecture-deepening or refactoring slice before implementation when unclear boundaries would otherwise push agents into the dumb zone.
+
 ### Durable Output
 
 If mapping discovers stable facts, update or recommend updating:
@@ -80,5 +93,5 @@ Use `rg`/IDE search over broad shell scans.
 - GitNexus exploration workflow: `gitnexus-exploring`
 - Project docs: `skillgrid-project-docs`
 - Parallel research: `skillgrid-parallel-research`
-- Workflow overview: `docs/workflow.md`
+- Workflow overview: `docs/02-workflow-usage.md`
 - Repo rules: `.configs/AGENTS.md`

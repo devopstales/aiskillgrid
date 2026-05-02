@@ -1771,6 +1771,12 @@ function configError(message) {
   return err;
 }
 
+function workflowConfigError(message) {
+  const err = new Error(`invalid .skillgrid/config.json workflow: ${message}`);
+  err.code = 'invalid_config';
+  return err;
+}
+
 function cloneDefaultPrdWorkflow() {
   return {
     source: DEFAULT_PRD_WORKFLOW.source,
@@ -1850,6 +1856,27 @@ function normalizePrdWorkflow(config = {}) {
     phaseStatusMap,
     providerMapping,
   };
+}
+
+function normalizeWorkflowPhases(config = {}) {
+  const workflow = config && typeof config === 'object' ? config.workflow : null;
+  const prdWorkflow = config && typeof config === 'object' ? config.prdWorkflow : null;
+  const raw = workflow && typeof workflow === 'object' && !Array.isArray(workflow)
+    ? (workflow.phaseOrder ?? workflow.phases)
+    : (prdWorkflow && typeof prdWorkflow === 'object' && !Array.isArray(prdWorkflow) ? prdWorkflow.phaseOrder : null);
+
+  if (raw == null) return [...DEFAULT_WORKFLOW_PHASES];
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw workflowConfigError('phaseOrder must be a non-empty array when present');
+  }
+
+  const seen = new Set();
+  return raw.map((phase, index) => {
+    const id = normalizeStatusId(phase, `phaseOrder[${index}]`);
+    if (seen.has(id)) throw workflowConfigError(`duplicate phase id "${id}"`);
+    seen.add(id);
+    return id;
+  });
 }
 
 async function readSkillgridConfig(prdRoot) {
@@ -2618,14 +2645,16 @@ async function enrichPrd(prdRoot, prd) {
 
 async function buildDashboardData(prdRoot) {
   const repoRoot = repoRootFromPrdRoot(prdRoot);
-  const prdWorkflow = await loadPrdWorkflow(prdRoot);
+  const config = await readSkillgridConfig(prdRoot);
+  const prdWorkflow = normalizePrdWorkflow(config);
+  const workflowPhases = normalizeWorkflowPhases(config);
   const prds = await Promise.all((await listPrds(prdRoot, prdWorkflow)).map((prd) => enrichPrd(prdRoot, prd)));
   return {
     prds,
     prdWorkflow,
     agentActions: collectAgentActions(prds),
     memory: await readMemoryMetadata(repoRoot),
-    workflowPhases: DEFAULT_WORKFLOW_PHASES,
+    workflowPhases,
     gitnexus: readGitNexusMetadata(repoRoot),
   };
 }
@@ -2879,6 +2908,7 @@ export {
   extractPrdFromRaw,
   loadPrdWorkflow,
   normalizePrdWorkflow,
+  normalizeWorkflowPhases,
   updateStatus,
 };
 

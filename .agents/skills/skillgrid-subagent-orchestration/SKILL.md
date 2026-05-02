@@ -157,6 +157,33 @@ When agents return:
 
 Event entries should follow `skillgrid-filesystem-handoff` and include `time`, `changeId`, `node`, `phase`, `status`, `summary`, and useful `artifacts`. For delegated work, also include `agent` or `subagent`, `role`, `task`, and `output` when known so the dashboard Subagents view can show who did what.
 
+### Specialist Decision Board
+
+Use a specialist decision board when a slice is blocked by product, UX, architecture, security, testing, or queue-readiness ambiguity and the parent needs independent reports before choosing a path.
+
+Common board presets:
+
+- Product or UX: `design-critic`, `researcher`, optional `task-breakdown-auditor`.
+- Architecture: `explore-architect`, `code-reviewer`, `test-engineer`.
+- Security-sensitive: `security-auditor`, `code-reviewer`, `spec-verifier`.
+- Queue readiness: `task-breakdown-auditor`, optional `test-engineer`.
+- Post-implementation go/no-go: `spec-verifier`, `code-reviewer`, `test-engineer`, optional `security-auditor`.
+
+Board rules:
+
+1. Parent states one named decision question and a decision id.
+2. Each persona gets an independent prompt, bounded artifact list, and distinct report path under `.skillgrid/tasks/research/<change-id>/`.
+3. The parent reads every report, resolves conflicts, and records the accepted decision, rejected options, rationale, HITL status, artifacts updated, and next safe action.
+4. If reports conflict materially or the choice affects product direction, credentials, destructive actions, release, or user-visible design taste, mark the decision `[HITL]`.
+5. Do not use blind majority vote. The board advises; parent/user/spec authority decides.
+
+Required records:
+
+- handoff entry in `.skillgrid/tasks/context_<change-id>.md`;
+- one report per persona under `.skillgrid/tasks/research/<change-id>/`;
+- JSONL events in `.skillgrid/tasks/events/<change-id>.jsonl` for `started`, each `persona_reported`, final `decided`, or `blocked`;
+- parent decision summary linking reports and naming the next safe action.
+
 ### Apply Dispatch Loop
 
 For `/skillgrid-apply` implementation delegation:
@@ -205,14 +232,22 @@ Treat reviewer output as technical evidence, not orders:
 
 For external reviewer feedback, be especially skeptical of suggestions that add unused "professional" features. Check whether the capability is actually required by the PRD, OpenSpec scenarios, or existing callers before expanding scope.
 
-### Two-Stage Review
+### Double Review Gate
 
-For subagent-generated plans, code, or reports:
+For delegated implementation slices, run reviews in this order:
 
-1. Check compliance against PRD, OpenSpec artifacts, and task scope.
-2. Check quality: correctness, maintainability, security, performance, and evidence.
+1. **Spec compliance review:** check the result against the PRD, OpenSpec proposal, delta specs, task text, acceptance criteria, and assigned slice boundaries. It answers: did we build the right thing and only the assigned thing?
+2. **Code quality review:** check correctness, maintainability, architecture, security, performance, test quality, and local conventions. It answers: is the implementation good enough to keep?
 
-Critical issues block progress until fixed, accepted, or converted into explicit follow-up work.
+Do not run or accept code quality review before spec compliance passes. If either review returns required changes, the implementer fixes the issue, focused verification runs again, and the same review stage repeats. Critical or important findings block task completion until fixed, explicitly accepted with rationale, or converted into follow-up work.
+
+Required records:
+
+- spec review report path;
+- code quality review report path;
+- accepted fixes or rejected findings with rationale;
+- verification evidence after fixes;
+- handoff update and JSONL events for each review stage.
 
 Request review early and often:
 
@@ -284,4 +319,4 @@ No shell command is required. Use the IDE’s subagent/task facility when the wo
 - Handoff: `skillgrid-filesystem-handoff`
 - Research: `skillgrid-parallel-research`
 - Validation: `skillgrid-spec-artifacts`
-- Workflow overview: `docs/workflow.md`
+- Workflow overview: `docs/02-workflow-usage.md`

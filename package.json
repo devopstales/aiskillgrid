@@ -1,7 +1,7 @@
 {
   "name": "aiskillgrid-hub-tools",
   "private": true,
-  "description": "Pinned Node CLIs and MCP-related packages for this hub. Run npm ci at the repo root, then use npx (see docs/tools.md).",
+  "description": "Pinned Node CLIs and MCP-related packages for this hub. Run npm ci at the repo root, then use npx (see docs/01-installation.md).",
   "scripts": {
     "openspec": "openspec",
     "dmux": "dmux",

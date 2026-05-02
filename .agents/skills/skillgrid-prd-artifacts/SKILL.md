@@ -292,6 +292,6 @@ openspec list --json
 
 ## Resources
 
-- Full workflow overview: `docs/workflow.md`
+- Full workflow overview: `docs/02-workflow-usage.md`
 - Command sources: `.cursor/commands/skillgrid-plan.md`, `.cursor/commands/skillgrid-explore.md`, `.cursor/commands/skillgrid-breakdown.md`
 - Related skills: `skillgrid-spec-artifacts`, `skillgrid-vertical-slices`, `skillgrid-filesystem-handoff`

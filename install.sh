@@ -147,7 +147,7 @@ Options:
   -h, --help            Show this help message
 
 Interactive mode: On TTY with no IDE flags, choose IDEs (1-5 or a=all) and MCP servers.
-Use -t to pick optional tools interactively (openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code/ccc — brew / hub npm / global npm / uv / official Brave install.sh when selected; see docs/tools.md).
+Use -t to pick optional tools interactively (openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code/ccc — brew / hub npm / global npm / uv / official Brave install.sh when selected; see docs/01-installation.md).
 EOF
 }
 
@@ -440,7 +440,7 @@ hub_ensure_npm_install() {
     fi
     log_info "Hub Node dependencies (npm ci in $SCRIPT_DIR)..."
     (cd "$SCRIPT_DIR" && npm ci) 2>/dev/null || (cd "$SCRIPT_DIR" && npm install) || {
-        log_warn "hub npm ci failed — check Node, network, and package-lock.json (see docs/tools.md)"
+        log_warn "hub npm ci failed — check Node, network, and package-lock.json (see docs/01-installation.md)"
         return 1
     }
     return 0
@@ -602,7 +602,7 @@ interactive_tools_selection() {
     }
 
     echo ""
-    echo -e "${CYAN}Optional tools${NC} — CLIs via npm, uv, hub npm ci, brew, or Brave install (see docs/tools.md)"
+    echo -e "${CYAN}Optional tools${NC} — CLIs via npm, uv, hub npm ci, brew, or Brave install (see docs/01-installation.md)"
     echo "  1) openspec — OpenSpec (brew, hub npx, or npm -g)"
     echo "  2) gitnexus — GitNexus code graph CLI (npm install -g gitnexus@1.3.11)"
     echo "  3) dmux — tmux pane manager (hub npx, or npm -g fallback)"

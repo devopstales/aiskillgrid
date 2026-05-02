@@ -10,6 +10,7 @@ import {
   extractPrdFromRaw,
   loadPrdWorkflow,
   normalizePrdWorkflow,
+  normalizeWorkflowPhases,
   updateStatus,
 } from './skillgrid-ui.mjs';
 
@@ -80,6 +81,23 @@ status: doing
   assert.equal(updated.prds[0].status, 'review');
 }
 
+async function testConfigurableWorkflowPhases() {
+  const config = {
+    workflow: {
+      phaseOrder: ['plan', 'breakdown', 'apply', 'validate', 'finish'],
+    },
+    prdWorkflow: {
+      source: 'custom',
+      fallbackStatus: 'backlog',
+      statuses: ['backlog', 'doing', 'done'],
+    },
+  };
+  const { prdRoot } = await makeFixture(config);
+  const dashboard = await buildDashboardData(prdRoot);
+  assert.deepEqual(dashboard.workflowPhases, ['plan', 'breakdown', 'apply', 'validate', 'finish']);
+  assert.deepEqual(normalizeWorkflowPhases({}), ['brainstorm', 'design', 'plan', 'breakdown', 'apply', 'test', 'security', 'validate', 'finish']);
+}
+
 async function testFallbackForUnknownStatus() {
   const workflow = normalizePrdWorkflow({
     prdWorkflow: {
@@ -116,6 +134,14 @@ async function testInvalidConfig() {
     }),
     /duplicate status id/
   );
+  assert.throws(
+    () => normalizeWorkflowPhases({
+      workflow: {
+        phaseOrder: ['plan', 'plan'],
+      },
+    }),
+    /duplicate phase id/
+  );
 }
 
 async function testRejectsPatchOutsideWorkflow() {
@@ -134,6 +160,7 @@ async function testRejectsPatchOutsideWorkflow() {
 
 await testDefaultWorkflow();
 await testCustomWorkflow();
+await testConfigurableWorkflowPhases();
 await testFallbackForUnknownStatus();
 await testInvalidConfig();
 await testRejectsPatchOutsideWorkflow();

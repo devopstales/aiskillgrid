@@ -59,18 +59,20 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 
 ## Steps
 
-1. Re-read PRD, OpenSpec change, handoff, validation evidence, and project docs.
-2. Sync delta specs to main specs when requested or required.
-3. Refresh `.skillgrid/project/*` and `DESIGN.md` if the finished work changed durable project facts.
-4. Archive OpenSpec changes when appropriate.
-5. After archive succeeds, update tracker state according to `.skillgrid/config.json` (default final status: `archived`).
-6. Clean up change-scoped checkpoints and previews when safe.
-7. Save Engram closure summary when available:
+1. Re-read PRD, OpenSpec change, handoff, validation evidence, review reports, UAT/manual QA notes, and project docs.
+2. Confirm the double review gate has passed or unresolved findings are explicitly accepted with rationale or converted into follow-up work.
+3. Check release documentation drift: README, user docs, command/rule docs, `.skillgrid/project/*`, and `DESIGN.md` must still match shipped behavior.
+4. Sync delta specs to main specs when requested or required.
+5. Refresh `.skillgrid/project/*` and `DESIGN.md` if the finished work changed durable project facts, shared language, architecture, tooling, or design conventions.
+6. Archive OpenSpec changes when appropriate and mark completed PRDs/journey artifacts closed or archived so stale planning docs are not treated as current architecture.
+7. After archive succeeds, update tracker state according to `.skillgrid/config.json` (default final status: `archived`).
+8. Clean up change-scoped checkpoints and previews when safe.
+9. Save Engram closure summary when available:
    - Update `skillgrid/<change-id>/state` to the final phase/status and next action.
    - Save `skillgrid/<change-id>/archive` or equivalent closure notes with paths to final PRD, OpenSpec archive, validation evidence, and remaining risks.
    - If recovering prior memory during finish, use `mem_search` to find IDs and `mem_get_observation(id)` before relying on any recovered content.
-8. If `.engram/` team sharing is used or requested, recommend `engram sync` after significant finish work; do not run it unless the user or project policy explicitly asks because `.engram/` may contain sensitive context.
-9. Use `git-master` for branch, diff, commit, and PR hygiene. Create commits or PRs only when explicitly requested by the user.
+10. If `.engram/` team sharing is used or requested, recommend `engram sync` after significant finish work; do not run it unless the user or project policy explicitly asks because `.engram/` may contain sensitive context.
+11. Use `git-master` for branch, diff, commit, and PR hygiene. Create commits or PRs only when explicitly requested by the user.
 
 ## Completion Report
 

@@ -31,7 +31,7 @@ DESIGN.md
 | `DESIGN.md` | design system tokens, visual principles, UI constraints |
 | `ARCHITECTURE.md` | major subsystems, boundaries, durable decisions |
 | `STRUCTURE.md` | directory map and ownership conventions |
-| `PROJECT.md` | stack, commands, tests, tooling, operational notes |
+| `PROJECT.md` | stack, commands, tests, tooling, operational notes, shared language |
 
 ### Refresh Rules
 
@@ -43,6 +43,19 @@ Refresh docs when:
 - finishing a change would leave docs stale
 
 Do not update project docs for transient implementation details.
+
+### Shared Language And ADR Capture
+
+Use `.skillgrid/project/PROJECT.md` for stable domain vocabulary, naming decisions, and operating language that future agents should reuse. If a decision is hard to rediscover from code alone, record it as a durable decision in `ARCHITECTURE.md`, `PROJECT.md`, or a project ADR location when one exists.
+
+Capture:
+
+- domain terms and preferred names;
+- terms to avoid because they mean something else in the product;
+- durable architectural decisions and rationale;
+- decision links to PRDs, OpenSpec changes, issues, or review reports.
+
+Do not let archived PRDs override current code, tests, or validated project docs. Finish/archive work should mark stale planning artifacts closed or link them to the implementation state.
 
 ### DESIGN.md
 
@@ -222,6 +235,16 @@ flowchart TD
 ## Onboarding notes
 
 - <Fact that saves future agents time>
+
+## Shared language
+
+| Term | Meaning | Source |
+|---|---|---|
+| <term> | <meaning in this project> | <PRD/OpenSpec/code path> |
+
+## Durable decisions
+
+- <Decision> — <why> — <link to ADR/PRD/OpenSpec/review>
 ```
 
 ## Commands
@@ -234,4 +257,4 @@ rg "tailwind|theme|:root|--color|font-family"
 
 - Codebase mapping: `gitnexus-exploring`, `skillgrid-codebase-map`
 - UI design artifacts: `skillgrid-ui-design-artifacts`
-- Workflow overview: `docs/workflow.md`
+- Workflow overview: `docs/02-workflow-usage.md`

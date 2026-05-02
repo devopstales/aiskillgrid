@@ -58,14 +58,18 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 
 ## Steps
 
-1. Re-read PRD, OpenSpec artifacts, tasks, handoff, and evidence.
-2. Verify implementation against PRD goals, delta specs, and task checkboxes.
-3. Apply two-stage review: spec compliance first, then quality/security/maintainability.
-4. Request or run independent review with fresh artifact context, not chat history; use parallel reviewers only for independent perspectives.
-5. Evaluate incoming review feedback before applying it; clarify unclear items, push back on incorrect or out-of-scope suggestions, and fix accepted issues one at a time.
-6. Resolve, accept, or track every blocking issue; do not proceed with open critical or important findings.
-7. Ask for user sign-off when required.
-8. Save a concise verify report and update handoff/memory.
+1. Re-read PRD, OpenSpec artifacts, tasks, handoff, event log, review reports, and verification evidence.
+2. Confirm no active context budget, HITL, scope, schema drift, security, credential, destructive-action, or release blocker remains unresolved.
+3. Run spec compliance review first. Check PRD/OpenSpec/task traceability, acceptance criteria, explicit deferrals, and assigned slice boundaries. Answer: did we build the right thing and only the assigned thing?
+4. If spec compliance finds required changes, stop validation, record findings, fix or assign focused follow-up work, rerun verification, and repeat spec compliance review.
+5. Only after spec compliance passes, run code quality review. Check correctness, maintainability, architecture, security, performance, test quality, and local conventions. Answer: is the implementation good enough to keep?
+6. If code quality finds required changes, stop validation, record findings, fix or assign focused follow-up work, rerun verification, and repeat code quality review.
+7. Run or reconcile security and test evidence as needed for the change risk.
+8. For user-facing behavior, collect UAT/manual QA notes and convert failed UAT into focused fix tasks or plans.
+9. Request or run independent fresh-context review with artifact paths and pushed coding standards, not copied chat history. Use parallel reviewers only for independent perspectives.
+10. Resolve, accept with rationale, or track every critical or important finding; do not proceed with open blocking issues.
+11. Ask for user sign-off when required.
+12. Save a concise verify report and update handoff, events, PRD status, and memory.
 
 ## Completion Report
 

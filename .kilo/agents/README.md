@@ -4,14 +4,14 @@ Specialist personas that play a single role with a single perspective. Each pers
 
 | Persona | Role | Best for |
 |---------|------|---------|
-| [skillgrid-code-reviewer](skillgrid-code-reviewer.md) | Senior Staff Engineer | Five-axis code review before merge |
-| [skillgrid-security-auditor](skillgrid-security-auditor.md) | Security Engineer | Vulnerability detection, OWASP-style audit |
-| [skillgrid-test-engineer](skillgrid-test-engineer.md) | QA Engineer | Test strategy, coverage analysis, Prove-It pattern |
-| [skillgrid-spec-verifier](skillgrid-spec-verifier.md) | Spec traceability | Delta specs / tasks / implementation alignment |
-| [skillgrid-explore-architect](skillgrid-explore-architect.md) | Systems explorer | Brownfield docs: ARCHITECTURE, STRUCTURE, PROJECT |
-| [skillgrid-task-breakdown-auditor](skillgrid-task-breakdown-auditor.md) | Planning reviewer | `tasks.md` quality before implementation |
-| [skillgrid-design-critic](skillgrid-design-critic.md) | UX/design critic | DESIGN.md flows, a11y, API boundaries at design stage |
-| [skillgrid-researcher](skillgrid-researcher.md) | Research analyst | Cited web/repo/docs research via Exa, Firecrawl, DeepWiki, Context7 |
+| [code-reviewer](code-reviewer.md) | Senior Staff Engineer | Five-axis code review before merge |
+| [security-auditor](security-auditor.md) | Security Engineer | Vulnerability detection, OWASP-style audit |
+| [test-engineer](test-engineer.md) | QA Engineer | Test strategy, coverage analysis, Prove-It pattern |
+| [spec-verifier](spec-verifier.md) | Spec traceability | Delta specs / tasks / implementation alignment |
+| [explore-architect](explore-architect.md) | Systems explorer | Brownfield docs: ARCHITECTURE, STRUCTURE, PROJECT |
+| [task-breakdown-auditor](task-breakdown-auditor.md) | Planning reviewer | `tasks.md` quality before implementation |
+| [design-critic](design-critic.md) | UX/design critic | DESIGN.md flows, a11y, API boundaries at design stage |
+| [researcher](researcher.md) | Research analyst | Cited web/repo/docs research via Exa, Firecrawl, DeepWiki, Context7 |
 
 ## How personas relate to skills and commands
 
@@ -20,52 +20,52 @@ Three layers, each with a distinct job:
 | Layer | What it is | Example | Composition role |
 |-------|-----------|---------|------------------|
 | **Skill** | A workflow with steps and exit criteria | `code-review-and-quality` | The *how* — invoked from inside a persona or command |
-| **Persona** | A role with a perspective and an output format | `skillgrid-code-reviewer` | The *who* — adopts a viewpoint, produces a report |
+| **Persona** | A role with a perspective and an output format | `code-reviewer` | The *who* — adopts a viewpoint, produces a report |
 | **Command** | A user-facing entry point | `/skillgrid-validate`, `/skillgrid-apply` | The *when* — composes workflows and skills |
 
 The user (or a slash command) is the orchestrator. **Personas do not call other personas.** Skills are mandatory hops inside a persona's workflow.
 
-Each `skillgrid-*` persona includes an **Indexing and memory** section: when Engram, GitNexus, or MCP `server-memory` are configured, use them per [`.agents/skills/references/indexing-and-memory.md`](../../.agents/skills/references/indexing-and-memory.md).
+Each persona includes an **Indexing and memory** section: when Engram, GitNexus, or MCP `server-memory` are configured, use them per [`.agents/skills/references/indexing-and-memory.md`](../../.agents/skills/references/indexing-and-memory.md).
 
 ## Skillgrid mapping (this hub)
 
 | Persona | Typical Skillgrid phase |
 |---------|-------------------------|
-| `skillgrid-explore-architect` | `/skillgrid-explore` |
-| `skillgrid-researcher` | `/skillgrid-brainstorm` (heavy research), optional `/skillgrid-explore` depth |
-| `skillgrid-design-critic` | `/skillgrid-plan` (with `DESIGN.md`) or direct spawn |
-| `skillgrid-task-breakdown-auditor` | `/skillgrid-breakdown` |
-| `skillgrid-spec-verifier` | `/skillgrid-validate` (spec pass) or pre-merge traceability |
-| `skillgrid-code-reviewer` | `/skillgrid-validate` |
-| `skillgrid-test-engineer` | `/skillgrid-test` |
-| `skillgrid-security-auditor` | `/skillgrid-security` |
+| `explore-architect` | `/skillgrid-explore` |
+| `researcher` | `/skillgrid-brainstorm` (heavy research), optional `/skillgrid-explore` depth |
+| `design-critic` | `/skillgrid-plan` (with `DESIGN.md`) or direct spawn |
+| `task-breakdown-auditor` | `/skillgrid-breakdown` |
+| `spec-verifier` | `/skillgrid-validate` (spec pass) or pre-merge traceability |
+| `code-reviewer` | `/skillgrid-validate` |
+| `test-engineer` | `/skillgrid-test` |
+| `security-auditor` | `/skillgrid-security` |
 
 ## When to use each
 
 ### Direct persona invocation
 Pick this when you want one perspective on the current change and the user is in the loop.
 
-- "Review this PR" → invoke `skillgrid-code-reviewer` directly
-- "Does this match the delta spec and tasks?" → invoke `skillgrid-spec-verifier` directly
-- "Map this repo for onboarding" → invoke `skillgrid-explore-architect` directly
-- "Are these tasks ready to implement?" → invoke `skillgrid-task-breakdown-auditor` directly
-- "Critique DESIGN.md before we build" → invoke `skillgrid-design-critic` directly
-- "Research prior art / landscape with citations" → invoke `skillgrid-researcher` directly
-- "Are there security issues in `auth.ts`?" → invoke `skillgrid-security-auditor` directly
-- "What tests are missing for the checkout flow?" → invoke `skillgrid-test-engineer` directly
+- "Review this PR" → invoke `code-reviewer` directly
+- "Does this match the delta spec and tasks?" → invoke `spec-verifier` directly
+- "Map this repo for onboarding" → invoke `explore-architect` directly
+- "Are these tasks ready to implement?" → invoke `task-breakdown-auditor` directly
+- "Critique DESIGN.md before we build" → invoke `design-critic` directly
+- "Research prior art / landscape with citations" → invoke `researcher` directly
+- "Are there security issues in `auth.ts`?" → invoke `security-auditor` directly
+- "What tests are missing for the checkout flow?" → invoke `test-engineer` directly
 
 ### Slash command (single perspective)
 Pick this when the hub’s phase command already encodes skills and steps; spawn a persona when you want that phase in a **fresh subagent context**.
 
-- `/skillgrid-validate` → often pairs with `skillgrid-code-reviewer` and/or `skillgrid-spec-verifier` (user chooses)
-- `/skillgrid-test` → pairs with `skillgrid-test-engineer` when delegating test design
-- `/skillgrid-explore` → pairs with `skillgrid-explore-architect` for large repos
+- `/skillgrid-validate` → often pairs with `code-reviewer` and/or `spec-verifier` (user chooses)
+- `/skillgrid-test` → pairs with `test-engineer` when delegating test design
+- `/skillgrid-explore` → pairs with `explore-architect` for large repos
 
 ### Slash command (orchestrator — fan-out)
 Pick this only when **independent** investigations can run in parallel and produce reports that a single agent then merges.
 
-- **`/skillgrid-validate`** (conceptually) — parallel **spec + code + security** when reports are independent, e.g. `skillgrid-spec-verifier` + `skillgrid-code-reviewer` + `skillgrid-security-auditor`; add `skillgrid-test-engineer` when coverage is the third axis. **Ordering:** this hub’s command runs review then security **sequentially** in one turn; parallel fan-out is for harnesses that support true concurrent subagents.
-- Legacy/example: `/ship` → same idea: `skillgrid-code-reviewer` + `skillgrid-security-auditor` + `skillgrid-test-engineer` in parallel, then merge.
+- **`/skillgrid-validate`** (conceptually) — parallel **spec + code + security** when reports are independent, e.g. `spec-verifier` + `code-reviewer` + `security-auditor`; add `test-engineer` when coverage is the third axis. **Ordering:** this hub’s command runs review then security **sequentially** in one turn; parallel fan-out is for harnesses that support true concurrent subagents.
+- Legacy/example: `/ship` → same idea: `code-reviewer` + `security-auditor` + `test-engineer` in parallel, then merge.
 
 This is the only orchestration pattern this repo endorses. See [orchestration-patterns.md](../../.agents/skills_back/references/orchestration-patterns.md) for the full pattern catalog and anti-patterns.
 
@@ -85,10 +85,10 @@ Parallel fan-out (subagent-capable harness), then merge:
 
 ```
 (skillgrid-validate-style merge)
-  ├── (parallel) skillgrid-spec-verifier      → traceability report
-  ├── (parallel) skillgrid-code-reviewer      → code review report
-  ├── (parallel) skillgrid-security-auditor   → audit report
-  └── (parallel) skillgrid-test-engineer       → optional coverage report
+  ├── (parallel) spec-verifier      → traceability report
+  ├── (parallel) code-reviewer      → code review report
+  ├── (parallel) security-auditor   → audit report
+  └── (parallel) test-engineer       → optional coverage report
                   ↓
         merge phase (main agent)
                   ↓
@@ -101,7 +101,7 @@ Why this works:
 - Each runs in a fresh context window → main session stays uncluttered
 - The merge step is small and benefits from full context, so it stays in the main agent
 
-**State channel (no extra checkout):** For Skillgrid + OpenSpec, the parent and `Task` subagents align on **`.skillgrid/tasks/context_<change-id>.md`** and **`openspec/changes/<id>/tasks.md`** in a **single working tree**—the same model as [obra/superpowers](https://github.com/obra/superpowers) subagent-driven work, but **without** git worktrees. Subagents read the handoff, spill long work to **`.skillgrid/tasks/research/<change-id>/`**, and return short paths; the orchestrator runs **`/skillgrid-apply`** with checkboxes and optional **`[HITL]`** / **`[AFK]`** tags (see `docs/workflow.md` — *Filesystem handoff* and *HITL vs AFK slices*).
+**State channel (no extra checkout):** For Skillgrid + OpenSpec, the parent and `Task` subagents align on **`.skillgrid/tasks/context_<change-id>.md`** and **`openspec/changes/<id>/tasks.md`** in a **single working tree**—an artifact-backed subagent model with optional git worktree separation. Subagents read the handoff, spill long work to **`.skillgrid/tasks/research/<change-id>/`**, and return short paths; the orchestrator runs **`/skillgrid-apply`** with checkboxes and optional **`[HITL]`** / **`[AFK]`** tags (see `docs/02-workflow-usage.md` — *Filesystem handoff* and *HITL vs AFK slices*).
 
 ## Worked example: invalid orchestration (do not build this)
 
@@ -110,7 +110,7 @@ A `meta-orchestrator` persona whose job is "decide which other persona to call":
 ```
 /work-on-pr → meta-orchestrator
                   ↓ (decides "this needs a review")
-              skillgrid-code-reviewer
+              code-reviewer
                   ↓ (returns)
               meta-orchestrator (paraphrases result)
                   ↓
@@ -120,7 +120,7 @@ A `meta-orchestrator` persona whose job is "decide which other persona to call":
 Why this fails:
 - Pure routing layer with no domain value
 - Adds two paraphrasing hops → information loss + 2× token cost
-- The user already knows they want a review; let them call `/skillgrid-validate` or spawn `skillgrid-code-reviewer` directly
+- The user already knows they want a review; let them call `/skillgrid-validate` or spawn `code-reviewer` directly
 - Replicates work that slash commands and `AGENTS.md` intent-mapping already do
 
 ## Rules for personas
@@ -146,9 +146,9 @@ The current Skillgrid set covers the useful `oh-my-openagent` role families with
 
 | Inspiration | Skillgrid coverage | Decision |
 |-------------|--------------------|----------|
-| Librarian / external reference search | `skillgrid-researcher` | Covered. Keep cited research in one persona. |
-| Explore / contextual grep | `skillgrid-explore-architect` plus platform explore subagents | Covered. Use direct explore subagents for broad read-only search, and this persona for durable architecture docs. |
-| Oracle / Metis / Momus consultation and plan critique | `skillgrid-spec-verifier`, `skillgrid-task-breakdown-auditor`, `skillgrid-code-reviewer`, and slash-command review gates | Covered as review modes for now. Add a new consultant only if repeated workflows need a distinct report format. |
+| Librarian / external reference search | `researcher` | Covered. Keep cited research in one persona. |
+| Explore / contextual grep | `explore-architect` plus platform explore subagents | Covered. Use direct explore subagents for broad read-only search, and this persona for durable architecture docs. |
+| Oracle / Metis / Momus consultation and plan critique | `spec-verifier`, `task-breakdown-auditor`, `code-reviewer`, and slash-command review gates | Covered as review modes for now. Add a new consultant only if repeated workflows need a distinct report format. |
 | Sisyphus / Atlas orchestrators | `/skillgrid-*` slash commands and parent session | Do not add a meta-orchestrator persona; orchestration remains command-owned. |
 
 ## Discipline-agent fan-out
@@ -157,17 +157,17 @@ Skillgrid treats discipline agents as independent specialist perspectives that t
 
 | Phase | Primary personas | Output |
 |-------|------------------|--------|
-| Explore / Brainstorm | `skillgrid-explore-architect`, `skillgrid-researcher` | Repo map, cited research, alternatives, unresolved questions. |
-| Plan / Design | `skillgrid-design-critic`, `skillgrid-task-breakdown-auditor` | Design critique, task readiness, HITL/AFK quality. |
-| Apply | Implementer subagent plus `skillgrid-spec-verifier` and `skillgrid-code-reviewer` when delegated | One AFK slice, spec compliance report, code-quality report. |
-| Test | `skillgrid-test-engineer` | Test strategy, missing coverage, Playwright/browser evidence. |
-| Security / Validate | `skillgrid-security-auditor`, `skillgrid-spec-verifier`, `skillgrid-code-reviewer`, optional `skillgrid-test-engineer` | Independent go/no-go reports merged by the parent. |
+| Explore / Brainstorm | `explore-architect`, `researcher` | Repo map, cited research, alternatives, unresolved questions. |
+| Plan / Design | `design-critic`, `task-breakdown-auditor` | Design critique, task readiness, HITL/AFK quality. |
+| Apply | Implementer subagent plus `spec-verifier` and `code-reviewer` when delegated | One AFK slice, spec compliance report, code-quality report. |
+| Test | `test-engineer` | Test strategy, missing coverage, Playwright/browser evidence. |
+| Security / Validate | `security-auditor`, `spec-verifier`, `code-reviewer`, optional `test-engineer` | Independent go/no-go reports merged by the parent. |
 
 Fan-out is valid only when each persona has a different perspective and no shared mutable output. The parent must read every report, reconcile conflicts, update the handoff, and run final verification before advancing status.
 
 ## Consistency contract
 
-All agents in this directory follow the same contract, adapted from the focused agent style used by [GSD agents](https://github.com/gsd-build/get-shit-done/tree/main/agents):
+All agents in this directory follow the same focused single-role contract:
 
 1. **Frontmatter:** include `name`, `description`, `tools`, and `color`.
 2. **Single job:** state the persona's role in the first paragraph and stay inside it.
@@ -177,15 +177,13 @@ All agents in this directory follow the same contract, adapted from the focused 
 6. **Structured output:** use the persona's report template and classify findings consistently.
 7. **No hidden orchestration:** do not call or impersonate another persona.
 8. **No source edits unless assigned:** reviewer, verifier, critic, researcher, and auditor personas produce reports; implementation remains with the parent session or `/skillgrid-apply`.
-9. **Sync check enforcement:** `scripts/sync-ide-assets.sh --check` fails when `skillgrid-*` personas are missing required frontmatter or required sections.
-
-Generic names such as `spec-verifier`, `task-breakdown-auditor`, `explore-architect`, and `design-critic` are compatibility aliases. Prefer the `skillgrid-*` names for new workflows because they include the full Skillgrid handoff and memory contract.
+9. **Sync check enforcement:** `scripts/sync-ide-assets.sh --check` fails when personas are missing required frontmatter or required sections.
 
 ## Claude Code interop
 
 The personas in this repo are designed to work as Claude Code subagents and as Agent Teams teammates without modification:
 
-- **As subagents:** auto-discovered when this plugin is enabled (no path config needed). Use the Agent tool with `subagent_type` matching the persona `name` in frontmatter (e.g. `skillgrid-code-reviewer`, `skillgrid-spec-verifier`, `skillgrid-explore-architect`, `skillgrid-researcher`). Parallel fan-out + merge is the canonical pattern when independent.
+- **As subagents:** auto-discovered when this plugin is enabled (no path config needed). Use the Agent tool with `subagent_type` matching the persona `name` in frontmatter (e.g. `code-reviewer`, `spec-verifier`, `explore-architect`, `researcher`). Parallel fan-out + merge is the canonical pattern when independent.
 - **As Agent Teams teammates** (experimental, requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`): reference the same persona name when spawning a teammate. The persona's body is **appended to** the teammate's system prompt as additional instructions (not a replacement), so your persona text sits on top of the team-coordination instructions the lead installs (SendMessage, task-list tools, etc.).
 
 Subagents only report results back to the main agent. Agent Teams let teammates message each other directly. Use subagents when reports are enough; use Agent Teams when sub-agents need to challenge each other's findings (e.g. competing-hypothesis debugging). See [orchestration-patterns.md](../../.agents/skills_back/references/orchestration-patterns.md) for the full mapping.
@@ -194,7 +192,7 @@ Plugin agents do not support `hooks`, `mcpServers`, or `permissionMode` frontmat
 
 ## Adding a new persona
 
-1. Create `agents/skillgrid-<slug>.md` with the same frontmatter format used by existing personas; set `name: skillgrid-<slug>` in frontmatter (keep the `skillgrid-` prefix for hub personas).
+1. Create `agents/<slug>.md` with the same frontmatter format used by existing personas; set `name: <slug>` in frontmatter.
 2. Define the role, scope, output format, and rules.
 3. Add an **Identity and discipline** block before **Mandatory Context**.
 4. Add a **Composition** block at the bottom (Invoke directly when / Invoke via / Do not invoke from another persona).

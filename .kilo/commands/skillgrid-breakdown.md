@@ -61,11 +61,24 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 
 1. Select the change and PRD; stop if either is missing.
 2. Use `openspec status` and instructions to identify incomplete artifacts.
-3. Build or refresh `openspec/changes/<change-id>/tasks.md` from PRD, proposal, specs, and design.
-4. Keep the PRD Implementation tasks section and OpenSpec `tasks.md` aligned.
-5. Tag tasks `[HITL]` or `[AFK]`, ordering human decisions before dependent autonomous work.
-6. Create external slice issues only when configured.
-7. Update the handoff with blockers, AFK-ready work, and next apply target.
+3. Distinguish destination artifacts from journey artifacts: PRD/OpenSpec define done; `tasks.md`, issues, handoff, and events define how agents move toward done.
+4. Build or refresh `openspec/changes/<change-id>/tasks.md` from PRD, proposal, specs, and design.
+5. Shape `tasks.md` as a vertical-slice Kanban/DAG, not only a numbered checklist. Record `blockedBy`, `unblocks`, expected file ownership, and dependency wave where useful.
+6. Prefer tracer-bullet vertical slices that cross enough layers to produce visible or testable feedback. Allow horizontal setup only when necessary and label the reason.
+7. Keep the PRD Implementation tasks section and OpenSpec `tasks.md` aligned.
+8. For every apply-ready slice, require:
+   - slice goal and acceptance criteria;
+   - `[AFK]` or `[HITL]` reason;
+   - blockers and unblocked-after relationships;
+   - vertical-slice or horizontal-setup classification;
+   - context budget and split trigger;
+   - fresh-agent input list with exact PRD/OpenSpec/handoff/research/source/test paths;
+   - expected verification command;
+   - TDD requirement or explicit non-TDD exception.
+9. Apply the context budget gate: if a fresh agent would need broad chat history, whole-repo rereading, or multiple unrelated subsystems, split the slice before implementation.
+10. Create external slice issues only when configured.
+11. Update the handoff with blockers, AFK-ready work, dependency waves, context packets, and next apply target.
+12. Run or request a queue-readiness review when tasks are complex, parallel, security-sensitive, or likely to exceed the smart zone.
 
 ## Completion Report
 

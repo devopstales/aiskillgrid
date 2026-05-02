@@ -56,24 +56,12 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
    - implementation exists but evidence is missing -> route to `/skillgrid-test`;
    - evidence exists but sign-off is missing -> route to `/skillgrid-validate`;
    - validation passed -> route to `/skillgrid-finish`.
-4. Advance only one phase transition or one small `[AFK]` slice at a time.
-5. After each unit, update the handoff with result, evidence, changed assumptions, blockers, and the next recommended action.
-6. Append an event under `.skillgrid/tasks/events/<change-id>.jsonl` when loop starts, advances, blocks, or completes.
-7. When Engram is available, save or update the compact `skillgrid/<change-id>/state` snapshot with phase, status, artifact store, PRD/OpenSpec/handoff paths, blockers, next action, and `last_updated`.
-8. Reassess before continuing. Do not continue just because there are unchecked tasks.
-
-## Stop Conditions
-
-Stop immediately when any condition applies:
-
-- the next task is `[HITL]` without a linked recorded decision;
-- the intent gate returns `blocked`;
-- scope, acceptance criteria, verification, or implementation authority is unclear;
-- verification fails and the root cause is not obvious after one focused debugging pass;
-- the working tree contains unrelated dirty changes that make the next edit unsafe;
-- a reviewer reports a critical or important issue that is not yet fixed, explicitly accepted, or converted into follow-up work;
-- a command requires user sign-off, credentials, browser login, destructive action, or a git commit/PR without explicit request;
-- no active change can be identified.
+4. Before any apply-style action, enforce the context budget gate: the slice must have acceptance criteria, context packet, bounded file list, verification command, and split trigger. If not, route back to breakdown.
+5. Advance only one phase transition or one small `[AFK]` slice at a time.
+6. After each unit, update the handoff with result, evidence, changed assumptions, blockers, and the next recommended action.
+7. Append an event under `.skillgrid/tasks/events/<change-id>.jsonl` when loop starts, advances, blocks, dispatches or receives a subagent, records a review, or completes.
+8. When Engram is available, save or update the compact `skillgrid/<change-id>/state` snapshot with phase, status, artifact store, PRD/OpenSpec/handoff paths, blockers, next action, and `last_updated`.
+9. Reassess before continuing. Do not continue just because there are unchecked tasks.
 
 ## Completion Report
 

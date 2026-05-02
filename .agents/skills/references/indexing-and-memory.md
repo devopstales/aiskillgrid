@@ -62,7 +62,7 @@ If disk artifacts and Engram disagree, treat disk artifacts as canonical in `hyb
 
 ## Per-change handoff (Skillgrid)
 
-When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. Use these for subagent / parent sync; they are not a replacement for **Engram**, **GitNexus**, or **ccc**. See `docs/workflow.md` — *Filesystem handoff*.
+When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. Use these for subagent / parent sync; they are not a replacement for **Engram**, **GitNexus**, or **ccc**. See `docs/02-workflow-usage.md` — *Filesystem handoff*.
 
 ## Suggested order
 

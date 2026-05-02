@@ -143,4 +143,4 @@ Engram access happens through MCP tools when configured.
 - Engram protocol: `memory-protocol`
 - Handoff files: `skillgrid-filesystem-handoff`
 - Checkpoints: `skillgrid-checkpoints`
-- Workflow overview: `docs/workflow.md`
+- Workflow overview: `docs/02-workflow-usage.md`

@@ -63,7 +63,12 @@ Keep `context_<change-id>.md` concise and skimmable. Use this template:
 
 ## AFK-ready work
 
-- [ ] <slice/task ready for autonomous implementation>
+- [ ] <slice/task ready for autonomous implementation> — context packet: <paths> — verification: <command>
+
+## Dependency waves
+
+- **Wave 1:** <independent slices and file ownership>
+- **Blocked by:** <relationships that must clear before later waves>
 
 ## Research index
 
@@ -121,6 +126,27 @@ Supported fields:
 - `output`: optional primary output path when it is not already listed in `artifacts`.
 
 Do not replace `context_<change-id>.md` with events. The event log is the timeline; the handoff remains the current-state summary.
+
+### Decision Board Records
+
+When a specialist persona board is used, the parent must record the decision in the handoff before advancing:
+
+```markdown
+## Decision Board: <decision-id>
+
+Question:
+Personas:
+Report paths:
+Accepted decision:
+Rejected options:
+Reason:
+Conflicts:
+HITL required: yes/no
+Artifacts updated:
+Next safe action:
+```
+
+Board events use the same JSONL log and should include `node: "decision-board"`, `status: "started" | "persona_reported" | "decided" | "blocked"`, `decisionId`, `question`, `personas`, `reports`, `acceptedDecision`, `hitlRequired`, and `nextAction` when known. The board advises; the parent, user, PRD, and OpenSpec artifacts remain authoritative.
 
 ### Slice Completion Summary
 
@@ -223,4 +249,4 @@ ls .skillgrid/tasks/research/<change-id>
 - Parallel research: `skillgrid-parallel-research`
 - Subagent orchestration: `skillgrid-subagent-orchestration`
 - Persistence modes: `skillgrid-hybrid-persistence`
-- Workflow overview: `docs/workflow.md`
+- Workflow overview: `docs/02-workflow-usage.md`

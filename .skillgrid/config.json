@@ -22,5 +22,18 @@
       "finish": "archived"
     },
     "providerMapping": {}
+  },
+  "workflow": {
+    "phaseOrder": [
+      "brainstorm",
+      "design",
+      "plan",
+      "breakdown",
+      "apply",
+      "test",
+      "security",
+      "validate",
+      "finish"
+    ]
   }
 }

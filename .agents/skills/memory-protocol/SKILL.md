@@ -13,7 +13,7 @@ metadata:
 
 This skill is vendored from [Engram `skills/memory-protocol`](https://github.com/Gentleman-Programming/engram/tree/main/skills/memory-protocol). It is the **canonical protocol** for **Engram MCP** tools (`mem_save`, `mem_search`, `mem_context`, `mem_session_summary`, …).
 
-**Wire-up in this hub:** merge [`.configs/mcp/command/engram.json`](../../.configs/mcp/command/engram.json) into your IDE MCP config; see [`docs/tools.md`](../../docs/tools.md) and [Engram agent setup](https://github.com/Gentleman-Programming/engram/blob/main/docs/AGENT-SETUP.md). When Engram is enabled, follow the rules below as written.
+**Wire-up in this hub:** merge [`.configs/mcp/command/engram.json`](../../.configs/mcp/command/engram.json) into your IDE MCP config; see [`docs/01-installation.md`](../../docs/01-installation.md) and [Engram agent setup](https://github.com/Gentleman-Programming/engram/blob/main/docs/AGENT-SETUP.md). When Engram is enabled, follow the rules below as written.
 
 ## When to Use
 

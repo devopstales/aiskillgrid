@@ -231,9 +231,9 @@ npm install -g @mariozechner/pi-coding-agent
 * [ ] [AI Gentle Stack](https://github.com/Gentleman-Programming/gentle-ai)
 * [ ] [Awesome Copilot](https://github.com/github/awesome-copilot)
   * [ ] [Awesome Copilot Agents](https://awesome-copilot.github.com/agents/)
-* [ ] [gstack](https://github.com/garrytan/gstack)
+* [ ] Role-based decision-board patterns
 * Spec Driven Development
-  * [ ] [superpowers](https://github.com/obra/superpowers)
+  * [ ] Isolated worktree, TDD, and double-review patterns
   * [ ] [agent-skills](https://github.com/addyosmani/agent-skills)
   * [ ] [Archon](https://github.com/coleam00/Archon)
   * [ ] [omegon-pi](https://github.com/styrene-lab/omegon-pi)

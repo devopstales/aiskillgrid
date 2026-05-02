@@ -20,19 +20,19 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ## What you get
 
-- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, built-in `playwright` and `git-master`, GitNexus, Engram memory protocol, and more). See [docs/skills.md](docs/skills.md).
-- **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/commands.md](docs/commands.md).
-- **Workflow** — End-to-end phases from init through finish in [docs/workflow.md](docs/workflow.md).
-- **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, GitNexus, dmux, Engram, and other optional tools from [docs/tools.md](docs/tools.md)).
+- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, built-in `playwright` and `git-master`, GitNexus, Engram memory protocol, and more). See [docs/04-skills.md](docs/04-skills.md).
+- **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/03-commands.md](docs/03-commands.md).
+- **Workflow** — End-to-end phases from init through finish in [docs/02-workflow-usage.md](docs/02-workflow-usage.md).
+- **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, GitNexus, dmux, Engram, and other optional tools from [docs/01-installation.md](docs/01-installation.md)).
 - **Shared agent rules** — [`.configs/AGENTS.md`](.configs/AGENTS.md) is copied to the target project and IDE config dirs when you install.
 
 ---
 
 ## Workflow
 
-**Phase 0** (`/skillgrid-session`) plus the Skillgrid **`/skillgrid-*`** steps summarized in [docs/workflow.md](docs/workflow.md), including optional **`/skillgrid-loop`** for controlled AFK progression and **`/skillgrid-validate`** as a single review-and-security gate. The diagram below is a six-phase mental model; exact steps and templates live in each command file. **OpenSpec**-focused steps also have **`/opsx-*`** aliases (see [docs/commands.md](docs/commands.md)).
+**Phase 0** (`/skillgrid-session`) plus the Skillgrid **`/skillgrid-*`** steps summarized in [docs/02-workflow-usage.md](docs/02-workflow-usage.md), including optional **`/skillgrid-loop`** for controlled AFK progression and **`/skillgrid-validate`** as a single review-and-security gate. The diagram below is a six-phase mental model; exact steps and templates live in each command file. **OpenSpec**-focused steps also have **`/opsx-*`** aliases (see [docs/03-commands.md](docs/03-commands.md)).
 
-**Init** writes **`.skillgrid/config.json`**: **ticketing** (`local` or a remote issue backend), **artifact store** (`hybrid` is the strongly recommended default, or `openspec` / `engram` for constrained setups), and **PRD workflow** (`prdWorkflow.statuses` and phase mapping) — so later commands know whether to use **`openspec/`** on disk, **Engram** memory, or both, and which local Kanban/status lifecycle to follow. See **`/skillgrid-init`** and [docs/workflow.md](docs/workflow.md).
+**Init** writes **`.skillgrid/config.json`**: **ticketing** (`local` or a remote issue backend), **artifact store** (`hybrid` is the strongly recommended default, or `openspec` / `engram` for constrained setups), and **PRD workflow** (`prdWorkflow.statuses` and phase mapping) — so later commands know whether to use **`openspec/`** on disk, **Engram** memory, or both, and which local Kanban/status lifecycle to follow. See **`/skillgrid-init`** and [docs/02-workflow-usage.md](docs/02-workflow-usage.md).
 
 ```
   PHASE 0 (optional at session start)
@@ -90,7 +90,7 @@ Common variants:
 - **Sanity check only:** `./install.sh --sanity-check`
 - **Optional CLIs** (OpenSpec, GitNexus, dmux, Engram, Brave Search, CocoIndex): add `-t` in an interactive terminal
 
-You need a working **bash**, **rsync**, and **jq** for a full install with MCP merge; **Node** and **`npm ci`** in this repo help with pinned **npx**-based tools. For Python CLIs, use **uv** (see [docs/tools.md](docs/tools.md)).
+You need a working **bash**, **rsync**, and **jq** for a full install with MCP merge; **Node** and **`npm ci`** in this repo help with pinned **npx**-based tools. For Python CLIs, use **uv** (see [docs/01-installation.md](docs/01-installation.md)).
 
 ---
 
@@ -111,14 +111,14 @@ You need a working **bash**, **rsync**, and **jq** for a full install with MCP m
 
 | Doc | Contents |
 |-----|----------|
-| [docs/agents.md](docs/agents.md) | IDE agent personas (`.cursor/agents/`, mirrors, format) |
-| [docs/workflow.md](docs/workflow.md) | Skillgrid phases, **`.skillgrid/config.json`**, PRD and OpenSpec handoff |
-| [.skillgrid/project/](.skillgrid/project/) | This hub’s own architecture, structure, and project onboarding docs |
-| [docs/skills.md](docs/skills.md) | Catalog of all skills with paths and summaries |
-| [docs/commands.md](docs/commands.md) | Slash commands and where they live per IDE |
-| [docs/tools.md](docs/tools.md) | Install toolchain and workflow CLIs / IDEs |
+| [docs/06-subagent-personas.md](docs/06-subagent-personas.md) | IDE agent personas (`.cursor/agents/`, mirrors, format) |
+| [docs/02-workflow-usage.md](docs/02-workflow-usage.md) | Skillgrid phases, **`.skillgrid/config.json`**, PRD and OpenSpec handoff |
+| `.skillgrid/project/` | Project-local architecture, structure, and onboarding docs when initialized |
+| [docs/04-skills.md](docs/04-skills.md) | Catalog of all skills with paths and summaries |
+| [docs/03-commands.md](docs/03-commands.md) | Slash commands and where they live per IDE |
+| [docs/01-installation.md](docs/01-installation.md) | Install toolchain and workflow CLIs / IDEs |
 | [docs/TODO.md](docs/TODO.md) | IDE matrix and internal notes |
-| [docs/10-manifesto.md](docs/10-manifesto.md) | Manifesto: human-in-the-loop pipelines, spec-driven guidance, harness engineering |
+| [docs/00-start-here.md](docs/00-start-here.md) | Start-here overview and manifesto: human-in-the-loop pipelines, spec-driven guidance, harness engineering |
 
 ---
 

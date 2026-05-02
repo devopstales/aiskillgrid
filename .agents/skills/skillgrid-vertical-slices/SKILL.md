@@ -70,9 +70,17 @@ Order `[HITL]` tasks before dependent `[AFK]` work.
 
 Each slice should state:
 
+- slice id and user-visible goal
+- `[AFK]` or `[HITL]` reason
+- acceptance criteria
+- blockers and `unblocks` relationships
+- vertical-slice or horizontal-setup classification, with justification for horizontal setup work
 - user-visible result
 - files or modules likely touched
+- fresh-agent input list: exact PRD, OpenSpec, handoff, research, source, and test paths needed without chat history
+- context budget and split trigger
 - tests or verification command
+- TDD requirement or explicit non-TDD exception
 - docs or artifact update
 - checkpoint name when relevant
 - rollback or validation risk if high
@@ -87,12 +95,19 @@ Use this when writing PRD implementation tasks, OpenSpec `tasks.md`, or issue bo
 ### Slice <N>: <user-visible capability>
 
 - **Tag:** `[AFK]` or `[HITL]`
+- **Reason:** <why this tag is correct>
 - **Outcome:** <what a user/operator can observe after this slice>
 - **Scope:** <small set of behavior included>
 - **Out of scope:** <nearby behavior intentionally excluded>
+- **Classification:** vertical slice | horizontal setup, with justification
+- **Acceptance criteria:** <observable criteria>
+- **Blocked by:** <task ids, decisions, credentials, or none>
+- **Unblocks:** <task ids or none>
 - **Likely files:** `<path-or-module>`, `<path-or-module>`
-- **Dependencies:** <previous slice, decision, credential, or none>
+- **Fresh-agent inputs:** <exact PRD/OpenSpec/handoff/research/source/test paths>
+- **Context budget:** <small | medium | max files/areas> / **Split trigger:** <when to split>
 - **Verification:** `<command>` or <manual check>
+- **TDD:** required | exception: <reason>
 - **Docs / artifacts:** <PRD/tasks/handoff/OpenSpec/design update>
 - **Checkpoint:** `after-slice-<N>-<slug>` when needed
 

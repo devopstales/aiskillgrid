@@ -60,16 +60,19 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 1. Run the `skillgrid-questioning` intent gate. Continue only when the request is `apply` or an explicitly approved continuation of an `[AFK]` implementation slice.
 2. If the gate finds `explore`, `plan`, `test`, `validate`, `finish`, or `blocked`, stop and route to the correct command or blocking question before editing.
 3. Confirm PRD, OpenSpec change, and `tasks.md` are apply-ready.
-4. Confirm goal, scope, acceptance criteria, verification command, and HITL/AFK boundary are explicit. Do not infer missing implementation authority from chat history.
-5. Create `before-apply-<change-id>` checkpoint before edits.
-6. Read the handoff and any cited research.
-7. Critically review the selected task before editing; stop if instructions, expected tests, or scope are unclear.
-8. Implement one vertical slice or small task batch at a time.
-9. For behavioral code, use TDD: write one failing test, verify RED, implement minimum code, verify GREEN, then refactor.
-10. When delegating implementation or review, use `skillgrid-subagent-orchestration` templates: implementer, spec reviewer, then code quality reviewer.
-11. Evaluate review feedback technically, send accepted required fixes back to the implementer, and re-review before marking any task complete.
-12. Update task checkboxes and handoff state as work completes.
-13. Pause on ambiguous requirements, failing verification, or HITL blockers.
+4. Confirm goal, scope, acceptance criteria, verification command, HITL/AFK boundary, context budget, split trigger, and fresh-agent input list are explicit. Do not infer missing implementation authority from chat history.
+5. Apply the context budget gate: a fresh agent must be able to execute the slice from durable artifacts and a bounded file list. If not, stop and route back to `/skillgrid-breakdown`.
+6. Create `before-apply-<change-id>` checkpoint before edits.
+7. Read the handoff and any cited research.
+8. Critically review the selected task before editing; stop if instructions, expected tests, file ownership, or scope are unclear.
+9. Implement one vertical slice or small task batch at a time.
+10. For behavioral code, use TDD: write one focused failing test, verify RED for the expected reason, implement minimum code, verify GREEN, then refactor.
+11. End every AFK implementation slice with the strongest available evidence: focused tests, type checks, lint, browser checks, security scan, or manual QA notes depending on the change.
+12. When delegating implementation or review, use `skillgrid-subagent-orchestration` templates and fresh artifact context, not copied chat history.
+13. Run the double review gate before marking delegated work complete: spec compliance review first, code quality review second.
+14. Evaluate review feedback technically, send accepted required fixes back to the implementer, rerun focused verification, and repeat the same review stage before advancing.
+15. Update task checkboxes, handoff state, event log, and evidence paths as work completes.
+16. Pause on ambiguous requirements, failing verification, scope drift, schema drift, security blockers, or HITL blockers.
 
 ## Completion Report
 
