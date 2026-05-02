@@ -217,7 +217,7 @@ flowchart TD
 - Skillgrid:
 - OpenSpec:
 - Engram:
-- graphify:
+- GitNexus:
 
 ## Onboarding notes
 
@@ -232,6 +232,6 @@ rg "tailwind|theme|:root|--color|font-family"
 
 ## Resources
 
-- Codebase mapping: `skillgrid-codebase-map`
+- Codebase mapping: `gitnexus-exploring`, `skillgrid-codebase-map`
 - UI design artifacts: `skillgrid-ui-design-artifacts`
 - Workflow overview: `docs/workflow.md`

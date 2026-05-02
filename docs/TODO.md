@@ -169,7 +169,7 @@ npm install -g @mariozechner/pi-coding-agent
 * [ ] [Cleave](https://cleave.dev/)
 * [X] [CocoIndex-Code](https://github.com/cocoindex-io/cocoindex-code)
 * [ ] [GitNexus](https://github.com/abhigyanpatwari/GitNexus)
-* [?] [graphify](https://github.com/safishamsi/graphify) 
+* [?] [GitNexus](https://github.com/abhigyanpatwari/GitNexus) 
 * [X] [Engram](https://github.com/Gentleman-Programming/engram)
 * [ ] [context-mode](https://github.com/mksglu/context-mode)
 

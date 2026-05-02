@@ -10,8 +10,8 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 |---|---|---|
 | Skillgrid workflow | Guides work through init, explore, brainstorm, plan, breakdown, apply, test, validate, and finish. | Keeps agent work tied to explicit phases, artifacts, and exit checks. |
 | Multi-IDE command hub | Ships `/skillgrid-*` and `/opsx-*` commands for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. | One workflow can travel across the IDEs and agents you use. |
-| Agent skills catalog | Provides reusable skills for TDD, review, security, UI design, research, graphify, Engram, OpenSpec, and more. | Agents get focused operating procedures instead of ad hoc chat instructions. |
-| Local Skillgrid dashboard | Runs `node .skillgrid/scripts/skillgrid-ui.mjs` for PRD Kanban, Workflow, Subagents, previews, and graphify links. | Product intent, events, previews, and subagent activity are visible in one local web UI. |
+| Agent skills catalog | Provides reusable skills for TDD, review, security, UI design, research, GitNexus, Engram, OpenSpec, and more. | Agents get focused operating procedures instead of ad hoc chat instructions. |
+| Local Skillgrid dashboard | Runs `node .skillgrid/scripts/skillgrid-ui.mjs` for PRD Kanban, Workflow, Subagents, previews, and GitNexus UI/context links. | Product intent, events, previews, and subagent activity are visible in one local web UI. |
 | File-first handoff | Stores PRDs, OpenSpec changes, handoff files, event logs, previews, checkpoints, and research under the repo. | Work survives context resets without requiring a database or hosted service. |
 | Intent-gated loop | Adds `/skillgrid-loop` for the next safe phase or `[AFK]` slice, with explicit HITL and verification stop conditions. | Long-running agent work stays bounded by artifacts, evidence, and user authority. |
 | Installer sanity check | Runs `./install.sh --sanity-check` to verify expected tools, hub files, and script syntax. | Setup problems are caught before copying configs into a project. |
@@ -20,10 +20,10 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ## What you get
 
-- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, built-in `playwright` and `git-master`, graphify, Engram memory protocol, and more). See [docs/skills.md](docs/skills.md).
+- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, built-in `playwright` and `git-master`, GitNexus, Engram memory protocol, and more). See [docs/skills.md](docs/skills.md).
 - **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/commands.md](docs/commands.md).
 - **Workflow** — End-to-end phases from init through finish in [docs/workflow.md](docs/workflow.md).
-- **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, graphify, dmux, Engram, and other optional tools from [docs/tools.md](docs/tools.md)).
+- **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, GitNexus, dmux, Engram, and other optional tools from [docs/tools.md](docs/tools.md)).
 - **Shared agent rules** — [`.configs/AGENTS.md`](.configs/AGENTS.md) is copied to the target project and IDE config dirs when you install.
 
 ---
@@ -74,7 +74,7 @@ Hub maintainers: after cloning, run **`npm ci`** in this repository root once so
 /skillgrid-init
 ```
 
-4. Open the local dashboard when you want PRDs, workflow events, previews, subagent actions, and graphify in one place:
+4. Open the local dashboard when you want PRDs, workflow events, previews, subagent actions, and GitNexus in one place:
 
 ```bash
 node .skillgrid/scripts/skillgrid-ui.mjs
@@ -88,7 +88,7 @@ Common variants:
 - **Dry run:** `./install.sh -p /path/to/project -n`
 - **Dependencies only:** `./install.sh -d`
 - **Sanity check only:** `./install.sh --sanity-check`
-- **Optional CLIs** (OpenSpec, graphify, dmux, Engram, Brave Search, CocoIndex): add `-t` in an interactive terminal
+- **Optional CLIs** (OpenSpec, GitNexus, dmux, Engram, Brave Search, CocoIndex): add `-t` in an interactive terminal
 
 You need a working **bash**, **rsync**, and **jq** for a full install with MCP merge; **Node** and **`npm ci`** in this repo help with pinned **npx**-based tools. For Python CLIs, use **uv** (see [docs/tools.md](docs/tools.md)).
 
@@ -118,6 +118,7 @@ You need a working **bash**, **rsync**, and **jq** for a full install with MCP m
 | [docs/commands.md](docs/commands.md) | Slash commands and where they live per IDE |
 | [docs/tools.md](docs/tools.md) | Install toolchain and workflow CLIs / IDEs |
 | [docs/TODO.md](docs/TODO.md) | IDE matrix and internal notes |
+| [docs/10-manifesto.md](docs/10-manifesto.md) | Manifesto: human-in-the-loop pipelines, spec-driven guidance, harness engineering |
 
 ---
 

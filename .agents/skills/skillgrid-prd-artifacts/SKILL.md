@@ -95,14 +95,15 @@ Read `.skillgrid/config.json` before changing PRD `Status:` values. The source o
       { "id": "todo", "label": "Todo" },
       { "id": "inprogress", "label": "In Progress" },
       { "id": "devdone", "label": "Dev Done" },
-      { "id": "done", "label": "Done" }
+      { "id": "done", "label": "Done" },
+      { "id": "archived", "label": "Archived" }
     ],
     "phaseStatusMap": {
       "plan": "draft",
       "breakdown": "todo",
       "apply": "inprogress",
       "validate": "devdone",
-      "finish": "done"
+      "finish": "archived"
     }
   }
 }
@@ -111,7 +112,7 @@ Read `.skillgrid/config.json` before changing PRD `Status:` values. The source o
 When `prdWorkflow` is missing, use the default lifecycle:
 
 ```text
-draft -> todo -> inprogress -> devdone -> done
+draft -> todo -> inprogress -> devdone -> done -> archived
 ```
 
 Commands own phase transitions through `prdWorkflow.phaseStatusMap`:
@@ -122,7 +123,7 @@ Commands own phase transitions through `prdWorkflow.phaseStatusMap`:
 | Breakdown | `/skillgrid-breakdown` | `phaseStatusMap.breakdown` (default `todo`) |
 | Apply | `/skillgrid-apply` | `phaseStatusMap.apply` (default `inprogress`) |
 | Validate | `/skillgrid-validate` | `phaseStatusMap.validate` (default `devdone`) |
-| Finish | `/skillgrid-finish` | `phaseStatusMap.finish` (default `done`) |
+| Finish | `/skillgrid-finish` | `phaseStatusMap.finish` (default `archived` after OpenSpec archive) |
 
 When backfilling an existing change, map evidence to the configured workflow:
 

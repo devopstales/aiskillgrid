@@ -27,7 +27,7 @@ Use these files as the source of truth:
 - `docs/commands.md`
 - `docs/skills.md` when the user asks about reusable skills
 - `.agents/skills/ccc/SKILL.md` when the user asks about **CocoIndex** (`ccc search`, indexing)
-- `.agents/skills/references/indexing-and-memory.md` when the user asks about **graphify**, **ccc**, **Engram**, or repo indexing order
+- `.agents/skills/references/indexing-and-memory.md` when the user asks about **GitNexus**, **ccc**, **Engram**, or repo indexing order
 - `.skillgrid/config.json` if present
 
 ## Modes

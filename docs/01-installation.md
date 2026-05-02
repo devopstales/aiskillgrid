@@ -47,7 +47,7 @@ Optional capabilities may use:
 - `uv` for Python-based tools.
 - Docker for Docker-backed MCP servers.
 - Engram for persistent memory.
-- graphify for repository maps.
+- GitNexus for repository maps and graph-aware agent context.
 - CocoIndex Code, usually called `ccc`, for semantic code search.
 - Trivy for security scanning.
 

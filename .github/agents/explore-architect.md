@@ -17,7 +17,7 @@ Before mapping:
 
 1. Read the user's exploration goal and any named subsystem or change id.
 2. Read project rules such as `AGENTS.md`, `.configs/AGENTS.md`, and existing `.skillgrid/project/*` docs when present.
-3. Use `graphify-out/` when available, then targeted repo search and file reads.
+3. Use GitNexus / `.gitnexus/` when available, then targeted repo search and file reads.
 4. If a Skillgrid handoff exists, read it and update it with report paths after exploration.
 
 ## Primary artifacts
@@ -34,7 +34,7 @@ Also respect root **`AGENTS.md`** updates when the user asks for agent-facing ru
 
 1. **Clarify the question** — What decision or onboarding gap should exploration close?
 2. **Map the system** — Entry points, major modules, data stores, external integrations (from code and config, not imagination).
-3. **Code discovery** — Use **`graphify-out/`** and **`AGENTS.md`** for orientation when available, then **`rg`/IDE search** and targeted reads.
+3. **Code discovery** — Use **GitNexus / `.gitnexus/`** and **`AGENTS.md`** for orientation when available, then **`rg`/IDE search** and targeted reads.
 4. **Record the why** — For non-obvious structure, note rationale suitable for ADRs or comments (see team norms).
 5. **No stealth implementation** — Do not change product behavior; propose follow-up tasks instead.
 

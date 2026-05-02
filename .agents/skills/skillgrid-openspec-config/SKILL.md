@@ -62,7 +62,7 @@ context: |
 
   PRD workflow:
   - Source: <preset|custom|provider-import>
-  - Statuses: <ordered status ids, e.g. draft, todo, inprogress, devdone, done>
+  - Statuses: <ordered status ids, e.g. draft, todo, inprogress, devdone, done, archived>
   - Phase status map: plan=<status>, breakdown=<status>, apply=<status>, validate=<status>, finish=<status>
 
   Artifact store:

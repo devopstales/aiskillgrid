@@ -23,7 +23,7 @@ Before mapping:
 
 1. Read the user's exploration goal and any named subsystem or change id.
 2. Read project rules such as `AGENTS.md`, `.configs/AGENTS.md`, and existing `.skillgrid/project/*` docs when present.
-3. Use `graphify-out/` when available, then targeted repo search and file reads.
+3. Use GitNexus / `.gitnexus/` when available, then targeted repo search and file reads.
 4. If a Skillgrid handoff exists, read it and update it with report paths after exploration.
 
 ## Filesystem handoff (when spawned as a subagent for a change)
@@ -56,7 +56,7 @@ When the parent prompt names a Skillgrid change id, append a compact JSONL event
 
 1. **Clarify the question** — What decision or onboarding gap should exploration close?
 2. **Map the system** — Entry points, major modules, data stores, external integrations (from code and config, not imagination).
-3. **Code discovery** — Use **`graphify-out/`** and **`AGENTS.md`** for orientation, then **`rg`/IDE search** and targeted reads.
+3. **Code discovery** — Use **GitNexus / `.gitnexus/`** and **`AGENTS.md`** for orientation, then **`rg`/IDE search** and targeted reads.
 4. **Record the why** — For non-obvious structure, note rationale suitable for ADRs or comments (see team norms).
 5. **No stealth implementation** — Do not change product behavior; propose follow-up tasks instead.
 
@@ -77,7 +77,7 @@ When the parent prompt names a Skillgrid change id, append a compact JSONL event
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Graph:** prefer **`graphify-out/`** (and `AGENTS.md`) for high-level structure when available; drill down with **`rg`/IDE search** and LSP navigation.
+- **Graph:** prefer GitNexus graph context (and `AGENTS.md`) for high-level structure when available; drill down with **`rg`/IDE search** and LSP navigation.
 - **Persistent memory (Engram MCP):** `mem_context` / `mem_search` for past ADRs or architecture notes; `mem_save` for **decisions** that should anchor future exploration.
 - **MCP memory:** optional recall when enabled.
 

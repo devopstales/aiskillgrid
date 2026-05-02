@@ -17,7 +17,7 @@ During initialization, decide:
 - Ticketing provider: local, GitHub, GitLab, or Jira.
 - Artifact store: disk-first, memory-first, or hybrid.
 - PRD workflow: default statuses, provider-style statuses, imported statuses, or custom statuses.
-- Optional indexing: graphify and ccc.
+- Optional indexing: GitNexus and ccc.
 - Optional persistent memory: Engram.
 - Skill registry: `.skillgrid/project/SKILL_REGISTRY.md` for compact rules used in subagent prompts.
 

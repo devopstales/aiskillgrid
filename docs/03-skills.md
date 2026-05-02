@@ -130,7 +130,8 @@ These keep work durable and reviewable:
 
 - Memory protocol.
 - CocoIndex Code.
-- graphify workflows.
+- GitNexus workflows.
+- GitNexus CLI (**gitnexus@1.3.11** via `npx -y`), exploration, debugging, impact analysis, PR review, and refactoring skills.
 - Git workflow and versioning.
 - Git master.
 - Shipping and launch.

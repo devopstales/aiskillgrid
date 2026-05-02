@@ -1,0 +1,26 @@
+{
+  "artifactStore": {
+    "mode": "hybrid"
+  },
+  "prdWorkflow": {
+    "source": "preset",
+    "preset": "skillgrid-default",
+    "fallbackStatus": "draft",
+    "statuses": [
+      { "id": "draft", "label": "Draft" },
+      { "id": "todo", "label": "Todo" },
+      { "id": "inprogress", "label": "In Progress" },
+      { "id": "devdone", "label": "Dev Done" },
+      { "id": "done", "label": "Done" },
+      { "id": "archived", "label": "Archived" }
+    ],
+    "phaseStatusMap": {
+      "plan": "draft",
+      "breakdown": "todo",
+      "apply": "inprogress",
+      "validate": "devdone",
+      "finish": "archived"
+    },
+    "providerMapping": {}
+  }
+}

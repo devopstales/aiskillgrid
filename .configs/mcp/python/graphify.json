@@ -1,6 +1,0 @@
-{
-    "graphify": {
-        "command": "uv",
-        "args": ["run", "--with", "graphifyy[mcp]", "-m", "graphify.serve", "${workspace.path}/graphify-out/graph.json"]
-    }
-}

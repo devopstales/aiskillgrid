@@ -115,13 +115,13 @@ Indexing servers help agents understand the repository.
 Typical server keys:
 
 ```text
-graphify
+gitnexus
 cocoindex-code
 ```
 
 Typical roles:
 
-- graphify exposes repository graph output.
+- GitNexus exposes repository graph, context, impact, process, and query tools.
 - CocoIndex Code supports semantic code search.
 
 ### Product And Design Utilities
@@ -170,7 +170,7 @@ Not every task needs every server. AISkillGrid pairs MCP usage with skills and c
 - Browser tasks can prefer Playwright or DevTools.
 - Security tasks can prefer Trivy.
 - Memory tasks can prefer Engram.
-- Architecture orientation can prefer graphify or ccc.
+- Architecture orientation can prefer GitNexus or ccc.
 
 This matters because tool overload is real. Skill-scoped guidance keeps the agent focused.
 

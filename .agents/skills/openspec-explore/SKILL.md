@@ -293,7 +293,8 @@ But this summary is optional. Sometimes the thinking IS the value.
 
 Keep OpenSpec exploration in this skill. For Skillgrid work:
 
-- Use `skillgrid-codebase-map` for repo mapping and graphify-backed discovery.
+- Use **`gitnexus-exploring`** (GitNexus MCP before grep/glob/shell) when investigating the codebase.
+- Use `skillgrid-codebase-map` for repo mapping, project docs updates, and GitNexus/ccc hygiene.
 - Use `skillgrid-parallel-research` for external research and long evidence gathering.
 - Use `skillgrid-prd-artifacts` when exploration backfills or checks PRD coverage.
 - Use `skillgrid-filesystem-handoff` for change-scoped context and research spill files.

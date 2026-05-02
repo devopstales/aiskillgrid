@@ -54,7 +54,7 @@ Do not use parallel lanes when:
 
 | Need | Prefer |
 |---|---|
-| existing repo behavior | `skillgrid-codebase-map`, `rg`, semantic search |
+| existing repo behavior | `gitnexus-exploring`, `skillgrid-codebase-map`; `rg` / semantic search when GitNexus is empty or unavailable |
 | library/API docs | `documentation-lookup`, `context7` |
 | broad web evidence | `search-first`, `deep-research`, `exa-search`, Brave |
 | pages that need extraction | Firecrawl skills |
@@ -113,7 +113,7 @@ Use before launching several research lanes. Each lane should use `research-lane
 
 | Lane | Question | Tool / agent | Output path | Decision informed |
 |---|---|---|---|---|
-| repo-map | <What exists locally?> | `skillgrid-codebase-map` | `.skillgrid/tasks/research/<change-id>/repo-map.md` | <decision> |
+| repo-map | <What exists locally?> | `gitnexus-exploring`, `skillgrid-codebase-map` | `.skillgrid/tasks/research/<change-id>/repo-map.md` | <decision> |
 | docs | <What do current docs say?> | `documentation-lookup` / `context7` | `.skillgrid/tasks/research/<change-id>/docs.md` | <decision> |
 | prior-art | <How do others solve this?> | `deep-research` / `exa-search` | `.skillgrid/tasks/research/<change-id>/prior-art.md` | <decision> |
 ```
@@ -167,5 +167,5 @@ No single command owns this skill. Use the available search, documentation, brow
 
 - Handoff: `skillgrid-filesystem-handoff`
 - Subagents: `skillgrid-subagent-orchestration`
-- Codebase mapping: `skillgrid-codebase-map`
+- Codebase mapping: `gitnexus-exploring`, `skillgrid-codebase-map`
 - Web research rules: `.configs/AGENTS.md`

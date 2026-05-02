@@ -121,9 +121,9 @@ When analyzing test coverage:
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Code discovery:** **`rg`/IDE search** for existing tests and fixtures; **`graphify update .`** after moving or adding many test files when graphify is in use.
+- **Code discovery:** **`rg`/IDE search** for existing tests and fixtures; **`npx -y gitnexus@1.3.11 analyze`** after moving or adding many test files when GitNexus is in use.
 - **Persistent memory (Engram MCP):** `mem_search` for flaky-test history or quarantine decisions; `mem_save` for **stability conventions** the team must reuse.
-- **Graph:** optional orientation from `graphify-out/` for large suites.
+- **Graph:** optional orientation from GitNexus for large suites.
 - **MCP memory:** optional recall when enabled.
 
 ## Composition

@@ -119,7 +119,7 @@ All artifacts complete. All tasks complete.
 
 Keep archive mechanics in this skill. For Skillgrid work:
 
-- Use `skillgrid-prd-artifacts` to set the PRD and `INDEX.md` status to `done` only when the phase completes successfully.
+- When the archive is part of `/skillgrid-finish`, use `skillgrid-prd-artifacts` to set the PRD and `INDEX.md` status from `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.finish` only after the archive succeeds (default `archived`).
 - Use `skillgrid-checkpoints` to clean up change-scoped checkpoint entries.
 - Use `skillgrid-project-docs` to verify durable project docs are not stale.
 - Use `skillgrid-hybrid-persistence` to save the archive/ship summary.

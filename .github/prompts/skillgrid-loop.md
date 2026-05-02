@@ -21,9 +21,9 @@ Continue the active Skillgrid change through the next safe command, phase, or `[
 Before acting, load only the skills needed for the phase:
 
 - `.agents/skills/skillgrid-questioning/SKILL.md` — intent gate, blocking questions, and decision-tree interview mode.
-- `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, graphify output, tests, and conventions.
+- `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, GitNexus output, tests, and conventions.
 - `.agents/skills/ccc/SKILL.md` — CocoIndex Code: `ccc init`, `ccc index`, `ccc search`; optional MCP `cocoindex-code`.
-- `.agents/skills/references/indexing-and-memory.md` — Engram, graphify (`graphify-out/`, `graphify update .`), **ccc**, and MCP memory ordering.
+- `.agents/skills/references/indexing-and-memory.md` — Engram, GitNexus (`.gitnexus/`, `npx -y gitnexus@1.3.11 analyze`), **ccc**, and MCP memory ordering.
 - `.agents/skills/skillgrid-subagent-orchestration/SKILL.md` — bounded subagents, handoff paths, and two-stage review.
 - `.agents/skills/skillgrid-vertical-slices/SKILL.md` — `[HITL]` / `[AFK]`, shippable slices, and testable increments.
 - `.agents/skills/skillgrid-filesystem-handoff/SKILL.md` — `context_<change-id>.md`, `events/<change-id>.jsonl`, and research spill files.

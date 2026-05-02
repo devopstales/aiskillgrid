@@ -99,9 +99,9 @@ When the parent prompt names a Skillgrid change id, append a compact JSONL event
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Code discovery:** **`rg`/IDE search** to trace requirements into implementation; **`graphify update .`** after spec-driven structural moves when graphify is in use.
+- **Code discovery:** **`rg`/IDE search** to trace requirements into implementation; **`npx -y gitnexus@1.3.11 analyze`** after spec-driven structural moves when GitNexus is in use.
 - **Persistent memory (Engram MCP):** align with **`/skillgrid-validate`** — use `mem_search` / `mem_get_observation` for **full** text; prefer stable **`skillgrid/...`** topic keys (see **`/skillgrid-init`**). Do not rely on truncated search snippets alone.
-- **Graph:** optional `graphify-out/` for boundary coverage when verifying architecture-facing requirements.
+- **Graph:** optional GitNexus graph context for boundary coverage when verifying architecture-facing requirements.
 - **MCP memory:** optional recall when enabled.
 
 ## Composition

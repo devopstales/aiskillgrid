@@ -35,8 +35,9 @@ status: draft
 async function testDefaultWorkflow() {
   const { prdRoot } = await makeFixture();
   const workflow = await loadPrdWorkflow(prdRoot);
-  assert.deepEqual(workflow.statuses.map((status) => status.id), ['draft', 'todo', 'inprogress', 'devdone', 'done']);
+  assert.deepEqual(workflow.statuses.map((status) => status.id), ['draft', 'todo', 'inprogress', 'devdone', 'done', 'archived']);
   assert.equal(workflow.fallbackStatus, 'draft');
+  assert.equal(workflow.phaseStatusMap.finish, 'archived');
 
   const dashboard = await buildDashboardData(prdRoot);
   assert.equal(dashboard.prdWorkflow.preset, 'skillgrid-default');

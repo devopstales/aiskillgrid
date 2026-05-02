@@ -37,11 +37,11 @@
 #   3. Dependency check  → optional install of missing tools
 #   4. MCP merge         → jq-smerge .configs/mcp/*.json into one object
 #   5. IDE setup         → per-IDE setup_*() writes normalized config files
-#   6. Optional tools    → -t selects tools; CLIs via uv (Python; graphifyy, cocoindex-code[full]→ccc) + hub npm (Node) + brew + brave-search-cli curl|sh, then copy + openspec init
+#   6. Optional tools    → -t selects tools; CLIs via npm/npx (Node; GitNexus, hub tools) + uv (Python; cocoindex-code[full]→ccc) + brew + brave-search-cli curl|sh, then copy + openspec init
 #
 # DEPENDENCIES:
 #   Runtime:  bash 3.2+ (incl. macOS /bin/bash), rsync, jq
-#   Optional: node, npx, python3, pip3, uv (Python CLIs; hub Node deps via npm ci)
+#   Optional: node, npx, npm, python3, pip3, uv (Python CLIs; hub Node deps via npm ci)
 #   IDE CLIs: opencode, kilo, semgrep, trivy (installed on demand)
 #
 # VERSION: 1.0.0
@@ -136,7 +136,7 @@ Options:
   -o, --opencode        Setup configuration for opencode
   -a, --antigravity     Setup configuration for Google Antigravity
   -A, --all             Setup for all supported IDEs (Default if none selected)
-  -t, --tools           Interactive prompt to select optional tools (openspec, graphify, dmux, engram, brave-search-cli, cocoindex-code)
+  -t, --tools           Interactive prompt to select optional tools (openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code)
   -d, --deps            Check and install dependencies before install
   --sanity-check        Verify hub dependencies and expected files without installing or writing
   -y, --yes             Non-interactive mode (skip prompts)
@@ -147,7 +147,7 @@ Options:
   -h, --help            Show this help message
 
 Interactive mode: On TTY with no IDE flags, choose IDEs (1-5 or a=all) and MCP servers.
-Use -t to pick optional tools interactively (openspec, graphifyy, dmux, engram, brave-search-cli, cocoindex-code/ccc — brew / hub npm / uv / official Brave install.sh when selected; see docs/tools.md).
+Use -t to pick optional tools interactively (openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code/ccc — brew / hub npm / global npm / uv / official Brave install.sh when selected; see docs/tools.md).
 EOF
 }
 
@@ -412,7 +412,7 @@ tool_is_selected() {
     return 1
 }
 
-# Ensure uv is available (for graphifyy, cocoindex-code[full] → ccc: uv tool install)
+# Ensure uv is available (for cocoindex-code[full] → ccc: uv tool install)
 ensure_uv() {
     command -v uv &>/dev/null && return 0
     if [ "$DRY_RUN" = true ]; then
@@ -485,21 +485,20 @@ install_optional_tool_clis() {
     echo "Optional tools — installing CLIs..."
     echo ""
 
-    if tool_is_selected graphify; then
-        ensure_uv || true
-        if command -v graphifyy &>/dev/null 2>&1 || command -v graphify &>/dev/null 2>&1; then
-            log_info "graphify CLI already present"
+    if tool_is_selected gitnexus; then
+        if command -v gitnexus &>/dev/null 2>&1; then
+            log_info "gitnexus CLI already present"
         elif [ "$DRY_RUN" = true ]; then
-            echo "[DRY-RUN] uv tool install graphifyy"
-        elif command -v uv &>/dev/null; then
-            log_info "Installing graphifyy (uv tool install)..."
-            if uv tool install graphifyy; then
-                log_success "graphifyy installed"
+            echo "[DRY-RUN] npm install -g gitnexus@1.3.11"
+        elif command -v npm &>/dev/null; then
+            log_info "Installing GitNexus (npm install -g gitnexus@1.3.11)..."
+            if npm install -g gitnexus@1.3.11; then
+                log_success "gitnexus installed"
             else
-                log_warn "graphifyy: uv tool install failed"
+                log_warn "gitnexus: npm install -g failed"
             fi
         else
-            log_warn "graphify: uv missing — run: uv tool install graphifyy"
+            log_warn "gitnexus: npm not found — install Node.js, then run: npm install -g gitnexus@1.3.11"
         fi
     fi
 
@@ -584,7 +583,7 @@ install_optional_tool_clis() {
     echo ""
 }
 
-# Interactive optional tools (openspec, graphify, dmux, engram, brave-search-cli, cocoindex-code)
+# Interactive optional tools (openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code)
 interactive_tools_selection() {
     [ "$TOOLS_INTERACTIVE" = true ] || return 0
     [ "$NON_INTERACTIVE" != true ] || {
@@ -603,9 +602,9 @@ interactive_tools_selection() {
     }
 
     echo ""
-    echo -e "${CYAN}Optional tools${NC} — CLIs via uv, hub npm ci, brew, or Brave install (see docs/tools.md)"
+    echo -e "${CYAN}Optional tools${NC} — CLIs via npm, uv, hub npm ci, brew, or Brave install (see docs/tools.md)"
     echo "  1) openspec — OpenSpec (brew, hub npx, or npm -g)"
-    echo "  2) graphify — graphifyy (uv tool install graphifyy)"
+    echo "  2) gitnexus — GitNexus code graph CLI (npm install -g gitnexus@1.3.11)"
     echo "  3) dmux — tmux pane manager (hub npx, or npm -g fallback)"
     echo "  4) engram — Engram MCP CLI (brew gentleman-programming/tap)"
     echo "  5) brave-search-cli — Brave Search CLI, bx (curl | sh from brave/brave-search-cli)"
@@ -630,8 +629,8 @@ interactive_tools_selection() {
         lower=$(printf '%s' "$choice" | tr '[:upper:]' '[:lower:]')
         case "$lower" in
             a|all)
-                SELECTED_TOOLS=("openspec" "graphify" "dmux" "engram" "brave-search-cli" "cocoindex-code")
-                log_info "Optional tools: openspec, graphify, dmux, engram, brave-search-cli, cocoindex-code"
+                SELECTED_TOOLS=("openspec" "gitnexus" "dmux" "engram" "brave-search-cli" "cocoindex-code")
+                log_info "Optional tools: openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code"
                 return 0
                 ;;
             n|no|none|skip)
@@ -649,7 +648,7 @@ interactive_tools_selection() {
             [ -z "$tok" ] && continue
             case "$tok" in
                 1) SELECTED_TOOLS+=("openspec") ;;
-                2) SELECTED_TOOLS+=("graphify") ;;
+                2) SELECTED_TOOLS+=("gitnexus") ;;
                 3) SELECTED_TOOLS+=("dmux") ;;
                 4) SELECTED_TOOLS+=("engram") ;;
                 5) SELECTED_TOOLS+=("brave-search-cli") ;;
@@ -955,7 +954,7 @@ run_sanity_check() {
     echo ""
     echo "Optional Skillgrid tools:"
     sanity_check_command "uv" "command -v uv" "install with: brew install uv"
-    sanity_check_command "graphify" "command -v graphify || command -v graphifyy" "install with: uv tool install graphifyy"
+    sanity_check_command "gitnexus" "command -v gitnexus || command -v npx" "install with: npm install -g gitnexus@1.3.11"
     sanity_check_command "cocoindex-code (ccc)" "command -v ccc" "install with: uv tool install --upgrade 'cocoindex-code[full]'"
     sanity_check_command "dmux" "command -v dmux || [ -x \"$SCRIPT_DIR/node_modules/.bin/dmux\" ]" "run npm ci or install dmux"
     sanity_check_command "engram" "command -v engram" "install with: brew install gentleman-programming/tap/engram"
@@ -1301,7 +1300,7 @@ fi
 # Interactive MCP selection (if eligible)
 interactive_mcp_selection
 
-# Optional tools — must run before --deps counts (openspec / graphify / dmux / engram / brave-search-cli / cocoindex-code)
+# Optional tools — must run before --deps counts (openspec / gitnexus / dmux / engram / brave-search-cli / cocoindex-code)
 interactive_tools_selection
 
 # Handle --deps flag (check and optionally install)
@@ -1611,13 +1610,13 @@ main() {
             fi
         fi
 
-        if tool_is_selected graphify; then
-            target="$PROJECT_PATH/.graphify"
+        if tool_is_selected gitnexus; then
+            target="$PROJECT_PATH/.gitnexus"
             if [ -d "$target" ]; then
                 if [ "$DRY_RUN" = true ]; then
-                    echo "[DRY-RUN] Would remove: .graphify"
+                    echo "[DRY-RUN] Would remove: .gitnexus"
                 else
-                    echo "Removing: .graphify"
+                    echo "Removing: .gitnexus"
                     rm -rf "$target"
                 fi
             fi

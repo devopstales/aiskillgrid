@@ -188,7 +188,7 @@ Sub-questions investigated: [list]
 
 ### Step 7: Optional — persist for later sessions
 
-If **Engram** (or another memory MCP) is available and the user wants recall across sessions, save a short anchored note with **`mem_save`** (title/topic_key scoped to the research topic, e.g. `research/<slug>`). Include the same source URLs you cited in the report. If the project uses the hub memory stack, follow `../references/indexing-and-memory.md` and `../../../docs/memory.md` from this file for ordering with graphify and structural search.
+If **Engram** (or another memory MCP) is available and the user wants recall across sessions, save a short anchored note with **`mem_save`** (title/topic_key scoped to the research topic, e.g. `research/<slug>`). Include the same source URLs you cited in the report. If the project uses the hub memory stack, follow `../references/indexing-and-memory.md` and `../../../docs/memory.md` from this file for ordering with GitNexus and structural search.
 
 ## Parallel Research with Subagents
 

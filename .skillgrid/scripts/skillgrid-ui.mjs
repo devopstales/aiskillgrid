@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Skillgrid Dashboard — single-file local server for PRD Kanban, workflow events, previews, and graphify output.
+ * Skillgrid Dashboard — single-file local server for PRD Kanban, workflow events, previews, and GitNexus context.
  * No npm in repo — Node 18+ only. UI loads marked + DOMPurify from jsDelivr for markdown preview (offline: escaped plain text).
  * Front matter: supports classic `---` … `---` blocks with simple `title:` / `status:` lines and Skillgrid title-block metadata.
  *
@@ -17,8 +17,11 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import { spawn } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_GITNEXUS_URL = 'http://127.0.0.1:4747';
+const DEFAULT_GITNEXUS_COMMAND = 'gitnexus';
 
 const DEFAULT_WORKFLOW_PHASES = ['brainstorm', 'design', 'plan', 'breakdown', 'apply', 'test', 'security', 'validate', 'finish'];
 const DEFAULT_PRD_WORKFLOW = Object.freeze({
@@ -31,13 +34,14 @@ const DEFAULT_PRD_WORKFLOW = Object.freeze({
     Object.freeze({ id: 'inprogress', label: 'In Progress' }),
     Object.freeze({ id: 'devdone', label: 'Dev Done' }),
     Object.freeze({ id: 'done', label: 'Done' }),
+    Object.freeze({ id: 'archived', label: 'Archived' }),
   ]),
   phaseStatusMap: Object.freeze({
     plan: 'draft',
     breakdown: 'todo',
     apply: 'inprogress',
     validate: 'devdone',
-    finish: 'done',
+    finish: 'archived',
   }),
   providerMapping: Object.freeze({}),
 });
@@ -51,17 +55,17 @@ const STATIC = {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Skillgrid Dashboard</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css?v=gitnexus" />
 </head>
 <body>
   <header class="top">
     <h1>Skillgrid Dashboard</h1>
-    <p class="hint">Local only — PRDs, handoff state, previews, graphify output, and JSONL workflow events from this repo.</p>
+    <p class="hint">Local only: PRDs, handoff state, previews, GitNexus graph context, and JSONL workflow events from this repo.</p>
     <nav class="tabs" aria-label="Dashboard views">
       <button type="button" class="tab is-active" data-view="board">Board</button>
       <button type="button" class="tab" data-view="workflow">Workflow</button>
       <button type="button" class="tab" data-view="agents">Subagents</button>
-      <a id="graph-link" class="tab tab-link" href="/graphify/graph.html" target="_blank" rel="noreferrer" hidden>Graph</a>
+      <button type="button" class="tab" data-view="gitnexus">GitNexus</button>
     </nav>
     <p id="banner" class="banner" hidden></p>
     <div id="system-status" class="system-status" aria-live="polite"></div>
@@ -86,6 +90,20 @@ const STATIC = {
         <p class="hint">Read-only view over workflow events that include <code>agent</code>, <code>subagent</code>, <code>role</code>, or subagent/review nodes.</p>
       </div>
       <div id="agents-list" class="agents-list"></div>
+    </section>
+    <section id="gitnexus-view" class="view gitnexus-view" aria-live="polite" hidden>
+      <div class="gitnexus-panel">
+        <div class="gitnexus-copy">
+          <p class="eyebrow">Code graph bridge</p>
+          <h2>GitNexus</h2>
+          <p class="hint">Skillgrid starts the local GitNexus web runtime for this repo and embeds it here for graph-aware context, impact analysis, and execution flows.</p>
+          <div id="gitnexus-status" class="gitnexus-status"></div>
+          <div id="gitnexus-actions" class="gitnexus-actions"></div>
+        </div>
+        <div class="gitnexus-frame-wrap">
+          <iframe id="gitnexus-frame" class="gitnexus-frame" title="GitNexus web UI" loading="lazy"></iframe>
+        </div>
+      </div>
     </section>
   </main>
   <div id="ticket-overlay" class="ticket-overlay" hidden>
@@ -568,6 +586,250 @@ const STATIC = {
   gap: 0.3rem;
 }
 
+/* GitNexus-inspired graph console skin */
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #d8e2ff;
+  background: radial-gradient(circle at 18% 0%, rgba(20, 184, 166, 0.18), transparent 34%), #080d16;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, rgba(8, 13, 22, 0.98), rgba(11, 18, 32, 0.98));
+}
+
+.top,
+.dashboard-shell {
+  max-width: 124rem;
+}
+
+.top {
+  padding: 1.1rem 1rem 0.9rem;
+}
+
+.top h1 {
+  color: #f7fbff;
+  letter-spacing: -0.04em;
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.hint,
+.card-meta,
+.workflow-item-meta,
+.event-time,
+.agent-meta {
+  color: #91a4c8;
+}
+
+.system-status {
+  margin: 0.75rem 0;
+}
+
+.status-chip,
+.tab,
+.btn,
+.badge,
+.pill-link {
+  border-color: rgba(125, 160, 210, 0.25);
+  background: rgba(15, 25, 43, 0.78);
+  color: #cbd8f6;
+}
+
+.status-chip strong {
+  color: #f7fbff;
+}
+
+.tab {
+  border-radius: 0.7rem;
+  backdrop-filter: blur(12px);
+}
+
+.tab:hover,
+.tab:focus-visible,
+.btn:hover,
+.pill-link:hover {
+  border-color: rgba(64, 224, 208, 0.65);
+  background: rgba(19, 45, 68, 0.86);
+  color: #f7fbff;
+}
+
+.tab.is-active {
+  border-color: rgba(64, 224, 208, 0.9);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(59, 130, 246, 0.18));
+  color: #f7fbff;
+  box-shadow: 0 0 0 1px rgba(64, 224, 208, 0.12), 0 12px 40px rgba(5, 12, 24, 0.24);
+}
+
+.column,
+.workflow-list,
+.workflow-detail,
+.agents-header,
+.agent-action,
+.ticket-panel,
+.gitnexus-panel {
+  border: 1px solid rgba(125, 160, 210, 0.2);
+  background: rgba(10, 18, 31, 0.84);
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.28);
+}
+
+.column,
+.workflow-list,
+.workflow-detail,
+.agents-header,
+.agent-action,
+.workflow-card,
+.event,
+.ticket-panel,
+.gitnexus-panel {
+  border-radius: 1rem;
+}
+
+.column h2,
+.workflow-list h2,
+.workflow-card h3,
+.event-summary,
+.agent-name,
+.workflow-item-title,
+.workflow-header h2,
+.ticket-summary,
+.gitnexus-copy h2 {
+  color: #f7fbff;
+}
+
+.column-body,
+.workflow-card,
+.phase-row,
+.event {
+  border-color: rgba(125, 160, 210, 0.16);
+  background: rgba(7, 13, 24, 0.72);
+}
+
+.column-body.drag-over,
+.workflow-item:hover,
+.workflow-item.is-active {
+  border-color: rgba(64, 224, 208, 0.55);
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.card {
+  border-color: rgba(125, 160, 210, 0.18);
+  background: linear-gradient(180deg, rgba(20, 31, 51, 0.96), rgba(11, 18, 32, 0.96));
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+}
+
+.card-title,
+.pill-link {
+  color: #6ee7f9;
+}
+
+.badge.passed,
+.badge.completed {
+  border-color: rgba(74, 222, 128, 0.42);
+  background: rgba(22, 101, 52, 0.28);
+  color: #bbf7d0;
+}
+
+.badge.blocked,
+.badge.failed,
+.banner.error {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(127, 29, 29, 0.32);
+  color: #fecaca;
+}
+
+.banner {
+  border-color: rgba(250, 204, 21, 0.38);
+  background: rgba(113, 63, 18, 0.28);
+  color: #fde68a;
+}
+
+.gitnexus-view {
+  display: grid;
+}
+
+.gitnexus-panel {
+  display: grid;
+  grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
+  gap: 1rem;
+  min-height: 40rem;
+  padding: 1rem;
+}
+
+.gitnexus-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #5eead4;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.gitnexus-copy h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 3rem);
+  letter-spacing: -0.06em;
+}
+
+.gitnexus-status-card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(125, 160, 210, 0.22);
+  border-radius: 0.85rem;
+  background: rgba(7, 13, 24, 0.74);
+}
+
+.gitnexus-status-card.is-ready {
+  border-color: rgba(20, 184, 166, 0.55);
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.gitnexus-status-card span {
+  color: #91a4c8;
+}
+
+.gitnexus-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.gitnexus-actions code {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(125, 160, 210, 0.22);
+  border-radius: 0.65rem;
+  background: rgba(2, 6, 15, 0.72);
+  color: #a7f3d0;
+}
+
+.gitnexus-open {
+  text-decoration: none;
+}
+
+.gitnexus-frame-wrap {
+  min-height: 38rem;
+  overflow: hidden;
+  border: 1px solid rgba(125, 160, 210, 0.22);
+  border-radius: 0.95rem;
+  background: #050914;
+}
+
+.gitnexus-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 38rem;
+  border: 0;
+  background: #050914;
+}
+
 @media (max-width: 760px) {
   .workflow-view {
     grid-template-columns: 1fr;
@@ -867,10 +1129,13 @@ const workflowList = document.getElementById('workflow-list');
 const workflowDetail = document.getElementById('workflow-detail');
 const agentsView = document.getElementById('agents-view');
 const agentsList = document.getElementById('agents-list');
+const gitnexusView = document.getElementById('gitnexus-view');
+const gitnexusStatus = document.getElementById('gitnexus-status');
+const gitnexusActions = document.getElementById('gitnexus-actions');
+const gitnexusFrame = document.getElementById('gitnexus-frame');
 const bannerEl = document.getElementById('banner');
 const systemStatusEl = document.getElementById('system-status');
 const refreshBtn = document.getElementById('refresh');
-const graphLink = document.getElementById('graph-link');
 const tabEls = Array.from(document.querySelectorAll('[data-view]'));
 const ticketOverlay = document.getElementById('ticket-overlay');
 const ticketBackdrop = document.getElementById('ticket-backdrop');
@@ -883,7 +1148,7 @@ const ticketDesc = document.getElementById('ticket-desc');
 const ticketClose = document.getElementById('ticket-close');
 
 let cards = [];
-let dashboard = { prds: [], graph: { available: false } };
+let dashboard = { prds: [], gitnexus: { available: false } };
 let activeView = 'board';
 let selectedWorkflowFile = null;
 let selectedChangeId = null;
@@ -972,9 +1237,11 @@ function setView(view) {
   boardView.hidden = view !== 'board';
   workflowView.hidden = view !== 'workflow';
   agentsView.hidden = view !== 'agents';
+  gitnexusView.hidden = view !== 'gitnexus';
   boardView.classList.toggle('is-active', view === 'board');
   workflowView.classList.toggle('is-active', view === 'workflow');
   agentsView.classList.toggle('is-active', view === 'agents');
+  gitnexusView.classList.toggle('is-active', view === 'gitnexus');
   for (const tab of tabEls) {
     tab.classList.toggle('is-active', tab.dataset.view === view);
   }
@@ -983,6 +1250,7 @@ function setView(view) {
   }
   renderWorkflow();
   renderAgents();
+  renderGitNexus();
 }
 
 ticketClose.addEventListener('click', closeTicket);
@@ -1001,12 +1269,12 @@ async function loadPrds() {
   }
   dashboard = await res.json();
   cards = dashboard.prds || [];
-  graphLink.hidden = !(dashboard.graph && dashboard.graph.available);
   renderSystemStatus();
   ensureWorkflowSelection();
   render();
   renderWorkflow();
   renderAgents();
+  renderGitNexus();
 }
 
 function renderSystemStatus() {
@@ -1024,6 +1292,10 @@ function renderSystemStatus() {
     ? \`Skill registry: \${registry.skills || 0} skills\`
     : 'Skill registry: missing';
   systemStatusEl.appendChild(renderStatusChip(registryText));
+
+  const gitnexus = dashboard.gitnexus || {};
+  const gitnexusText = gitnexus.available ? 'GitNexus: indexed at ' + gitnexus.path : 'GitNexus: not indexed';
+  systemStatusEl.appendChild(renderStatusChip(gitnexusText));
 }
 
 function renderStatusChip(text) {
@@ -1344,6 +1616,50 @@ function renderAgents() {
   }
 }
 
+
+function renderGitNexus() {
+  if (!gitnexusStatus || !gitnexusActions || !gitnexusFrame) return;
+  const gitnexus = dashboard.gitnexus || {};
+  const localUrl = gitnexus.serveUrl || 'http://127.0.0.1:4747';
+  gitnexusStatus.innerHTML = '';
+  gitnexusActions.innerHTML = '';
+
+  const status = document.createElement('div');
+  status.className = gitnexus.available ? 'gitnexus-status-card is-ready' : 'gitnexus-status-card';
+  const title = document.createElement('strong');
+  title.textContent = gitnexus.available ? 'Index detected' : 'No GitNexus index yet';
+  status.appendChild(title);
+  const detail = document.createElement('span');
+  const runtimeLabel = gitnexus.runtime && gitnexus.runtime.status
+    ? 'GitNexus runtime: ' + gitnexus.runtime.status
+    : 'GitNexus runtime: unknown';
+  detail.textContent = (gitnexus.available ? 'Local index: ' + (gitnexus.path || '.gitnexus/') : 'No local index yet') + ' / ' + runtimeLabel;
+  status.appendChild(detail);
+  if (gitnexus.runtime && gitnexus.runtime.error) {
+    const error = document.createElement('span');
+    error.textContent = gitnexus.runtime.error;
+    status.appendChild(error);
+  }
+  gitnexusStatus.appendChild(status);
+
+  const commands = gitnexus.commands || ['npx -y gitnexus@1.3.11 analyze'];
+  for (const command of commands) {
+    const code = document.createElement('code');
+    code.textContent = command;
+    gitnexusActions.appendChild(code);
+  }
+
+  const webLink = document.createElement('a');
+  webLink.className = 'btn gitnexus-open';
+  webLink.href = localUrl;
+  webLink.target = '_blank';
+  webLink.rel = 'noreferrer';
+  webLink.textContent = 'Open embedded GitNexus';
+  gitnexusActions.appendChild(webLink);
+
+  gitnexusFrame.src = localUrl;
+}
+
 function renderAgentAction(action) {
   const el = document.createElement('article');
   el.className = 'agent-action';
@@ -1632,7 +1948,6 @@ function urlForArtifact(repoRoot, artifactPath) {
   if (normalized.startsWith(previewPrefix)) {
     return '/preview/' + encodeURIComponent(path.basename(normalized));
   }
-  if (normalized === 'graphify-out/graph.html') return '/graphify/graph.html';
   return null;
 }
 
@@ -2090,6 +2405,169 @@ async function readSkillRegistryMetadata(repoRoot) {
   };
 }
 
+let gitnexusRuntime = {
+  status: 'not-started',
+  url: DEFAULT_GITNEXUS_URL,
+  command: DEFAULT_GITNEXUS_COMMAND,
+  error: null,
+  pid: null,
+  process: null,
+};
+
+function gitnexusRuntimeSnapshot() {
+  return {
+    status: gitnexusRuntime.status,
+    url: gitnexusRuntime.url,
+    command: gitnexusRuntime.command,
+    error: gitnexusRuntime.error,
+    pid: gitnexusRuntime.pid,
+  };
+}
+
+function isGitNexusAutostartEnabled() {
+  const raw = String(process.env.SKILLGRID_GITNEXUS_AUTOSTART || 'true').toLowerCase();
+  return !['0', 'false', 'no', 'off'].includes(raw);
+}
+
+function probeGitNexus(url, timeoutMs = 600) {
+  return new Promise((resolve) => {
+    const req = http.get(url, (res) => {
+      res.resume();
+      resolve(true);
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.on('error', () => resolve(false));
+  });
+}
+
+function gitnexusSpawnCandidates(commandOverride) {
+  if (commandOverride) {
+    return [{ command: commandOverride, args: ['serve'], label: `${commandOverride} serve` }];
+  }
+  return [
+    { command: DEFAULT_GITNEXUS_COMMAND, args: ['serve'], label: `${DEFAULT_GITNEXUS_COMMAND} serve` },
+    { command: 'npx', args: ['-y', 'gitnexus@1.3.11', 'serve'], label: 'npx -y gitnexus@1.3.11 serve' },
+  ];
+}
+
+function trySpawnGitNexus(candidate, repoRoot) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const child = spawn(candidate.command, candidate.args, {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        GITNEXUS_HOST: process.env.GITNEXUS_HOST || '127.0.0.1',
+      },
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    child.once('error', (error) => finish({ error }));
+    child.once('exit', (code, signal) => {
+      finish({ error: new Error(`${candidate.label} exited${signal ? ` by ${signal}` : ` with code ${code}`}`) });
+    });
+    child.once('spawn', () => {
+      setTimeout(() => finish({ child }), 150);
+    });
+  });
+}
+
+async function startGitNexusRuntime(repoRoot) {
+  const url = process.env.SKILLGRID_GITNEXUS_URL || DEFAULT_GITNEXUS_URL;
+  const candidates = gitnexusSpawnCandidates(process.env.SKILLGRID_GITNEXUS_CMD || '');
+  const initialCommand = candidates[0] ? candidates[0].label : DEFAULT_GITNEXUS_COMMAND;
+  gitnexusRuntime = {
+    status: 'checking',
+    url,
+    command: initialCommand,
+    error: null,
+    pid: null,
+    process: null,
+  };
+
+  if (await probeGitNexus(url)) {
+    gitnexusRuntime.status = 'running';
+    return;
+  }
+
+  if (!isGitNexusAutostartEnabled()) {
+    gitnexusRuntime.status = 'disabled';
+    gitnexusRuntime.error = 'Set SKILLGRID_GITNEXUS_AUTOSTART=true or start GitNexus manually.';
+    return;
+  }
+
+  let lastError = null;
+  for (const candidate of candidates) {
+    gitnexusRuntime.command = candidate.label;
+    const result = await trySpawnGitNexus(candidate, repoRoot);
+    if (result.error) {
+      lastError = result.error;
+      continue;
+    }
+    const child = result.child;
+    gitnexusRuntime.status = 'starting';
+    gitnexusRuntime.pid = child.pid || null;
+    gitnexusRuntime.process = child;
+
+    child.stderr.on('data', (chunk) => {
+      const text = String(chunk).trim();
+      if (text) gitnexusRuntime.error = text.slice(-300);
+    });
+    child.on('error', (error) => {
+      gitnexusRuntime.status = 'error';
+      gitnexusRuntime.error = `Could not start ${candidate.label}: ${error.message || error}`;
+      gitnexusRuntime.pid = null;
+      gitnexusRuntime.process = null;
+    });
+    child.on('exit', (code, signal) => {
+      if (gitnexusRuntime.process !== child) return;
+      gitnexusRuntime.status = 'stopped';
+      gitnexusRuntime.error = `GitNexus exited${signal ? ` by ${signal}` : ` with code ${code}`}`;
+      gitnexusRuntime.pid = null;
+      gitnexusRuntime.process = null;
+    });
+
+    setTimeout(async () => {
+      if (gitnexusRuntime.process !== child) return;
+      if (await probeGitNexus(url, 1200)) {
+        gitnexusRuntime.status = 'running';
+        gitnexusRuntime.error = null;
+      }
+    }, 1200);
+    return;
+  }
+
+  gitnexusRuntime.status = 'error';
+  gitnexusRuntime.error = `Could not start GitNexus runtime: ${lastError ? lastError.message || lastError : 'no start candidates available'}`;
+}
+
+function stopGitNexusRuntime() {
+  if (gitnexusRuntime.process) {
+    gitnexusRuntime.process.kill();
+    gitnexusRuntime.process = null;
+  }
+}
+
+function readGitNexusMetadata(repoRoot) {
+  const indexPath = path.join(repoRoot, '.gitnexus');
+  return {
+    available: existsSync(indexPath),
+    path: '.gitnexus/',
+    serveUrl: gitnexusRuntime.url || DEFAULT_GITNEXUS_URL,
+    runtime: gitnexusRuntimeSnapshot(),
+    commands: ['npx -y gitnexus@1.3.11 analyze'],
+  };
+}
+
 async function readMemoryMetadata(repoRoot) {
   const [engram, skillRegistry] = await Promise.all([
     readEngramManifest(repoRoot),
@@ -2148,11 +2626,7 @@ async function buildDashboardData(prdRoot) {
     agentActions: collectAgentActions(prds),
     memory: await readMemoryMetadata(repoRoot),
     workflowPhases: DEFAULT_WORKFLOW_PHASES,
-    graph: {
-      available: existsSync(path.join(repoRoot, 'graphify-out', 'graph.html')),
-      path: 'graphify-out/graph.html',
-      url: '/graphify/graph.html',
-    },
+    gitnexus: readGitNexusMetadata(repoRoot),
   };
 }
 
@@ -2351,10 +2825,6 @@ async function handle(req, res, prdRoot) {
       await serveDiskFile(res, full);
       return;
     }
-    if (p === '/graphify/graph.html') {
-      await serveDiskFile(res, path.join(repoRoot, 'graphify-out', 'graph.html'));
-      return;
-    }
     if (p === '/') p = '/index.html';
     serveStatic(res, p);
     return;
@@ -2372,6 +2842,9 @@ async function main() {
     process.exit(1);
   }
 
+  const repoRoot = repoRootFromPrdRoot(prdDir);
+  await startGitNexusRuntime(repoRoot);
+
   const server = http.createServer((req, res) => {
     handle(req, res, prdDir).catch((e) => {
       console.error(e);
@@ -2385,7 +2858,16 @@ async function main() {
   server.listen(port, host, () => {
     console.log(`Skillgrid Dashboard serving http://${host}:${port}`);
     console.log(`PRD dir: ${prdDir}`);
+    console.log(`GitNexus: ${gitnexusRuntime.status} at ${gitnexusRuntime.url}`);
   });
+
+  const shutdown = () => {
+    stopGitNexusRuntime();
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 1000).unref();
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
 }
 
 export {

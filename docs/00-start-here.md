@@ -2,7 +2,7 @@
 
 AISkillGrid is a batteries-included operating layer for AI-assisted software development. It gives your agents a shared workflow, reusable skills, specialist personas, MCP tools, durable memory, codebase indexing, ticketing-aware artifacts, and a local web UI.
 
-The point is simple: agent work should not disappear into a chat transcript. It should leave a clear plan, visible state, reviewable files, verification evidence, and a next step that another human or agent can continue.
+The point is simple: agent work should not disappear into a chat transcript. It should leave a clear plan, visible state, reviewable files, verification evidence, and a next step that another human or agent can continue. For the project's **manifesto** on pipelines, validation, and harness engineering—not a "dark factory" of unattended coding—see **[10-manifesto.md](10-manifesto.md)**.
 
 ## Why This Exists
 
@@ -65,6 +65,7 @@ Read the files in this folder in numeric order:
 8. `07-ticketing-integrations.md` explains local and external work tracking.
 9. `08-webui.md` explains the local dashboard.
 10. `09-workflow-usage.md` explains how a new user should operate the system.
+11. `10-manifesto.md` states the project manifesto and core concepts of AI-assisted development (pipelines, validation, specs, harness).
 
 ## First Mental Model
 

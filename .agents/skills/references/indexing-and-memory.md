@@ -35,12 +35,13 @@ Recovery is always two-step:
 
 If disk artifacts and Engram disagree, treat disk artifacts as canonical in `hybrid` / `openspec` mode, then update the state snapshot once the correct state is known.
 
-## Graphify
+## GitNexus
 
-- **Role:** Repo knowledge graph (`graphify-out/`, e.g. `GRAPH_REPORT.md`) for communities / hot spots.
-- **When:** Broad architecture or “how is this codebase structured?”—especially if `AGENTS.md` or project rules mention graphify.
-- **Refresh:** After substantive code or layout changes, run `graphify update .` (see `.configs/AGENTS.md` and `.cursor/rules/graphify.md`).
-- **Init:** **`graphify .`** from repo root when building the graph the first time (e.g. **`/skillgrid-init`**); then **`graphify update .`** for incremental refresh.
+- **Role:** Repo knowledge graph and agent code-intelligence index (`.gitnexus/`, GitNexus MCP resources/tools) for communities, execution flows, impact analysis, and symbol context.
+- **When:** Broad architecture or “how is this codebase structured?”—especially if `AGENTS.md` or project rules mention GitNexus.
+- **Refresh:** After substantive code or layout changes, run `npx -y gitnexus@1.3.11 analyze` from the repo root. Use `npx -y gitnexus@1.3.11 analyze --force` only when a full rebuild is needed.
+- **Init:** **`npx -y gitnexus@1.3.11 analyze`** from the repo root when building the graph the first time (e.g. **`/skillgrid-init`**). Use **`npx -y gitnexus@1.3.11 analyze --skills`** when repo-specific agent skills are desired.
+- **MCP:** Configure **`npx -y gitnexus@1.3.11 mcp`** so agents can call GitNexus `query`, `context`, `impact`, `detect_changes`, and related graph tools.
 
 ## CocoIndex Code (`ccc`)
 
@@ -61,13 +62,13 @@ If disk artifacts and Engram disagree, treat disk artifacts as canonical in `hyb
 
 ## Per-change handoff (Skillgrid)
 
-When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. Use these for subagent / parent sync; they are not a replacement for **Engram**, **graphify**, or **ccc**. See `docs/workflow.md` — *Filesystem handoff*.
+When the project uses **Skillgrid** and a named OpenSpec **change** is active, the repo may have **`.skillgrid/tasks/context_<change-id>.md`** (rolling handoff) and **`.skillgrid/tasks/research/<change-id>/`**. Use these for subagent / parent sync; they are not a replacement for **Engram**, **GitNexus**, or **ccc**. See `docs/workflow.md` — *Filesystem handoff*.
 
 ## Suggested order
 
 1. Rules + `mem_context` / quick `mem_search` (if memory MCPs available; retrieve full observations before relying on hits)  
 2. For an active **change** with a handoff file: read **`.skillgrid/tasks/context_<change-id>.md`** (when present)  
-3. `graphify-out/` skim if present  
+3. GitNexus MCP/resources or `.gitnexus/` status when present  
 4. **`ccc search`** when the CocoIndex index is fresh (after **`ccc index`**)  
 5. `rg` / IDE search (and LSP) for concrete code locations  
 6. Read files / run tests as usual  

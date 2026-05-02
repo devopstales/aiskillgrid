@@ -38,11 +38,11 @@ flowchart TD
   WebUI --> Workflow[Workflow View]
   WebUI --> Subagents[Subagents View]
   WebUI --> Previews[Preview Links]
-  WebUI --> Graph[Graph View]
+  WebUI --> Graph[GitNexus View]
   Board --> PRD[PRD Files]
   Workflow --> Events[Event Logs]
   Subagents --> Reports[Research And Reports]
-  Graph --> Graphify[graphify Output]
+  Graph --> GitNexus[GitNexus UI]
   WebUI --> Memory[Engram And Registry Status]
 ```
 
@@ -99,17 +99,17 @@ When a workflow produces HTML previews, the dashboard can surface them from:
 
 This is especially useful for UI design, prototypes, visual comparisons, or generated documentation pages.
 
-## Graph View
+## GitNexus View
 
-When graphify output exists, the dashboard can expose the graph report.
+When GitNexus is indexed or available, the dashboard exposes a GitNexus view with index status, setup commands, and the embedded GitNexus web UI. Starting the Skillgrid dashboard also starts the local GitNexus web runtime, so users do not need to run a separate `gitnexus serve` process first.
 
-Typical source:
+Typical local source:
 
 ```text
-graphify-out/
+.gitnexus/
 ```
 
-This gives users a quick way to jump from workflow state into codebase structure.
+This gives users a quick way to jump from workflow state into codebase structure, impact analysis, and graph-aware exploration.
 
 ## Data Sources
 
@@ -122,7 +122,7 @@ The dashboard reads files that already belong to the Skillgrid workflow:
 | `.skillgrid/tasks/events/<change-id>.jsonl` | Timeline and subagent activity |
 | `.skillgrid/tasks/research/<change-id>/` | Reports and research artifacts |
 | `.skillgrid/preview/` | Preview links |
-| `graphify-out/` | Graph view |
+| `.gitnexus/` | GitNexus view and graph status |
 | `.engram/manifest.json` | Engram export counts, when team memory sync is used |
 | `.skillgrid/project/SKILL_REGISTRY.md` | Skill registry availability and skill count |
 

@@ -181,8 +181,7 @@
     "@tarquinen/opencode-dcp",
     "@different-ai/opencode-browser",
     "opencode-qwencode-auth",
-    "opencode-codebase-index",
-    ".opencode/plugins/graphify.js"
+    "opencode-codebase-index"
   ],
   "provider": {
     "ollama": {

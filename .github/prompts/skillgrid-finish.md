@@ -10,7 +10,7 @@ You are executing **`/skillgrid-finish`** for the Skillgrid workflow.
 
 Close a Skillgrid change: final docs alignment, optional spec sync/archive, tracker hygiene, PR handoff, and checkpoint cleanup.
 
-**Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.finish` when the change is finished successfully (default: `done`).
+**Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.finish` after the OpenSpec change is archived (default: `archived`).
 
 </objective>
 
@@ -21,9 +21,9 @@ Close a Skillgrid change: final docs alignment, optional spec sync/archive, trac
 Before acting, load only the skills needed for the phase:
 
 - `.agents/skills/skillgrid-questioning/SKILL.md` — ask only blocking questions and record answers.
-- `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, graphify output, tests, and conventions.
+- `.agents/skills/skillgrid-codebase-map/SKILL.md` — map repo structure, GitNexus output, tests, and conventions.
 - `.agents/skills/ccc/SKILL.md` — CocoIndex Code: `ccc init`, `ccc index`, `ccc search`; optional MCP `cocoindex-code`.
-- `.agents/skills/references/indexing-and-memory.md` — Engram, graphify (`graphify-out/`, `graphify update .`), **ccc**, and MCP memory ordering.
+- `.agents/skills/references/indexing-and-memory.md` — Engram, GitNexus (`.gitnexus/`, `npx -y gitnexus@1.3.11 analyze`), **ccc**, and MCP memory ordering.
 - `.agents/skills/skillgrid-parallel-research/SKILL.md` — coordinate external research and long evidence capture.
 - `.agents/skills/skillgrid-subagent-orchestration/SKILL.md` — dispatch bounded subagents with handoff paths and two-stage review.
 - `.agents/skills/skillgrid-prd-artifacts/SKILL.md` — PRD numbering, `INDEX.md`, title blocks, and status lifecycle.
@@ -60,7 +60,7 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 2. Sync delta specs to main specs when requested or required.
 3. Refresh `.skillgrid/project/*` and `DESIGN.md` if the finished work changed durable project facts.
 4. Archive OpenSpec changes when appropriate.
-5. Update tracker state according to `.skillgrid/config.json`.
+5. After archive succeeds, update tracker state according to `.skillgrid/config.json` (default final status: `archived`).
 6. Clean up change-scoped checkpoints and previews when safe.
 7. Save Engram closure summary when available:
    - Update `skillgrid/<change-id>/state` to the final phase/status and next action.

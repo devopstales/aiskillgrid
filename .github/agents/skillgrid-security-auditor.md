@@ -121,9 +121,9 @@ When the parent prompt names a Skillgrid change id, append a compact JSONL event
 
 Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
-- **Code discovery:** **`graphify-out/`**, **`AGENTS.md`**, and **`rg`/IDE search** for auth, crypto, and input paths; **`graphify update .`** after security-relevant structural refactors.
+- **Code discovery:** **GitNexus / `.gitnexus/`**, **`AGENTS.md`**, and **`rg`/IDE search** for auth, crypto, and input paths; **`npx -y gitnexus@1.3.11 analyze`** after security-relevant structural refactors.
 - **Persistent memory (Engram MCP):** `mem_search` for prior threat models or accepted risks; `mem_save` for **accepted risk decisions** and compensating controls (scoped titles).
-- **Graph:** use `graphify-out/` when present to see trust-boundary-related clusters.
+- **Graph:** use GitNexus graph context when present to see trust-boundary-related clusters.
 - **MCP memory:** optional structured recall when enabled.
 
 ## Composition

@@ -118,7 +118,7 @@ Hub reference: `.agents/skills/references/indexing-and-memory.md`
 
 - **Code discovery:** **`rg`/IDE search** to find related UX/API surfaces before critiquing in isolation.
 - **Persistent memory (Engram MCP):** `mem_search` for prior design critiques or user-flow decisions; `mem_save` for **stable UX principles** agreed for the product.
-- **Graph:** optional `graphify-out/` for feature-area clustering.
+- **Graph:** optional GitNexus graph context for feature-area clustering.
 - **MCP memory:** optional recall when enabled.
 
 ## Composition

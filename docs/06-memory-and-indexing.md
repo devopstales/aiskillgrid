@@ -11,7 +11,7 @@ flowchart TD
   Session[Agent Session] --> Engram[Engram Memory]
   Session --> Handoff[Per Change Handoff]
   Session --> Research[Research Spill Files]
-  Session --> Graphify[graphify Map]
+  Session --> GitNexus[GitNexus Code Graph]
   Session --> CCC[ccc Semantic Index]
   Session --> Exact[rg And LSP Exact Search]
 ```
@@ -24,7 +24,7 @@ Each layer answers a different question.
 | Handoff | What is happening in this change right now? | `.skillgrid/tasks/context_<change-id>.md` |
 | Research spill | Where is the long evidence? | `.skillgrid/tasks/research/<change-id>/` |
 | Skill registry | Which compact rules should subagents receive? | `.skillgrid/project/SKILL_REGISTRY.md` |
-| graphify | How is the repo structured? | `graphify-out/` |
+| GitNexus | How is the repo structured and what depends on what? | `.gitnexus/` plus MCP resources |
 | ccc | Where is this concept in code? | semantic code index |
 | rg and LSP | Where is this exact symbol or string? | live source lookup |
 
@@ -108,24 +108,24 @@ The project skill registry records the locally available skills, compact actiona
 
 It is generated or refreshed by `/skillgrid-init` and can be checked during `/skillgrid-session`. Parent sessions use it before launching subagents, selecting only the compact rules relevant to the delegated task.
 
-## graphify
+## GitNexus
 
-graphify creates a structural map of the repository. It helps agents orient before reading raw files.
+GitNexus creates the local code graph and exposes it through CLI, MCP, and the GitNexus web UI bridge. It helps agents orient before broad raw file reads and supports impact/context queries.
 
 Use it for:
 
 - Architecture overview.
-- Important nodes.
-- Communities or clusters.
-- High-level codebase shape.
+- Symbol context and dependencies.
+- Communities, clusters, and processes.
+- Impact analysis before edits.
 
-Typical output:
+Typical local output:
 
 ```text
-graphify-out/
+.gitnexus/
 ```
 
-graphify is not a replacement for code review. It is a map.
+GitNexus is not a replacement for code review. It is the code graph and context layer.
 
 ## CocoIndex Code
 
@@ -153,7 +153,7 @@ flowchart TD
   Start[Start Session] --> Recall[Recall Engram]
   Recall --> Handoff[Read Handoff]
   Handoff --> Registry[Read Skill Registry]
-  Registry --> Map[Inspect graphify]
+  Registry --> Map[Inspect GitNexus]
   Map --> Semantic[Use ccc For Concepts]
   Semantic --> Exact[Use rg Or LSP]
   Exact --> Read[Read Source Files]

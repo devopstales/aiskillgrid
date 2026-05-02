@@ -27,7 +27,7 @@ Load these first for this command:
 - `.agents/skills/skillgrid-hybrid-persistence/SKILL.md`
 - `.agents/skills/skillgrid-questioning/SKILL.md`
 - `.agents/skills/ccc/SKILL.md` — optional semantic **`ccc search`** when locating scattered PRDs or legacy docs in huge trees
-- `.agents/skills/references/indexing-and-memory.md` — optional **graphify** / **ccc** ordering when mapping the repo before import
+- `.agents/skills/references/indexing-and-memory.md` — optional **GitNexus** / **ccc** ordering when mapping the repo before import
 
 ## Event Log Rule
 
