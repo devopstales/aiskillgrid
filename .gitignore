@@ -18,3 +18,4 @@ skillgrid-cli/bin/*
 skillgrid-cli/node_modules
 skillgrid-cli/dist
 skillgrid-cli/tmp*
+skillgrid-cli/*.bun-build

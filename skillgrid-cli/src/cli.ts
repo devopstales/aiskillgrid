@@ -1,20 +1,15 @@
 import { hubRootFromCliModule } from "./install/hub-root.js";
 import { parseInstallArgv } from "./install/parse-install-argv.js";
 import { runInstallCli } from "./install/run-install.js";
+import { printServeHelp, runServeCommand } from "./serve/run-serve.js";
 
 function printTopHelp() {
   console.log(`skillgrid — Skillgrid hub CLI
 
 Usage:
   skillgrid install [OPTIONS]   Native installer (parity with ./install.sh)
+  skillgrid serve [OPTIONS]     Skillgrid Dashboard (--repo, --port, --open; see serve --help)
   skillgrid --help              Show this message
-
-Alternate installer (bash):
-  ./install.sh [OPTIONS]
-
-Build this CLI (requires Bun for the binary):
-  cd skillgrid-cli && npm install && npm run build
-  ./bin/skillgrid install --path /your/project -A -y
 `);
 }
 
@@ -36,6 +31,22 @@ async function main() {
     }
     const code = await runInstallCli(hubRoot, parsed);
     process.exit(code);
+  }
+
+  if (argv[0] === "serve") {
+    const rest = argv.slice(1);
+    if (rest[0] === "-h" || rest[0] === "--help") {
+      printServeHelp();
+      process.exit(0);
+    }
+    try {
+      await runServeCommand(import.meta.url, rest);
+      /* Do not process.exit: the dashboard keeps the process alive until SIGINT/SIGTERM. */
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exit(1);
+    }
+    return;
   }
 
   console.error(`Unknown command: ${argv[0]}`);

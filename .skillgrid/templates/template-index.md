@@ -16,7 +16,7 @@
 
 Local Kanban dashboard:
 
-Run `node .skillgrid/scripts/skillgrid-ui.mjs`, then open `http://127.0.0.1:8787`.
+Run `skillgrid serve` from the hub `skillgrid-cli` build (see hub README), then open `http://127.0.0.1:8787`.
 
 | Order | PRD | Status | Spec / change | Depends on | External |
 |---|---|---|---|---|---|

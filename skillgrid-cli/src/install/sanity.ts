@@ -76,18 +76,14 @@ export function runSanityCheck(hubRoot: string): number {
   sanityCheckFile("MCP config fragments", join(hubRoot, ".configs", "mcp"));
   sanityCheckFile("Engram MCP fragment", join(hubRoot, ".configs", "mcp", "command", "engram.json"));
   sanityCheckFile("Skill catalog", join(hubRoot, ".agents", "skills"));
-  sanityCheckFile("Skillgrid UI script", join(hubRoot, ".skillgrid", "scripts", "skillgrid-ui.mjs"));
+  sanityCheckFile("Skillgrid dashboard server", join(hubRoot, "skillgrid-cli", "src", "dashboard", "server", "server.ts"));
+  sanityCheckFile("Skillgrid dashboard Vite config", join(hubRoot, "skillgrid-cli", "vite.dashboard.config.ts"));
   sanityCheckFile("Preview script", join(hubRoot, ".skillgrid", "scripts", "preview.sh"));
   sanityCheckFile("IDE sync script", join(hubRoot, "scripts", "sync-ide-assets.sh"));
   sanityCheckFile("Node package manifest", join(hubRoot, "package.json"));
 
   console.log("");
   console.log("Hub script checks:");
-  const ui = join(hubRoot, ".skillgrid", "scripts", "skillgrid-ui.mjs");
-  const r1 = spawnSync("node", ["--check", ui], { stdio: "ignore" });
-  if (r1.status === 0) sanityOk("skillgrid-ui.mjs syntax");
-  else sanityFail("skillgrid-ui.mjs syntax — check Node and the dashboard script");
-
   const sync = join(hubRoot, "scripts", "sync-ide-assets.sh");
   const r2 = spawnSync("bash", ["-n", sync], { stdio: "ignore" });
   if (r2.status === 0) sanityOk("sync-ide-assets.sh syntax");

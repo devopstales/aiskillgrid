@@ -1082,14 +1082,14 @@ run_sanity_check() {
     sanity_check_file "MCP config fragments" "$SCRIPT_DIR/.configs/mcp"
     sanity_check_file "Engram MCP fragment" "$SCRIPT_DIR/.configs/mcp/command/engram.json"
     sanity_check_file "Skill catalog" "$SCRIPT_DIR/.agents/skills"
-    sanity_check_file "Skillgrid UI script" "$SCRIPT_DIR/.skillgrid/scripts/skillgrid-ui.mjs"
+    sanity_check_file "Skillgrid dashboard server" "$SCRIPT_DIR/skillgrid-cli/src/dashboard/server/server.ts"
+    sanity_check_file "Skillgrid dashboard Vite config" "$SCRIPT_DIR/skillgrid-cli/vite.dashboard.config.ts"
     sanity_check_file "Preview script" "$SCRIPT_DIR/.skillgrid/scripts/preview.sh"
     sanity_check_file "IDE sync script" "$SCRIPT_DIR/scripts/sync-ide-assets.sh"
     sanity_check_file "Node package manifest" "$SCRIPT_DIR/package.json"
 
     echo ""
     echo "Hub script checks:"
-    sanity_check_command "skillgrid-ui.mjs syntax" "node --check \"$SCRIPT_DIR/.skillgrid/scripts/skillgrid-ui.mjs\"" "check Node and the dashboard script"
     sanity_check_command "sync-ide-assets.sh syntax" "bash -n \"$SCRIPT_DIR/scripts/sync-ide-assets.sh\"" "check sync script syntax"
 
     echo ""

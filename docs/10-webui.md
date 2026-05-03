@@ -2,16 +2,20 @@
 
 The AISkillGrid web UI is a local dashboard for project workflow state. It makes agent work visible without requiring a hosted platform.
 
-Start it from the project root:
+Start it with the **skillgrid-cli** binary (`skillgrid serve`). The UI matches the standalone **ai-dashboard** reference package (React + Vite): sources live under `skillgrid-cli/src/dashboard/` (`server/` for the HTTP API and data adapters, `web/` for the React app). The CLI serves a prebuilt static client from `skillgrid-cli/dist/dashboard/client` (run `npm run build:dashboard` or full `npm run build` in `skillgrid-cli` before `serve`). The compiled `skillgrid` binary bundles the Node entry; the dashboard client is loaded from `dist/dashboard/client` on disk next to the compiled server output.
+
+From your **application** repo (after building the CLI in this hub):
 
 ```bash
-node .skillgrid/scripts/skillgrid-ui.mjs
+/path/to/aiskillgrid/skillgrid-cli/bin/skillgrid serve
 ```
 
-Then open the local address printed by the server. The common default is:
+Options match the **ai-dashboard** CLI: `--repo` (repository root, default current directory), `--host`, `--port` (use `0` for an OS-assigned port; default is `0` unless `SKILLGRID_UI_PORT` is set), `--open` / `--no-open`, and `--dev` (Vite middleware for local UI development). The PRD directory is always `<repo>/.skillgrid/prd` unless `SKILLGRID_UI_DIR` points at `.skillgrid/prd` explicitly. Run `skillgrid serve --help` for the full list.
+
+The server prints `URL: http://…` after bind; the browser opens by default (`--no-open` to skip).
 
 ```text
-127.0.0.1:8787
+skillgrid serve --help
 ```
 
 ## Why The Web UI Exists
@@ -37,6 +41,7 @@ flowchart TD
   WebUI[Local Web UI] --> Board[Board View]
   WebUI --> Workflow[Workflow View]
   WebUI --> Subagents[Subagents View]
+  WebUI --> Checkpoints[Checkpoints View]
   WebUI --> Previews[Preview Links]
   WebUI --> Graph[GitNexus View]
   Board --> PRD[PRD Files]

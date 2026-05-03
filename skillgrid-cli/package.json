@@ -4,15 +4,21 @@
   "private": true,
   "description": "Native Skillgrid CLI (install parity with hub install.sh)",
   "type": "module",
+  "files": [
+    "dist",
+    "bin"
+  ],
   "bin": {
     "skillgrid": "./bin/skillgrid"
   },
   "scripts": {
-    "build": "tsc && bun build --compile ./src/cli.ts --outfile ./bin/skillgrid",
-    "build:tsc": "tsc",
-    "build:binary": "bun build --compile ./src/cli.ts --outfile ./bin/skillgrid",
+    "build:dashboard": "tsc -p tsconfig.dashboard.json && vite build -c vite.dashboard.config.ts",
+    "cleanup:bun-build": "node -e \"require('fs').readdirSync('.').filter((f) => f.endsWith('.bun-build')).forEach((f) => require('fs').unlinkSync(f))\"",
+    "build": "npm run build:dashboard && tsc && bun build --compile ./src/cli.ts --outfile ./bin/skillgrid --external vite --external esbuild && npm run cleanup:bun-build",
+    "build:tsc": "npm run build:dashboard && tsc",
+    "build:binary": "bun build --compile ./src/cli.ts --outfile ./bin/skillgrid --external vite --external esbuild && npm run cleanup:bun-build",
     "skillgrid": "./bin/skillgrid",
-    "test": "npm run build:tsc && node --test dist/install/mcp.test.js"
+    "test": "npm run build:dashboard && tsc && vitest run && node --test dist/install/mcp.test.js"
   },
   "engines": {
     "node": ">=18"
@@ -22,6 +28,15 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "typescript": "^5.7.2"
+    "@types/react": "^19.2.3",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^8.0.10",
+    "vitest": "^4.0.16"
   }
 }

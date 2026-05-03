@@ -11,7 +11,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 | Skillgrid workflow | Guides work through init, explore, brainstorm, plan, breakdown, apply, test, validate, and finish. | Keeps agent work tied to explicit phases, artifacts, and exit checks. |
 | Multi-IDE command hub | Ships `/skillgrid-*` and `/opsx-*` commands for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. | One workflow can travel across the IDEs and agents you use. |
 | Agent skills catalog | Provides reusable skills for TDD, review, security, UI design, research, GitNexus, Engram, OpenSpec, and more. | Agents get focused operating procedures instead of ad hoc chat instructions. |
-| Local Skillgrid dashboard | Runs `node .skillgrid/scripts/skillgrid-ui.mjs` for PRD Kanban, Workflow, Subagents, previews, and GitNexus UI/context links. | Product intent, events, previews, and subagent activity are visible in one local web UI. |
+| Local Skillgrid dashboard | Run `skillgrid serve` from [skillgrid-cli](skillgrid-cli/) (build with Bun) for PRD Kanban, Workflow, Checkpoints, Subagents, previews, and GitNexus UI/context links. | Product intent, events, previews, and subagent activity are visible in one local web UI. |
 | File-first handoff | Stores PRDs, OpenSpec changes, handoff files, event logs, previews, checkpoints, and research under the repo. | Work survives context resets without requiring a database or hosted service. |
 | Intent-gated loop | Adds `/skillgrid-loop` for the next safe phase or `[AFK]` slice, with explicit HITL and verification stop conditions. | Long-running agent work stays bounded by artifacts, evidence, and user authority. |
 | Installer sanity check | Runs `./install.sh --sanity-check` to verify expected tools, hub files, and script syntax. | Setup problems are caught before copying configs into a project. |
@@ -74,13 +74,13 @@ Hub maintainers: after cloning, run **`npm ci`** in this repository root once so
 /skillgrid-init
 ```
 
-4. Open the local dashboard when you want PRDs, workflow events, previews, subagent actions, and GitNexus in one place:
+4. Open the local dashboard when you want PRDs, workflow events, previews, subagent actions, and GitNexus in one place. From the hub repo, build the CLI then run serve from your project (or pass `--repo`):
 
 ```bash
-node .skillgrid/scripts/skillgrid-ui.mjs
+cd skillgrid-cli && npm ci && npm run build && ./bin/skillgrid serve --repo /path/to/your/project
 ```
 
-Then open `http://127.0.0.1:8787`.
+Then open `http://127.0.0.1:8787` (or the host/port you set).
 
 Common variants:
 

@@ -19,10 +19,10 @@ tasks:
     cmds:
       - npm install
 
-  hub:test-skillgrid-ui:
-    desc: Run Skillgrid dashboard script tests
+  hub:test-skillgrid-dashboard:
+    desc: Run Skillgrid dashboard tests (skillgrid-cli Vitest + MCP)
     cmds:
-      - npm run test:skillgrid-ui
+      - npm run test:skillgrid-dashboard
 
   skillgrid:deps:
     desc: Install skillgrid-cli Node dependencies (npm ci)
@@ -62,7 +62,7 @@ tasks:
       - npm run build
 
   skillgrid:test:
-    desc: Run skillgrid-cli unit tests (tsc + node --test)
+    desc: Run skillgrid-cli unit tests (dashboard build + tsc + vitest + node --test)
     dir: "{{.SKILLGRID_CLI_DIR}}"
     cmds:
       - npm test
@@ -79,10 +79,9 @@ tasks:
       - ./bin/skillgrid {{.CLI_ARGS}}
 
   test:
-    desc: Run skillgrid-cli tests and hub skillgrid-ui tests
+    desc: Run skillgrid-cli tests (includes dashboard asset tests)
     cmds:
       - task skillgrid:test
-      - task hub:test-skillgrid-ui
 
   install-sh-help:
     desc: Show legacy bash installer help

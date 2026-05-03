@@ -5,7 +5,7 @@
   "scripts": {
     "openspec": "openspec",
     "dmux": "dmux",
-    "test:skillgrid-ui": "node .skillgrid/scripts/skillgrid-ui.test.mjs"
+    "test:skillgrid-dashboard": "cd skillgrid-cli && npm test"
   },
   "devDependencies": {
     "@browsermcp/mcp": "0.1.3",
