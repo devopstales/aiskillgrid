@@ -106,6 +106,7 @@ Read the files in this folder in numeric order:
 9. `08-memory-and-indexing.md` explains durable context and codebase search.
 10. `09-ticketing-integrations.md` explains local and external work tracking.
 11. `10-webui.md` explains the local dashboard.
+12. `skillgrid-templates-and-logic.md` explains PRD/INDEX/OpenSpec hierarchy and **`.skillgrid/templates/`** file blanks.
 
 ## First Mental Model
 

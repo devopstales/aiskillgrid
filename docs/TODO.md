@@ -136,31 +136,54 @@ npm install -g @mariozechner/pi-coding-agent
 
 # Plans and Bugs
 
-* env bariables
-* mcp
-* planning
-  * database structure
-  * mermaid graph in db plan
-* web ui
-  * web based kamban UI
-* paralelism
-  * subagent-driven-development or executing-plans
-  * checkpont
-    * git-worktrees (separate branch?)
-    * checkpoint commands
-    * create separate git branch for prds and work on that
-    * at the and create PR
-  * Agent Orcrestration
-    * https://dev.to/uenyioha/porting-claude-codes-agent-teams-to-opencode-4hol
-    * https://github.com/code-yeongyu/oh-my-openagent
-    * https://github.com/agnusdei1207/opencode-orchestrator
 * installer
   * Claude Code plugin
   * Cursor plugin
   * opencode plugin
-  * node
   * skill.sh
+  * install.sh vs node vs go
   * brew
+* install.sh
+  * env variables
+    * in skillgrid config.json ?
+  * mcp
+* functions
+  * rules
+  * hooks
+  * planning skills/personas
+    * database structure
+    * mermaid graph in db plan
+* web ui
+  * web based kamban UI
+  * multi agent wiev
+  * gitnexus ui
+  * openspec ui
+* sub agents
+  * subagent-driven-development or executing-plans
+  * paralel search [-]
+  * persona board [-]
+  * checkpont
+    * git-worktrees
+    * checkpoint system [-]
+      * https://github.com/DeL-TaiseiOzaki/claude-code-orchestra/tree/main/.claude/skills/checkpointing
+    * create separate git branch for prds and work on that
+    * at the and create PR
+  * Agent Orcrestration
+    * 
+    * 
+    * 
+  * Agent Orcrestration TUI
+    * tmux
+    * dmux
+  * Agent Orcrestration web ui
+  * agent workflow
+    * [X] kangan workflov config
+    * agentic forkflo wit steps like Archon in skillgrid config.json
+    * configure agent type, persona, modell for stap
+* ideas
+  * combine installer + web ui?
+  * combine installer + tui + web ui?
+  * vscode plugin?
 
 # Tools
 
@@ -209,13 +232,25 @@ npm install -g @mariozechner/pi-coding-agent
 * gemini
 * copilot
 
+## Agent Orchectration
+
+* [ ] [claude-code-orchestra](https://github.com/DeL-TaiseiOzaki/claude-code-orchestra) - 
+* [ ] [opencode-4hol](https://dev.to/uenyioha/porting-claude-codes-agent-teams-to-opencode-4hol) - 
+* [ ] [oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent) - 
+* [ ] [opencode-orchestrator](https://github.com/agnusdei1207/opencode-orchestrator) - 
+
 ## Agent multiplexers
 
 * [ ] [dmux](https://github.com/standardagents/dmux) - Terminal
 * [ ] [toad](https://github.com/batrachianai/toad) - Terminal in it's own window 
-* [ ] [mux](https://github.com/coder/mux) - Separate App
-* [ ] [superset](https://github.com/superset-sh/superset) - Separate App
-* [ ] [conductor]() - Separate App
+* [ ] [mux](https://github.com/coder/mux) - Separate App for macOS and Linux.
+* [ ] [superset](https://github.com/superset-sh/superset) - Separate App for macOS
+* [ ] [conductor](https://www.conductor.build/) - Separate App for macOS
+* [ ] [Tmux-Orchestrator](https://github.com/Jedward23/Tmux-Orchestrator) - tmux based orcastrtator
+* [ ] [ai-party](https://github.com/alexivison/ai-party) - ???
+* [ ] [Codeman](https://github.com/Ark0N/Codeman) - tmux based multi session webui
+
+## Agentix workflow
 * [ ] [Archon](https://github.com/coleam00/archon) - Server Based
 
 ## Modell selector

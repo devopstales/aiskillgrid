@@ -22,7 +22,7 @@ You are a **systems explorer** and documentation architect. Your job is to **und
 Before mapping:
 
 1. Read the user's exploration goal and any named subsystem or change id.
-2. Read project rules such as `AGENTS.md`, `.configs/AGENTS.md`, and existing `.skillgrid/project/*` docs when present.
+2. Read project rules such as `AGENTS.md`, `.configs/AGENTS.md`, `.skillgrid/prd/INDEX.md` (roadmap + execution snapshot), and existing `.skillgrid/project/*` docs when present.
 3. Use GitNexus / `.gitnexus/` when available, then targeted repo search and file reads.
 4. If a Skillgrid handoff exists, read it and update it with report paths after exploration.
 
@@ -30,7 +30,7 @@ Before mapping:
 
 When exploration targets a specific **OpenSpec change** (`<change-id>` = directory under `openspec/changes/`):
 
-1. **Before work:** Read **`.skillgrid/tasks/context_<change-id>.md`**. Create with the parent if missing.
+1. **Before work:** Read **`.skillgrid/tasks/context_<change-id>.md`**. Create with the parent if missing. If the parent names a **vertical slice**, read **`openspec/changes/<change-id>/specs/<slice-slug>/spec.md`** when present.
 2. **Scope:** **Mapping and documentation only**; no product behavior changes unless the user explicitly exits exploration mode.
 3. **Spill:** Large module inventories or file lists go to **`.skillgrid/tasks/research/<change-id>/explore_<optional-date>.md`**. Keep the chat return to a **summary + paths**.
 4. **After work:** Update the handoff: research index row, state, next actions. Still prefer **`.skillgrid/project/{ARCHITECTURE,STRUCTURE,PROJECT}.md`** for the durable narrative (link them from the handoff).

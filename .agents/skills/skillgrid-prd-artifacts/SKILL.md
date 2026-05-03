@@ -49,18 +49,45 @@ Rules:
 - Avoid duplicate numbers.
 - If execution order changes, rename files and update `INDEX.md`, PRD cross-links, OpenSpec references, and Engram pointers.
 
+### Work hierarchy (shared vocabulary)
+
+Use one mental model across skills, AGENTS, and `docs/02-workflow-usage.md`:
+
+| Level | Jira-style | GitHub-style | Skillgrid artifact |
+|-------|------------|--------------|---------------------|
+| Program / milestone | Epic | Milestone | `.skillgrid/prd/INDEX.md` — dependency-ordered PRDs **plus** execution snapshot (below) |
+| Feature initiative | Task | Issue | `.skillgrid/prd/PRD<NN>_<slug>.md` + one `openspec/changes/<change-id>/` |
+| Shippable unit | Sub-task | Checklist item | **Vertical slice** — `tasks.md` rows and/or `openspec/changes/<change-id>/specs/<slice-slug>/spec.md` |
+
+There is **no** separate `.skillgrid/project/TASK.md`: progress-tracker and task-list behavior live in **INDEX snapshot sections** and in OpenSpec `tasks.md` / slice specs.
+
 ### INDEX Discipline
 
-`.skillgrid/prd/INDEX.md` is the ordered work index. Keep it sorted by `PRD<NN>`.
+`.skillgrid/prd/INDEX.md` is the **single** ordered work index for PRDs. Keep PRD rows sorted by `PRD<NN>` **in dependency order** (blocked PRDs appear after their blockers in the table, or list `Depends on` per row).
 
-Use the ordered PRD sequence as Skillgrid's lightweight roadmap or milestone view. A broad initiative should appear as several ordered PRDs, where each PRD is one independently reviewable slice.
+Use the ordered PRD sequence as Skillgrid's lightweight roadmap or milestone view. A broad initiative should appear as several ordered PRDs, where each PRD is one independently reviewable product slice.
 
-Each entry should include at least:
+**Execution snapshot (optional but recommended):** At the **top** of `INDEX.md`, maintain short-lived fields so any session can see *where we are* without reading chat history. Refresh when phase, focus, or discovered work changes:
+
+- **Current phase** — plan / breakdown / apply / validate / finish (or custom from `.skillgrid/config.json`).
+- **Active change** — `openspec/changes/<change-id>/`.
+- **Active slice** — `<slice-slug>` when implementing a vertical slice (`specs/<slice-slug>/spec.md`).
+- **In progress** — bullets (PRD id, slice, or task id).
+- **Recently completed** — last few shipped slices or PRDs.
+- **Next up** — next slice or PRD after current.
+- **Discovered during work** — backlog bullets to promote into PRD or `tasks.md`.
+- **Open questions / blockers** — HITL reminders.
+- **Session notes** — 2–5 lines for cold resume (complements Engram when enabled).
+
+Then the **PRD index table** (see INDEX Template).
+
+Each PRD row should include at least:
 
 - PRD file
 - title
 - linked `openspec/changes/<change-id>/`
 - `Status:`
+- optional **Depends on** (other `PRD<NN>` or external blocker)
 - optional external issue key or URL when ticketing is not `local`
 
 ### Title Block
@@ -133,144 +160,21 @@ When backfilling an existing change, map evidence to the configured workflow:
 
 ### Required PRD Sections
 
-Prefer this copy-ready template:
-
-```markdown
-### PRD: <Title>
-
-- **File:** `.skillgrid/prd/PRD<NN>_<slug>.md`
-- **Spec / change:** `openspec/changes/<change-id>/`
-- **Session context:** `.skillgrid/tasks/context_<change-id>.md`
-- **Status:** `draft`
-- **Preview:** optional `.skillgrid/preview/<change-id>-options.html`
-- **External:** local
-- **Depends on:** None
-- **Tech / stack:** <languages/frameworks/services that matter for this slice>
-
-#### Problem / why
-
-<What is wrong or missing, who is affected, and why it matters now.>
-
-#### Solution
-
-<The user-facing solution and the outcome the user should experience.>
-
-#### Goals
-
-- <Measurable or clearly verifiable outcome>
-- <User-visible or operator-visible result>
-
-#### Assumptions
-
-- <Assumption that should be corrected before implementation if false>
-
-#### In scope
-
-- <Capability or behavior included in this PRD>
-
-#### Out of scope
-
-- <Explicitly excluded capability or future work>
-
-#### User stories
-
-1. As a <actor>, I want <feature or behavior>, so that <benefit>.
-2. As a <actor>, I want <feature or behavior>, so that <benefit>.
-
-#### Decomposition
-
-<If this PRD is part of a sequence, explain the slice boundary and adjacent PRDs. If it is too broad, split it before continuing.>
-
-#### Codebase touchpoints
-
-- `<directory-or-module>` — <why it is likely involved>
-
-#### Implementation decisions
-
-- <Module, interface, schema, API, state, or interaction decision that shapes implementation.>
-- <Deep-module opportunity or boundary that should remain testable in isolation.>
-
-Do not include fragile code snippets here. Prefer stable module names, interfaces, responsibilities, and contracts over exact implementation steps.
-
-#### Testing decisions
-
-- <External behavior that must be tested, not implementation details.>
-- <Modules or boundaries that need tests.>
-- <Prior art in the codebase for similar tests.>
-
-#### User Journeys
-
-```mermaid
-journey
-  title <Main persona journey>
-  section Start
-    <User action>: 3: <Persona>
-  section Outcome
-    <Expected outcome>: 5: <Persona>
-```
-
-#### Feature diagram
-
-```mermaid
-flowchart TD
-  userAction["User action"] --> systemDecision{"System decision"}
-  systemDecision -->|"Success"| successState["Expected result"]
-  systemDecision -->|"Failure"| errorState["Error or empty state"]
-```
-
-#### Success criteria
-
-- [ ] <Observable behavior that proves the PRD is done>
-- [ ] <Verification that can be tested manually or automatically>
-
-#### Quality bar
-
-- [ ] Accessibility or UX expectation
-- [ ] Test coverage expectation
-- [ ] Security, privacy, or performance expectation if relevant
-- [ ] Documentation or handoff update expectation
-
-#### Implementation tasks
-
-- [ ] `[HITL]` <Human decision or approval needed before autonomous work>
-- [ ] `[AFK]` <Autonomous implementation slice tied to this PRD>
-
-#### Open questions
-
-- <Question, owner, and when it must be answered>
-
-#### Author self-review
-
-- [ ] PRD links the correct OpenSpec change.
-- [ ] Scope is small enough for a vertical slice.
-- [ ] Success criteria are testable.
-- [ ] Implementation tasks trace to goals.
-```
+Copy the canonical blank from **`.skillgrid/templates/template-prd.md`** when creating a new PRD file. Human-readable planning logic and template index: **`docs/skillgrid-templates-and-logic.md`**.
 
 Keep product intent in the PRD. Detailed CLI instructions and exact code steps belong in OpenSpec artifacts or `tasks.md`.
 
 ### INDEX Template
 
-Use a simple table when creating or refreshing `.skillgrid/prd/INDEX.md`:
+Use **`.skillgrid/templates/template-index.md`** when creating or refreshing `.skillgrid/prd/INDEX.md` (trim snapshot bullets if unused). See **`docs/skillgrid-templates-and-logic.md`** for hierarchy.
 
-```markdown
-# Skillgrid PRD Index
-
-Local Kanban dashboard:
-
-Run `node .skillgrid/scripts/skillgrid-ui.mjs`, then open `http://127.0.0.1:8787`.
-
-| Order | PRD | Status | Spec / change | External |
-|---|---|---|---|---|
-| 01 | [`PRD01_<slug>.md`](PRD01_<slug>.md) | `draft` | `openspec/changes/<change-id>/` | local |
-```
-
-If ticketing is `local`, `External` may be omitted or set to `local`.
+If ticketing is `local`, `External` may be omitted or set to `local`. Omit the **Depends on** column if every PRD is independent.
 
 ### PRD And OpenSpec Alignment
 
 - PRD is the product intent source.
 - OpenSpec `proposal.md`, `design.md`, delta specs, and `tasks.md` are the technical contract.
+- **Vertical slices** should have scoped requirements under `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` (see `skillgrid-spec-artifacts`). Optional umbrella: `openspec/specs/<change-id>/spec.md` for cross-cutting requirements.
 - Every PRD should link to exactly one primary `openspec/changes/<change-id>/` unless it is intentionally an umbrella PRD.
 - If a PRD becomes too broad, split it into ordered PRDs instead of expanding one mega-PRD.
 
@@ -292,6 +196,8 @@ openspec list --json
 
 ## Resources
 
+- Templates and planning logic: `docs/skillgrid-templates-and-logic.md`
+- Canonical blanks: `.skillgrid/templates/template-*.md` (see `README.md` there)
 - Full workflow overview: `docs/02-workflow-usage.md`
 - Command sources: `.cursor/commands/skillgrid-plan.md`, `.cursor/commands/skillgrid-explore.md`, `.cursor/commands/skillgrid-breakdown.md`
 - Related skills: `skillgrid-spec-artifacts`, `skillgrid-vertical-slices`, `skillgrid-filesystem-handoff`

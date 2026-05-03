@@ -66,7 +66,7 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 4. Confirm goal, scope, acceptance criteria, verification command, HITL/AFK boundary, context budget, split trigger, and fresh-agent input list are explicit. Do not infer missing implementation authority from chat history.
 5. Apply the context budget gate: a fresh agent must be able to execute the slice from durable artifacts and a bounded file list. If not, stop and route back to `/skillgrid-breakdown`.
 6. Create `before-apply-<change-id>` checkpoint before edits.
-7. Read the handoff and any cited research.
+7. Read the handoff and any cited research. Read **`openspec/changes/<change-id>/specs/<slice-slug>/spec.md`** for the active vertical slice when that file exists.
 8. Critically review the selected task before editing; stop if instructions, expected tests, file ownership, or scope are unclear.
 9. Implement one vertical slice or small task batch at a time.
 10. For behavioral code, use TDD: write one focused failing test, verify RED for the expected reason, implement minimum code, verify GREEN, then refactor.

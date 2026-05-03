@@ -23,8 +23,10 @@ Decompose work into small, verifiable tasks with explicit acceptance criteria. G
 
 For Skillgrid work, keep generic task planning here and load the Skillgrid-specific artifact skills for workflow rules:
 
-- Use `skillgrid-prd-artifacts` for PRD numbering, `INDEX.md`, and status lifecycle.
+- Canonical blanks: **`.skillgrid/templates/`** and narrative **`docs/skillgrid-templates-and-logic.md`**.
+- Use `skillgrid-prd-artifacts` for PRD numbering, **`.skillgrid/prd/INDEX.md`** (dependency order + execution snapshot), and status lifecycle.
 - Use `skillgrid-vertical-slices` for `[HITL]` / `[AFK]` tagging and independently shippable slices.
+- Use `skillgrid-spec-artifacts` for **`openspec/changes/<change-id>/specs/<slice>/spec.md`** per slice and `tasks.md` alignment.
 - Use `skillgrid-filesystem-handoff` when tasks need to update `.skillgrid/tasks/context_<change-id>.md`.
 - Keep PRD implementation tasks and OpenSpec `tasks.md` aligned through `skillgrid-spec-artifacts`.
 

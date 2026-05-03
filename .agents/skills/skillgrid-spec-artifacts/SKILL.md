@@ -42,10 +42,16 @@ Do not duplicate the full OpenSpec phase skills. Reuse:
 PRD intent
   -> openspec/changes/<change-id>/proposal.md
   -> openspec/changes/<change-id>/design.md
-  -> openspec/changes/<change-id>/specs/**/*
+  -> openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md   # one folder per vertical slice
   -> openspec/changes/<change-id>/tasks.md
   -> validate/apply/archive
 ```
+
+**Per-slice layout:** Each vertical slice gets `openspec/changes/<change-id>/specs/<slice-slug>/spec.md` — slice-scoped requirements, scenarios, and a checklist agents can load without the whole change. **`tasks.md`** remains the integration ordering surface across slices.
+
+**Canonical blanks:** **`.skillgrid/templates/template-openspec-slice-spec.md`** and **`.skillgrid/templates/template-openspec-tasks.md`**. See **`docs/skillgrid-templates-and-logic.md`**.
+
+**Optional main-spec mirror:** `openspec/specs/<change-id>/spec.md` — umbrella requirements for the initiative when you want a stable top-level spec separate from delta layout. Not required for every change.
 
 ### Concept Mapping
 
@@ -55,7 +61,7 @@ Use this mapping when translating product intent into OpenSpec:
 |---|---|---|
 | Product problem, user goal, scope, success criteria | `proposal.md` | What changes and why |
 | Technical approach, boundaries, tradeoffs | `design.md` | How the system changes |
-| Observable behavior and edge cases | `specs/**/spec.md` delta specs | Verifiable requirements and scenarios |
+| Observable behavior and edge cases | `specs/<slice>/spec.md` under the change (and optional `openspec/specs/<change-id>/spec.md`) | Verifiable requirements and scenarios per slice |
 | Vertical-slice work checklist | `tasks.md` | Ordered implementation and verification |
 | Current session state, blockers, evidence | `.skillgrid/tasks/context_<change-id>.md` | Rolling handoff and next action |
 
@@ -292,6 +298,8 @@ openspec validate --change "<change-id>"
 
 ## Resources
 
+- Templates and planning logic: `docs/skillgrid-templates-and-logic.md`
+- Canonical blanks: `.skillgrid/templates/template-openspec-*.md`
 - PRD rules: `skillgrid-prd-artifacts`
 - Slice rules: `skillgrid-vertical-slices`
 - OpenSpec config overlay: `skillgrid-openspec-config`

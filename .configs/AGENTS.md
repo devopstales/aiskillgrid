@@ -166,6 +166,21 @@ To check whether embeddings exist, inspect **`.gitnexus/meta.json`** — the `st
 
 <!-- gitnexus:end -->
 
+## Skillgrid session bootstrap
+
+For Skillgrid + OpenSpec work, read when present (before deep implementation):
+
+1. Root **`DESIGN.md`**
+2. **`.skillgrid/project/PROJECT.md`**, **`ARCHITECTURE.md`**, **`STRUCTURE.md`**
+3. **`.skillgrid/prd/INDEX.md`** — dependency-ordered PRDs and the **Execution snapshot** at the top (current phase, active change/slice, discovered work)
+4. Active **`.skillgrid/tasks/context_<change-id>.md`** and **`openspec/changes/<change-id>/`** (`proposal.md`, `design.md`, `tasks.md`)
+5. The active vertical slice: **`openspec/changes/<change-id>/specs/<slice-slug>/spec.md`**
+6. **`.skillgrid/project/SKILL_REGISTRY.md`** only when choosing skills or subagents (compact index; do not paste the whole file into chat)
+
+After meaningful work: refresh the INDEX snapshot, `tasks.md`, slice specs, and handoff per phase (`skillgrid-prd-artifacts`, `skillgrid-spec-artifacts`).
+
+**File blanks:** copy from **`.skillgrid/templates/`** (`template-*.md`; see **`docs/skillgrid-templates-and-logic.md`**). Architectural decisions: **`.skillgrid/templates/template-adr.md`** → new `NNNN-*.md` under **`.skillgrid/adr/`** (that folder holds ADRs only).
+
 ## Skillgrid: per-change handoff (filesystem context)
 
 When the project uses **Skillgrid** + **OpenSpec**, keep **change-scoped** state on disk so the main session and **`Task` / subagents** stay aligned without pasting long tool output in chat. Full layout, handoff **template**, and subagent **contract** live in **`docs/02-workflow-usage.md`** (*Filesystem handoff* and *Parallel discovery*).

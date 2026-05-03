@@ -42,58 +42,18 @@ ADRs capture the reasoning behind significant technical decisions. They're the h
 - Choosing between build tools, hosting platforms, or infrastructure
 - Any decision that would be expensive to reverse
 
-### ADR Template
+### ADR location and format (MADR)
 
-Store ADRs in `docs/decisions/` with sequential numbering:
+Store ADRs under **`.skillgrid/adr/`** only (not `docs/decisions/`).
 
-```markdown
-# ADR-001: Use PostgreSQL for primary database
-
-## Status
-Accepted | Superseded by ADR-XXX | Deprecated
-
-## Date
-2025-01-15
-
-## Context
-We need a primary database for the task management application. Key requirements:
-- Relational data model (users, tasks, teams with relationships)
-- ACID transactions for task state changes
-- Support for full-text search on task content
-- Managed hosting available (for small team, limited ops capacity)
-
-## Decision
-Use PostgreSQL with Prisma ORM.
-
-## Alternatives Considered
-
-### MongoDB
-- Pros: Flexible schema, easy to start with
-- Cons: Our data is inherently relational; would need to manage relationships manually
-- Rejected: Relational data in a document store leads to complex joins or data duplication
-
-### SQLite
-- Pros: Zero configuration, embedded, fast for reads
-- Cons: Limited concurrent write support, no managed hosting for production
-- Rejected: Not suitable for multi-user web application in production
-
-### MySQL
-- Pros: Mature, widely supported
-- Cons: PostgreSQL has better JSON support, full-text search, and ecosystem tooling
-- Rejected: PostgreSQL is the better fit for our feature requirements
-
-## Consequences
-- Prisma provides type-safe database access and migration management
-- We can use PostgreSQL's full-text search instead of adding Elasticsearch
-- Team needs PostgreSQL knowledge (standard skill, low risk)
-- Hosting on managed service (Supabase, Neon, or RDS)
-```
+- **Naming:** `NNNN-short-title-in-kebab-case.md` (four-digit prefix, e.g. `0001-use-postgresql-for-primary-db.md`).
+- **Template:** copy **`.skillgrid/templates/template-adr.md`** into `.skillgrid/adr/` as `NNNN-slug.md` (or the [upstream MADR template](https://raw.githubusercontent.com/adr/madr/refs/heads/develop/template/adr-template.md)). MADR uses YAML frontmatter (`status`, `date`, optional `decision-makers`, `consulted`, `informed`) and sections such as **Context and Problem Statement**, **Decision Drivers**, **Considered Options**, **Decision Outcome** (with optional **Consequences** / **Confirmation**), **Pros and Cons of the Options**, and **More Information**.
+- **Discovery:** `.skillgrid/adr/` contains only `NNNN-*.md` ADR files. Add a one-line link under **Durable decisions** in `.skillgrid/project/ARCHITECTURE.md` (and optionally note in `docs/skillgrid-templates-and-logic.md`) so others can find new ADRs.
+- **Cross-link:** add a short bullet under **Durable decisions** in `.skillgrid/project/ARCHITECTURE.md` pointing to the new file (see `skillgrid-project-docs`).
 
 ### ADR Lifecycle
 
-```
-PROPOSED → ACCEPTED → (SUPERSEDED or DEPRECATED)
-```
+Use MADR `status` values such as `proposed`, `accepted`, `deprecated`, or superseded (note the superseding ADR in `status` per template).
 
 - **Don't delete old ADRs.** They capture historical context.
 - When a decision changes, write a new ADR that references and supersedes the old one.
@@ -141,7 +101,7 @@ function calculateTotal(items: CartItem[]): number {
  * If called after hydration, it causes a flash of unstyled content
  * because the theme context isn't available during SSR.
  *
- * See ADR-003 for the full design rationale.
+ * See `.skillgrid/adr/0003-*.md` (or the linked ADR file) for the full design rationale.
  */
 export function initializeTheme(theme: Theme): void {
   // ...
@@ -221,7 +181,7 @@ One-paragraph description of what this project does.
 
 ## Architecture
 Brief overview of the project structure and key design decisions.
-Link to ADRs for details.
+Link to `.skillgrid/adr/` ADRs for details.
 
 ## Contributing
 How to contribute, coding standards, PR process.
@@ -279,7 +239,7 @@ Special consideration for AI agent context:
 
 After documenting:
 
-- [ ] ADRs exist for all significant architectural decisions
+- [ ] ADRs exist under `.skillgrid/adr/` for all significant architectural decisions
 - [ ] README covers quick start, commands, and architecture overview
 - [ ] API functions have parameter and return type documentation
 - [ ] Known gotchas are documented inline where they matter

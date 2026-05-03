@@ -7,7 +7,8 @@
 #   Copies AI assistant configuration folders (Cursor, Copilot, Kilo, OpenCode,
 #   Antigravity) from this hub repo into a target project directory.
 #   Syncs hub `.skillgrid/` (project docs + scripts) and merges MCP configs from
-#   .configs/mcp/ normalized per-IDE.
+#   .configs/mcp/ into each product's native MCP shape (Cursor, VS Code servers,
+#   Kilo/OpenCode mcp, Antigravity serverUrl).
 #
 # USAGE:
 #   ./install.sh [OPTIONS]
@@ -35,9 +36,9 @@
 #   1. Argument parsing  →  populate SELECTED_IDES, flags, PROJECT_PATH
 #   2. Interactive prompts → IDE selection, MCP server selection (if eligible)
 #   3. Dependency check  → optional install of missing tools
-#   4. MCP merge         → jq-smerge .configs/mcp/*.json into one object
-#   5. IDE setup         → per-IDE setup_*() writes normalized config files
-#   6. Optional tools    → -t selects tools; CLIs via npm/npx (Node; GitNexus, hub tools) + uv (Python; cocoindex-code[full]→ccc) + brew + brave-search-cli curl|sh, then copy + openspec init
+#   4. MCP merge         → jq-merge .configs/mcp/**/*.json → canonical mcpServers
+#   5. IDE setup         → per-IDE setup_*() maps merged MCP to native JSON schemas
+#   6. Optional tools    → gitnexus + engram CLIs always; -t adds openspec/dmux/brave-search-cli/cocoindex-code; npm/uv/brew installs, then copy + openspec init when selected
 #
 # DEPENDENCIES:
 #   Runtime:  bash 3.2+ (incl. macOS /bin/bash), rsync, jq
@@ -136,7 +137,7 @@ Options:
   -o, --opencode        Setup configuration for opencode
   -a, --antigravity     Setup configuration for Google Antigravity
   -A, --all             Setup for all supported IDEs (Default if none selected)
-  -t, --tools           Interactive prompt to select optional tools (openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code)
+  -t, --tools           Interactive prompt for extra optional tools (openspec, dmux, brave-search-cli, cocoindex-code); gitnexus + engram CLIs are always installed when possible
   -d, --deps            Check and install dependencies before install
   --sanity-check        Verify hub dependencies and expected files without installing or writing
   -y, --yes             Non-interactive mode (skip prompts)
@@ -147,7 +148,7 @@ Options:
   -h, --help            Show this help message
 
 Interactive mode: On TTY with no IDE flags, choose IDEs (1-5 or a=all) and MCP servers.
-Use -t to pick optional tools interactively (openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code/ccc — brew / hub npm / global npm / uv / official Brave install.sh when selected; see docs/01-installation.md).
+Use -t to pick optional tools interactively (openspec, dmux, brave-search-cli, cocoindex-code/ccc). GitNexus and Engram CLIs are always attempted (hub MCP); see docs/01-installation.md.
 EOF
 }
 
@@ -271,9 +272,11 @@ get_available_mcp_servers() {
         [ -f "$main_mcp" ] && merge_paths+=("$main_mcp")
 
         local f
-        while IFS= read -r -d '' f; do
-            merge_paths+=("$f")
-        done < <(find "$mcp_dir" -name '*.json' -type f -print0 2>/dev/null | sort -z)
+        if [ -d "$mcp_dir" ]; then
+            while IFS= read -r -d '' f; do
+                merge_paths+=("$f")
+            done < <(find "$mcp_dir" -name '*.json' -type f -print0 2>/dev/null | sort -z)
+        fi
 
         # Extract unique server keys from all files, one per line
         if [ ${#merge_paths[@]} -gt 0 ] && command -v jq &>/dev/null; then
@@ -477,12 +480,16 @@ install_openspec_cli() {
     return 1
 }
 
-# Install CLIs for SELECTED_TOOLS (uv / hub npm / brew)
+# Install CLIs for SELECTED_TOOLS (uv / hub npm / brew).
+# GitNexus + Engram match hub MCP fragments (.configs/mcp/); their CLIs are always reconciled.
 install_optional_tool_clis() {
+    tool_is_selected gitnexus || SELECTED_TOOLS+=("gitnexus")
+    tool_is_selected engram || SELECTED_TOOLS+=("engram")
+
     [ ${#SELECTED_TOOLS[@]} -eq 0 ] && return 0
 
     echo ""
-    echo "Optional tools — installing CLIs..."
+    echo "Optional tools — installing CLIs (includes gitnexus + engram for bundled MCP)..."
     echo ""
 
     if tool_is_selected gitnexus; then
@@ -583,16 +590,16 @@ install_optional_tool_clis() {
     echo ""
 }
 
-# Interactive optional tools (openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code)
+# Interactive optional tools (openspec, dmux, brave-search-cli, cocoindex-code; gitnexus+engram always installed)
 interactive_tools_selection() {
     [ "$TOOLS_INTERACTIVE" = true ] || return 0
     [ "$NON_INTERACTIVE" != true ] || {
-        log_info "Optional tools: skipping prompt (--yes); none selected"
+        log_info "Optional tools: skipping -t prompt (--yes); gitnexus + engram CLIs still run with the rest of install"
         return 0
     }
     case "${CI:-}" in
         true|1|yes|YES)
-            log_info "Optional tools: skipping prompt (CI)"
+            log_info "Optional tools: skipping -t prompt (CI); gitnexus + engram CLIs still run with install"
             return 0
             ;;
     esac
@@ -604,13 +611,13 @@ interactive_tools_selection() {
     echo ""
     echo -e "${CYAN}Optional tools${NC} — CLIs via npm, uv, hub npm ci, brew, or Brave install (see docs/01-installation.md)"
     echo "  1) openspec — OpenSpec (brew, hub npx, or npm -g)"
-    echo "  2) gitnexus — GitNexus code graph CLI (npm install -g gitnexus@1.3.11)"
-    echo "  3) dmux — tmux pane manager (hub npx, or npm -g fallback)"
-    echo "  4) engram — Engram MCP CLI (brew gentleman-programming/tap)"
-    echo "  5) brave-search-cli — Brave Search CLI, bx (curl | sh from brave/brave-search-cli)"
-    echo "  6) cocoindex-code — CocoIndex Code, ccc (uv tool install --upgrade 'cocoindex-code[full]')"
+    echo "  2) dmux — tmux pane manager (hub npx, or npm -g fallback)"
+    echo "  3) brave-search-cli — Brave Search CLI, bx (curl | sh from brave/brave-search-cli)"
+    echo "  4) cocoindex-code — CocoIndex Code, ccc (uv tool install --upgrade 'cocoindex-code[full]')"
     echo ""
-    echo "  a — all six   |   n — none   |   e.g. 1,3 — pick by number"
+    echo "  (gitnexus + engram are installed automatically for hub MCP — not listed here.)"
+    echo ""
+    echo "  a — all four   |   n — none   |   e.g. 1,2 — pick by number"
     echo ""
 
     local choice
@@ -629,8 +636,8 @@ interactive_tools_selection() {
         lower=$(printf '%s' "$choice" | tr '[:upper:]' '[:lower:]')
         case "$lower" in
             a|all)
-                SELECTED_TOOLS=("openspec" "gitnexus" "dmux" "engram" "brave-search-cli" "cocoindex-code")
-                log_info "Optional tools: openspec, gitnexus, dmux, engram, brave-search-cli, cocoindex-code"
+                SELECTED_TOOLS=("openspec" "dmux" "brave-search-cli" "cocoindex-code")
+                log_info "Optional tools: openspec, dmux, brave-search-cli, cocoindex-code (gitnexus + engram always)"
                 return 0
                 ;;
             n|no|none|skip)
@@ -648,12 +655,10 @@ interactive_tools_selection() {
             [ -z "$tok" ] && continue
             case "$tok" in
                 1) SELECTED_TOOLS+=("openspec") ;;
-                2) SELECTED_TOOLS+=("gitnexus") ;;
-                3) SELECTED_TOOLS+=("dmux") ;;
-                4) SELECTED_TOOLS+=("engram") ;;
-                5) SELECTED_TOOLS+=("brave-search-cli") ;;
-                6) SELECTED_TOOLS+=("cocoindex-code") ;;
-                *) invalid="invalid index: $tok (use 1–6, a, or n)"; break ;;
+                2) SELECTED_TOOLS+=("dmux") ;;
+                3) SELECTED_TOOLS+=("brave-search-cli") ;;
+                4) SELECTED_TOOLS+=("cocoindex-code") ;;
+                *) invalid="invalid index: $tok (use 1–4, a, or n)"; break ;;
             esac
         done
 
@@ -662,7 +667,7 @@ interactive_tools_selection() {
             continue
         fi
         if [ ${#SELECTED_TOOLS[@]} -eq 0 ]; then
-            log_warn "Pick at least one number (1–6), a for all, or n for none"
+            log_warn "Pick at least one number (1–4), a for all, or n for none"
             continue
         fi
         log_info "Optional tools: selected ${#SELECTED_TOOLS[@]} tool(s)"
@@ -685,9 +690,11 @@ merge_mcp_configs() {
     [ -f "$main_mcp" ] && merge_paths+=("$main_mcp")
     
     local f
-    while IFS= read -r -d '' f; do
-        merge_paths+=("$f")
-    done < <(find "$mcp_dir" -name '*.json' -type f -print0 2>/dev/null | sort -z)
+    if [ -d "$mcp_dir" ]; then
+        while IFS= read -r -d '' f; do
+            merge_paths+=("$f")
+        done < <(find "$mcp_dir" -name '*.json' -type f -print0 2>/dev/null | sort -z)
+    fi
 
     if [ ${#merge_paths[@]} -eq 0 ]; then
         log_info "No MCP configs found — skip MCP merge" >&2
@@ -737,6 +744,115 @@ merge_mcp_configs() {
 
     # Return the merged JSON
     echo "$merged_json"
+}
+
+# -----------------------------------------------------------------------------
+# MCP emitters: hub fragments are Cursor-style mcpServers (stdio: command+args;
+# remote: type streamable-http + url). Each consumer gets a valid native shape.
+# -----------------------------------------------------------------------------
+
+# .cursor/mcp.json — remote: url (+headers/auth); stdio: type + command + args
+mcp_emit_for_cursor() {
+    jq '
+      { mcpServers: (
+          .mcpServers // {} | to_entries | map(
+            .key as $k | .value as $v |
+            if ($v | type != "object") then {key: $k, value: $v}
+            elif ($v | has("url")) and ($v | has("command") | not) then
+              {key: $k, value: (
+                {url: $v.url}
+                + (if ($v | has("headers")) then {headers: $v.headers} else {} end)
+                + (if ($v | has("auth")) then {auth: $v.auth} else {} end)
+              )}
+            elif ($v | has("command")) then
+              {key: $k, value: (
+                {type: "stdio", command: $v.command, args: ($v.args // [])}
+                + (if ($v | has("env")) then {env: $v.env} else {} end)
+                + (if ($v | has("envFile")) then {envFile: $v.envFile} else {} end)
+                + (if ($v | has("cwd")) then {cwd: $v.cwd} else {} end)
+              )}
+            else {key: $k, value: $v}
+            end
+          ) | from_entries
+        )
+      }
+    '
+}
+
+# .vscode/mcp.json — VS Code / Copilot: top-level "servers", explicit type (http|stdio|sse)
+mcp_emit_for_vscode() {
+    jq '
+      { servers: (
+          .mcpServers // {} | to_entries | map(
+            .key as $k | .value as $v |
+            if ($v | type != "object") then {key: $k, value: $v}
+            elif ($v | has("url")) and ($v | has("command") | not) then
+              {key: $k, value: (
+                {type: (if ($v.type == "sse") then "sse" else "http" end), url: $v.url}
+                + (if ($v | has("headers")) then {headers: $v.headers} else {} end)
+              )}
+            elif ($v | has("command")) then
+              {key: $k, value: (
+                {type: "stdio", command: $v.command, args: ($v.args // [])}
+                + (if ($v | has("env")) then {env: $v.env} else {} end)
+                + (if ($v | has("cwd")) then {cwd: $v.cwd} else {} end)
+              )}
+            else {key: $k, value: $v}
+            end
+          ) | from_entries
+        )
+      }
+    '
+}
+
+# OpenCode .mcp / Kilo .kilo/kilo.json "mcp" — schema https://opencode.ai/config.json
+mcp_emit_opencode_style_mcp_object() {
+    jq -c '
+      (.mcpServers // {}) | to_entries | map(
+        .key as $k | .value as $v |
+        if ($v | type != "object") then {key: $k, value: $v}
+        elif ($v | has("url")) and ($v | has("command") | not) then
+          {key: $k, value: (
+            {enabled: true, type: "remote", url: $v.url}
+            + (if ($v | has("headers")) then {headers: $v.headers} else {} end)
+          )}
+        elif ($v | has("command")) then
+          {key: $k, value: (
+            {enabled: true, type: "local", command: ([$v.command] + ($v.args // []))}
+            + (if ($v | has("env")) then {environment: $v.env} else {} end)
+          )}
+        else {key: $k, value: $v}
+        end
+      ) | from_entries
+    '
+}
+
+# ~/.gemini/antigravity/mcp_config.json — HTTP: serverUrl; stdio: command + args
+mcp_emit_for_antigravity() {
+    jq '
+      { mcpServers: (
+          .mcpServers // {} | to_entries | map(
+            .key as $k | .value as $v |
+            if ($v | type != "object") then {key: $k, value: $v}
+            elif ($v | has("serverUrl")) then {key: $k, value: $v}
+            elif ($v | has("url")) and ($v | has("command") | not) then
+              {key: $k, value: (
+                {serverUrl: $v.url}
+                + (if ($v | has("headers")) then {headers: $v.headers} else {} end)
+                + (if ($v | has("env")) then {env: $v.env} else {} end)
+              )}
+            elif ($v | has("command")) then
+              {key: $k, value: (
+                {command: $v.command, args: ($v.args // [])}
+                + (if ($v | has("env")) then {env: $v.env} else {} end)
+                + (if ($v | has("cwd")) then {cwd: $v.cwd} else {} end)
+              )}
+            else {key: $k, value: $v}
+            end
+          ) | from_entries
+        )
+      }
+    '
 }
 
 verify_engram_setup() {
@@ -1300,7 +1416,7 @@ fi
 # Interactive MCP selection (if eligible)
 interactive_mcp_selection
 
-# Optional tools — must run before --deps counts (openspec / gitnexus / dmux / engram / brave-search-cli / cocoindex-code)
+# Optional tools — must run before --deps counts (openspec / dmux / brave-search-cli / cocoindex-code; gitnexus+engram always in install_optional_tool_clis)
 interactive_tools_selection
 
 # Handle --deps flag (check and optionally install)
@@ -1393,7 +1509,7 @@ setup_cursor() {
     ensure_dir "$tool_dir"
 
     if [ "$MERGE_MCP" = true ] && [ -n "$merged_mcp" ]; then
-        echo "$merged_mcp" | jq '{mcpServers: .mcpServers}' > "$mcp_file"
+        printf '%s' "$merged_mcp" | mcp_emit_for_cursor | jq '.' > "$mcp_file"
         local count
         count=$(jq '.mcpServers | keys | length' "$mcp_file")
         log_success "Generated: $mcp_file ($count server(s))"
@@ -1415,7 +1531,7 @@ setup_copilot() {
     ensure_dir "$tool_dir"
 
     if [ "$MERGE_MCP" = true ] && [ -n "$merged_mcp" ]; then
-        echo "$merged_mcp" | jq '{servers: .mcpServers}' > "$mcp_file"
+        printf '%s' "$merged_mcp" | mcp_emit_for_vscode | jq '.' > "$mcp_file"
         local count
         count=$(jq '.servers | keys | length' "$mcp_file")
         log_success "Generated: $mcp_file ($count server(s))"
@@ -1426,12 +1542,19 @@ setup_copilot() {
     log_success "Copilot setup complete"
 }
 
-# Setup Kilo: write mcp.json directly
+# Setup Kilo: merge MCP into .kilo/kilo.jsonc (or kilo.json) under "mcp"
 setup_kilo() {
     local target="$1"
     local merged_mcp="$2"
     local tool_dir="$target/.kilo"
-    local mcp_file="$tool_dir/mcp.json"
+    local kilo_cfg=""
+    if [ -f "$tool_dir/kilo.jsonc" ]; then
+        kilo_cfg="$tool_dir/kilo.jsonc"
+    elif [ -f "$tool_dir/kilo.json" ]; then
+        kilo_cfg="$tool_dir/kilo.json"
+    else
+        kilo_cfg="$tool_dir/kilo.jsonc"
+    fi
 
     log_info "Setting up Kilocode configuration..."
     ensure_dir "$tool_dir"
@@ -1458,12 +1581,28 @@ setup_kilo() {
     fi
 
     if [ "$MERGE_MCP" = true ] && [ -n "$merged_mcp" ]; then
-        echo "$merged_mcp" | jq '{mcpServers: .mcpServers}' > "$mcp_file"
+        local mcp_obj tmp_kilo
+        mcp_obj=$(printf '%s' "$merged_mcp" | mcp_emit_opencode_style_mcp_object)
+        if [ -f "$kilo_cfg" ]; then
+            tmp_kilo=$(mktemp)
+            if jq --argjson mcp "$mcp_obj" '.mcp = $mcp' "$kilo_cfg" > "$tmp_kilo" 2>/dev/null; then
+                mv "$tmp_kilo" "$kilo_cfg"
+            else
+                rm -f "$tmp_kilo"
+                log_warn "Could not merge MCP into $kilo_cfg — replacing with MCP-only config"
+                jq -n --argjson mcp "$mcp_obj" '{mcp: $mcp}' > "$kilo_cfg"
+            fi
+        else
+            jq -n --argjson mcp "$mcp_obj" '{mcp: $mcp}' > "$kilo_cfg"
+        fi
         local count
-        count=$(jq '.mcpServers | keys | length' "$mcp_file")
-        log_success "Generated: $mcp_file ($count server(s))"
+        count=$(jq '.mcp | keys | length' "$kilo_cfg")
+        log_success "Wrote Kilo MCP: $kilo_cfg ($count server(s); OpenCode-style local/remote)"
+        if [ -f "$tool_dir/mcp.json" ]; then
+            log_info "Note: legacy $tool_dir/mcp.json exists — Kilo reads $kilo_cfg; remove mcp.json if unused"
+        fi
     else
-        log_info "Skipping Kilo mcp.json (--no-mcp or no merged data)"
+        log_info "Skipping Kilo MCP (--no-mcp or no merged data)"
     fi
 
     log_success "Kilocode setup complete"
@@ -1500,17 +1639,8 @@ setup_opencode() {
     fi
 
     local tmp_file=$(mktemp)
-    # Convert to opencode format and patch
-    local opencode_mcp=$(echo "$merged_mcp" | jq '.mcpServers | to_entries | map({
-      key: .key,
-      value: (
-        if .value.type == "streamable-http" or .value.type == "http" then
-          {enabled: true, type: "remote", url: .value.url}
-        else
-          {enabled: true, type: "local", command: ([.value.command] + .value.args)}
-        end
-      )
-    }) | from_entries')
+    local opencode_mcp
+    opencode_mcp=$(printf '%s' "$merged_mcp" | mcp_emit_opencode_style_mcp_object)
 
     if jq --argjson mcp "$opencode_mcp" '.mcp = $mcp' "$mcp_file" > "$tmp_file" 2>/dev/null; then
         mv "$tmp_file" "$mcp_file"
@@ -1534,10 +1664,10 @@ setup_antigravity() {
     ensure_dir "$mcp_dir"
 
     if [ "$MERGE_MCP" = true ] && [ -n "$merged_mcp" ]; then
-        echo "$merged_mcp" | jq '{mcpServers: .mcpServers}' > "$mcp_file"
+        printf '%s' "$merged_mcp" | mcp_emit_for_antigravity | jq '.' > "$mcp_file"
         local count
         count=$(jq '.mcpServers | keys | length' "$mcp_file")
-        log_success "Generated: $mcp_file ($count server(s))"
+        log_success "Generated: $mcp_file ($count server(s); Antigravity transport shape)"
     else
         log_info "Skipping Antigravity mcp_config.json (--no-mcp or no merged data)"
     fi

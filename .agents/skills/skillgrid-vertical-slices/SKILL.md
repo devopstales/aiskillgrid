@@ -45,17 +45,22 @@ Use `skillgrid-prd-artifacts` to renumber and update `INDEX.md`.
 
 ### Roadmap Hierarchy
 
-Use this lightweight hierarchy when planning larger work:
+Use this lightweight hierarchy when planning larger work (maps to Jira epic / task / sub-task):
 
 ```text
-PRD sequence -> PRD slice -> tasks.md work items
+INDEX.md (milestone + snapshot)
+  -> PRD<NN>_<slug>.md (feature)
+    -> openspec/changes/<change-id>/
+         tasks.md (cross-slice ordering)
+         specs/<vertical-slice-slug>/spec.md (sub-task / slice scope)
 ```
 
-- A sequence of ordered PRDs can represent a milestone or roadmap outcome.
-- Each PRD should own one independently reviewable product slice.
-- `openspec/changes/<change-id>/tasks.md` should contain task-level work for that slice.
+- **`.skillgrid/prd/INDEX.md`** — epic/milestone: dependency-ordered PRDs plus optional execution snapshot (`skillgrid-prd-artifacts`).
+- Each **PRD** should own one independently reviewable product slice and one primary **change** folder.
+- **`tasks.md`** — ordered work and DAG-style dependencies across slices.
+- **`specs/<slice>/spec.md`** — bounded context per vertical slice; prefer loading this during `/skillgrid-apply` for one slice at a time.
 
-Do not create a separate runtime or database to model this hierarchy. The ordered PRD index, OpenSpec change, and handoff file are enough.
+Do not create a separate runtime or database to model this hierarchy. The ordered PRD index, OpenSpec change, slice specs, and handoff file are enough.
 
 ### Task Tags
 
@@ -104,6 +109,7 @@ Use this when writing PRD implementation tasks, OpenSpec `tasks.md`, or issue bo
 - **Blocked by:** <task ids, decisions, credentials, or none>
 - **Unblocks:** <task ids or none>
 - **Likely files:** `<path-or-module>`, `<path-or-module>`
+- **Slice spec:** `openspec/changes/<change-id>/specs/<slice-slug>/spec.md` (create or update with this slice)
 - **Fresh-agent inputs:** <exact PRD/OpenSpec/handoff/research/source/test paths>
 - **Context budget:** <small | medium | max files/areas> / **Split trigger:** <when to split>
 - **Verification:** `<command>` or <manual check>

@@ -62,7 +62,7 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 1. Select the change and PRD; stop if either is missing.
 2. Use `openspec status` and instructions to identify incomplete artifacts.
 3. Distinguish destination artifacts from journey artifacts: PRD/OpenSpec define done; `tasks.md`, issues, handoff, and events define how agents move toward done.
-4. Build or refresh `openspec/changes/<change-id>/tasks.md` from PRD, proposal, specs, and design.
+4. Build or refresh `openspec/changes/<change-id>/tasks.md` from PRD, proposal, specs, and design. For each vertical slice, add or refresh `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` with slice-scoped requirements and a checklist (`skillgrid-spec-artifacts`). Optionally add `openspec/specs/<change-id>/spec.md` for umbrella requirements.
 5. Shape `tasks.md` as a vertical-slice Kanban/DAG, not only a numbered checklist. Record `blockedBy`, `unblocks`, expected file ownership, and dependency wave where useful.
 6. Prefer tracer-bullet vertical slices that cross enough layers to produce visible or testable feedback. Allow horizontal setup only when necessary and label the reason.
 7. Keep the PRD Implementation tasks section and OpenSpec `tasks.md` aligned.
