@@ -14,6 +14,8 @@ Options match the **ai-dashboard** CLI: `--repo` (repository root, default curre
 
 The server prints `URL: http://…` after bind; the browser opens by default (`--no-open` to skip).
 
+**GitNexus Web** ([upstream `gitnexus-web`](https://github.com/abhigyanpatwari/GitNexus/tree/main/gitnexus-web)) is vendored into this server at **`/gitnexus/`** when you run `npm run build:gitnexus` in `skillgrid-cli` (or a full `npm run build`). That step clones the GitNexus monorepo, builds the web app with `base: '/gitnexus/'`, and copies static assets into `dist/dashboard/gitnexus`. The graph UI still talks to a separate **GitNexus API** process (upstream default port `4747`); after starting the API, open e.g. `/gitnexus/?server=http://127.0.0.1:4747`. To skip cloning and building (for example on Node older than 20 or offline CI), run `SKIP_GITNEXUS_WEB=1 npm run build` so `build:gitnexus` exits immediately (the `/gitnexus/` route will respond 503 until you build GitNexus web separately).
+
 ```text
 skillgrid serve --help
 ```

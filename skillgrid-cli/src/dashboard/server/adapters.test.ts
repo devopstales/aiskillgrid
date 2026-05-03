@@ -14,7 +14,7 @@ afterEach(async () => {
 describe("buildDashboardData", () => {
   it("returns useful empty states for sparse repos", async () => {
     const root = await tempRepo();
-    const data = await buildDashboardData({ repoRoot: root });
+    const data = await buildDashboardData({ repoRoot: root, dashboardOrigin: "http://127.0.0.1:1" });
 
     expect(data.prds).toEqual([]);
     expect(data.workflow).toEqual([]);
@@ -54,7 +54,7 @@ Preview: /preview/.skillgrid%2Fpreview%2Fdashboard.html
     );
     await write(root, ".skillgrid/preview/dashboard.html", "<h1>Preview</h1>");
 
-    const data = await buildDashboardData({ repoRoot: root });
+    const data = await buildDashboardData({ repoRoot: root, dashboardOrigin: "http://127.0.0.1:1" });
 
     expect(data.prds).toHaveLength(1);
     expect(data.prds[0]).toMatchObject({
@@ -96,7 +96,7 @@ Preview: /preview/.skillgrid%2Fpreview%2Fdashboard.html
     await write(root, "openspec/changes/api-cleanup/tasks.md", "- [ ] remove old route\n");
     await write(root, "openspec/changes/api-cleanup/specs/api/spec.md", "# API Cleanup\n");
 
-    const data = await buildDashboardData({ repoRoot: root });
+    const data = await buildDashboardData({ repoRoot: root, dashboardOrigin: "http://127.0.0.1:1" });
 
     expect(data.issues).toHaveLength(1);
     expect(data.issues[0]).toMatchObject({
@@ -138,7 +138,7 @@ Preview: /preview/.skillgrid%2Fpreview%2Fdashboard.html
     await write(root, "openspec/changes/oidc-kdlogin-improvements/tasks.md", "- [ ] harden oidc\n");
     await write(root, "openspec/changes/oidc-kdlogin-improvements/specs/oidc-server-hardening/spec.md", "# OIDC Server Hardening\n");
 
-    const data = await buildDashboardData({ repoRoot: root });
+    const data = await buildDashboardData({ repoRoot: root, dashboardOrigin: "http://127.0.0.1:1" });
 
     expect(data.lanes.map((lane) => lane.id)).toEqual(["draft", "todo", "inprogress", "devdone", "done", "archived"]);
     expect(data.issues).toHaveLength(1);

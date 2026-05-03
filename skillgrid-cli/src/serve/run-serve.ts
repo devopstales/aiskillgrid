@@ -157,6 +157,7 @@ export async function runServeCommand(importMetaUrl: string, argv: string[]): Pr
 
   const packageRoot = resolveSkillgridCliPackageRoot(importMetaUrl);
   const clientRoot = path.join(packageRoot, "dist", "dashboard", "client");
+  const gitnexusClientRoot = path.join(packageRoot, "dist", "dashboard", "gitnexus");
   const dashboardSrcRoot = opts.dev ? path.join(packageRoot, "src", "dashboard") : undefined;
 
   const server = await startDashboardServer({
@@ -165,7 +166,8 @@ export async function runServeCommand(importMetaUrl: string, argv: string[]): Pr
     port: opts.port,
     dev: opts.dev,
     clientRoot,
-    dashboardSrcRoot
+    dashboardSrcRoot,
+    gitnexusClientRoot
   });
 
   console.log(`Skillgrid Dashboard`);

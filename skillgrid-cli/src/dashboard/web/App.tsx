@@ -64,6 +64,9 @@ export default function App() {
           <Tab active={activeView === "board"} onClick={() => setActiveView("board")}>Board</Tab>
           <Tab active={activeView === "agents"} onClick={() => setActiveView("agents")}>Agent View</Tab>
           <Tab active={activeView === "tools"} onClick={() => setActiveView("tools")}>Tools</Tab>
+          <Tab active={false} onClick={() => window.location.assign("/gitnexus/")}>
+            GitNexus
+          </Tab>
         </nav>
       ) : null}
 

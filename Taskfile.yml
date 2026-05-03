@@ -52,7 +52,7 @@ tasks:
       - npm run build:binary
 
   skillgrid:build:
-    desc: Typecheck + Bun-compile skillgrid-cli (npm run build)
+    desc: Typecheck + Bun-compile skillgrid-cli (npm run build; clones GitNexus for /gitnexus — Node 20+, git, network; use SKIP_GITNEXUS_WEB=1 to skip)
     dir: "{{.SKILLGRID_CLI_DIR}}"
     preconditions:
       - sh: command -v bun >/dev/null 2>&1

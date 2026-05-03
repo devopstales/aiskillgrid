@@ -20,6 +20,8 @@ import { EMPTY_TASK_STATS, firstParagraph, parseMarkdownMetadata, parseTaskStats
 
 type BuildDashboardOptions = {
   repoRoot: string;
+  /** e.g. http://127.0.0.1:5241 — used for bundled GitNexus at /gitnexus/ */
+  dashboardOrigin: string;
   gitnexusUrl?: string;
   openspecUiUrl?: string;
 };
@@ -43,8 +45,9 @@ export async function buildDashboardData(options: BuildDashboardOptions): Promis
   const workflow = buildWorkflowItems(changes, events);
   const skillgridConfig = await readSkillgridConfig(repoRoot);
   const issues = buildBoardIssues({ prds, changes, specs, events, previews, skillgridConfig });
+  const origin = options.dashboardOrigin.replace(/\/$/, "");
   const tools = await readToolStatuses({
-    gitnexusUrl: options.gitnexusUrl ?? "http://localhost:4173",
+    gitnexusUrl: options.gitnexusUrl ?? `${origin}/gitnexus/`,
     openspecUiUrl: options.openspecUiUrl ?? "http://localhost:3100"
   });
 
@@ -563,7 +566,8 @@ async function readToolStatuses(urls: { gitnexusUrl: string; openspecUiUrl: stri
       name: "GitNexus Web UI",
       url: urls.gitnexusUrl,
       healthy: gitnexusHealthy,
-      startCommand: "docker run --rm -d --name gitnexus-web -p 4173:4173 ghcr.io/abhigyanpatwari/gitnexus-web:latest"
+      startCommand:
+        "Bundled under this dashboard at /gitnexus/ (build: npm run build:gitnexus in skillgrid-cli). Start the GitNexus API server separately and open /gitnexus/?server=http://127.0.0.1:4747"
     },
     {
       id: "openspecui",

@@ -14,6 +14,8 @@ export type DashboardServerOptions = {
   clientRoot?: string;
   /** Vite `root` when `dev` is true. Required when the server runs inside a Bun-compiled bundle. */
   dashboardSrcRoot?: string;
+  /** Production build of GitNexus Web (index.html + assets). Default: ../gitnexus next to this module. */
+  gitnexusClientRoot?: string;
   gitnexusUrl?: string;
   openspecUiUrl?: string;
 };
@@ -25,6 +27,7 @@ export async function startDashboardServer(options: DashboardServerOptions): Pro
   const dashboardSrcRoot = path.resolve(
     options.dashboardSrcRoot ?? path.join(compiledServerRoot, "..", "..", "src", "dashboard")
   );
+  const gitnexusRoot = path.resolve(options.gitnexusClientRoot ?? path.join(compiledServerRoot, "..", "gitnexus"));
 
   if (!options.dev) {
     const indexHtml = path.join(clientRoot, "index.html");
@@ -54,10 +57,23 @@ export async function startDashboardServer(options: DashboardServerOptions): Pro
           response,
           await buildDashboardData({
             repoRoot,
+            dashboardOrigin: requestUrl.origin,
             gitnexusUrl: options.gitnexusUrl,
             openspecUiUrl: options.openspecUiUrl
           })
         );
+        return;
+      }
+
+      if (requestUrl.pathname === "/gitnexus" || requestUrl.pathname.startsWith("/gitnexus/")) {
+        if (!(await pathExists(path.join(gitnexusRoot, "index.html")))) {
+          response.writeHead(503, { "content-type": "text/plain; charset=utf-8" });
+          response.end(
+            "GitNexus web bundle missing. From skillgrid-cli run: npm run build:gitnexus (Node 20+, git, network). Or build the hub with: npm run build"
+          );
+          return;
+        }
+        await sendGitnexusSpa(gitnexusRoot, requestUrl.pathname, response);
         return;
       }
 
@@ -138,6 +154,37 @@ async function sendPreview(repoRoot: string, pathname: string, response: ServerR
     "cache-control": "no-store"
   });
   createReadStream(filePath).pipe(response);
+}
+
+async function sendGitnexusSpa(gitnexusRoot: string, pathname: string, response: ServerResponse): Promise<void> {
+  const mount = "/gitnexus";
+  let rel =
+    pathname === mount || pathname === `${mount}/`
+      ? "/index.html"
+      : pathname.startsWith(`${mount}/`)
+        ? pathname.slice(mount.length)
+        : "/index.html";
+  if (!rel.startsWith("/")) rel = `/${rel}`;
+  const filePath = path.resolve(gitnexusRoot, `.${decodeURIComponent(rel)}`);
+  const fallback = path.join(gitnexusRoot, "index.html");
+  const target =
+    (isInside(gitnexusRoot, filePath) || filePath === gitnexusRoot) && (await pathExists(filePath)) ? filePath : fallback;
+
+  if (!(await pathExists(target))) {
+    response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+    response.end("GitNexus asset not found.");
+    return;
+  }
+
+  const cache =
+    pathname.startsWith(`${mount}/assets/`) && path.extname(target) !== ".html"
+      ? "public, max-age=86400"
+      : "no-store";
+  response.writeHead(200, {
+    "content-type": mimeType(target),
+    "cache-control": cache
+  });
+  createReadStream(target).pipe(response);
 }
 
 async function sendStatic(clientRoot: string, request: IncomingMessage, response: ServerResponse): Promise<void> {
