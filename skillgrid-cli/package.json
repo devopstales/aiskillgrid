@@ -1,0 +1,27 @@
+{
+  "name": "skillgrid-cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Native Skillgrid CLI (install parity with hub install.sh)",
+  "type": "module",
+  "bin": {
+    "skillgrid": "./bin/skillgrid"
+  },
+  "scripts": {
+    "build": "tsc && bun build --compile ./src/cli.ts --outfile ./bin/skillgrid",
+    "build:tsc": "tsc",
+    "build:binary": "bun build --compile ./src/cli.ts --outfile ./bin/skillgrid",
+    "skillgrid": "./bin/skillgrid",
+    "test": "npm run build:tsc && node --test dist/install/mcp.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "strip-json-comments": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}

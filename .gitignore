@@ -12,3 +12,9 @@ install*.sh*
 .skillgrid/tasks/*.md
 .skillgrid/tasks/events/*.jsonl
 .skillgrid/tasks/events/*.json
+
+!skillgrid-cli/bin/.gitkeep
+skillgrid-cli/bin/*
+skillgrid-cli/node_modules
+skillgrid-cli/dist
+skillgrid-cli/tmp*

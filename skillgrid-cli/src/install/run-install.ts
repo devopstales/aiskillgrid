@@ -1,0 +1,473 @@
+import { existsSync, mkdirSync, copyFileSync, rmSync } from "node:fs";
+import { resolve, join } from "node:path";
+import { spawnSync } from "node:child_process";
+import * as readline from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
+import type { IdeId, InstallOptions, OptionalToolId } from "./types.js";
+import { collectMcpMergePaths, filterMcpByKeys, mergeMcpJsonFiles, type McpServersShape } from "./mcp.js";
+import { rsyncDelete, rsyncDir, rsyncPlain } from "./rsync.js";
+import {
+  setupAntigravity,
+  setupCopilot,
+  setupCursor,
+  setupKilo,
+  setupOpencode,
+  verifyEngramSetup,
+} from "./ide.js";
+import { installOptionalToolClis } from "./optional-tools.js";
+import { countMissingDeps, installDependencyPackages, showDependencies } from "./deps.js";
+import { toolIsSelected } from "./optional-tools-helpers.js";
+import { logInfo, logSuccess, logWarn } from "./log.js";
+import { interactiveIdeSelection, interactiveMcpSelection, interactiveToolsSelection } from "./interactive.js";
+import type { ParsedInstallArgv } from "./parse-install-argv.js";
+
+function ideFolder(ide: IdeId): string {
+  switch (ide) {
+    case "cursor":
+      return ".cursor";
+    case "copilot":
+      return ".vscode";
+    case "kilo":
+      return ".kilo";
+    case "opencode":
+      return ".opencode";
+    case "antigravity":
+      return ".agents";
+    default:
+      return "";
+  }
+}
+
+function validateHub(hubRoot: string): void {
+  const marker = join(hubRoot, "install.sh");
+  if (!existsSync(marker)) {
+    throw new Error(`Hub root does not look like AISkillgrid (missing install.sh): ${hubRoot}`);
+  }
+}
+
+function computeMergedMcp(hubRoot: string, mergeMcp: boolean, filterKeys: string[] | null): McpServersShape | null {
+  if (!mergeMcp) return null;
+  const paths = collectMcpMergePaths(hubRoot);
+  if (paths.length === 0) return null;
+  let m = mergeMcpJsonFiles(paths);
+  if (filterKeys?.length) m = filterMcpByKeys(m, filterKeys);
+  return m;
+}
+
+async function maybePromptInstallDeps(
+  selectedIdes: IdeId[],
+  allIdes: boolean,
+  selectedTools: OptionalToolId[],
+  nonInteractive: boolean,
+  dryRun: boolean,
+): Promise<void> {
+  const { brew, pip, npm } = countMissingDeps(selectedIdes, allIdes, selectedTools);
+  const missing = brew.length + pip.length + npm.length;
+  if (missing === 0) {
+    console.log("All dependencies are installed!");
+    console.log("");
+    return;
+  }
+  console.log(`Found ${missing} missing dependencies.`);
+  if (nonInteractive) {
+    console.log("Continuing without installing dependencies (non-interactive mode)...");
+    console.log("");
+    return;
+  }
+  const rl = readline.createInterface({ input, output });
+  try {
+    const ans = (await rl.question("Would you like to install missing dependencies? [y/N] ")).trim().toLowerCase();
+    console.log("");
+    if (ans === "y" || ans === "yes") {
+      installDependencyPackages(brew, pip, npm, dryRun);
+    } else {
+      console.log("Continuing without installing dependencies...");
+      console.log("");
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+async function maybePromptInstallDepsForDepsFlag(
+  selectedIdes: IdeId[],
+  allIdes: boolean,
+  selectedTools: OptionalToolId[],
+  dryRun: boolean,
+): Promise<void> {
+  const { brew, pip, npm } = countMissingDeps(selectedIdes, allIdes, selectedTools);
+  const missing = brew.length + pip.length + npm.length;
+  if (missing === 0) return;
+  console.log(`Found ${missing} missing dependencies.`);
+  const rl = readline.createInterface({ input, output });
+  try {
+    const ans = (await rl.question("Would you like to install missing dependencies? [y/N] ")).trim().toLowerCase();
+    console.log("");
+    if (ans === "y" || ans === "yes") {
+      installDependencyPackages(brew, pip, npm, dryRun);
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+function uninstall(opts: InstallOptions): void {
+  const { projectPath, selectedIdes, dryRun, selectedTools } = opts;
+  console.log(`Uninstalling AI config folders from: ${projectPath}`);
+  console.log("");
+
+  for (const ide of selectedIdes) {
+    const folder = ideFolder(ide);
+    const target = join(projectPath, folder);
+    if (existsSync(target)) {
+      if (dryRun) console.log(`[DRY-RUN] Would remove: ${folder}`);
+      else {
+        console.log(`Removing: ${folder}`);
+        rmSync(target, { recursive: true, force: true });
+      }
+    } else {
+      console.log(`Skipping: ${folder} (not found)`);
+    }
+  }
+
+  if (toolIsSelected(selectedTools, "openspec")) {
+    const target = join(projectPath, "openspec");
+    if (existsSync(target)) {
+      if (dryRun) console.log("[DRY-RUN] Would remove: openspec");
+      else {
+        console.log("Removing: openspec");
+        rmSync(target, { recursive: true, force: true });
+      }
+    }
+  }
+
+  if (toolIsSelected(selectedTools, "gitnexus")) {
+    const target = join(projectPath, ".gitnexus");
+    if (existsSync(target)) {
+      if (dryRun) console.log("[DRY-RUN] Would remove: .gitnexus");
+      else {
+        console.log("Removing: .gitnexus");
+        rmSync(target, { recursive: true, force: true });
+      }
+    }
+  }
+
+  if (selectedIdes.includes("copilot")) {
+    for (const extra of [".github", ".copilot"]) {
+      const target = join(projectPath, extra);
+      if (existsSync(target)) {
+        if (dryRun) console.log(`[DRY-RUN] Would remove: ${extra}`);
+        else {
+          console.log(`Removing: ${extra}`);
+          rmSync(target, { recursive: true, force: true });
+        }
+      }
+    }
+  }
+
+  console.log("");
+  console.log("Done!");
+}
+
+export async function runInstallCli(hubRoot: string, parsed: ParsedInstallArgv): Promise<number> {
+  validateHub(hubRoot);
+
+  if (parsed.version) {
+    console.log("skillgrid install (native) version 1.0.0");
+    return 0;
+  }
+  if (parsed.help) {
+    printInstallHelp();
+    return 0;
+  }
+
+  if (parsed.sanityCheck) {
+    const { runSanityCheck } = await import("./sanity.js");
+    return runSanityCheck(hubRoot);
+  }
+
+  let selectedIdes = [...parsed.selectedIdes];
+  let allIdes = parsed.allIdes;
+  const idePick = await interactiveIdeSelection(parsed.nonInteractive, selectedIdes);
+  selectedIdes = idePick.ides;
+  allIdes = idePick.allIdes || allIdes;
+
+  if (selectedIdes.length === 0) {
+    selectedIdes = ["cursor", "copilot", "kilo", "opencode", "antigravity"];
+    allIdes = true;
+  }
+
+  let mergeMcp = parsed.mergeMcp;
+  let mcpFilter = parsed.mcpKeyFilter;
+  const mcpPick = await interactiveMcpSelection(hubRoot, parsed.nonInteractive, mergeMcp);
+  mergeMcp = mcpPick.mergeMcp;
+  mcpFilter = mcpPick.filterKeys ?? mcpFilter;
+
+  let selectedTools = [...parsed.selectedTools];
+  selectedTools = [...selectedTools, ...(await interactiveToolsSelection(parsed.nonInteractive, parsed.toolsInteractive))];
+
+  if (parsed.checkDeps) {
+    showDependencies(selectedIdes, allIdes, selectedTools);
+    await maybePromptInstallDepsForDepsFlag(selectedIdes, allIdes, selectedTools, parsed.dryRun);
+    if (!parsed.projectPath) {
+      return 0;
+    }
+  }
+
+  if (!parsed.projectPath) {
+    console.error("Error: Project path is required.");
+    console.error("");
+    printInstallHelp();
+    return 1;
+  }
+
+  const projectPath = resolve(parsed.projectPath);
+  if (!existsSync(projectPath)) {
+    console.error(`Error: Directory '${parsed.projectPath}' does not exist`);
+    return 1;
+  }
+
+  const opts: InstallOptions = {
+    projectPath,
+    hubRoot,
+    selectedIdes,
+    allIdes,
+    selectedTools,
+    toolsInteractive: parsed.toolsInteractive,
+    dryRun: parsed.dryRun,
+    uninstall: parsed.uninstall,
+    checkDeps: parsed.checkDeps,
+    sanityCheck: parsed.sanityCheck,
+    nonInteractive: parsed.nonInteractive,
+    mergeMcp,
+    mcpKeyFilter: mcpFilter,
+  };
+
+  if (opts.uninstall) {
+    uninstall(opts);
+    return 0;
+  }
+
+  if (!parsed.checkDeps) {
+    console.log("Checking dependencies...");
+    console.log("");
+    await maybePromptInstallDeps(selectedIdes, allIdes, selectedTools, parsed.nonInteractive, parsed.dryRun);
+  }
+
+  installOptionalToolClis(hubRoot, [...opts.selectedTools], opts.dryRun);
+
+  if (opts.dryRun) {
+    console.log("=== DRY RUN MODE ===");
+    console.log("");
+  }
+
+  console.log(`Installing AI config folders to: ${opts.projectPath}`);
+  console.log("");
+
+  for (const ide of opts.selectedIdes) {
+    const folder = ideFolder(ide);
+    const src = join(hubRoot, folder);
+    const dst = join(opts.projectPath, folder);
+    if (!existsSync(src)) {
+      console.log(`Skipping: ${folder} (not found in source)`);
+      continue;
+    }
+    if (existsSync(dst)) {
+      console.log(opts.dryRun ? `[DRY-RUN] Would update: ${folder}` : `Updating: ${folder}`);
+    } else {
+      console.log(opts.dryRun ? `[DRY-RUN] Would create: ${folder}` : `Creating: ${folder}`);
+    }
+    rsyncDir(src, dst, opts.dryRun);
+  }
+
+  const hubAgents = join(hubRoot, ".configs", "AGENTS.md");
+  if (existsSync(hubAgents) && opts.selectedIdes.length > 0) {
+    console.log("");
+    if (opts.dryRun) {
+      console.log(`[DRY-RUN] Would copy .configs/AGENTS.md -> ${join(opts.projectPath, "AGENTS.md")}`);
+      for (const ide of opts.selectedIdes) {
+        console.log(`[DRY-RUN] Would copy .configs/AGENTS.md -> ${join(opts.projectPath, ideFolder(ide), "AGENTS.md")}`);
+      }
+    } else {
+      console.log("Copying AGENTS.md from hub (.configs/AGENTS.md)...");
+      copyFileSync(hubAgents, join(opts.projectPath, "AGENTS.md"));
+      logSuccess("Wrote AGENTS.md (project root)");
+      for (const ide of opts.selectedIdes) {
+        const dstDir = join(opts.projectPath, ideFolder(ide));
+        mkdirSync(dstDir, { recursive: true });
+        copyFileSync(hubAgents, join(dstDir, "AGENTS.md"));
+        logSuccess(`Wrote ${ideFolder(ide)}/AGENTS.md`);
+      }
+    }
+  } else if (!existsSync(hubAgents) && opts.selectedIdes.length > 0) {
+    logInfo(".configs/AGENTS.md not found in hub — skipping AGENTS.md copy");
+  }
+
+  const hubSkillgrid = join(hubRoot, ".skillgrid");
+  if (existsSync(hubSkillgrid)) {
+    console.log("");
+    const dstSkillgrid = join(opts.projectPath, ".skillgrid");
+    if (opts.dryRun) {
+      console.log(existsSync(dstSkillgrid) ? "[DRY-RUN] Would update: .skillgrid" : "[DRY-RUN] Would create: .skillgrid");
+    } else {
+      console.log(existsSync(dstSkillgrid) ? "Updating: .skillgrid" : "Creating: .skillgrid");
+      rsyncPlain(hubSkillgrid, dstSkillgrid, opts.dryRun);
+      if (!opts.dryRun) logSuccess("Synced .skillgrid/ (hub templates → project)");
+    }
+  } else {
+    logInfo(".skillgrid/ not found in hub — skipping");
+  }
+
+  console.log("");
+  console.log("Syncing skills configurations...");
+  const skillsSrc = join(hubRoot, ".agents", "skills");
+  if (existsSync(skillsSrc)) {
+    for (const ide of opts.selectedIdes) {
+      if (ide === "antigravity") {
+        const target = join(opts.projectPath, ".agents", "skills");
+        if (opts.dryRun) console.log("[DRY-RUN] Would sync skills to: .agents/skills");
+        else {
+          mkdirSync(target, { recursive: true });
+          console.log("Syncing skills to: .agents/skills");
+          rsyncDelete(skillsSrc, target, opts.dryRun);
+        }
+      } else if (ide === "cursor") {
+        const target = join(opts.projectPath, ".cursor", ".agents", "skills");
+        if (opts.dryRun) console.log("[DRY-RUN] Would sync skills to: .cursor/.agents/skills");
+        else {
+          mkdirSync(target, { recursive: true });
+          console.log("Syncing skills to: .cursor/.agents/skills");
+          rsyncDelete(skillsSrc, target, opts.dryRun);
+        }
+      } else if (ide === "kilo") {
+        const target = join(opts.projectPath, ".kilo", "skills");
+        if (opts.dryRun) console.log("[DRY-RUN] Would sync skills to: .kilo/skills");
+        else {
+          mkdirSync(target, { recursive: true });
+          console.log("Syncing skills to: .kilo/skills");
+          rsyncDelete(skillsSrc, target, opts.dryRun);
+        }
+      } else if (ide === "opencode") {
+        const target = join(opts.projectPath, ".opencode", "skills");
+        if (opts.dryRun) console.log("[DRY-RUN] Would sync skills to: .opencode/skills");
+        else {
+          mkdirSync(target, { recursive: true });
+          console.log("Syncing skills to: .opencode/skills");
+          rsyncDelete(skillsSrc, target, opts.dryRun);
+        }
+      }
+    }
+  } else {
+    logInfo(`Skills source not found: ${skillsSrc} — skipping skills sync`);
+  }
+
+  if (opts.selectedIdes.includes("copilot")) {
+    for (const extra of [".github", ".copilot"]) {
+      const src = join(hubRoot, extra);
+      const dst = join(opts.projectPath, extra);
+      if (!existsSync(src)) {
+        console.log(`Skipping: ${extra} (not found in source)`);
+        continue;
+      }
+      if (existsSync(dst)) {
+        console.log(opts.dryRun ? `[DRY-RUN] Would update: ${extra}` : `Updating: ${extra}`);
+      } else {
+        console.log(opts.dryRun ? `[DRY-RUN] Would create: ${extra}` : `Creating: ${extra}`);
+      }
+      rsyncPlain(src, dst, opts.dryRun);
+    }
+  }
+
+  console.log("");
+  console.log("Merging MCP configurations...");
+  const merged = computeMergedMcp(hubRoot, opts.mergeMcp, opts.mcpKeyFilter);
+  verifyEngramSetup(hubRoot, merged, opts.mergeMcp);
+
+  console.log("");
+  console.log("Setting up IDE configurations...");
+  for (const ide of opts.selectedIdes) {
+    if (opts.dryRun) {
+      console.log(`[DRY-RUN] Would setup: ${ide}`);
+      continue;
+    }
+    switch (ide) {
+      case "cursor":
+        setupCursor(opts.projectPath, merged, opts.mergeMcp, false);
+        break;
+      case "copilot":
+        setupCopilot(opts.projectPath, merged, opts.mergeMcp, false);
+        break;
+      case "kilo":
+        setupKilo(opts.projectPath, merged, opts.mergeMcp, false);
+        break;
+      case "opencode":
+        setupOpencode(hubRoot, opts.projectPath, merged, opts.mergeMcp, false);
+        break;
+      case "antigravity":
+        setupAntigravity(opts.projectPath, merged, opts.mergeMcp, false);
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (toolIsSelected(opts.selectedTools, "openspec") && existsSync(join(hubRoot, "openspec"))) {
+    const target = join(opts.projectPath, "openspec");
+    if (existsSync(target)) {
+      console.log(opts.dryRun ? "[DRY-RUN] Would update: openspec" : "Updating: openspec");
+    } else {
+      console.log(opts.dryRun ? "[DRY-RUN] Would create: openspec" : "Creating: openspec");
+    }
+    rsyncDir(join(hubRoot, "openspec"), target, opts.dryRun);
+  } else if (toolIsSelected(opts.selectedTools, "openspec")) {
+    logInfo("openspec: hub has no openspec/ — skip copy");
+  }
+
+  if (toolIsSelected(opts.selectedTools, "openspec")) {
+    console.log("");
+    if (opts.dryRun) {
+      console.log(`[DRY-RUN] Would run: openspec init in ${join(opts.projectPath, "openspec")}`);
+    } else if (existsSync(join(opts.projectPath, "openspec"))) {
+      console.log("Running openspec init...");
+      spawnSync("openspec", ["init"], { cwd: join(opts.projectPath, "openspec"), stdio: "inherit", shell: process.platform === "win32" });
+    }
+  }
+
+  console.log("");
+  if (opts.dryRun) {
+    console.log("=== DRY RUN COMPLETE ===");
+    console.log("(No changes were made)");
+  } else {
+    console.log(`Done! IDE config folders have been copied to ${opts.projectPath}`);
+  }
+
+  return 0;
+}
+
+function printInstallHelp() {
+  console.log(`Usage:
+  skillgrid install [OPTIONS]
+
+Options:
+  -p, --path <dir>      Install to a specific project path
+  -c, --cursor          Setup configuration for Cursor
+  -C, --copilot         Setup configuration for Copilot
+  -k, --kilo            Setup configuration for Kilocode
+  -o, --opencode        Setup configuration for opencode
+  -a, --antigravity     Setup configuration for Google Antigravity
+  -A, --all             Setup for all supported IDEs (default if none selected)
+  -t, --tools           Interactive prompt for optional tools
+  -d, --deps            Check and install dependencies before install
+  --sanity-check        Verify hub dependencies and expected files
+  -y, --yes             Non-interactive mode (skip prompts)
+  --no-mcp              Skip MCP server configuration
+  -n, --dry-run         Show what would be installed without making changes
+  -u, --uninstall       Remove managed IDE dirs from target
+  -v, --version         Print version
+  -h, --help            Show help
+
+Legacy bash installer (same behavior, alternate path):
+  ./install.sh [same flags]
+
+See docs/01-installation.md for dependency notes.`);
+}

@@ -169,9 +169,6 @@ npm install -g @mariozechner/pi-coding-agent
     * create separate git branch for prds and work on that
     * at the and create PR
   * Agent Orcrestration
-    * 
-    * 
-    * 
   * Agent Orcrestration TUI
     * tmux
     * dmux

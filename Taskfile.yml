@@ -1,0 +1,90 @@
+version: "3"
+
+vars:
+  SKILLGRID_CLI_DIR: skillgrid-cli
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  hub:npm-ci:
+    desc: Install pinned Node dependencies at repo root (npm ci)
+    cmds:
+      - npm ci
+
+  hub:npm-install:
+    desc: Install hub root dependencies (npm install)
+    cmds:
+      - npm install
+
+  hub:test-skillgrid-ui:
+    desc: Run Skillgrid dashboard script tests
+    cmds:
+      - npm run test:skillgrid-ui
+
+  skillgrid:deps:
+    desc: Install skillgrid-cli Node dependencies (npm ci)
+    dir: "{{.SKILLGRID_CLI_DIR}}"
+    cmds:
+      - npm ci
+
+  skillgrid:deps-install:
+    desc: Install skillgrid-cli dependencies (npm install)
+    dir: "{{.SKILLGRID_CLI_DIR}}"
+    cmds:
+      - npm install
+
+  skillgrid:build-tsc:
+    desc: Typecheck skillgrid-cli only (no Bun binary)
+    dir: "{{.SKILLGRID_CLI_DIR}}"
+    cmds:
+      - npm run build:tsc
+
+  skillgrid:build-binary:
+    desc: Compile skillgrid-cli to bin/skillgrid (requires Bun on PATH)
+    dir: "{{.SKILLGRID_CLI_DIR}}"
+    preconditions:
+      - sh: command -v bun >/dev/null 2>&1
+        msg: "Install Bun (https://bun.sh) and ensure it is on PATH, or run task skillgrid:build-tsc"
+    cmds:
+      - npm run build:binary
+
+  skillgrid:build:
+    desc: Typecheck + Bun-compile skillgrid-cli (npm run build)
+    dir: "{{.SKILLGRID_CLI_DIR}}"
+    preconditions:
+      - sh: command -v bun >/dev/null 2>&1
+        msg: "Install Bun (https://bun.sh) and ensure it is on PATH, or run task skillgrid:build-tsc"
+    cmds:
+      - npm ci
+      - npm run build
+
+  skillgrid:test:
+    desc: Run skillgrid-cli unit tests (tsc + node --test)
+    dir: "{{.SKILLGRID_CLI_DIR}}"
+    cmds:
+      - npm test
+
+  skillgrid:run:
+    desc: "Run built skillgrid binary. Example: task skillgrid:run CLI_ARGS=\"install --help\""
+    dir: "{{.SKILLGRID_CLI_DIR}}"
+    vars:
+      CLI_ARGS: ""
+    preconditions:
+      - sh: test -x ./bin/skillgrid
+        msg: "Run task skillgrid:build first to create bin/skillgrid (requires Bun)."
+    cmds:
+      - ./bin/skillgrid {{.CLI_ARGS}}
+
+  test:
+    desc: Run skillgrid-cli tests and hub skillgrid-ui tests
+    cmds:
+      - task skillgrid:test
+      - task hub:test-skillgrid-ui
+
+  install-sh-help:
+    desc: Show legacy bash installer help
+    cmds:
+      - ./install.sh --help
