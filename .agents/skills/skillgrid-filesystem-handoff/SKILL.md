@@ -29,7 +29,7 @@ Treat the handoff as the current-state file for the change. It should answer: wh
 
 ### Handoff Contents
 
-Keep `context_<change-id>.md` concise and skimmable. Copy the canonical blank from **`.skillgrid/templates/template-handoff-context.md`**. Planning logic: **`docs/skillgrid-templates-and-logic.md`**.
+Keep `context_<change-id>.md` concise and skimmable. Copy the canonical blank from **`.skillgrid/templates/template-handoff-context.md`**. Planning logic: **`docs/03-skillgrid-logic.md`**.
 
 Do not turn the handoff into a raw transcript. Link to research files when details are long.
 

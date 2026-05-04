@@ -179,7 +179,7 @@ For Skillgrid + OpenSpec work, read when present (before deep implementation):
 
 After meaningful work: refresh the INDEX snapshot, `tasks.md`, slice specs, and handoff per phase (`skillgrid-prd-artifacts`, `skillgrid-spec-artifacts`).
 
-**File blanks:** copy from **`.skillgrid/templates/`** (`template-*.md`; see **`docs/skillgrid-templates-and-logic.md`**). Architectural decisions: **`.skillgrid/templates/template-adr.md`** → new `NNNN-*.md` under **`.skillgrid/adr/`** (that folder holds ADRs only).
+**File blanks:** copy from **`.skillgrid/templates/`** (`template-*.md`; see **`docs/03-skillgrid-logic.md`**). Architectural decisions: **`.skillgrid/templates/template-adr.md`** → new `NNNN-*.md` under **`.skillgrid/adr/`** (that folder holds ADRs only).
 
 ## Skillgrid: per-change handoff (filesystem context)
 

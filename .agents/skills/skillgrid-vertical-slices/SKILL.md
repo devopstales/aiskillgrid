@@ -60,6 +60,8 @@ INDEX.md (milestone + snapshot)
 - **`tasks.md`** — ordered work and DAG-style dependencies across slices.
 - **`specs/<slice>/spec.md`** — bounded context per vertical slice; prefer loading this during `/skillgrid-apply` for one slice at a time.
 
+Per **`docs/03-skillgrid-logic.md`**, a shippable unit uses **both** `tasks.md` and `specs/<vertical-slice-slug>/spec.md`. Listing slices only in the PRD without creating the OpenSpec paths is out of spec for `/skillgrid-breakdown` and for apply.
+
 Do not create a separate runtime or database to model this hierarchy. The ordered PRD index, OpenSpec change, slice specs, and handoff file are enough.
 
 ### Task Tags
@@ -94,7 +96,7 @@ After completion, the handoff should record a slice summary: what changed, evide
 
 ### Slice Template
 
-Use this when writing PRD implementation tasks, OpenSpec `tasks.md`, or issue bodies:
+Use this when writing PRD implementation tasks, OpenSpec `tasks.md`, or issue bodies. For Skillgrid, the **canonical** slice contract is OpenSpec; the PRD repeats the same slices and **must** include the **Slice spec:** path pointing at `openspec/changes/<change-id>/specs/<slice-slug>/spec.md` (that file must exist before breakdown is considered complete).
 
 ```markdown
 ### Slice <N>: <user-visible capability>

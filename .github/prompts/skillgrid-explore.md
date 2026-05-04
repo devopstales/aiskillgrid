@@ -1,5 +1,5 @@
 ---
-description: Explore the problem and repo: OpenSpec list, PRD backfill, .skillgrid/project, AGENTS, GitNexus
+description: Explore the repo—current architecture, DESIGN.md from implementation, user Q&A, ADRs—plus OpenSpec, PRDs, project docs, GitNexus
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[optional: topic, change id, or area to explore]"
 ---
@@ -9,6 +9,10 @@ argument-hint: "[optional: topic, change id, or area to explore]"
 You are executing **`/skillgrid-explore`** for the Skillgrid workflow.
 
 Map the problem and repo without implementing product behavior. Exploration may update planning artifacts, PRDs, and project docs.
+
+Ground root **`DESIGN.md` in the current implemented design** (themes, tokens, components, CSS variables)—**not** from **`/skillgrid-init`** blank scaffolding or template-only placeholders. Treat **`/skillgrid-init`** output as provisional until explore replaces it with code-backed facts.
+
+Reconcile **`.skillgrid/project/ARCHITECTURE.md`** (and related project docs) with the **actual** system: boundaries, dependencies, and tacit decisions visible in code and tests. Use **`skillgrid-questioning`** to ask the user about ambiguity, history, and trade-offs the repo cannot answer. **ADR gate:** for durable architectural decisions, follow **`documentation-and-adrs`**, but **do not** create new **`.skillgrid/adr/NNNN-*.md`** files or add new **Durable decisions** links in **`ARCHITECTURE.md`** until the user **explicitly accepts** a concrete ADR draft (show the draft in chat or in the handoff file first). After acceptance, write the MADR and links. If the user defers or rejects, record candidate ADRs only in the completion report or **`.skillgrid/tasks/research/<change-id>/`**—no new ADR files.
 
 **Status on exit:** no mandatory status change; backfilled PRDs use `skillgrid-prd-artifacts` status rules.
 
@@ -36,6 +40,7 @@ Before acting, load only the skills needed for the phase:
 - `.agents/skills/skillgrid-filesystem-handoff/SKILL.md` — `context_<change-id>.md`, `events/<change-id>.jsonl`, and `research/<change-id>/`.
 - `.agents/skills/skillgrid-openspec-config/SKILL.md` — `openspec/config.yaml` overlay rules.
 - `.agents/skills/skillgrid-project-docs/SKILL.md` — `DESIGN.md` and `.skillgrid/project/*` docs.
+- `.agents/skills/documentation-and-adrs/SKILL.md` — MADR ADRs under `.skillgrid/adr/`, decision lifecycle, links from `ARCHITECTURE.md`.
 - `.agents/skills/skillgrid-checkpoints/SKILL.md` — `.skillgrid/tasks/checkpoints.log`.
 
 
@@ -49,6 +54,8 @@ Load these first for this command:
 - `skillgrid-import-artifacts`
 - `skillgrid-prd-artifacts`
 - `skillgrid-project-docs`
+- `documentation-and-adrs`
+- `skillgrid-questioning`
 - `skillgrid-filesystem-handoff`
 
 ## Event Log Rule
@@ -62,8 +69,11 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 3. If existing PRDs or OpenSpec changes lack canonical `.skillgrid/prd/` coverage, automatically invoke `skillgrid-import-artifacts` import/backfill behavior.
 4. Import root `prd/`, `docs/PRD/`, or `docs/prd/` PRDs into `.skillgrid/prd/` when unambiguous; report ambiguous matches instead of silently merging them.
 5. Use `skillgrid-parallel-research` local templates for independent repo, docs, or web research lanes; spill long output to `.skillgrid/tasks/research/<change-id>/`.
-6. Refresh `.skillgrid/project/*` and `DESIGN.md` only for stable discovered facts.
-7. Stop when the scope is clear enough to recommend `/skillgrid-brainstorm` or `/skillgrid-plan`.
+6. **Current architecture:** compare **`.skillgrid/project/ARCHITECTURE.md`** (and stack notes in **`PROJECT.md`**) to the real codebase—modules, boundaries, data flow, and infra. Record drift, missing subsystems, and decisions implied only by code; the doc must reflect **today’s** system, not init-time guesses.
+7. **`DESIGN.md` from current design:** follow **`skillgrid-project-docs`** (and **`skillgrid-ui-design-artifacts`** when UI-heavy). **Extract** tokens, typography, color, spacing, and component conventions from **implemented** sources (Tailwind config, CSS variables, theme files, design-system packages). **Do not** copy empty **`/skillgrid-init`** or template-only **`DESIGN.md`** as the final word—replace boilerplate with evidence from the repo.
+8. **User questions and ADRs:** use **`skillgrid-questioning`** for blocking or high-impact unknowns (ownership, deprecated paths, product constraints). Persist answers in handoff or **`.skillgrid/project/*`** as appropriate. **ADR files:** present each candidate ADR as a **draft** (context, options, decision) and **stop for explicit user acceptance** before any write. **Only after** the user clearly approves (e.g. “yes, add that ADR”), create **`NNNN-slug.md`** under **`.skillgrid/adr/`** from **`.skillgrid/templates/template-adr.md`**, set MADR **`status: accepted`**, and add the **Durable decisions** link in **`ARCHITECTURE.md`**. If the user has not accepted, **do not** create ADRs—list deferred candidates in the completion report or **`.skillgrid/tasks/research/<change-id>/`** only.
+9. Refresh **`.skillgrid/project/STRUCTURE.md`**, **`PROJECT.md`**, and other project files for other stable, non-design facts discovered during mapping.
+10. Stop when the scope is clear enough to recommend `/skillgrid-brainstorm` or `/skillgrid-plan`.
 
 ## Completion Report
 

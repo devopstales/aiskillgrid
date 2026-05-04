@@ -132,7 +132,7 @@ Get a user by ID.
 
 ## 5. Architecture Decision Record (ADR)
 
-Use **MADR** (Markdown Any Decision Records) under **`.skillgrid/adr/`**. Copy **`.skillgrid/templates/template-adr.md`**; name files `NNNN-short-title-in-kebab-case.md`. See [`documentation-and-adrs`](../documentation-and-adrs/SKILL.md) and **`docs/skillgrid-templates-and-logic.md`**.
+Use **MADR** (Markdown Any Decision Records) under **`.skillgrid/adr/`**. Copy **`.skillgrid/templates/template-adr.md`**; name files `NNNN-short-title-in-kebab-case.md`. See [`documentation-and-adrs`](../documentation-and-adrs/SKILL.md) and **`docs/03-skillgrid-logic.md`**.
 
 Upstream template reference: [adr/madr `adr-template.md` (develop)](https://raw.githubusercontent.com/adr/madr/refs/heads/develop/template/adr-template.md).
 

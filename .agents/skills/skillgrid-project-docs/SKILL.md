@@ -71,7 +71,7 @@ Use `skillgrid-ui-design-artifacts` for UI previews and design-option decisions.
 
 ### DESIGN.md Template
 
-Canonical blank: **`.skillgrid/templates/template-design.md`** (repo root `DESIGN.md`). See **`docs/skillgrid-templates-and-logic.md`**.
+Canonical blank: **`.skillgrid/templates/template-design.md`** (repo root `DESIGN.md`). See **`docs/03-skillgrid-logic.md`**.
 
 ### ARCHITECTURE.md Template
 
@@ -93,7 +93,7 @@ rg "tailwind|theme|:root|--color|font-family"
 
 ## Resources
 
-- Templates and planning logic: `docs/skillgrid-templates-and-logic.md`
+- Templates and planning logic: `docs/03-skillgrid-logic.md`
 - Canonical blanks: `.skillgrid/templates/template-*.md` (see `README.md` there)
 - Codebase mapping: `gitnexus-exploring`, `skillgrid-codebase-map`
 - UI design artifacts: `skillgrid-ui-design-artifacts`

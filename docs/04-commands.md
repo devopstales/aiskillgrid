@@ -89,7 +89,7 @@ Validation uses a double review gate for delegated or risky implementation: firs
 
 When a decision needs multiple viewpoints, validation can use a specialist persona board: bounded reports from focused personas such as `spec-verifier`, `code-reviewer`, `test-engineer`, `security-auditor`, `design-critic`, or `researcher`. The board advises; the parent session records the decision and remains responsible for the final go/no-go.
 
-For subagent operating rules, use `05-multi-agent-work.md` and `.agents/skills/skillgrid-subagent-orchestration/SKILL.md`. They cover dependency waves, handoff/event logs, safe parallelism, and planned git worktree separation for parallel implementation.
+For subagent operating rules, use `06-multi-agent-work.md` and `.agents/skills/skillgrid-subagent-orchestration/SKILL.md`. They cover dependency waves, handoff/event logs, safe parallelism, and planned git worktree separation for parallel implementation.
 
 ### Finish
 

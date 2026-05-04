@@ -98,15 +98,15 @@ Read the files in this folder in numeric order:
 1. `00-start-here.md` explains the whole solution and why it matters.
 2. `01-installation.md` explains what gets installed and where.
 3. `02-workflow-usage.md` explains how a new user should operate the system.
-4. `03-commands.md` explains the workflow commands.
-5. `04-skills.md` explains reusable agent skills.
-6. `05-multi-agent-work.md` explains subagents, personas, dependency waves, handoff/event logs, orchestration, worktree separation, and parallelism.
-7. `06-subagent-personas.md` explains the specialist persona catalog.
-8. `07-mcp-servers.md` explains external tool connections.
-9. `08-memory-and-indexing.md` explains durable context and codebase search.
-10. `09-ticketing-integrations.md` explains local and external work tracking.
-11. `10-webui.md` explains the local dashboard.
-12. `skillgrid-templates-and-logic.md` explains PRD/INDEX/OpenSpec hierarchy and **`.skillgrid/templates/`** file blanks.
+4. `03-skillgrid-logic.md` explains PRD/INDEX/OpenSpec hierarchy and **`.skillgrid/templates/`** file blanks.
+5. `04-commands.md` explains the workflow commands.
+6. `05-skills.md` explains reusable agent skills.
+7. `06-multi-agent-work.md` explains subagents, personas, dependency waves, handoff/event logs, orchestration, worktree separation, and parallelism.
+8. `07-subagent-personas.md` explains the specialist persona catalog.
+9. `08-mcp-servers.md` explains external tool connections.
+10. `09-memory-and-indexing.md` explains durable context and codebase search.
+11. `10-ticketing-integrations.md` explains local and external work tracking.
+12. `11-webui.md` explains the local dashboard.
 
 ## First Mental Model
 

@@ -55,7 +55,7 @@ Skillgrid uses one mental model for planning and execution (see `skillgrid-prd-a
 |---------|------------|--------------|----------------|
 | Milestone / program slice | Epic | Milestone | `.skillgrid/prd/INDEX.md` — dependency-ordered PRD table **and** optional **Execution snapshot** at the top (current phase, active change/slice, discovered work, session notes). |
 | Feature initiative | Task | Issue | `.skillgrid/prd/PRD<NN>_<slug>.md` + `openspec/changes/<change-id>/` |
-| Shippable unit | Sub-task | Checklist item | Vertical slice — rows in `openspec/changes/<change-id>/tasks.md` and/or `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` |
+| Shippable unit | Sub-task | Checklist item | Vertical slice — `openspec/changes/<change-id>/tasks.md` **and** `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` (see `docs/03-skillgrid-logic.md`) |
 
 **OpenSpec per change** (one folder per PRD-style initiative):
 
@@ -69,7 +69,7 @@ openspec/changes/<change-id>/
 
 Optional umbrella: `openspec/specs/<change-id>/spec.md` for cross-cutting requirements. There is **no** `.skillgrid/project/TASK.md`; use INDEX snapshot + `tasks.md` + slice specs for “where we are” and sub-task detail.
 
-Canonical **blank files** (`template-*.md` under **`.skillgrid/templates/`**) and a consolidated explanation live in **`docs/skillgrid-templates-and-logic.md`**.
+Canonical **blank files** (`template-*.md` under **`.skillgrid/templates/`**) and a consolidated explanation live in **`docs/03-skillgrid-logic.md`**.
 
 ## Shared Understanding Before Planning
 
@@ -259,7 +259,7 @@ The board must write durable state:
 
 The board advises. It does not silently vote the workflow forward.
 
-For the full multi-agent operating model, see `05-multi-agent-work.md`. It covers personas, dependency waves, handoff and event logs, the subagent orchestration skill, planned git worktree separation, and parallelism rules.
+For the full multi-agent operating model, see `06-multi-agent-work.md`. It covers personas, dependency waves, handoff and event logs, the subagent orchestration skill, planned git worktree separation, and parallelism rules.
 
 ## Finishing Work
 

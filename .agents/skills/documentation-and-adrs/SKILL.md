@@ -48,7 +48,7 @@ Store ADRs under **`.skillgrid/adr/`** only (not `docs/decisions/`).
 
 - **Naming:** `NNNN-short-title-in-kebab-case.md` (four-digit prefix, e.g. `0001-use-postgresql-for-primary-db.md`).
 - **Template:** copy **`.skillgrid/templates/template-adr.md`** into `.skillgrid/adr/` as `NNNN-slug.md` (or the [upstream MADR template](https://raw.githubusercontent.com/adr/madr/refs/heads/develop/template/adr-template.md)). MADR uses YAML frontmatter (`status`, `date`, optional `decision-makers`, `consulted`, `informed`) and sections such as **Context and Problem Statement**, **Decision Drivers**, **Considered Options**, **Decision Outcome** (with optional **Consequences** / **Confirmation**), **Pros and Cons of the Options**, and **More Information**.
-- **Discovery:** `.skillgrid/adr/` contains only `NNNN-*.md` ADR files. Add a one-line link under **Durable decisions** in `.skillgrid/project/ARCHITECTURE.md` (and optionally note in `docs/skillgrid-templates-and-logic.md`) so others can find new ADRs.
+- **Discovery:** `.skillgrid/adr/` contains only `NNNN-*.md` ADR files. Add a one-line link under **Durable decisions** in `.skillgrid/project/ARCHITECTURE.md` (and optionally note in `docs/03-skillgrid-logic.md`) so others can find new ADRs.
 - **Cross-link:** add a short bullet under **Durable decisions** in `.skillgrid/project/ARCHITECTURE.md` pointing to the new file (see `skillgrid-project-docs`).
 
 ### ADR Lifecycle

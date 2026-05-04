@@ -1,5 +1,5 @@
 ---
-description: PRD implementation checklist synced with OpenSpec tasks.md
+description: Sync PRD with OpenSpec tasks.md and one specs/<slice>/spec.md per vertical slice (docs/03-skillgrid-logic.md)
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[change-id or PRD slug]"
 ---
@@ -8,7 +8,7 @@ argument-hint: "[change-id or PRD slug]"
 
 You are executing **`/skillgrid-breakdown`** for the Skillgrid workflow.
 
-Turn an accepted PRD/OpenSpec change into an implementation checklist synced with `tasks.md`.
+Turn an accepted PRD/OpenSpec change into an implementation checklist: **`tasks.md` plus `specs/<vertical-slice-slug>/spec.md` for every vertical slice** (`docs/03-skillgrid-logic.md`). Do not end with slices defined only in the PRD.
 
 **Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.breakdown` when the checklist is approved (default: `todo`).
 
@@ -59,10 +59,10 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 1. Select the change and PRD; stop if either is missing.
 2. Use `openspec status` and instructions to identify incomplete artifacts.
 3. Distinguish destination artifacts from journey artifacts: PRD/OpenSpec define done; `tasks.md`, issues, handoff, and events define how agents move toward done.
-4. Build or refresh `openspec/changes/<change-id>/tasks.md` from PRD, proposal, specs, and design. For each vertical slice, add or refresh `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` with slice-scoped requirements and a checklist (`skillgrid-spec-artifacts`). Optionally add `openspec/specs/<change-id>/spec.md` for umbrella requirements.
+4. Build or refresh `openspec/changes/<change-id>/tasks.md` from PRD, proposal, specs, and design. **For each vertical slice, you must add or refresh** `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` (copy from **`.skillgrid/templates/template-openspec-slice-spec.md`**) with slice-scoped requirements and a checklist (`skillgrid-spec-artifacts`). Optionally add `openspec/specs/<change-id>/spec.md` for umbrella requirements. **Gate:** slice count in PRD implementation / `tasks.md` must match the set of `specs/<slug>/` folders (no PRD-only slices).
 5. Shape `tasks.md` as a vertical-slice Kanban/DAG, not only a numbered checklist. Record `blockedBy`, `unblocks`, expected file ownership, and dependency wave where useful.
 6. Prefer tracer-bullet vertical slices that cross enough layers to produce visible or testable feedback. Allow horizontal setup only when necessary and label the reason.
-7. Keep the PRD Implementation tasks section and OpenSpec `tasks.md` aligned.
+7. Keep the PRD Implementation tasks section and OpenSpec `tasks.md` **and each slice `spec.md`** aligned (same slices, slugs, and acceptance criteria; PRD rows link to the `spec.md` paths).
 8. For every apply-ready slice, require:
    - slice goal and acceptance criteria;
    - `[AFK]` or `[HITL]` reason;
@@ -79,6 +79,6 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 
 ## Completion Report
 
-Report selected PRD/change, task count, HITL blockers, AFK-ready slices, configured status set for `breakdown`, and recommended `/skillgrid-apply`.
+Report selected PRD/change, task count, **number of slice `spec.md` files created or updated**, HITL blockers, AFK-ready slices, configured status set for `breakdown`, and recommended `/skillgrid-apply`.
 
 </process>

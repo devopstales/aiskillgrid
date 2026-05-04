@@ -40,7 +40,7 @@ If disk artifacts and Engram disagree, treat disk artifacts as canonical in `hyb
 - **Role:** Repo knowledge graph and agent code-intelligence index (`.gitnexus/`, GitNexus MCP resources/tools) for communities, execution flows, impact analysis, and symbol context.
 - **When:** Broad architecture or “how is this codebase structured?”—especially if `AGENTS.md` or project rules mention GitNexus.
 - **Refresh:** After substantive code or layout changes, run `npx -y gitnexus@1.3.11 analyze` from the repo root. Use `npx -y gitnexus@1.3.11 analyze --force` only when a full rebuild is needed.
-- **Init:** **`npx -y gitnexus@1.3.11 analyze`** from the repo root when building the graph the first time (e.g. **`/skillgrid-init`**). Use **`npx -y gitnexus@1.3.11 analyze --skills`** when repo-specific agent skills are desired.
+- **Init:** **`npx -y gitnexus@1.3.11 analyze`** from the repo root when building the graph the first time (e.g. **`/skillgrid-init`**).
 - **MCP:** Configure **`npx -y gitnexus@1.3.11 mcp`** so agents can call GitNexus `query`, `context`, `impact`, `detect_changes`, and related graph tools.
 
 ## CocoIndex Code (`ccc`)

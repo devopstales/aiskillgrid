@@ -21,7 +21,7 @@ Write the registry to:
 .skillgrid/project/SKILL_REGISTRY.md
 ```
 
-This file is generated project context. It complements `docs/04-skills.md`; it does not replace the human-facing skills documentation.
+This file is generated project context. It complements `docs/05-skills.md`; it does not replace the human-facing skills documentation.
 
 ## What To Scan
 

@@ -20,8 +20,8 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ## What you get
 
-- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, built-in `playwright` and `git-master`, GitNexus, Engram memory protocol, and more). See [docs/04-skills.md](docs/04-skills.md).
-- **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/03-commands.md](docs/03-commands.md).
+- **Skills** — `.agents/skills/` (OpenSpec lifecycle, SDD-style phases, code review, security, TDD, built-in `playwright` and `git-master`, GitNexus, Engram memory protocol, and more). See [docs/05-skills.md](docs/05-skills.md).
+- **Commands** — Phase commands (`/skillgrid-*`) and OpenSpec commands (`/opsx-*`) for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. See [docs/04-commands.md](docs/04-commands.md).
 - **Workflow** — End-to-end phases from init through finish in [docs/02-workflow-usage.md](docs/02-workflow-usage.md).
 - **Installer** — [`install.sh`](install.sh) syncs IDE folders, merges MCP JSON, copies `AGENTS.md`, and optionally installs CLIs (OpenSpec, GitNexus, dmux, Engram, and other optional tools from [docs/01-installation.md](docs/01-installation.md)).
 - **Shared agent rules** — [`.configs/AGENTS.md`](.configs/AGENTS.md) is copied to the target project and IDE config dirs when you install.
@@ -30,7 +30,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 
 ## Workflow
 
-**Phase 0** (`/skillgrid-session`) plus the Skillgrid **`/skillgrid-*`** steps summarized in [docs/02-workflow-usage.md](docs/02-workflow-usage.md), including optional **`/skillgrid-loop`** for controlled AFK progression and **`/skillgrid-validate`** as a single review-and-security gate. The diagram below is a six-phase mental model; exact steps and templates live in each command file. **OpenSpec**-focused steps also have **`/opsx-*`** aliases (see [docs/03-commands.md](docs/03-commands.md)).
+**Phase 0** (`/skillgrid-session`) plus the Skillgrid **`/skillgrid-*`** steps summarized in [docs/02-workflow-usage.md](docs/02-workflow-usage.md), including optional **`/skillgrid-loop`** for controlled AFK progression and **`/skillgrid-validate`** as a single review-and-security gate. The diagram below is a six-phase mental model; exact steps and templates live in each command file. **OpenSpec**-focused steps also have **`/opsx-*`** aliases (see [docs/04-commands.md](docs/04-commands.md)).
 
 **Init** writes **`.skillgrid/config.json`**: **ticketing** (`local` or a remote issue backend), **artifact store** (`hybrid` is the strongly recommended default, or `openspec` / `engram` for constrained setups), and **PRD workflow** (`prdWorkflow.statuses` and phase mapping) — so later commands know whether to use **`openspec/`** on disk, **Engram** memory, or both, and which local Kanban/status lifecycle to follow. See **`/skillgrid-init`** and [docs/02-workflow-usage.md](docs/02-workflow-usage.md).
 
@@ -111,11 +111,12 @@ You need a working **bash**, **rsync**, and **jq** for a full install with MCP m
 
 | Doc | Contents |
 |-----|----------|
-| [docs/06-subagent-personas.md](docs/06-subagent-personas.md) | IDE agent personas (`.cursor/agents/`, mirrors, format) |
+| [docs/03-skillgrid-logic.md](docs/03-skillgrid-logic.md) | PRD/INDEX/OpenSpec hierarchy and **`.skillgrid/templates/`** blanks |
+| [docs/07-subagent-personas.md](docs/07-subagent-personas.md) | IDE agent personas (`.cursor/agents/`, mirrors, format) |
 | [docs/02-workflow-usage.md](docs/02-workflow-usage.md) | Skillgrid phases, **`.skillgrid/config.json`**, PRD and OpenSpec handoff |
 | `.skillgrid/project/` | Project-local architecture, structure, and onboarding docs when initialized |
-| [docs/04-skills.md](docs/04-skills.md) | Catalog of all skills with paths and summaries |
-| [docs/03-commands.md](docs/03-commands.md) | Slash commands and where they live per IDE |
+| [docs/05-skills.md](docs/05-skills.md) | Catalog of all skills with paths and summaries |
+| [docs/04-commands.md](docs/04-commands.md) | Slash commands and where they live per IDE |
 | [docs/01-installation.md](docs/01-installation.md) | Install toolchain and workflow CLIs / IDEs |
 | [docs/TODO.md](docs/TODO.md) | IDE matrix and internal notes |
 | [docs/00-start-here.md](docs/00-start-here.md) | Start-here overview and manifesto: human-in-the-loop pipelines, spec-driven guidance, harness engineering |

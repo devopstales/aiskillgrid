@@ -25,6 +25,7 @@ This skill owns the Skillgrid bridge into OpenSpec:
 - align `design.md` with implementation approach and UI constraints
 - align delta specs with measurable requirements and scenarios
 - align `tasks.md` with PRD implementation tasks
+- ensure **one** `specs/<vertical-slice-slug>/spec.md` per named vertical slice (breakdown is incomplete if slices exist only in the PRD)
 - run or request OpenSpec validation before implementation or archival
 
 Do not duplicate the full OpenSpec phase skills. Reuse:
@@ -47,9 +48,9 @@ PRD intent
   -> validate/apply/archive
 ```
 
-**Per-slice layout:** Each vertical slice gets `openspec/changes/<change-id>/specs/<slice-slug>/spec.md` — slice-scoped requirements, scenarios, and a checklist agents can load without the whole change. **`tasks.md`** remains the integration ordering surface across slices.
+**Per-slice layout (required for Skillgrid):** Each vertical slice gets `openspec/changes/<change-id>/specs/<slice-slug>/spec.md` — slice-scoped requirements, scenarios, and a checklist agents can load without the whole change. **`tasks.md`** is the cross-slice ordering and integration checklist. Per `docs/03-skillgrid-logic.md`, a shippable unit is **not** “tasks.md or slice spec”; it is **tasks.md + `specs/<slice>/spec.md`**. PRD slice write-ups must stay in lockstep and link to these paths; never stop at PRD-only slice bullets after `/skillgrid-breakdown`.
 
-**Canonical blanks:** **`.skillgrid/templates/template-openspec-slice-spec.md`** and **`.skillgrid/templates/template-openspec-tasks.md`**. See **`docs/skillgrid-templates-and-logic.md`**.
+**Canonical blanks:** **`.skillgrid/templates/template-openspec-slice-spec.md`** and **`.skillgrid/templates/template-openspec-tasks.md`**. See **`docs/03-skillgrid-logic.md`**.
 
 **Optional main-spec mirror:** `openspec/specs/<change-id>/spec.md` — umbrella requirements for the initiative when you want a stable top-level spec separate from delta layout. Not required for every change.
 
@@ -273,12 +274,17 @@ Implement task-by-task. For behavioral code, use Red-Green-Refactor: write one f
 - [ ] <PRD, handoff, project doc, or design doc update>
 ```
 
+### Breakdown completeness (before marking breakdown done)
+
+- Every vertical slice named in the PRD implementation section has a corresponding directory `openspec/changes/<change-id>/specs/<vertical-slice-slug>/` with `spec.md` (use **`.skillgrid/templates/template-openspec-slice-spec.md`**).
+- `tasks.md` lists the same slices (titles/slugs consistent with folder names); no orphan PRD-only slices.
+
 ### Validation Before Apply
 
 Before `/skillgrid-apply` starts implementation, confirm:
 
 - PRD exists and links the OpenSpec change.
-- Required OpenSpec artifacts are present.
+- Required OpenSpec artifacts are present (including **all** slice `spec.md` files for slices in scope).
 - `openspec status` says apply-required artifacts are complete.
 - `tasks.md` contains verifiable, ordered work.
 - `tasks.md` uses tracer-bullet vertical slices rather than horizontal layer-only tasks.
@@ -298,7 +304,7 @@ openspec validate --change "<change-id>"
 
 ## Resources
 
-- Templates and planning logic: `docs/skillgrid-templates-and-logic.md`
+- Templates and planning logic: `docs/03-skillgrid-logic.md`
 - Canonical blanks: `.skillgrid/templates/template-openspec-*.md`
 - PRD rules: `skillgrid-prd-artifacts`
 - Slice rules: `skillgrid-vertical-slices`

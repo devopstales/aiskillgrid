@@ -2,7 +2,7 @@
 
 Canonical blanks for Skillgrid and OpenSpec artifacts. **Naming:** every template is `template-<kebab-case>.md` (lowercase, hyphenated). Copy the file and rename to the target path (for example `template-prd.md` → `.skillgrid/prd/PRD01_feature.md`).
 
-Planning logic and how pieces connect: **`docs/skillgrid-templates-and-logic.md`**.
+Planning logic and how pieces connect: **`docs/03-skillgrid-logic.md`**.
 
 | File | Typical destination |
 |------|---------------------|

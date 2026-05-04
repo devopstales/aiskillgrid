@@ -57,7 +57,7 @@ Use one mental model across skills, AGENTS, and `docs/02-workflow-usage.md`:
 |-------|------------|--------------|---------------------|
 | Program / milestone | Epic | Milestone | `.skillgrid/prd/INDEX.md` — dependency-ordered PRDs **plus** execution snapshot (below) |
 | Feature initiative | Task | Issue | `.skillgrid/prd/PRD<NN>_<slug>.md` + one `openspec/changes/<change-id>/` |
-| Shippable unit | Sub-task | Checklist item | **Vertical slice** — `tasks.md` rows and/or `openspec/changes/<change-id>/specs/<slice-slug>/spec.md` |
+| Shippable unit | Sub-task | Checklist item | **Vertical slice** — `openspec/changes/<change-id>/tasks.md` **and** `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` (both; see `docs/03-skillgrid-logic.md`) |
 
 There is **no** separate `.skillgrid/project/TASK.md`: progress-tracker and task-list behavior live in **INDEX snapshot sections** and in OpenSpec `tasks.md` / slice specs.
 
@@ -160,13 +160,13 @@ When backfilling an existing change, map evidence to the configured workflow:
 
 ### Required PRD Sections
 
-Copy the canonical blank from **`.skillgrid/templates/template-prd.md`** when creating a new PRD file. Human-readable planning logic and template index: **`docs/skillgrid-templates-and-logic.md`**.
+Copy the canonical blank from **`.skillgrid/templates/template-prd.md`** when creating a new PRD file. Human-readable planning logic and template index: **`docs/03-skillgrid-logic.md`**.
 
 Keep product intent in the PRD. Detailed CLI instructions and exact code steps belong in OpenSpec artifacts or `tasks.md`.
 
 ### INDEX Template
 
-Use **`.skillgrid/templates/template-index.md`** when creating or refreshing `.skillgrid/prd/INDEX.md` (trim snapshot bullets if unused). See **`docs/skillgrid-templates-and-logic.md`** for hierarchy.
+Use **`.skillgrid/templates/template-index.md`** when creating or refreshing `.skillgrid/prd/INDEX.md` (trim snapshot bullets if unused). See **`docs/03-skillgrid-logic.md`** for hierarchy.
 
 If ticketing is `local`, `External` may be omitted or set to `local`. Omit the **Depends on** column if every PRD is independent.
 
@@ -174,7 +174,7 @@ If ticketing is `local`, `External` may be omitted or set to `local`. Omit the *
 
 - PRD is the product intent source.
 - OpenSpec `proposal.md`, `design.md`, delta specs, and `tasks.md` are the technical contract.
-- **Vertical slices** should have scoped requirements under `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` (see `skillgrid-spec-artifacts`). Optional umbrella: `openspec/specs/<change-id>/spec.md` for cross-cutting requirements.
+- **Vertical slices** (shippable units) **must** exist under OpenSpec as **both** (1) ordered rows or sections in `tasks.md` and (2) a matching `openspec/changes/<change-id>/specs/<vertical-slice-slug>/spec.md` per slice — same hierarchy as `docs/03-skillgrid-logic.md`. Do not treat the PRD “Implementation tasks” / slice list alone as sufficient for breakdown or apply; that section is a **mirror** of OpenSpec, with each slice linking to its `spec.md` path. Optional umbrella: `openspec/specs/<change-id>/spec.md` for cross-cutting requirements.
 - Every PRD should link to exactly one primary `openspec/changes/<change-id>/` unless it is intentionally an umbrella PRD.
 - If a PRD becomes too broad, split it into ordered PRDs instead of expanding one mega-PRD.
 
@@ -196,7 +196,7 @@ openspec list --json
 
 ## Resources
 
-- Templates and planning logic: `docs/skillgrid-templates-and-logic.md`
+- Templates and planning logic: `docs/03-skillgrid-logic.md`
 - Canonical blanks: `.skillgrid/templates/template-*.md` (see `README.md` there)
 - Full workflow overview: `docs/02-workflow-usage.md`
 - Command sources: `.cursor/commands/skillgrid-plan.md`, `.cursor/commands/skillgrid-explore.md`, `.cursor/commands/skillgrid-breakdown.md`
