@@ -10,7 +10,7 @@ From your **application** repo (after building the CLI in this hub):
 /path/to/aiskillgrid/skillgrid-cli/bin/skillgrid serve
 ```
 
-Options match the **ai-dashboard** CLI: `--repo` (repository root, default current directory), `--host`, `--port` (use `0` for an OS-assigned port; default is `0` unless `SKILLGRID_UI_PORT` is set), `--open` / `--no-open`, and `--dev` (Vite middleware for local UI development). The PRD directory is always `<repo>/.skillgrid/prd` unless `SKILLGRID_UI_DIR` points at `.skillgrid/prd` explicitly. Run `skillgrid serve --help` for the full list.
+Options match the **ai-dashboard** CLI: `--repo` (repository root, default current directory), `--host`, `--port` (use `0` for an OS-assigned port; default is `0` unless `SKILLGRID_UI_PORT` is set), `--open` / `--no-open`, and `--dev` (Vite middleware for local UI development). PRDs are always read from `<repo>/.skillgrid/prd`. There is no `--prd-dir` flag (use `--repo` only). Run `skillgrid serve --help` for the full list.
 
 The server prints `URL: http://…` after bind; the browser opens by default (`--no-open` to skip).
 

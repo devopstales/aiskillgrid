@@ -12,5 +12,5 @@
     "noEmitOnError": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/dashboard"]
+  "exclude": ["src/dashboard/web"]
 }

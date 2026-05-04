@@ -18,12 +18,14 @@ import type {
 import { listDirectories, listFilesRecursive, readTextIfExists, slugify, toPosixRelative } from "./fs-utils.js";
 import { EMPTY_TASK_STATS, firstParagraph, parseMarkdownMetadata, parseTaskStats } from "./parsers.js";
 
-type BuildDashboardOptions = {
+export type BuildDashboardOptions = {
   repoRoot: string;
   /** e.g. http://127.0.0.1:5241 — used for bundled GitNexus at /gitnexus/ */
   dashboardOrigin: string;
   gitnexusUrl?: string;
   openspecUiUrl?: string;
+  /** Skip HTTP health checks (e.g. TUI refresh loop, offline use). */
+  skipToolHealthChecks?: boolean;
 };
 
 type SkillgridConfig = {
@@ -46,10 +48,12 @@ export async function buildDashboardData(options: BuildDashboardOptions): Promis
   const skillgridConfig = await readSkillgridConfig(repoRoot);
   const issues = buildBoardIssues({ prds, changes, specs, events, previews, skillgridConfig });
   const origin = options.dashboardOrigin.replace(/\/$/, "");
-  const tools = await readToolStatuses({
-    gitnexusUrl: options.gitnexusUrl ?? `${origin}/gitnexus/`,
-    openspecUiUrl: options.openspecUiUrl ?? "http://localhost:3100"
-  });
+  const tools = options.skipToolHealthChecks
+    ? offlineToolPlaceholders(origin, options.openspecUiUrl)
+    : await readToolStatuses({
+        gitnexusUrl: options.gitnexusUrl ?? `${origin}/gitnexus/`,
+        openspecUiUrl: options.openspecUiUrl ?? "http://localhost:3100"
+      });
 
   if (prds.length === 0) {
     warnings.push("No PRDs found under .skillgrid/prd.");
@@ -555,6 +559,25 @@ function issueLane(input: {
   }
 
   return input.skillgridConfig.fallbackStatus;
+}
+
+function offlineToolPlaceholders(origin: string, openspecUiUrl?: string): ToolStatus[] {
+  return [
+    {
+      id: "gitnexus",
+      name: "GitNexus Web UI",
+      url: `${origin}/gitnexus/`,
+      healthy: false,
+      startCommand: "Health check skipped (TUI / offline mode)."
+    },
+    {
+      id: "openspecui",
+      name: "OpenSpecUI",
+      url: openspecUiUrl ?? "http://localhost:3100",
+      healthy: false,
+      startCommand: "Health check skipped (TUI / offline mode)."
+    }
+  ];
 }
 
 async function readToolStatuses(urls: { gitnexusUrl: string; openspecUiUrl: string }): Promise<ToolStatus[]> {

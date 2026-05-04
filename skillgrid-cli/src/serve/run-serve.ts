@@ -81,24 +81,17 @@ function parseServeOptions(argv: string[]): ServeOptions {
     else if (a === "--repo" && n) {
       repoRoot = path.resolve(n);
       i += 1;
+    } else if (a === "--prd-dir" || a === "--prd_dir") {
+      if (n) i += 1;
+      throw new Error(
+        "The --prd-dir option is not supported. Pass the repository root with --repo <path> (PRDs are read from <repo>/.skillgrid/prd)."
+      );
     } else if (a === "--host" && n) {
       host = n;
       i += 1;
     } else if (a === "--port" && n) {
       port = Number.parseInt(n, 10);
       i += 1;
-    }
-  }
-
-  const uiDir = envWithLegacy("SKILLGRID_UI_DIR", "PRD_KANBAN_DIR");
-  if (uiDir) {
-    const abs = path.isAbsolute(uiDir) ? uiDir : path.resolve(process.cwd(), uiDir);
-    const normalized = path.resolve(abs);
-    const prdSuffix = `${path.sep}.skillgrid${path.sep}prd`;
-    if (normalized.endsWith(prdSuffix) || normalized.endsWith(".skillgrid/prd")) {
-      repoRoot = path.resolve(normalized, "..", "..");
-    } else {
-      repoRoot = normalized;
     }
   }
 
@@ -132,8 +125,8 @@ Options:
   --help, -h          Show this help.
 
 Environment (optional):
-  SKILLGRID_UI_PORT, SKILLGRID_UI_HOST, SKILLGRID_UI_DIR (path to .skillgrid/prd)
-  PRD_KANBAN_PORT, PRD_KANBAN_HOST, PRD_KANBAN_DIR (deprecated aliases)
+  SKILLGRID_UI_PORT, SKILLGRID_UI_HOST
+  PRD_KANBAN_PORT, PRD_KANBAN_HOST (deprecated aliases for port/host)
 `);
 }
 
@@ -151,7 +144,7 @@ export async function runServeCommand(importMetaUrl: string, argv: string[]): Pr
   const prdDir = path.join(opts.repoRoot, ".skillgrid", "prd");
   if (!existsSync(prdDir)) {
     console.error(`PRD directory not found: ${prdDir}`);
-    console.error("Use --repo <path> (repository root) or set SKILLGRID_UI_DIR to your .skillgrid/prd directory.");
+    console.error("Use --repo <path> pointing at the repository root (expects <repo>/.skillgrid/prd).");
     process.exit(1);
   }
 

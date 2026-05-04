@@ -170,16 +170,16 @@ function uninstall(opts: InstallOptions): void {
 }
 
 export async function runInstallCli(hubRoot: string, parsed: ParsedInstallArgv): Promise<number> {
-  validateHub(hubRoot);
-
-  if (parsed.version) {
-    console.log("skillgrid install (native) version 1.0.0");
-    return 0;
-  }
   if (parsed.help) {
     printInstallHelp();
     return 0;
   }
+  if (parsed.version) {
+    console.log("skillgrid install (native) version 1.0.0");
+    return 0;
+  }
+
+  validateHub(hubRoot);
 
   if (parsed.sanityCheck) {
     const { runSanityCheck } = await import("./sanity.js");
@@ -464,10 +464,5 @@ Options:
   -n, --dry-run         Show what would be installed without making changes
   -u, --uninstall       Remove managed IDE dirs from target
   -v, --version         Print version
-  -h, --help            Show help
-
-Legacy bash installer (same behavior, alternate path):
-  ./install.sh [same flags]
-
-See docs/01-installation.md for dependency notes.`);
+  -h, --help            Show help`);
 }

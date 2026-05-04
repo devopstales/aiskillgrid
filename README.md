@@ -12,6 +12,7 @@ A **configuration hub** for opinionated AI-assisted development: reusable **skil
 | Multi-IDE command hub | Ships `/skillgrid-*` and `/opsx-*` commands for Cursor, Kilo, OpenCode, and GitHub Copilot prompts. | One workflow can travel across the IDEs and agents you use. |
 | Agent skills catalog | Provides reusable skills for TDD, review, security, UI design, research, GitNexus, Engram, OpenSpec, and more. | Agents get focused operating procedures instead of ad hoc chat instructions. |
 | Local Skillgrid dashboard | Run `skillgrid serve` from [skillgrid-cli](skillgrid-cli/) (build with Bun) for PRD Kanban, Workflow, Checkpoints, Subagents, previews, and GitNexus UI/context links. | Product intent, events, previews, and subagent activity are visible in one local web UI. |
+| Terminal TUI (Phase 1b) | Run `skillgrid tui --repo <project>` for a **dmux-style** multi-pane TUI: PRDs, OpenSpec changes, handoff files, merged event tail, and `checkpoints.log` tail (read-only, auto-refresh). | Same file-first signals as the web UI without a browser; pairs with [dmux](https://github.com/standardagents/dmux)-style terminal workflows. |
 | File-first handoff | Stores PRDs, OpenSpec changes, handoff files, event logs, previews, checkpoints, and research under the repo. | Work survives context resets without requiring a database or hosted service. |
 | Intent-gated loop | Adds `/skillgrid-loop` for the next safe phase or `[AFK]` slice, with explicit HITL and verification stop conditions. | Long-running agent work stays bounded by artifacts, evidence, and user authority. |
 | Installer sanity check | Runs `./install.sh --sanity-check` to verify expected tools, hub files, and script syntax. | Setup problems are caught before copying configs into a project. |
@@ -81,6 +82,14 @@ cd skillgrid-cli && npm ci && npm run build && ./bin/skillgrid serve --repo /pat
 ```
 
 Then open `http://127.0.0.1:8787` (or the host/port you set).
+
+For a **terminal-only** live view of events and checkpoints (Phase 1b), from the same built binary:
+
+```bash
+./bin/skillgrid tui --repo /path/to/your/project
+```
+
+Use `Tab` to move between scrollable panes, `r` to refresh, `q` to quit. See `skillgrid tui --help`.
 
 Common variants:
 

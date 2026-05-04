@@ -1,6 +1,8 @@
 import { hubRootFromCliModule } from "./install/hub-root.js";
 import { parseInstallArgv } from "./install/parse-install-argv.js";
 import { runInstallCli } from "./install/run-install.js";
+import { printTuiHelp } from "./tui/parse-tui-argv.js";
+import { runTuiCommand } from "./tui/run-tui.js";
 import { printServeHelp, runServeCommand } from "./serve/run-serve.js";
 
 function printTopHelp() {
@@ -9,6 +11,7 @@ function printTopHelp() {
 Usage:
   skillgrid install [OPTIONS]   Native installer (parity with ./install.sh)
   skillgrid serve [OPTIONS]     Skillgrid Dashboard (--repo, --port, --open; see serve --help)
+  skillgrid tui [OPTIONS]         Phase 1b TUI: watch events, checkpoints, PRDs (see tui --help)
   skillgrid --help              Show this message
 `);
 }
@@ -31,6 +34,21 @@ async function main() {
     }
     const code = await runInstallCli(hubRoot, parsed);
     process.exit(code);
+  }
+
+  if (argv[0] === "tui") {
+    const rest = argv.slice(1);
+    if (rest[0] === "-h" || rest[0] === "--help") {
+      printTuiHelp();
+      process.exit(0);
+    }
+    try {
+      await runTuiCommand(rest);
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exit(1);
+    }
+    return;
   }
 
   if (argv[0] === "serve") {
