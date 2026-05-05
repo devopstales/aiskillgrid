@@ -137,50 +137,47 @@ npm install -g @mariozechner/pi-coding-agent
 # Plans and Bugs
 
 * installer
-  * Claude Code plugin
-  * Cursor plugin
-  * opencode plugin
-  * skill.sh
-  * install.sh vs node vs go
-  * brew
-* install.sh
-  * env variables
-    * in skillgrid config.json ?
+  * [X] install.sh
+  * [X] skillgrid-cli
+  * [ ] brew
+  * [ ] env variables
+* plugins
+  * [ ] Claude Code plugin
+  * [ ] Cursor plugin
+  * [ ] opencode plugin
+* skillgrid-cli
+  * [ ] installer
+  * [ ] tui
+  * [ ] webui
+* components
   * mcp
-* functions
-  * rules
-  * hooks
-  * planning skills/personas
-    * database structure
-    * mermaid graph in db plan
+    * [ ] only list nececary tools
+    * agent-browser
+  * skill/command rethink
+    * based on sdd
+    * sdd-orchestrator
+      * https://github.com/Gentleman-Programming/gentle-ai
+  * AGENTS.md
+* agent personas
+  * [ ] create planned agent personas
+    * https://github.com/alvinunreal/oh-my-opencode-slim
+    * https://github.com/opensoft/oh-my-opencode
+* Sub agents
+  * [-] paralel search
+  * [-] persona board
+  * [ ] Agent personas
+  * [ ] context share
+  * [ ] git worktrees
+  * [ ] chackpoint
+    * https://github.com/DeL-TaiseiOzaki/claude-code-orchestra/tree/main/.claude/skills/checkpointing
+* Agentic workflo
+  * [ ] agentic forkflo wit steps like Archon in skillgrid config.json
+  * [ ] configure agent type, persona, modell for stap
 * web ui
-  * web based kamban UI
-  * multi agent wiev
-  * gitnexus ui
-  * openspec ui
-* sub agents
-  * subagent-driven-development or executing-plans
-  * paralel search [-]
-  * persona board [-]
-  * checkpont
-    * git-worktrees
-    * checkpoint system [-]
-      * https://github.com/DeL-TaiseiOzaki/claude-code-orchestra/tree/main/.claude/skills/checkpointing
-    * create separate git branch for prds and work on that
-    * at the and create PR
-  * Agent Orcrestration
-  * Agent Orcrestration TUI
-    * tmux
-    * dmux
-  * Agent Orcrestration web ui
-  * agent workflow
-    * [X] kangan workflov config
-    * agentic forkflo wit steps like Archon in skillgrid config.json
-    * configure agent type, persona, modell for stap
-* ideas
-  * combine installer + web ui?
-  * combine installer + tui + web ui?
-  * vscode plugin?
+  * [X] web based kamban UI
+  * [ ] multi agent wiev
+  * [-] gitnexus ui
+  * [?] openspec ui
 
 # Tools
 
@@ -192,6 +189,7 @@ npm install -g @mariozechner/pi-coding-agent
 * [?] [GitNexus](https://github.com/abhigyanpatwari/GitNexus) 
 * [X] [Engram](https://github.com/Gentleman-Programming/engram)
 * [ ] [context-mode](https://github.com/mksglu/context-mode)
+* [] [codemap](https://github.com/JordanCoin/codemap)
 
 ## Design Tools
 
