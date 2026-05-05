@@ -11,7 +11,7 @@ argument-hint: "[change-id; optional task focus]"
 
 You are executing **`/skillgrid-apply`** for the Skillgrid workflow.
 
-Implement from approved Skillgrid and OpenSpec tasks in small verified batches.
+Implement from approved Skillgrid and OpenSpec tasks in small verified batches, **using Beads for dependency‑aware task claiming, status tracking, and automatic spec back‑sync**.
 
 **Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.apply` once implementation starts; keep it there until validation (default: `inprogress`).
 
@@ -66,16 +66,21 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 4. Confirm goal, scope, acceptance criteria, verification command, HITL/AFK boundary, context budget, split trigger, and fresh-agent input list are explicit. Do not infer missing implementation authority from chat history.
 5. Apply the context budget gate: a fresh agent must be able to execute the slice from durable artifacts and a bounded file list. If not, stop and route back to `/skillgrid-breakdown`.
 6. Create `before-apply-<change-id>` checkpoint before edits.
-7. Read the handoff and any cited research. Read **`openspec/changes/<change-id>/specs/<slice-slug>/spec.md`** for the active vertical slice when that file exists.
-8. Critically review the selected task before editing; stop if instructions, expected tests, file ownership, or scope are unclear.
-9. Implement one vertical slice or small task batch at a time.
-10. For behavioral code, use TDD: write one focused failing test, verify RED for the expected reason, implement minimum code, verify GREEN, then refactor.
-11. End every AFK implementation slice with the strongest available evidence: focused tests, type checks, lint, browser checks, security scan, or manual QA notes depending on the change.
-12. When delegating implementation or review, use `skillgrid-subagent-orchestration` templates and fresh artifact context, not copied chat history.
-13. Run the double review gate before marking delegated work complete: spec compliance review first, code quality review second.
-14. Evaluate review feedback technically, send accepted required fixes back to the implementer, rerun focused verification, and repeat the same review stage before advancing.
-15. Update task checkboxes, handoff state, event log, and evidence paths as work completes.
-16. Pause on ambiguous requirements, failing verification, scope drift, schema drift, security blockers, or HITL blockers.
+7. Read the handoff and any cited research. Read **`openspec/changes/<change-id>/specs/<slice-slug>/spec.md`** for the active vertical slice when that file exists. **If Beads is enabled, also run `bd ready --json` to see which tasks are unblocked.**
+8. **Claim and start a Beads task** (if Beads enabled):
+    - Identify the next ready task from `bd ready --json`.
+    - Claim it: `bd update <task-id> --claim`
+    - Mark it as in progress: `bd update <task-id> --status in_progress`
+    - If no Beads task exists for the slice or task, run `beads-sync --change <change-id>` automatically (if missing) or warn the user.
+9. Critically review the selected task before editing; stop if instructions, expected tests, file ownership, or scope are unclear.
+10. Implement one vertical slice or small task batch at a time.
+11. For behavioral code, use TDD: write one focused failing test, verify RED for the expected reason, implement minimum code, verify GREEN, then refactor.
+12. End every AFK implementation slice with the strongest available evidence: focused tests, type checks, lint, browser checks, security scan, or manual QA notes depending on the change.
+13. When delegating implementation or review, use `skillgrid-subagent-orchestration` templates and fresh artifact context, not copied chat history.
+14. Run the double review gate before marking delegated work complete: spec compliance review first, code quality review second.
+15. Evaluate review feedback technically, send accepted required fixes back to the implementer, rerun focused verification, and repeat the same review stage before advancing.
+16. Update task checkboxes, handoff state, event log, and evidence paths as work completes. **If Beads enabled, after completing a task run `bd close <task-id> --reason "Implemented"`. After finishing all tasks for the change, optionally run `beads-sync --change <change-id> --sync-back` to update OpenSpec `tasks.md` checkboxes.**
+17. Pause on ambiguous requirements, failing verification, scope drift, schema drift, security blockers, HITL blockers, **or Beads state mismatches (e.g., task claimed by another agent, missing epic)**.
 
 ## Completion Report
 

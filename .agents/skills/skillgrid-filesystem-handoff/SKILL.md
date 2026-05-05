@@ -5,7 +5,7 @@ description: >
   Trigger: Creating, resuming, delegating, or validating work for a Skillgrid change.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

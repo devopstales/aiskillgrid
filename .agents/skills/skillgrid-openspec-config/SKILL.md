@@ -5,7 +5,7 @@ description: >
   Trigger: Initializing OpenSpec, refreshing config.yaml, or reconciling Skillgrid config with OpenSpec instructions.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

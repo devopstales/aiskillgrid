@@ -5,7 +5,7 @@ description: >
   Trigger: Delegating Skillgrid exploration, research, design critique, task execution, review, or verification to subagents.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

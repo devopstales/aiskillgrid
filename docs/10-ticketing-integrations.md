@@ -13,7 +13,8 @@ flowchart TD
   Provider --> GitHub[GitHub]
   Provider --> GitLab[GitLab]
   Provider --> Jira[Jira]
-  Local --> Status[Status Mapping]
+  Local --> Beads[Beads]
+  Beads --> Status[Status Mapping]
   GitHub --> Status
   GitLab --> Status
   Jira --> Status
@@ -38,6 +39,32 @@ In this mode, AISkillGrid uses repository files to track work:
 - The dashboard renders local status.
 
 This is powerful because it does not require a remote tracker, hosted service, or account setup before the team can work.
+
+## Local Beads 
+
+```test
+.skillgrid/prd/INDEX.md (Epic: bd-a3f8)
+.skillgrid/prd/auth-mfa.md (openspec/changes/auth-mfa/tasks.md)
+└─ openspec/changes/auth-mfa/ (Task: bd-a3f8.1)
+   ├─ tasks.md ← coordination layer (human-readable)
+   ├─ specs/login-flow/spec.md (Sub-task: bd-a3f8.1.1)
+   ├─ specs/token-refresh/spec.md (Sub-task: bd-a3f8.1.2)
+   └─ specs/admin-panel/spec.md (Sub-task: bd-a3f8.1.3)
+```
+
+```mermaid
+graph LR
+  A[skillgrid-plan] --> B[PRD Created]
+  B --> C[skillgrid-breakdown] 
+  C --> D[Generate tasks.md + specs/]
+  D --> E[beads-sync skill]
+  E --> F[Create Beads hierarchy]
+  F --> G[Agent queries bd ready]
+  G --> H[Agent works on spec.md]
+  H --> I[Update Beads status + write evidence to files]
+  I --> J[skillgrid-validate]
+  J --> K[Close Beads sub-task + update tasks.md]
+````
 
 ## External Providers
 

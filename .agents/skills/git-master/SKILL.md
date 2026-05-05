@@ -3,7 +3,7 @@ name: git-master
 description: Built-in git hygiene skill for atomic commits, branch discipline, PR-ready diffs, conflict handling, and safe release preparation. Use when preparing commits, reviewing git state, splitting work, or making repository history reviewable.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

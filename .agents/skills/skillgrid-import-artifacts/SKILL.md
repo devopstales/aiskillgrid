@@ -5,7 +5,7 @@ description: >
   Trigger: Importing legacy PRDs, backfilling PRDs for existing OpenSpec changes, or normalizing brownfield planning artifacts.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

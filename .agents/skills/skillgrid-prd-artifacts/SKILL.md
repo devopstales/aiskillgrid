@@ -5,7 +5,7 @@ description: >
   Trigger: Creating, backfilling, renumbering, splitting, or updating Skillgrid PRDs.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

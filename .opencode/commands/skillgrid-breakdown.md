@@ -2,7 +2,7 @@
 name: /skillgrid-breakdown
 id: skillgrid-breakdown
 category: Workflow
-description: Sync PRD with OpenSpec tasks.md and one specs/<slice>/spec.md per vertical slice (docs/03-skillgrid-logic.md)
+description: Sync PRD with OpenSpec tasks.md and one specs/<slice>/spec.md per vertical slice (docs/03-skillgrid-logic.md); then sync with Beads for dependency-aware task tracking.
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 argument-hint: "[change-id or PRD slug]"
 ---
@@ -12,6 +12,8 @@ argument-hint: "[change-id or PRD slug]"
 You are executing **`/skillgrid-breakdown`** for the Skillgrid workflow.
 
 Turn an accepted PRD/OpenSpec change into an implementation checklist: **`tasks.md` plus `specs/<vertical-slice-slug>/spec.md` for every vertical slice** (`docs/03-skillgrid-logic.md`). Do not end with slices defined only in the PRD.
+
+**After creating or updating OpenSpec artifacts, automatically sync with Beads** using the `beads-sync` skill to create/update tasks, checklists, and epic links. This ensures dependency-aware task tracking and prevents context loss.
 
 **Status on exit:** set the PRD and `INDEX.md` entry to `.skillgrid/config.json` `prdWorkflow.phaseStatusMap.breakdown` when the checklist is approved (default: `todo`).
 
@@ -39,7 +41,7 @@ Before acting, load only the skills needed for the phase:
 - `.agents/skills/skillgrid-openspec-config/SKILL.md` — `openspec/config.yaml` overlay rules.
 - `.agents/skills/skillgrid-project-docs/SKILL.md` — `DESIGN.md` and `.skillgrid/project/*` docs.
 - `.agents/skills/skillgrid-checkpoints/SKILL.md` — `.skillgrid/tasks/checkpoints.log`.
-
+- **`.agents/skills/beads-sync/SKILL.md`** — sync OpenSpec artifacts with Beads task graph.
 
 ## Phase-Specific Skills
 
@@ -52,6 +54,7 @@ Load these first for this command:
 - `skillgrid-vertical-slices`
 - `skillgrid-issue-creation`
 - `skillgrid-filesystem-handoff`
+- `beads-sync`
 
 ## Event Log Rule
 
@@ -77,11 +80,20 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
    - TDD requirement or explicit non-TDD exception.
 9. Apply the context budget gate: if a fresh agent would need broad chat history, whole-repo rereading, or multiple unrelated subsystems, split the slice before implementation.
 10. Create external slice issues only when configured.
-11. Update the handoff with blockers, AFK-ready work, dependency waves, context packets, and next apply target.
-12. Run or request a queue-readiness review when tasks are complex, parallel, security-sensitive, or likely to exceed the smart zone.
+11. **Automatically sync with Beads** after creating/updating `tasks.md` and slice specs:
+    - Invoke the `beads-sync` skill's process directly (no separate command required).
+    - Execute the bash script within the skill: `.agents/skills/beads-sync/beads-sync.sh --change <change-id>`
+    - If the script doesn't exist yet, implement the four phases (parse artifacts, map tasks, sync checklists, optional back‑sync) inline.
+    - This will:
+      - Create or update an epic in Beads linked to the PRD.
+      - Convert each top-level task in `tasks.md` into a Beads task with embedded spec context (`-d` flag).
+      - Add checklist items from slice spec requirements.
+      - Store Beads task IDs as HTML comments in `tasks.md` and `INDEX.md` for idempotency.
+    - If `BEADS_ENABLED` is not `true`, skip this step with a notice.
+12. Update the handoff with blockers, AFK-ready work, dependency waves, context packets, Beads epic/task IDs, and next apply target.
 
 ## Completion Report
 
-Report selected PRD/change, task count, **number of slice `spec.md` files created or updated**, HITL blockers, AFK-ready slices, configured status set for `breakdown`, and recommended `/skillgrid-apply`.
+Report selected PRD/change, task count, **number of slice `spec.md` files created or updated**, HITL blockers, AFK-ready slices, **Beads sync status** (epic ID, number of tasks created/updated), configured status set for `breakdown`, and recommended `/skillgrid-apply`.
 
 </process>

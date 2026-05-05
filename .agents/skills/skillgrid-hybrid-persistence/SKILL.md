@@ -5,7 +5,7 @@ description: >
   Trigger: Initializing, planning, applying, validating, or finishing Skillgrid work that must survive context compaction.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

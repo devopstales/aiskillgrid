@@ -5,7 +5,7 @@ description: >
   Trigger: Creating or updating OpenSpec artifacts from a Skillgrid PRD or checking PRD/spec alignment.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

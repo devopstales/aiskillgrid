@@ -5,7 +5,7 @@ description: >
   Trigger: Designing UI during Skillgrid brainstorm, design, plan, explore, or validation phases.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

@@ -3,7 +3,7 @@ name: playwright
 description: Built-in browser automation skill for Playwright tests, screenshots, traces, console/network evidence, and UI regression checks. Use when verifying browser behavior, creating E2E tests, or capturing runtime evidence for a Skillgrid change.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

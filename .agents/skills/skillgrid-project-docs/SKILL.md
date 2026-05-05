@@ -5,7 +5,7 @@ description: >
   Trigger: Initializing, exploring, mapping, or finishing Skillgrid work that changes durable project knowledge.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 

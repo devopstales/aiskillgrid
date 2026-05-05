@@ -5,7 +5,7 @@ description: >
   Trigger: Creating GitHub, GitLab, or Jira issues from Skillgrid PRDs, specs, or vertical slices.
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: devopstales
   version: "1.0"
 ---
 
