@@ -45,8 +45,7 @@ function loadBlessed(): typeof BlessedExports {
 const blessed = loadBlessed();
 
 const HEADER_H = 3;
-const FOOTER_H = 2;
-const KANBAN_H = 11;
+const FOOTER_H = 3; // Increased to 3 to allow border + 1 line of text
 
 type DetailMode = "prd" | "events" | "checkpoints";
 
@@ -89,8 +88,8 @@ export function runBlessedTuiLoop(options: {
     top: HEADER_H,
     left: 0,
     width: "26%",
-    bottom: FOOTER_H + KANBAN_H,
-    label: " PRDs ([ ] cycle) ",
+    bottom: FOOTER_H,
+    label: " PRDs ",
     tags: true,
     keys: true,
     mouse: true,
@@ -106,7 +105,7 @@ export function runBlessedTuiLoop(options: {
     top: HEADER_H,
     left: "26%",
     right: 0,
-    bottom: FOOTER_H + KANBAN_H,
+    bottom: FOOTER_H,
     label: " PRD ",
     tags: true,
     keys: true,
@@ -120,15 +119,16 @@ export function runBlessedTuiLoop(options: {
 
   const kanban = blessed.box({
     parent: screen,
+    top: HEADER_H,
     bottom: FOOTER_H,
     left: 0,
     right: 0,
-    height: KANBAN_H,
-    label: " Board (same lanes as web dashboard) ",
+    label: " Board (k to show) ",
     tags: true,
     border: { type: "line" },
     style: { border: { fg: "magenta" }, fg: "white" }
   });
+  kanban.hide(); // Hidden by default
 
   const footer = blessed.box({
     parent: screen,
@@ -174,12 +174,13 @@ export function runBlessedTuiLoop(options: {
     });
   }
 
-  const focusables: BlessedExports.Widgets.BoxElement[] = [prdList, detail, ...laneBoxes];
+  let focusables: BlessedExports.Widgets.BoxElement[] = [prdList, detail];
   let focusIndex = 0;
 
   let lastData: DashboardData | null = null;
   let prdIndex = 0;
   let detailMode: DetailMode = "prd";
+  let kanbanVisible = false;
 
   function laneInnerWidth(): number {
     const w = typeof screen.width === "number" ? screen.width : Number(screen.width) || 120;
@@ -213,16 +214,35 @@ export function runBlessedTuiLoop(options: {
       detail.setLabel(" Checkpoints (c) ");
       detail.setContent(formatCheckpointLines(data.checkpoints));
     } else {
-      detail.setLabel(` PRD (${prdIndex + 1}/${Math.max(1, data.prds.length)}) — p · l · c `);
+      detail.setLabel(` PRD (${prdIndex + 1}/${Math.max(1, data.prds.length)})`);
       detail.setContent(prd ? truncatePrdBody(prd.body ?? "") : "{gray-fg}(no PRD selected){/}");
     }
 
     if (laneBoxes.length !== data.lanes.length) {
       layoutLaneBoxes(data.lanes);
-      focusables.length = 0;
-      focusables.push(prdList, detail, ...laneBoxes);
-      focusIndex = Math.min(focusIndex, focusables.length - 1);
     }
+
+    // Toggle layout & focusables based on kanban visibility
+    if (kanbanVisible) {
+      prdList.hide();
+      detail.hide();
+      kanban.show();
+      (kanban as any).top = HEADER_H;
+      (kanban as any).bottom = FOOTER_H;
+      (kanban as any).height = undefined;
+      kanban.setLabel(" Board (press k for PRD view) ");
+      focusables.length = 0;
+      focusables.push(...laneBoxes);
+    } else {
+      prdList.show();
+      detail.show();
+      kanban.hide();
+      focusables.length = 0;
+      focusables.push(prdList, detail);
+    }
+
+    focusIndex = Math.min(focusIndex, Math.max(0, focusables.length - 1));
+    if (focusables[focusIndex]) focusables[focusIndex].focus();
 
     const byLane = groupIssuesByLane(data.issues, data.lanes);
     const colW = laneInnerWidth();
@@ -235,8 +255,8 @@ export function runBlessedTuiLoop(options: {
     });
 
     footer.setContent(
-      " {gray-fg}[ ]{/} prev/next PRD   {cyan-fg}p{/} PRD text   {cyan-fg}l{/} event log   {cyan-fg}c{/} checkpoints   " +
-        "{cyan-fg}Tab{/} focus panes   {cyan-fg}r{/} refresh   {cyan-fg}q{/} quit "
+      ` {gray-fg}↑ ↓{/} prev/next PRD   {cyan-fg}p{/} PRD   {cyan-fg}l{/} log   {cyan-fg}c{/} checkpoints   ` +
+        `{cyan-fg}k{/} ${kanbanVisible ? "PRD view" : "kanban view"}   {cyan-fg}Tab{/} focus   {cyan-fg}r{/} refresh   {cyan-fg}q{/} quit`
     );
     screen.render();
   }
@@ -294,11 +314,17 @@ export function runBlessedTuiLoop(options: {
     if (lastData) applyData(lastData);
   });
 
-  screen.key(["]"], () => {
+  screen.key(["k"], () => {
+    kanbanVisible = !kanbanVisible;
+    focusIndex = 0;
+    if (lastData) applyData(lastData);
+  });
+
+  screen.key(["down"], () => {
     bumpPrd(1);
   });
 
-  screen.key(["["], () => {
+  screen.key(["up"], () => {
     bumpPrd(-1);
   });
 
