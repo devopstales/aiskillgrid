@@ -65,9 +65,9 @@
     * [X] sdd-task skill
     * [X] `_shared/skillgrid-handoff.md`
   * sdd-apply
-    * [ ] smart/dum side
-    * [ ] process one slice at a time
-    * [ ] respect `[HITL]` and `[AFK]` labels
+    * [X] smart/dum side
+    * [X] process one slice at a time
+    * [X] respect `[HITL]` and `[AFK]` labels
     * [X] `_shared/skillgrid-handoff.md`
   * sdd-archive
     * [X] `_shared/skillgrid-handoff.md`
@@ -112,8 +112,8 @@
   * [-] sdd-design
   * [-] sdd-spec
   * [-] sdd-task
-    * [ ] agents to group tasks into vertical slice units
-    * [ ] add `[HITL]` or `[AFK]` labels.
+    * [X] agents to group tasks into vertical slice units
+    * [X] add `[HITL]` or `[AFK]` labels.
   * [-] sdd-apply
   * [-] sdd-verify
   * [-] sdd-archive

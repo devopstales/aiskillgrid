@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: devopstales
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Purpose
@@ -84,6 +84,47 @@ Before writing ANY code:
 3. Read existing code in affected files — understand current patterns
 4. Check the project's coding conventions from `config.yaml`
 
+### Step 2.5: Slice Gating (HITL/AFK and Context Budget)
+
+Before you implement anything, parse the assigned tasks to identify the vertical slice boundaries and their risk labels.
+
+**The task format now includes inline tags** (as defined by the enriched `tasks.md`):
+
+```
+1.1 Create `internal/auth/middleware.go` with JWT validation. [Slice: Basic auth] [Label: AFK] [Budget: safe]
+```
+
+
+For every task you are about to implement:
+
+1. **Group tasks by slice** – tasks belonging to the same slice share the same label and budget.
+2. **Resolve the gate for each slice before its first task**:
+
+   a. **Check the label** (``[Label: AFK]`` or ``[Label: HITL]``):
+      - **If HITL**: **STOP** and present the human‑decision point. The very first task of a `[HITL]` slice is a `DECISION:` step (e.g., “DECISION: Choose between Redis or JWT‑only session storage”).  
+        Show that decision to the user and wait for their answer. Do **not** execute any code for this slice until the decision is resolved. Once you have the user’s choice, note it and continue.
+      - **If AFK**: proceed through the budget check (below). No human confirmation needed.
+
+   b. **Check the context budget** (``[Budget: safe]`` or ``[Budget: RISK]``):
+      - **If RISK** (even for an `[AFK]` slice): **STOP** and warn the user. Output:
+
+```
+⚠️ Context Budget Alert
+The slice "{slice name}" is estimated to exceed the safe context window (files: {count}).
+Options:
+
+    Continue anyway (risk of degraded quality)
+
+    Abort and split this slice into smaller vertical slices
+    Which do you choose?
+```
+
+Wait for the user’s choice. If they choose to split, halt the apply phase and instruct them to return to `sdd-tasks` for re‑slicing. If they confirm, proceed.
+
+3. **Record the gate outcome** in your implementation progress notes.
+
+Only after all slices in your batch pass the gate may you move on to Step 3 (implementation mode).
+
 ### Step 3: Detect Implementation Mode
 
 Before writing code, determine if the project uses TDD:
@@ -105,6 +146,7 @@ When TDD is active, EVERY task follows this cycle:
 
 ```
 FOR EACH TASK:
+(Gating for this slice was already completed in Step 2.5 — you may proceed. If the current task is the `DECISION:` step of a HITL slice, handle the decision now based on the user’s earlier answer before moving to the next task.)
 ├── 1. UNDERSTAND
 │   ├── Read the task description
 │   ├── Read relevant spec scenarios (these are your acceptance criteria)
@@ -130,6 +172,7 @@ FOR EACH TASK:
 └── 6. Note any issues or deviations
 ```
 
+
 Detect the test runner for execution:
 
 ```
@@ -149,6 +192,7 @@ When TDD is not active:
 
 ```
 FOR EACH TASK:
+(Gating for this slice was already completed in Step 2.5 — you may proceed. If the current task is the `DECISION:` step of a HITL slice, handle the decision now based on the user’s earlier answer before moving to the next task.)
 ├── Read the task description
 ├── Read relevant spec scenarios (these are your acceptance criteria)
 ├── Read the design decisions (these constrain your approach)
@@ -169,6 +213,8 @@ Update `tasks.md` — change `- [ ]` to `- [x]` for completed tasks:
 - [x] 1.2 Add `AuthConfig` struct to `internal/config/config.go`
 - [ ] 1.3 Add auth routes to `internal/server/server.go`  ← still pending
 ```
+
+For HITL slices, the first task is the `DECISION: …` step. Once the human decision has been confirmed (or provided by the user in Step 2.5), mark that decision task as `[x]` immediately – the “implementation” of that step is simply the act of capturing the decision.
 
 ### Step 5: Persist Progress
 
@@ -254,3 +300,6 @@ If none, say "None."}
 - If TDD mode is detected (Step 3), ALWAYS follow the RED → GREEN → REFACTOR cycle — never skip RED (writing the failing test first)
 - When running tests during TDD, run ONLY the relevant test file/suite, not the entire test suite (for speed)
 - Return a structured envelope with: `status`, `executive_summary`, `detailed_report` (optional), `artifacts`, `next_recommended`, and `risks` (read `skills/_shared/sdd-phase-common.md` for the full envelope spec)
+- **Slice gates must be honoured**: before any slice is implemented, apply the HITL/AFK label and context‑budget gate exactly as described in Step 2.5. Never skip this gate.
+- For `[HITL]` slices, never write production code until the human decision is captured.
+- For `RISK` slices, never proceed autonomously – always pause and ask.

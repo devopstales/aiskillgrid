@@ -1,13 +1,3 @@
----
-name: sdd-tasks
-description: >
-  Break down a change into an implementation task checklist.
-  Trigger: When the orchestrator launches you to create or update the task breakdown for a change.
-license: MIT
-metadata:
-  author: devopstales
-  version: "1.0"
----
 
 ## Purpose
 
@@ -68,16 +58,64 @@ The orchestrator provides your skill path in the launch prompt. Load it now. If 
 
 > Read `skills/_shared/sdd-phase-common.md` for the engram upsert note and return envelope format.
 
-### Step 2: Analyze the Design
+### Step 2: Vertical Slice Validation (Context Budget Gate)
 
-From the design document, identify:
-- All files that need to be created/modified/deleted
-- The dependency order (what must come first)
-- Testing requirements per component
+**Goal:** Guarantee that every vertical slice in the PRD fits a fresh agent’s cognitive window before we write detailed tasks.
 
-### Step 3: Write tasks.md
+**Input:** PRD file (see `What You Receive`).
 
-**IF mode is `openspec` or `hybrid`:** Create the task file:
+**Actions:**
+
+1. Open the PRD and locate the `#### Implementation tasks` list. Each top‑level checkbox item is a vertical slice.
+2. For **each slice**, do the following:
+
+ a. **Estimate file count** – Use the PRD’s `#### Codebase touchpoints` plus your codebase knowledge to assign a realistic number of files/modules the slice would touch.
+ b. **Determine safety** – Compare the count against the threshold:
+    - Default threshold: **5 files**.  
+      If `.skillgrid/config.json` contains a key `contextBudgetThreshold`, use that value instead.
+    - If file count ≤ threshold → **Context budget: safe**
+    - If file count > threshold → **Context budget: RISK**
+ c. **Split trigger** – If the slice is marked `RISK`, propose a concrete decomposition into two or more smaller slices that each stay within the safe threshold. Write the split suggestion as a bullet list.
+ d. **Preserve labels** – Keep the original `[AFK]` or `[HITL]` label. Do **not** change it based on the budget. The `sdd-apply` gate will handle the override later.
+
+3. **Rewrite the slice list** in the PRD. Replace the raw `Implementation tasks` with an enriched version that follows this exact format:
+
+```markdown
+#### Implementation tasks
+
+- [ ] `[AFK]` **Basic email/password login**
+  - Goal: User can register, verify email, login and receive access token.
+  - Files: 3
+  - Context budget: safe
+  - Split trigger: None
+
+- [ ] `[AFK]` **Session timeout and token refresh**
+  - Goal: Access tokens expire after 15 min; silent refresh using refresh token.
+  - Files: 2
+  - Context budget: safe
+  - Split trigger: None
+```
+
+If you split an oversized slice, replace the original single slice with the new smaller ones and adjust the count accordingly. Update the PRD’s `#### Decomposition` section to reflect the new boundaries.
+
+    Report to user (inside your return summary, or immediately if interactive): number of slices, how many are safe vs. RISK, and any splits performed.
+
+Only after this step is complete and the PRD is updated may you proceed to the actual task breakdown.
+
+### Step 3: Break Down Each Slice into Tasks
+
+**Now, for each validated vertical slice** (as they appear in the updated `Implementation tasks` list):
+
+1. Read the slice’s goal, acceptance criteria, and any technical constraints.
+2. Produce a concrete, ordered list of implementation steps (one line per step).
+3. Tag each step with `[Slice: <name>] [Label: AFK|HITL] [Budget: safe|RISK]`.
+4. If the slice is `[HITL]`, make the very first step a human‑decision point.
+5. Group steps under slice headings (`### Slice: <name>`).
+
+**Save the tasks file:**
+
+- **IF mode is `openspec` or `hybrid`:** Create the file right now:
+
 
 ```
 openspec/changes/{change-name}/
@@ -87,37 +125,7 @@ openspec/changes/{change-name}/
 └── tasks.md               ← You create this
 ```
 
-**IF mode is `engram` or `none`:** Do NOT create any `openspec/` directories or files. Compose the tasks content in memory — you will persist it in Step 4.
-
-#### Task File Format
-
-```markdown
-# Tasks: {Change Title}
-
-## Phase 1: {Phase Name} (e.g., Infrastructure / Foundation)
-
-- [ ] 1.1 {Concrete action — what file, what change}
-- [ ] 1.2 {Concrete action}
-- [ ] 1.3 {Concrete action}
-
-## Phase 2: {Phase Name} (e.g., Core Implementation)
-
-- [ ] 2.1 {Concrete action}
-- [ ] 2.2 {Concrete action}
-- [ ] 2.3 {Concrete action}
-- [ ] 2.4 {Concrete action}
-
-## Phase 3: {Phase Name} (e.g., Testing / Verification)
-
-- [ ] 3.1 {Write tests for ...}
-- [ ] 3.2 {Write tests for ...}
-- [ ] 3.3 {Verify integration between ...}
-
-## Phase 4: {Phase Name} (e.g., Cleanup / Documentation)
-
-- [ ] 4.1 {Update docs/comments}
-- [ ] 4.2 {Remove temporary code}
-```
+- **IF mode is `engram` or `none`:** Do NOT create any `openspec/` directories or files. Compose the tasks content in memory — you will persist it in Step 4.
 
 ### Task Writing Rules
 
@@ -130,28 +138,54 @@ Each task MUST be:
 | **Verifiable** | "Test: `POST /login` returns 401 without token" | "Make sure it works" |
 | **Small** | One file or one logical unit of work | "Implement the feature" |
 
-### Phase Organization Guidelines
+
+#### Task Format
+
+Each task must be tagged with:
+```
+[Slice: <slice-name>] [Label: AFK|HITL] [Budget: safe|RISK]
+```
+
+If the slice is [HITL], make the very first step a human decision point, e.g.:
 
 ```
-Phase 1: Foundation / Infrastructure
-  └─ New types, interfaces, database changes, config
-  └─ Things other tasks depend on
-
-Phase 2: Core Implementation
-  └─ Main logic, business rules, core behavior
-  └─ The meat of the change
-
-Phase 3: Integration / Wiring
-  └─ Connect components, routes, UI wiring
-  └─ Make everything work together
-
-Phase 4: Testing
-  └─ Unit tests, integration tests, e2e tests
-  └─ Verify against spec scenarios
-
-Phase 5: Cleanup (if needed)
-  └─ Documentation, remove dead code, polish
+- [ ] DECISION: Choose between Redis or JWT‑only session storage.  [Slice: session] [Label: HITL] [Budget: safe]
 ```
+
+Group the steps by slice in the output. You may use nested headings like `### Slice: <name>` and then list the steps. Keep steps ordered inside each slice.
+
+#### Task File Format
+
+```markdown
+# Tasks: {Change Title}
+
+## Vertical Slice 1: <Slice Name> (Label: AFK, Budget: safe)
+
+- [ ] 1.1 Create `internal/auth/middleware.go` with JWT validation. [Slice: <name>] [Label: AFK] [Budget: safe]
+- [ ] 1.2 Add `POST /auth/register` endpoint. [Slice: <name>] [Label: AFK] [Budget: safe]
+- [ ] 1.3 Write unit tests for `AuthService.Login()`. [Slice: <name>] [Label: AFK] [Budget: safe]
+
+## Vertical Slice 2: <Slice Name> (Label: AFK, Budget: safe)
+
+- [ ] 2.1 Add login rate limiting middleware. [Slice: <name>] [Label: AFK] [Budget: safe]
+- [ ] 2.2 Update swagger docs. [Slice: <name>] [Label: AFK] [Budget: safe]
+```
+
+Important: Tasks are always listed under their vertical slice; do not mix slices inside a flat phase grouping. If a slice needs internal phasing (e.g., foundation, core, test), you may add sub‑headings like `#### Foundation`, `#### Core` within the slice, but the top‑level grouping remains the slice.
+
+### Slice‑Internal Task Ordering
+
+Within a single vertical slice, order steps logically so that dependencies are satisfied:
+
+| Order | What to do |
+|-------|------------|
+| 1 | New types, interfaces, config changes the rest of the slice needs. |
+| 2 | Core logic and behaviour. |
+| 3 | Integration and wiring. |
+| 4 | Tests (unit, integration, spec‑based). |
+| 5 | Cleanup / documentation (if needed). |
+
+If a slice is small enough, you may collapse some of these levels into a single flat list. Always keep the steps sequential and bounded by the slice.
 
 ### Step 4: Persist Artifact
 
