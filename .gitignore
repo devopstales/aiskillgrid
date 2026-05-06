@@ -1,14 +1,8 @@
-# Local vendor clone for syncing upstream agent-skills (not committed)
-.vendor/
-
-node_modules
-.venv/
-.qwen/settings.json.orig
-!install.sh
-install*.sh*
-!install.sh
-
+!.skillgrid/adr/.gitkeep
+.skillgrid/adr/
+!.skillgrid/prd/.gitkeep
 .skillgrid/prd/
-.skillgrid/tasks/*.md
-.skillgrid/tasks/events/*.jsonl
-.skillgrid/tasks/events/*.json
+!.skillgrid/tasks/events/.gitkeep
+.skillgrid/tasks/events/
+!.skillgrid/tasks/research/.gitkeep
+.skillgrid/tasks/research/

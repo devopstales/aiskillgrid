@@ -26,7 +26,7 @@ description: "Use when the user wants to review a pull request, understand what 
 6. Summarize findings with risk assessment
 ```
 
-> If "Index is stale" → run `npx -y gitnexus@1.3.11 analyze` in terminal before reviewing.
+> If "Index is stale" → run `npx gitnexus analyze` in terminal before reviewing.
 
 ## Checklist
 

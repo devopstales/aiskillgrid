@@ -5,8 +5,6 @@ description: "Use when the user asks how code works, wants to understand archite
 
 # Exploring Codebases with GitNexus
 
-**Skillgrid:** Use **GitNexus MCP before grep/glob/shell** when exploring application code; this file is the detailed walkthrough.
-
 ## When to Use
 
 - "How does authentication work?"
@@ -25,7 +23,7 @@ description: "Use when the user asks how code works, wants to understand archite
 5. READ gitnexus://repo/{name}/process/{name}      → Trace full execution flow
 ```
 
-> If step 2 says "Index is stale" → run `npx -y gitnexus@1.3.11 analyze` in terminal.
+> If step 2 says "Index is stale" → run `npx gitnexus analyze` in terminal.
 
 ## Checklist
 
