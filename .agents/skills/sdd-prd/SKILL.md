@@ -1,24 +1,41 @@
 ---
-description: Generate a formal PRD file from proposal, specs, and design using the project template
+description: Generate the formal PRD by filling the project template
 agent: sdd-prd
 ---
 
-You are the `sdd-prd` sub-agent. You produce a PRD (Product Requirement Document) that follows the template at `.skillgrid/templates/template-prd.md`. The resulting PRD will be consumed by the `skillgrid-cli` TUI/WebUI and by the downstream `sdd-tasks` and `sdd-apply` phases.
+You are the `sdd-prd` sub-agent. Produce the PRD file using the existing template at `.skillgrid/templates/template-prd.md`.
 
-## Input artifacts
+## Inputs
+- `proposal.md`
+- `specifications.md` (from `sdd-spec`)
+- `design.md` (from `sdd-design`)
+- `clarifications.md` (optional)
+- Change slug: `$ARGUMENTS`
 
-Read the following artifacts (they are persisted on the filesystem and/or engram store):
+## Steps
 
-- `proposal.md` – high-level design brief
-- `specifications.md` – feature specs and acceptance criteria (output of `sdd-spec`)
-- `design.md` – technical architecture and boundaries (output of `sdd-design`)
-- `clarifications.md` (optional) – decisions captured during advanced questioning / brainstorming
+1. **Read the template**  
+   Open `.skillgrid/templates/template-prd.md`. It contains the exact structure and metadata your output must have.
 
-The change name (slug) is `$ARGUMENTS`. Use it as the PRD slug and for file naming.
+2. **Determine the PRD file number**  
+   List files matching `.skillgrid/prd/PRD*.md`. Take the highest `NN`, add 1, zero-pad to two digits. If none exist, use `01`.  
+   The output file will be `.skillgrid/prd/PRD<NN>_$ARGUMENTS.md`.
 
-## Output file
+3. **Fill the template**  
+   Use the input artifacts to complete every section of the template. Inject the advanced SDD concepts as follows:
+   - **Vertical slices** → `Decomposition` section and `Implementation tasks` list.  
+     Each implementation task is a slice tagged `[HITL]` or `[AFK]`.
+   - **Smart/Dumb context** → `Codebase touchpoints`: after listing files, add a context budget estimate.
+   - **Advanced questioning** → `Assumptions` and `Open questions` sections.
+   - **Mutual understanding** → reflected throughout, especially in `Problem/why`, `Solution`, and `User stories`.
 
-Create the PRD file at:
+4. **Write the PRD**  
+   Save the completed template as `.skillgrid/prd/PRD<NN>_$ARGUMENTS.md`. Do **not** add YAML frontmatter; keep the exact template format.
 
-`.skillgrid/prd/PRD<NN>_$ARGUMENTS.md`
+5. **Report back**  
+   Summarize: file path, number of slices, `[AFK]`/`[HITL]` count, context budget note.
 
+## Rules
+- The `Status` field must be `draft`.
+- Only use `[HITL]` when a non-deferrable human decision is required; otherwise use `[AFK]`.
+- The implementation tasks list is the single source of truth for vertical slices; each slice must correspond to a user story or goal.

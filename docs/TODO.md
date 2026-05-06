@@ -15,10 +15,12 @@
   * [X] engram
   * [X] gitnexus
   * [X] ccc
+  * [ ] codemaps
 * memory
   * [-] engram
   * [-] gitnexus
   * [-] ccc
+  * [ ] codemaps
 * skillgrid-cli
   * installer
   * tui
@@ -44,7 +46,6 @@
 
 * command
   * sdd-init
-    * [!] PRDs vs proposal.md !!!
     * [X] sdd-init skill
     * [X] store to engram
     * [X] `_shared/skillgrid-handoff.md`
@@ -55,12 +56,13 @@
     * [X] `_shared/skillgrid-handoff.md`
     * [ ] status, executive_summary, artifacts, and next_recommended ???
   * sdd-brainstorm
-    * [!] PRDs vs proposal.md !!!
-    * [ ] Advanced questioning -> sdd-clarify skill
+    * [X] Advanced questioning -> sdd-clarify skill
     * [X] sdd-explore skill
     * [X] sdd-propose skill
-    * [X] sdd-design skill
     * [X] sdd-spec skill
+    * [X] sdd-design skill
+    * [X] sdd-prd skill
+    * [X] sdd-task skill
     * [X] `_shared/skillgrid-handoff.md`
   * sdd-apply
     * [ ] smart/dum side
