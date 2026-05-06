@@ -23,6 +23,7 @@
   * installer
   * tui
     * engram integration ?
+    * engram tui
   * web ui
     * engram integration ?
 * search
@@ -33,14 +34,11 @@
   * agent persona
   * paralel search subagents
 * questions
+  * Assign different AI models to different SDD phases
   * PRDs vs proposal.md !!!
     * init
     * brainstorm
     * plan
-  * questioning
-  * smart/dum side
-  * verticle slices
-  * `[HITL]` or `[AFK]` labels.
 
 ## Components
 
@@ -49,30 +47,37 @@
     * [!] PRDs vs proposal.md !!!
     * [X] sdd-init skill
     * [X] store to engram
-    * [ ] `_shared/skillgrid-event-log-rules.md` ???
+    * [X] `_shared/skillgrid-handoff.md`
     * [ ] status, executive_summary, artifacts, and next_recommended ???
   * sdd-explore
     * [X] sdd-explore skill
     * [X] store to engram
-    * [ ] `_shared/skillgrid-event-log-rules.md` ???
+    * [X] `_shared/skillgrid-handoff.md`
     * [ ] status, executive_summary, artifacts, and next_recommended ???
   * sdd-brainstorm
     * [!] PRDs vs proposal.md !!!
+    * [ ] Advanced questioning -> sdd-clarify skill
+    * [X] sdd-explore skill
     * [X] sdd-propose skill
     * [X] sdd-design skill
     * [X] sdd-spec skill
-    * [ ] `_shared/skillgrid-event-log-rules.md` ???
+    * [X] `_shared/skillgrid-handoff.md`
   * sdd-apply
-  * 
+    * [ ] smart/dum side
+    * [ ] process one slice at a time
+    * [ ] respect `[HITL]` and `[AFK]` labels
+    * [X] `_shared/skillgrid-handoff.md`
   * sdd-archive
+    * [X] `_shared/skillgrid-handoff.md`
+  * sdd-verify
+    * [X] `_shared/skillgrid-handoff.md`
 * skill
   * [X] `_shared/engram-convention.md`
   * [-] `_shared/openspec-convention.md`
     * [ ] Artifact File Paths
   * [X] `_shared/sdd-phase-common.md`
   * [-] `_shared/skillgrid-convention.md`
-  * [-] `_shared/skillgrid-event-log-rules.md`
-  * [ ] `_shared/skillgrid-handoff.md`
+  * [-] `_shared/skillgrid-handoff.md`
   * [-] sdd-init
     * [X] config backend mode
     * [X] persist context
@@ -105,13 +110,13 @@
   * [-] sdd-design
   * [-] sdd-spec
   * [-] sdd-task
+    * [ ] agents to group tasks into vertical slice units
+    * [ ] add `[HITL]` or `[AFK]` labels.
   * [-] sdd-apply
   * [-] sdd-verify
   * [-] sdd-archive
 
   * [ ] orchestrator ???
-  * [ ] skillgrid-filesystem-handoff
-    * vs `_shared/skillgrid-handoff.md`
   * [ ] skill-registry
   * [ ] skillgrid-import-artifacts ???
   * [ ] skillgrid-parallel-research ???

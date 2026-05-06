@@ -15,11 +15,13 @@ CONTEXT:
 TASK:
 Explore the topic "$ARGUMENTS" in this codebase. Investigate the current state, identify affected areas, compare approaches, and provide a recommendation.
 
-ENGRAM PERSISTENCE (artifact store mode: hybrid):
+ENGRAM PERSISTENCE (artifact store mode: engram):
 Read project context (optional):
   mem_search(query: "sdd-init/{project}", project: "{project}") → if found, mem_get_observation(id) for full content
 Save exploration:
   mem_save(title: "sdd/$ARGUMENTS/explore", topic_key: "sdd/$ARGUMENTS/explore", type: "architecture", project: "{project}", content: "{exploration}")
+FILESYSTEM PERSISTENCE:
+  Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
 
 This is an exploration only — do NOT create any files or modify code. Just research and return your analysis.
 

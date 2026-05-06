@@ -16,7 +16,7 @@ CONTEXT:
 TASK:
 Implement the remaining incomplete tasks for the active SDD change.
 
-ENGRAM PERSISTENCE (artifact store mode: hybrid):
+ENGRAM PERSISTENCE (artifact store mode: engram):
 CRITICAL: mem_search returns 300-char PREVIEWS, not full content. You MUST call mem_get_observation(id) for EVERY artifact.
 STEP A — SEARCH (get IDs only):
   mem_search(query: "sdd/{change-name}/spec", project: "{project}") → save spec_id
@@ -30,6 +30,8 @@ Update tasks as you complete them:
   mem_update(id: {tasks-observation-id}, content: "{updated tasks with [x] marks}")
 Save progress:
   mem_save(title: "sdd/{change-name}/apply-progress", topic_key: "sdd/{change-name}/apply-progress", type: "architecture", project: "{project}", content: "{progress report}")
+FILESYSTEM PERSISTENCE:
+  Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
 
 For each task:
 1. Read the relevant spec scenarios (acceptance criteria)

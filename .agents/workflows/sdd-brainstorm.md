@@ -15,7 +15,8 @@ Run these sub-agents in sequence:
 1. sdd-propose — create the proposal
 2. sdd-spec — write specifications
 3. sdd-design — create technical design
-4. sdd-tasks — break down into implementation tasks
+4. sdd-prd   — consolidate spec/design into a formal PRD at .skillgrid/prd/<slug>.md
+5. sdd-tasks — break down into implementation tasks
 
 CONTEXT:
 - Working directory: !`echo -n "$(pwd)"`
@@ -25,5 +26,7 @@ CONTEXT:
 
 ENGRAM NOTE:
 Sub-agents handle persistence automatically. Each phase saves its artifact to engram with topic_key "sdd/$ARGUMENTS/{type}".
+FILESYSTEM PERSISTENCE:
+  Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
 
 Read the orchestrator instructions to coordinate this workflow. Do NOT execute phase work inline — delegate to sub-agents.

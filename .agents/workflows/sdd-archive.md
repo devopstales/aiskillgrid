@@ -14,7 +14,7 @@ CONTEXT:
 TASK:
 Archive the active SDD change. Read the verification report first to confirm the change is ready. Then:
 
-ENGRAM PERSISTENCE (artifact store mode: hybrid):
+ENGRAM PERSISTENCE (artifact store mode: engram):
 CRITICAL: mem_search returns 300-char PREVIEWS, not full content. You MUST call mem_get_observation(id) for EVERY artifact.
 STEP A — SEARCH (get IDs only):
   mem_search(query: "sdd/{change-name}/proposal", project: "{project}") → save proposal_id
@@ -31,6 +31,8 @@ STEP B — RETRIEVE FULL CONTENT (mandatory):
 Record all observation IDs in the archive report for traceability.
 Save:
   mem_save(title: "sdd/{change-name}/archive-report", topic_key: "sdd/{change-name}/archive-report", type: "architecture", project: "{project}", content: "{archive report with observation IDs}")
+FILESYSTEM PERSISTENCE:
+  Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
 
 Then:
 1. Sync delta specs into main specs (source of truth)
