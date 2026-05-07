@@ -36,18 +36,16 @@ Do not use multiple agents to hide uncertainty. If scope is unclear, route back 
 
 Personas are specialist roles. They are not workflows by themselves. A skill is the procedure; a persona is the viewpoint and report style.
 
-Canonical persona names should be product-neutral:
+Milestone 2.5 standardizes workflow-facing persona names to the Norse set:
 
-- `code-reviewer` — correctness, readability, architecture, security, performance.
-- `security-auditor` — threat models, vulnerabilities, secrets, auth, dependency risk.
-- `test-engineer` — test strategy, coverage gaps, browser/E2E evidence, feedback-loop quality.
-- `spec-verifier` — PRD, OpenSpec, task, and acceptance criteria traceability.
-- `explore-architect` — brownfield architecture, boundaries, conventions, onboarding context.
-- `task-breakdown-auditor` — queue readiness, vertical slices, blockers, HITL/AFK, context packets.
-- `design-critic` — UX flows, accessibility, states, visual/product boundaries.
-- `researcher` — cited external research, docs lookup, prior art, framework evidence.
+- `odin` — orchestrator/planner authority.
+- `thor` — implementation enforcer and delivery momentum.
+- `tyr` — spec/compliance verifier (hard gate on critical findings).
+- `heimdall` — security and release-gate sentinel (hard gate on critical findings).
+- `frigg` — UX/product clarity reviewer.
+- `loki` — adversarial critic/challenge persona.
 
-Avoid `skillgrid-` prefixes in persona filenames, frontmatter names, board presets, event logs, and prompt examples. Skillgrid is the workflow that composes the personas.
+Legacy neutral personas remain useful as role descriptions, but routing, board contracts, and command outputs should use the Norse IDs from `.configs/norse-persona-contract.json`.
 
 ## Handoff And Event Logs
 
@@ -116,11 +114,11 @@ Use a specialist persona board when a decision needs independent viewpoints befo
 
 Common board presets:
 
-- Product or UX: `design-critic`, `researcher`, optional `task-breakdown-auditor`.
-- Architecture: `explore-architect`, `code-reviewer`, `test-engineer`.
-- Security-sensitive: `security-auditor`, `code-reviewer`, `spec-verifier`.
-- Queue readiness: `task-breakdown-auditor`, optional `test-engineer`.
-- Post-implementation go/no-go: `spec-verifier`, `code-reviewer`, `test-engineer`, optional `security-auditor`.
+- UX/content: `frigg`, `loki`, `thor`.
+- Architecture: `odin`, `thor`, `tyr`, `loki`.
+- Security-sensitive: `heimdall`, `tyr`, `thor`, `loki`.
+- Post-implementation go/no-go release: `odin`, `tyr`, `heimdall`, `thor`, `frigg`.
+- Risk acceptance: `odin`, `loki`, `tyr`, `heimdall`.
 
 The board is advisory. It is not a majority-vote machine and it does not replace the user, PRD, OpenSpec change, or parent session judgment.
 

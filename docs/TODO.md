@@ -9,8 +9,6 @@
   * [X] fire-claw
   * [ ] playwright
   * [ ] ai-mcp-sequentialthinking
-* agent personas
-  * [ ] sdd-orchestrator
 * tools
   * [X] engram
   * [X] gitnexus
@@ -33,7 +31,7 @@
     * use mcp
   * code search
     * use ccc gitnexus
-  * agent persona
+  * [X] agent personas
   * paralel search subagents
 * questions
   * Assign different AI models to different SDD phases
@@ -45,6 +43,7 @@
 * [ ] AGENTS.md
   * [ ] CONTEXT.md
   * [ ] Karpathy rules
+* rules
 * command
   * sdd-init
     * [X] sdd-init skill
@@ -150,39 +149,39 @@ Focus on enforceable pipeline behavior with strict phase gates, model routing, a
 
 ### Source-specific imports to adopt
 
-- [ ] From `obra/superpowers`:
-  - [ ] mandatory skill activation before task execution (fail-closed if required skill is skipped)
-  - [ ] true two-stage review gating (spec compliance -> code quality)
+- [-] From `obra/superpowers` (partially adopted — see Milestone 1 enforcement + workflows):
+  - [X] mandatory skill activation before task execution (fail-closed if required skill is skipped)
+  - [X] true two-stage review gating (spec compliance -> code quality)
   - [ ] branch-finish protocol (`verify -> merge/PR/keep/discard -> cleanup`)
-  - [ ] systematic-debugging protocol integrated into `/sdd-diagnose`
+  - [X] systematic-debugging protocol integrated into `/sdd-diagnose`
   - [ ] optional git-worktree execution mode for risky/parallel slices
-- [ ] From `gsd-build/get-shit-done`:
-  - [ ] strict 6-step loop variant mapped to SDD (`init/discuss/plan/execute/verify/ship`)
+- [-] From `gsd-build/get-shit-done` (partially adopted — SDD/OpenSpec layering differs from GSD naming):
+  - [-] strict 6-step loop variant mapped to SDD (`init/discuss/plan/execute/verify/ship`) — approximate mapping via `/sdd-init`, `/sdd-explore` + `/sdd-brainstorm`, `/sdd-loop` + `/sdd-apply`, `/sdd-verify`, `/sdd-archive`; not a branded GSD six-step runner
   - [ ] command to rebuild context/index for returning sessions (GSD-style re-map/re-hydrate)
-  - [ ] durable planning artifact pack parity:
-    - [ ] `PROJECT` equivalent (vision)
-    - [ ] `REQUIREMENTS` equivalent (scope)
-    - [ ] `ROADMAP` equivalent (milestones/phases)
-    - [ ] `STATE` equivalent (current step + decisions)
-    - [ ] phase-context file for implementation decisions
-  - [ ] "next best step" command (`gsd-progress --next` analogue for `/sdd-*`)
-  - [ ] parallel wave execution contract with atomic commit boundaries per task/slice
-  - [ ] verifier-driven fix-plan generation on failure (diagnose -> re-execute loop)
-  - [ ] runtime mode switch (`interactive` vs `yolo`) guarded by HITL policies
-  - [ ] quality/balanced/budget model profile preset system
-- [ ] From `code-yeongyu/oh-my-openagent`:
-  - [ ] explicit "ultrawork" style execution profile in orchestrator:
-    - [ ] aggressive delegation defaults
+  - [-] durable planning artifact pack parity:
+    - [-] `PROJECT` equivalent (vision) — PRD layer (e.g. `.skillgrid/prd/`)
+    - [-] `REQUIREMENTS` equivalent (scope) — proposal/specs/tasks under `openspec/changes/<change-id>/`
+    - [-] `ROADMAP` equivalent (milestones/phases) — PRD index / execution snapshot patterns in docs
+    - [-] `STATE` equivalent (current step + decisions) — handoff (`context_<change-id>.md`), events (`*.jsonl`), optional Engram `skillgrid/<change>/state`
+    - [-] phase-context file for implementation decisions — `design.md`, slice specs, handoff entries
+  - [X] "next best step" command (`gsd-progress --next` analogue for `/sdd-*`) — `next_recommended` on standard `sdd-*` return envelopes (not a standalone `/sdd-progress` CLI)
+  - [-] parallel wave execution contract with atomic commit boundaries per task/slice — documented dependency-wave model (`06-multi-agent-work.md`, skills); no enforced atomic-commit automation
+  - [-] verifier-driven fix-plan generation on failure (diagnose -> re-execute loop) — `/sdd-verify` and workflows route remediation via `next_recommended` → `/sdd-apply` / loops; no separate auto fix-plan agent
+  - [-] runtime mode switch (`interactive` vs `yolo`) guarded by HITL policies — Interactive vs Automatic orchestration mode (`Automatic`/`Interactive` in `.configs/opencode.json` / Gentle-AI orchestrator docs); explicit `yolo` profile not present
+  - [X] quality/balanced/budget model profile preset system — tier presets (`fast` / `balanced` / `deep`) in `.configs/norse-persona-contract.json`, `.configs/ide-model-mapping.json`
+- [-] From `code-yeongyu/oh-my-openagent` (partially adopted):
+  - [-] explicit "ultrawork" style execution profile in orchestrator:
+    - [X] aggressive delegation defaults — orchestrator delegation rules (`sdd-orchestrator` prompt in `.configs/opencode.json`, Gentle-AI patterns)
     - [ ] background parallel scouting before implementation
-    - [ ] "continue until done" policy bounded by HITL stops
+    - [-] "continue until done" policy bounded by HITL stops — `/sdd-loop` bounded AFK continuation; full ultrawork-style autopilot out of scope
   - [ ] planner + plan-consultant split role (Prometheus/Metis pattern):
     - [ ] planning agent
     - [ ] plan-challenge/quality agent
-  - [ ] category-based routing for specialization (`visual`, `business-logic`, custom categories)
-  - [ ] built-in TODO continuation enforcer:
-    - [ ] detect unfinished queued tasks
-    - [ ] auto-resume unfinished AFK tasks
-    - [ ] prevent premature "done"
+  - [-] category-based routing for specialization (`visual`, `business-logic`, custom categories) — Norse persona **decision-type** routing (architecture/security/UX/release/risk); not arbitrary product categories
+  - [-] built-in TODO continuation enforcer:
+    - [-] detect unfinished queued tasks — task/spec/handovers plus verify gates
+    - [X] auto-resume unfinished AFK tasks — `/sdd-loop` / `[AFK]` slice policy
+    - [-] prevent premature "done" — gated by `/sdd-verify` + persona board hard blocks; not a dedicated TODO enforcer
   - [ ] comment-quality guard (comment checker):
     - [ ] block low-value generated comments
     - [ ] require justification for non-obvious comments
@@ -190,17 +189,17 @@ Focus on enforceable pipeline behavior with strict phase gates, model routing, a
     - [ ] prefer deterministic rename/refactor tools over text-only edits
     - [ ] fall back to text edits only when tool path unavailable
   - [ ] configurable background concurrency limits per provider/model
-  - [ ] context-injection policy:
-    - [ ] auto-inject `AGENTS.md` + project rule docs + active change artifacts
-    - [ ] keep injection bounded to avoid context bloat
-  - [ ] hook surface parity review:
-    - [ ] pre-tool
-    - [ ] post-tool
+  - [-] context-injection policy:
+    - [X] auto-inject `AGENTS.md` + project rule docs + active change artifacts — skill registry / compact rules injection protocol in orchestrator + `sdd-phase-common.md`
+    - [-] keep injection bounded to avoid context bloat — policy described in skills; not a hard token budget automation
+  - [-] hook surface parity review:
+    - [X] pre-tool — e.g. Cursor `preToolUse` (see `100-ide-configs.md`)
+    - [X] post-tool — e.g. Cursor `postToolUse` (see `100-ide-configs.md`)
     - [ ] prompt-submit
     - [ ] stop hooks
-  - [ ] session tooling parity:
-    - [ ] list/search/read historical sessions
-    - [ ] extract reusable decisions into durable artifacts
+  - [-] session tooling parity:
+    - [-] list/search/read historical sessions — depends on IDE/Engram; not uniform across surfaces
+    - [X] extract reusable decisions into durable artifacts — handoff, events, Engram/mem_save patterns in skills/workflows
 
 ### Milestone 1 — Core Enforcement (highest ROI)
 
@@ -242,33 +241,33 @@ Focus on enforceable pipeline behavior with strict phase gates, model routing, a
 
 ### Milestone 2.5 — Norse Persona Theming + Command Functions
 
-- [ ] Plan specialist agent personas with Norse mythology branding (workflow-facing, not decorative-only):
-  - [ ] `Odin` -> orchestrator/planner authority
-  - [ ] `Thor` -> implementation enforcer (delivery and momentum)
-  - [ ] `Tyr` -> spec/compliance verifier
-  - [ ] `Heimdall` -> security and gate sentinel
-  - [ ] `Frigg` -> UX/product clarity reviewer
-  - [ ] `Loki` -> adversarial critic/challenge persona
-- [ ] Define persona selection matrix by decision type:
-  - [ ] architecture
-  - [ ] security
-  - [ ] UX/content
-  - [ ] go/no-go release
-  - [ ] risk acceptance
-- [ ] Planned command functions for Norse persona workflow:
-  - [ ] `/sdd-persona-board --preset <arch|security|ux|release>`
-  - [ ] `/sdd-persona-list` (show personas, roles, and availability)
-  - [ ] `/sdd-persona-route --decision <type>` (auto-select personas)
-  - [ ] `/sdd-persona-report --id <decision-id>` (merge verdicts and conflicts)
-  - [ ] `/sdd-persona-resolve --id <decision-id>` (record accepted/rejected options)
-  - [ ] `/sdd-persona-health` (check persona prompt packs and tool readiness)
-- [ ] Define command return contracts for persona commands:
-  - [ ] `status`, `executive_summary`, `artifacts`, `next_recommended`, `risks`
-  - [ ] `personas_invoked`, `conflicts`, `hitl_required`, `accepted_decision`
-- [ ] Add HITL safety rules for themed personas:
-  - [ ] no persona can override hard gates
-  - [ ] unresolved critical conflict -> block
-  - [ ] user remains final authority on release/destructive choices
+- [X] Plan specialist agent personas with Norse mythology branding (workflow-facing, not decorative-only):
+  - [X] `Odin` -> orchestrator/planner authority
+  - [X] `Thor` -> implementation enforcer (delivery and momentum)
+  - [X] `Tyr` -> spec/compliance verifier
+  - [X] `Heimdall` -> security and gate sentinel
+  - [X] `Frigg` -> UX/product clarity reviewer
+  - [X] `Loki` -> adversarial critic/challenge persona
+- [X] Define persona selection matrix by decision type:
+  - [X] architecture
+  - [X] security
+  - [X] UX/content
+  - [X] go/no-go release
+  - [X] risk acceptance
+- [X] Planned command functions for Norse persona workflow:
+  - [X] `/sdd-persona-board --preset <arch|security|ux|release>`
+  - [X] `/sdd-persona-list` (show personas, roles, and availability)
+  - [X] `/sdd-persona-route --decision <type>` (auto-select personas)
+  - [X] `/sdd-persona-report --id <decision-id>` (merge verdicts and conflicts)
+  - [X] `/sdd-persona-resolve --id <decision-id>` (record accepted/rejected options)
+  - [X] `/sdd-persona-health` (check persona prompt packs and tool readiness)
+- [X] Define command return contracts for persona commands:
+  - [X] `status`, `executive_summary`, `artifacts`, `next_recommended`, `risks`
+  - [X] `personas_invoked`, `conflicts`, `hitl_required`, `accepted_decision`
+- [X] Add HITL safety rules for themed personas:
+  - [X] no persona can override hard gates
+  - [X] unresolved critical conflict -> block
+  - [X] user remains final authority on release/destructive choices
 
 ### Milestone 3 — Model Routing + Session Efficiency
 

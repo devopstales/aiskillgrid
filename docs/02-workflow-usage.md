@@ -37,7 +37,7 @@ flowchart TD
   Explore --> Brainstorm
   Brainstorm --> Loop[sdd-loop]
   Loop --> Apply[sdd-apply]
-  Apply --> Board[sdd-board optional]
+  Apply --> Board[sdd-persona-board optional]
   Board --> Verify[sdd-verify]
   Verify --> Archive[sdd-archive]
 ```
@@ -217,7 +217,7 @@ flowchart TD
   Gate -->|Yes| Apply[Apply One Slice]
   Apply --> Evidence[Capture Evidence]
   Evidence --> BoardNeed{Board Needed}
-  BoardNeed -->|Yes| Board[sdd-board]
+  BoardNeed -->|Yes| Board[sdd-persona-board]
   BoardNeed -->|No| Update[Update Handoff And Events]
   Board --> Update
   Update --> Reassess[Reassess Context And Risk]
@@ -247,7 +247,7 @@ For user-facing behavior, add UAT notes or a manual QA checklist after automated
 
 When a decision needs multiple viewpoints, use a specialist persona board. The parent picks only the relevant personas, asks each for a bounded report, reads the reports, records the accepted decision and rejected options, then either continues or marks the issue HITL.
 
-Use `/sdd-board <decision>` as the dedicated entrypoint for this process, and allow `/sdd-loop` or `/sdd-verify` to invoke it automatically when conflict/critical escalation is detected.
+Use `/sdd-persona-board <decision>` as the dedicated entrypoint for this process (with `/sdd-board` kept as a compatibility alias), and allow `/sdd-loop` or `/sdd-verify` to invoke it automatically when conflict/critical escalation is detected.
 
 The board must write durable state:
 

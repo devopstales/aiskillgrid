@@ -27,9 +27,9 @@
 | Commands | `.agents/workflows` | `.cursor/commands/`? |
 | Skills | `.agents/skills/` | `.agents/skills/`, `.cursor/skills/` |
 | Rules | `.agents/rules/`, `AGENTS.md` | `.cursor/rules/`, `AGENTS.md` |
-| Agents | ? | `.cursor/agents/` |
+| Agents | `.agents/agents.md`, `.agent/agents/` | `.cursor/agents/` |
 | Hooks | `.agents/hooks/` | `.cursor/hooks.json`, `.cursor/hooks/` |
-| MCP | `~/.gemini/antigravity/mcp_config.json` | `.cursor/mcp.json` |
+| MCP | `~/.gemini/antigravity/mcp_config.json`, `.agent/mcp_config.json` | `.cursor/mcp.json` |
 | Plugins | X | `.cursor/plugins/` |
 
 ## Plugins
@@ -66,6 +66,22 @@
 | Hooks | ? | `.opencode/hook/hooks.md` | `.gemini/settings.json` | ? | ? | ? |
 | MCP | `.kilo/kilo.jsonc` | `.opencode/opencode.jsonc` | `.gemini/settings.json` | ? | ? | ? |
 | Plugins | X | `.opencode/plugins/` | ? | ? | ? | ? |
+
+## Norse Persona Config Set
+
+Norse persona theming and routing are centralized in shared config files:
+
+- `.configs/norse-persona-contract.json` (persona roles, routing matrix, hard rules, return contract)
+- `.configs/ide-model-mapping.json` (surface model mapping by `fast|balanced|deep`)
+- `.configs/ide-persona-capabilities.json` (surface capability tiers and fallback policy)
+
+Render cross-IDE persona manifests with:
+
+```bash
+node scripts/render-multi-ide-personas.mjs
+```
+
+This writes `norse-personas.json` files into each surface (`.cursor`, `.kilo`, `.opencode`, `.github`, `.gemini`, `.codex`, `.pi`, `.antigravity`, `.vscode`, `.claude`) so command routing can stay consistent across toolchains.
 
 ### Google Antigravity
 

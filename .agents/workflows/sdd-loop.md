@@ -40,12 +40,12 @@ LOOP SAFETY RULES:
 EXECUTION MODEL:
 - Delegate implementation to `/sdd-apply` for the selected slice.
 - Capture evidence from implementation outputs (tests/build/checks/review notes).
-- If reassessment identifies architectural ambiguity, security concern, spec conflict, or go/no-go uncertainty, invoke `/sdd-board` before proceeding.
-- If `/sdd-board` returns conflict or critical findings, set `status: blocked` and require HITL.
+- If reassessment identifies architectural ambiguity, security concern, spec conflict, or go/no-go uncertainty, invoke `/sdd-persona-board --preset <architecture|security|ux-content|go-no-go-release|risk-acceptance>` before proceeding.
+- If `/sdd-persona-board` (or `/sdd-board` alias) returns conflict or critical findings, set `status: blocked` and require HITL.
 
 HARD BLOCK SEMANTICS:
-- `spec-verifier` critical finding => block progression.
-- `security-auditor` critical finding => block progression.
+- `tyr` critical finding => block progression.
+- `heimdall` critical finding => block progression.
 - unresolved persona conflict => block progression.
 - missing gate output/evidence => block progression.
 

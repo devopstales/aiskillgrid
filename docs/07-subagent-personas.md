@@ -39,7 +39,7 @@ Personas help with independent work such as:
 
 The parent session remains responsible for orchestration. Personas should not secretly coordinate with one another or rewrite the plan on their own.
 
-Persona names should be product-neutral in agent folders. Prefer names like `code-reviewer`, `security-auditor`, `test-engineer`, `spec-verifier`, `explore-architect`, `task-breakdown-auditor`, `design-critic`, and `researcher` instead of names with a `skillgrid-` prefix. Skillgrid is the workflow that composes them; the persona is the specialist role.
+Workflow-facing persona IDs use the Norse set defined in `.configs/norse-persona-contract.json`: `odin`, `thor`, `tyr`, `heimdall`, `frigg`, and `loki`. Legacy neutral labels may still appear as descriptive role text, but command routing and board outputs should use Norse IDs.
 
 ## Subagent Operating Model
 
@@ -62,37 +62,29 @@ The parent session must read the returned summaries and cited files before updat
 
 ## Core Personas
 
-### Code Reviewer
+### Odin
 
-Reviews correctness, readability, architecture, security, and performance. This persona is useful after implementation or before merge.
+Orchestrator and planner authority for board decisions. Owns routing, synthesis, and HITL boundaries.
 
-### Security Auditor
+### Thor
 
-Looks for threat models, insecure defaults, secret handling problems, unsafe dependencies, and abuse cases.
+Implementation enforcer focused on delivery feasibility, execution quality, and momentum.
 
-### Test Engineer
+### Tyr
 
-Evaluates whether the change is actually proven. This persona connects test coverage to user-facing success criteria.
+Spec and compliance verifier. Critical findings are hard gates that block progression.
 
-### Spec Verifier
+### Heimdall
 
-Checks whether implementation matches the PRD, OpenSpec proposal, delta specs, and task list.
+Security and release-gate sentinel. Critical security findings are hard gates that block progression.
 
-### Explore Architect
+### Frigg
 
-Maps existing systems, architecture boundaries, conventions, and onboarding knowledge.
+UX and product-clarity reviewer focused on user flow, accessibility, and content quality.
 
-### Task Breakdown Auditor
+### Loki
 
-Checks whether tasks are ordered, testable, scoped, and ready for implementation.
-
-### Design Critic
-
-Reviews UX flows, accessibility, design decisions, and interface boundaries. It is not a general code reviewer.
-
-### Researcher
-
-Uses research tools and documentation sources to produce cited findings and durable research artifacts.
+Adversarial critic that challenges assumptions, proposes counterexamples, and stress-tests risk acceptance.
 
 ## Orchestration Skill
 
@@ -127,11 +119,11 @@ The board is advisory. It is not a majority-vote machine and it does not replace
 
 Common board presets:
 
-- Product or UX: `design-critic`, `researcher`, optional `task-breakdown-auditor`.
-- Architecture: `explore-architect`, `code-reviewer`, `test-engineer`.
-- Security-sensitive: `security-auditor`, `code-reviewer`, `spec-verifier`.
-- Queue readiness: `task-breakdown-auditor`, optional `test-engineer`.
-- Post-implementation go/no-go: `spec-verifier`, `code-reviewer`, `test-engineer`, optional `security-auditor`.
+- UX/content: `frigg`, `loki`, `thor`.
+- Architecture: `odin`, `thor`, `tyr`, `loki`.
+- Security-sensitive: `heimdall`, `tyr`, `thor`, `loki`.
+- Go/no-go release: `odin`, `tyr`, `heimdall`, `thor`, `frigg`.
+- Risk acceptance: `odin`, `loki`, `tyr`, `heimdall`.
 
 Every board should produce durable state:
 

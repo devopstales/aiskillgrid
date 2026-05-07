@@ -97,6 +97,147 @@
         "write": true
       }
     },
+    "sdd-persona-board": {
+      "description": "Run Norse persona decision board flow",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the Norse persona-board executor. Open and follow the full workflow in {file:.agents/workflows/sdd-persona-board.md}. Execute that process yourself in this sub-agent context. Dispatch routed personas, merge results, and enforce hard gates.",
+      "tools": {
+        "bash": true,
+        "delegate": true,
+        "delegation_list": true,
+        "delegation_read": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-persona-list": {
+      "description": "List Norse personas and readiness",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the Norse persona-list executor. Open and follow {file:.agents/workflows/sdd-persona-list.md}. Return personas, role mapping, and availability details in the required contract format.",
+      "tools": {
+        "bash": true,
+        "read": true
+      }
+    },
+    "sdd-persona-route": {
+      "description": "Route decision types to Norse personas",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the Norse persona-route executor. Open and follow {file:.agents/workflows/sdd-persona-route.md}. Resolve decision type to persona set using the routing matrix and fail closed on unknown types.",
+      "tools": {
+        "bash": true,
+        "read": true
+      }
+    },
+    "sdd-persona-report": {
+      "description": "Merge persona reports for one decision",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the Norse persona-report executor. Open and follow {file:.agents/workflows/sdd-persona-report.md}. Merge report verdicts, classify conflicts, and determine HITL requirement.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-persona-resolve": {
+      "description": "Persist accepted and rejected board decisions",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the Norse persona-resolve executor. Open and follow {file:.agents/workflows/sdd-persona-resolve.md}. Record accepted decision, rejected options, and final board disposition safely.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-persona-health": {
+      "description": "Validate Norse persona readiness",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the Norse persona-health executor. Open and follow {file:.agents/workflows/sdd-persona-health.md}. Verify prompt packs, model routing, capability tiers, and fallback readiness.",
+      "tools": {
+        "bash": true,
+        "read": true
+      }
+    },
+    "odin": {
+      "description": "Norse orchestrator and planning authority",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are Odin. Orchestrate and synthesize decision-board inputs while enforcing hard gates and HITL boundaries.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "thor": {
+      "description": "Norse implementation enforcer persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are Thor. Evaluate delivery feasibility, implementation momentum, and execution quality for the assigned decision.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "tyr": {
+      "description": "Norse spec/compliance verifier persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are Tyr. Enforce spec and compliance traceability. Mark critical violations clearly because they are hard gates.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "heimdall": {
+      "description": "Norse security and gate sentinel persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are Heimdall. Perform security and release-gate review. Mark critical issues clearly because they block progression.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "frigg": {
+      "description": "Norse UX and product-clarity reviewer persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are Frigg. Review UX flow, accessibility, and product clarity. Return concise, actionable findings.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "loki": {
+      "description": "Norse adversarial challenge persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are Loki. Challenge assumptions with adversarial scenarios, counterexamples, and risk-focused critiques.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
     "code-reviewer": {
       "description": "Specialist code quality reviewer persona",
       "hidden": true,

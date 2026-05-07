@@ -77,7 +77,13 @@ Implementation should stay in small slices. For behavioral changes, `/sdd-apply`
 
 Use this when a high-risk or conflicting decision needs independent specialist viewpoints before progression.
 
-- `/sdd-board` runs the specialist persona board with preset-based persona routing, parallel reports, decision merge, and hard-block conflict semantics.
+- `/sdd-persona-board --preset <arch|security|ux|release|risk>` runs the Norse persona board with preset-based routing, parallel reports, decision merge, and hard-block conflict semantics (`arch/ux/release/risk` are normalized to canonical routing types).
+- `/sdd-persona-list` lists Norse personas, mapped roles, and surface readiness.
+- `/sdd-persona-route --decision <type>` auto-selects personas from the decision routing matrix.
+- `/sdd-persona-report --id <decision-id>` merges persona verdicts and conflict state for one decision.
+- `/sdd-persona-resolve --id <decision-id>` records accepted decision and rejected options.
+- `/sdd-persona-health` validates persona prompt packs, model routing, and capability readiness.
+- `/sdd-board` remains available as a compatibility alias that forwards to the Norse board flow.
 
 Board outputs must include persona reports, handoff decision records, and event-log timeline entries.
 
@@ -110,7 +116,13 @@ The active workflow commands in this repository are:
 - `/sdd-diagnose`
 - `/sdd-apply`
 - `/sdd-loop`
-- `/sdd-board`
+- `/sdd-persona-board`
+- `/sdd-persona-list`
+- `/sdd-persona-route`
+- `/sdd-persona-report`
+- `/sdd-persona-resolve`
+- `/sdd-persona-health`
+- `/sdd-board` (compatibility alias)
 - `/sdd-verify`
 - `/sdd-archive`
 

@@ -43,18 +43,18 @@ Then:
 6. Build the spec compliance matrix
 
 BOARD ESCALATION (critical/conflict path):
-- If verification evidence is conflicting, or a high-risk architecture/security/release decision is required, invoke `/sdd-board` before final status.
+- If verification evidence is conflicting, or a high-risk architecture/security/release decision is required, invoke `/sdd-persona-board` before final status (`/sdd-board` remains a compatibility alias).
 - Use board presets based on decision type:
-  - architecture -> `explore-architect`, `code-reviewer`, `test-engineer`
-  - security -> `security-auditor`, `code-reviewer`, `spec-verifier`
-  - go-no-go -> `spec-verifier`, `code-reviewer`, `test-engineer` (+ optional `security-auditor`)
+  - architecture -> `odin`, `thor`, `tyr`, `loki`
+  - security -> `heimdall`, `tyr`, `thor`, `loki`
+  - go-no-go-release -> `odin`, `tyr`, `heimdall`, `thor`, `frigg`
 - Persist board outputs to:
   - `.skillgrid/tasks/research/<change-id>/`
   - `.skillgrid/tasks/context_<change-id>.md`
   - `.skillgrid/tasks/events/<change-id>.jsonl`
 - Enforce hard block semantics:
-  - `spec-verifier` critical finding => `status: failed`
-  - `security-auditor` critical finding => `status: failed`
+  - `tyr` critical finding => `status: failed`
+  - `heimdall` critical finding => `status: failed`
   - unresolved persona conflict => `status: blocked` (HITL required)
 
 ENFORCEMENT CONTRACT:
