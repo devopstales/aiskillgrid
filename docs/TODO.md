@@ -37,13 +37,14 @@
   * paralel search subagents
 * questions
   * Assign different AI models to different SDD phases
-  * PRDs vs proposal.md !!!
-    * init
-    * brainstorm
-    * plan
+  * Build Loop
+  * Specialist persona board
 
 ## Components
 
+* [ ] AGENTS.md
+  * [ ] CONTEXT.md
+  * [ ] Karpathy rules
 * command
   * sdd-init
     * [X] sdd-init skill

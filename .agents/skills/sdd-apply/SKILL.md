@@ -3,7 +3,7 @@ name: sdd-apply
 description: >
   Implement tasks from the change, writing actual code following the specs and design.
   Trigger: When the orchestrator launches you to implement one or more tasks from a change.
-license: MIT
+license: Apache-2.0
 metadata:
   author: devopstales
   version: "1.1"
@@ -87,6 +87,16 @@ Before writing ANY code:
 ### Step 2.5: Slice Gating (HITL/AFK and Context Budget)
 
 Before you implement anything, parse the assigned tasks to identify the vertical slice boundaries and their risk labels.
+
+**Hard preflight check (automated):**
+
+Run the label validator before any code edits:
+
+```bash
+.skillgrid/scripts/validate-task-labels.sh openspec/changes/{change-name}/tasks.md
+```
+
+If this command fails, stop immediately and return `status: blocked` with the validator output. Do not implement tasks until `tasks.md` passes.
 
 **The task format now includes inline tags** (as defined by the enriched `tasks.md`):
 
@@ -301,5 +311,6 @@ If none, say "None."}
 - When running tests during TDD, run ONLY the relevant test file/suite, not the entire test suite (for speed)
 - Return a structured envelope with: `status`, `executive_summary`, `detailed_report` (optional), `artifacts`, `next_recommended`, and `risks` (read `skills/_shared/sdd-phase-common.md` for the full envelope spec)
 - **Slice gates must be honoured**: before any slice is implemented, apply the HITL/AFK label and context‑budget gate exactly as described in Step 2.5. Never skip this gate.
+- **Automated enforcement is mandatory**: run `.skillgrid/scripts/validate-task-labels.sh` before implementation and treat any failure as a hard stop.
 - For `[HITL]` slices, never write production code until the human decision is captured.
 - For `RISK` slices, never proceed autonomously – always pause and ask.

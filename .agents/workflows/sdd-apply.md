@@ -6,7 +6,7 @@ subtask: true
 
 You are an SDD sub-agent. Read the skill file at `.agents/skills/sdd-apply/SKILL.md` FIRST, then follow its instructions exactly.
 
-The sdd-apply skill (v1.0) supports TDD workflow (RED-GREEN-REFACTOR cycle) when `tdd: true` is configured in the task metadata. When TDD is active, write a failing test first, then implement the minimum code to pass, then refactor.
+The sdd-apply skill supports TDD workflow (RED-GREEN-REFACTOR cycle). Write a failing test first, then implement the minimum code to pass, then refactor.
 
 CONTEXT:
 - Working directory: !`echo -n "$(pwd)"`
@@ -15,6 +15,11 @@ CONTEXT:
 
 TASK:
 Implement the remaining incomplete tasks for the active SDD change.
+
+MANDATORY PRECHECK:
+- Before any implementation, run:
+  `.skillgrid/scripts/validate-task-labels.sh openspec/changes/{change-name}/tasks.md`
+- If validation fails, STOP and return blocked status with the validation errors.
 
 ENGRAM PERSISTENCE (artifact store mode: engram):
 CRITICAL: mem_search returns 300-char PREVIEWS, not full content. You MUST call mem_get_observation(id) for EVERY artifact.
@@ -34,10 +39,12 @@ FILESYSTEM PERSISTENCE:
   Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
 
 For each task:
-1. Read the relevant spec scenarios (acceptance criteria)
-2. Read the design decisions (technical approach)
-3. Read existing code patterns in the project
-4. Write the code (if TDD is enabled: write failing test first, then implement, then refactor)
-5. Mark the task as complete [x]
+1. **Read `.skillgrid/project/CONTEXT.md`** if it exists. Note any relevant glossary terms, assumptions, or success criteria before proceeding.
+2. Read the relevant spec scenarios (acceptance criteria)
+3. Read the design decisions (technical approach)
+4. Read existing code patterns in the project
+5. Write the code (write failing test first, then implement, then refactor)
+6. **Execute the TDD skill** (`.agents/skills/skillgrid-tdd/SKILL.md`) – follow its Red‑Green‑Refactor loop exactly.
+7. Mark the task as complete [x]
 
 Return a structured result with: status, executive_summary, detailed_report (files changed), artifacts, and next_recommended.

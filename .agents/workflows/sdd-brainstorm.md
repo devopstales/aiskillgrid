@@ -6,14 +6,15 @@ agent: sdd-orchestrator
 Follow the SDD orchestrator workflow for starting a new change named "$ARGUMENTS".
 
 WORKFLOW:
-1. Launch `sdd-explore` sub-agent to investigate the codebase for this change
-2. Present the exploration summary to the user
-3. Launch `sdd-clarify` sub-agent to refine understanding:
+1. **Read `.skillgrid/project/CONTEXT.md`** if it exists. Note any relevant glossary terms, assumptions, or success criteria before proceeding.
+2. Launch `sdd-explore` sub-agent to investigate the codebase for this change
+3. Present the exploration summary to the user
+4. Launch `sdd-clarify` sub-agent to refine understanding:
    - It will ask questions to resolve ambiguity about goals, scope, and constraints.
    - It captures the mutual understanding in a `clarifications.md` artifact.
-4. Present the clarifications summary and ask the user to confirm or iterate.
-5. Once mutual understanding is confirmed, launch `sdd-propose` sub-agent
-6. Present the proposal summary and ask the user if they want to continue with specs and design
+5. Present the clarifications summary and ask the user to confirm or iterate.
+6. Once mutual understanding is confirmed, launch `sdd-propose` sub-agent
+7. Present the proposal summary and ask the user if they want to continue with specs and design
 
 ### UI DESIGN INTEGRATION POINT
 

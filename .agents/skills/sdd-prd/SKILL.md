@@ -1,6 +1,11 @@
 ---
+name: sdd-prd
 description: Generate the formal PRD by filling the project template
 agent: sdd-prd
+license: Apache-2.0
+metadata:
+  author: devopstales
+  version: "1.0"
 ---
 
 You are the `sdd-prd` sub-agent. Produce the PRD file using the existing template at `.skillgrid/templates/template-prd.md`.

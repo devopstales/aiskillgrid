@@ -14,6 +14,10 @@ CONTEXT:
 TASK:
 Verify the active SDD change. Read the proposal, specs, design, and tasks artifacts. Then:
 
+MANDATORY PRECHECK:
+- Run `.skillgrid/scripts/validate-task-labels.sh openspec/changes/{change-name}/tasks.md` before verification.
+- If validation fails, report a CRITICAL gate failure and return FAIL.
+
 ENGRAM PERSISTENCE (artifact store mode: engram):
 CRITICAL: mem_search returns 300-char PREVIEWS, not full content. You MUST call mem_get_observation(id) for EVERY artifact.
 STEP A — SEARCH (get IDs only):
@@ -30,10 +34,11 @@ FILESYSTEM PERSISTENCE:
   Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
 
 Then:
-1. Check completeness — are all tasks done?
-2. Check correctness — does code match specs?
-3. Check coherence — were design decisions followed?
-4. Run tests and build (real execution)
-5. Build the spec compliance matrix
+1. **Read `.skillgrid/project/CONTEXT.md`** if it exists. Note any relevant glossary terms, assumptions, or success criteria before proceeding.
+2. Check completeness — are all tasks done?
+3. Check correctness — does code match specs?
+4. Check coherence — were design decisions followed?
+5. Run tests and build (real execution)
+6. Build the spec compliance matrix
 
 Return a structured verification report with: status, executive_summary, detailed_report, artifacts, and next_recommended.

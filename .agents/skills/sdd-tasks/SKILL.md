@@ -1,3 +1,13 @@
+---
+name: sdd-tasks
+description: >
+  Break down a change into an implementation task checklist.
+  Trigger: When the orchestrator launches you to create or update the task breakdown for a change.
+license: Apache-2.0
+metadata:
+  author: devopstales
+  version: "1.0"
+---
 
 ## Purpose
 
@@ -108,7 +118,7 @@ Only after this step is complete and the PRD is updated may you proceed to the a
 
 1. Read the slice’s goal, acceptance criteria, and any technical constraints.
 2. Produce a concrete, ordered list of implementation steps (one line per step).
-3. Tag each step with `[Slice: <name>] [Label: AFK|HITL] [Budget: safe|RISK]`.
+3. Tag each step with `[Slice: <name>] [Label: AFK|HITL] [Reason: <why this label applies>] [Budget: safe|RISK]`.
 4. If the slice is `[HITL]`, make the very first step a human‑decision point.
 5. Group steps under slice headings (`### Slice: <name>`).
 
@@ -143,13 +153,13 @@ Each task MUST be:
 
 Each task must be tagged with:
 ```
-[Slice: <slice-name>] [Label: AFK|HITL] [Budget: safe|RISK]
+[Slice: <slice-name>] [Label: AFK|HITL] [Reason: <brief gate rationale>] [Budget: safe|RISK]
 ```
 
 If the slice is [HITL], make the very first step a human decision point, e.g.:
 
 ```
-- [ ] DECISION: Choose between Redis or JWT‑only session storage.  [Slice: session] [Label: HITL] [Budget: safe]
+- [ ] DECISION: Choose between Redis or JWT‑only session storage.  [Slice: session] [Label: HITL] [Reason: architecture decision required] [Budget: safe]
 ```
 
 Group the steps by slice in the output. You may use nested headings like `### Slice: <name>` and then list the steps. Keep steps ordered inside each slice.
@@ -161,14 +171,14 @@ Group the steps by slice in the output. You may use nested headings like `### Sl
 
 ## Vertical Slice 1: <Slice Name> (Label: AFK, Budget: safe)
 
-- [ ] 1.1 Create `internal/auth/middleware.go` with JWT validation. [Slice: <name>] [Label: AFK] [Budget: safe]
-- [ ] 1.2 Add `POST /auth/register` endpoint. [Slice: <name>] [Label: AFK] [Budget: safe]
-- [ ] 1.3 Write unit tests for `AuthService.Login()`. [Slice: <name>] [Label: AFK] [Budget: safe]
+- [ ] 1.1 Create `internal/auth/middleware.go` with JWT validation. [Slice: <name>] [Label: AFK] [Reason: clear scoped implementation] [Budget: safe]
+- [ ] 1.2 Add `POST /auth/register` endpoint. [Slice: <name>] [Label: AFK] [Reason: API behavior fully specified] [Budget: safe]
+- [ ] 1.3 Write unit tests for `AuthService.Login()`. [Slice: <name>] [Label: AFK] [Reason: deterministic verification step] [Budget: safe]
 
 ## Vertical Slice 2: <Slice Name> (Label: AFK, Budget: safe)
 
-- [ ] 2.1 Add login rate limiting middleware. [Slice: <name>] [Label: AFK] [Budget: safe]
-- [ ] 2.2 Update swagger docs. [Slice: <name>] [Label: AFK] [Budget: safe]
+- [ ] 2.1 Add login rate limiting middleware. [Slice: <name>] [Label: AFK] [Reason: bounded middleware change] [Budget: safe]
+- [ ] 2.2 Update swagger docs. [Slice: <name>] [Label: AFK] [Reason: documentation-only update] [Budget: safe]
 ```
 
 Important: Tasks are always listed under their vertical slice; do not mix slices inside a flat phase grouping. If a slice needs internal phasing (e.g., foundation, core, test), you may add sub‑headings like `#### Foundation`, `#### Core` within the slice, but the top‑level grouping remains the slice.
@@ -186,6 +196,18 @@ Within a single vertical slice, order steps logically so that dependencies are s
 | 5 | Cleanup / documentation (if needed). |
 
 If a slice is small enough, you may collapse some of these levels into a single flat list. Always keep the steps sequential and bounded by the slice.
+
+### Step 3.5: Run Label-Gate Validator (Mandatory)
+
+Before persisting the artifact, validate the generated task list with the automation hook:
+
+```bash
+.skillgrid/scripts/validate-task-labels.sh openspec/changes/{change-name}/tasks.md
+```
+
+If the mode is `engram` or `none` (no filesystem `tasks.md` yet), create a temporary file from your generated tasks content, run the validator against it, and fix failures before persisting.
+
+Never persist tasks that fail this validator.
 
 ### Step 4: Persist Artifact
 
@@ -241,6 +263,7 @@ Ready for implementation (sdd-apply).
 - Each task should be completable in ONE session (if a task feels too big, split it)
 - Use hierarchical numbering: 1.1, 1.2, 2.1, 2.2, etc.
 - NEVER include vague tasks like "implement feature" or "add tests"
+- ALWAYS include `[Label: ...]` and `[Reason: ...]` tags on every actionable checkbox task line so automated label gating can validate the file
 - Apply any `rules.tasks` from `openspec/config.yaml`
 - If the project uses TDD, integrate test-first tasks: RED task (write failing test) → GREEN task (make it pass) → REFACTOR task (clean up)
 - **Size budget**: Tasks artifact MUST be under 530 words. Each task: 1-2 lines max. Use checklist format, not paragraphs.

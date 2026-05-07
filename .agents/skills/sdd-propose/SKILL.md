@@ -3,7 +3,7 @@ name: sdd-propose
 description: >
   Create a change proposal with intent, scope, and approach.
   Trigger: When the orchestrator launches you to create or update a proposal for a change.
-license: MIT
+license: Apache-2.0
 metadata:
   author: devopstales
   version: "1.0"

@@ -3,7 +3,7 @@ name: sdd-design
 description: >
   Create technical design document with architecture decisions and approach.
   Trigger: When the orchestrator launches you to write or update the technical design for a change.
-license: MIT
+license: Apache-2.0
 metadata:
   author: devopstales
   version: "1.0"

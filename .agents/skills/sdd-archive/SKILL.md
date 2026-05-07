@@ -3,7 +3,7 @@ name: sdd-archive
 description: >
   Sync delta specs to main specs and archive a completed change.
   Trigger: When the orchestrator launches you to archive a change after implementation and verification.
-license: MIT
+license: Apache-2.0
 metadata:
   author: devopstales
   version: "1.0"

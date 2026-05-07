@@ -3,7 +3,7 @@ name: sdd-ui-design
 description: >
   Create user-facing UI designs, wireframes, and interaction flows.
   Trigger: When orchestrator needs visual design output before technical implementation.
-license: MIT
+license: Apache-2.0
 metadata:
   author: devopstales
   version: "1.0"

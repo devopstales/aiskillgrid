@@ -3,7 +3,7 @@ name: sdd-verify
 description: >
   Validate that implementation matches specs, design, and tasks.
   Trigger: When the orchestrator launches you to verify a completed (or partially completed) change.
-license: MIT
+license: Apache-2.0
 metadata:
   author: devopstales
   version: "1.0"
@@ -77,6 +77,20 @@ Read tasks.md
 ├── List incomplete tasks [ ]
 └── Flag: CRITICAL if core tasks incomplete, WARNING if cleanup tasks incomplete
 ```
+
+### Step 2a: Enforce AFK/HITL Label Contract (Automated Gate)
+
+Run the label validator before any deeper verification:
+
+```bash
+.skillgrid/scripts/validate-task-labels.sh openspec/changes/{change-name}/tasks.md
+```
+
+Rules:
+
+- If validation fails, record a **CRITICAL** issue (`tasks.md label gate failed`) and return `FAIL`.
+- Missing `[Label: AFK|HITL]` or missing label reason are blocking defects in workflow quality.
+- Continue with deeper checks only after recording the gate failure details in the report.
 
 ### Step 3: Check Correctness (Static Specs Match)
 
@@ -307,6 +321,7 @@ Return to the orchestrator the same content you wrote to `verify-report.md`:
 - Compare against SPECS first (behavioral correctness), DESIGN second (structural correctness)
 - Be objective — report what IS, not what should be
 - CRITICAL issues = must fix before archive
+- Label-gate failures from `.skillgrid/scripts/validate-task-labels.sh` are CRITICAL and block archive
 - WARNINGS = should fix but won't block
 - SUGGESTIONS = improvements, not blockers
 - DO NOT fix any issues — only report them. The orchestrator decides what to do.

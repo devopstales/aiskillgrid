@@ -35,8 +35,9 @@ FILESYSTEM PERSISTENCE:
   Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
 
 Then:
-1. Sync delta specs into main specs (source of truth)
-2. Move the change folder to archive with date prefix
-3. Verify the archive is complete
+1. **Read `.skillgrid/project/CONTEXT.md`** if it exists. Note any relevant glossary terms, assumptions, or success criteria before proceeding.
+2. Sync delta specs into main specs (source of truth)
+3. Move the change folder to archive with date prefix
+4. Verify the archive is complete
 
 Return a structured result with: status, executive_summary, artifacts, and next_recommended.
