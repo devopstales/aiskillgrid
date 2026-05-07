@@ -1,24 +1,71 @@
 # IDEs
 
-* Google Antigravity
-* Cursor
-* Github Copilot
-* Kilo Code
-  * kilo cli
-* Opencode
+* Embeddid
+  * Google Antigravity
+  * Cursor
+* Plugins
+  * Github Copilot
+  * Kilo Code
   * OpenChamber
+* Agents
+  * kilo cli
+  * Opencode
+  * Gemini
+  * Claude Code
+  * Codex
+  * pi
 
-## IDE Configs
+# IDE Configs
 
-|           | Copilot | Cursor | Kilo | Opencode | Antigravity | Gemini |
-| --------- | ------- | ------ | ---- | -------- | ----------- | ------ |
-| Commands  | `.github/prompts/` | `.cursor/commands/`? | `.kilo/commands/` | `.opencode/commands/*.md` | `.agents/workflows` | `.gemini/commands/*.toml` |
-| Skills    | `.agents/skills/`, `.claude/skills/`, `.github/skills`, `.copilot/skills` | `.agents/skills/`, `.cursor/skills/` | `.agents/skills/ `, `.claude/skills/ `, `.kilo/skills/` | `.agents/skills/`, `.claude/skills/`, `.opencode/skills/` | `.agents/skills/` | `.agents/skills/` |
-| Rules     | `.github/instructions/*.instructions.md`, `.github/copilot-instructions.md`, `AGENTS.md` | `.cursor/rules/`, `AGENTS.md` | `.kilo/rules/`, `AGENTS.md` | `.opencode/rules/`, `AGENTS.md` | `.agents/rules/`, `AGENTS.md` | ? |
-| Agents    | `.github/agents/` | `.cursor/agents/` | `.kilo/agents/` | `.opencode/agents/` | ? | ? |
-| Hooks     | `.github/hooks/*.json` | `.cursor/hooks.json`, `.cursor/hooks/` | ? | `.opencode/hook/hooks.md` | `.agents/hooks/` | `.gemini/settings.json` |
-| MCP       | `.vscode/mcp.json` | `.cursor/mcp.json` | `.kilo/kilo.jsonc` | `.opencode/opencode.jsonc` | `~/.gemini/antigravity/mcp_config.json` | `.gemini/settings.json` |
-| plugins   | X | `.cursor/plugins/` | X | `.opencode/plugins/` | X | ? |
+## Embedded
+
+- Google Antigravity
+- Cursor
+
+| Config Area | Google Antigravity | Cursor |
+| ----------- | ------------------ | ------ |
+| Commands | `.agents/workflows` | `.cursor/commands/`? |
+| Skills | `.agents/skills/` | `.agents/skills/`, `.cursor/skills/` |
+| Rules | `.agents/rules/`, `AGENTS.md` | `.cursor/rules/`, `AGENTS.md` |
+| Agents | ? | `.cursor/agents/` |
+| Hooks | `.agents/hooks/` | `.cursor/hooks.json`, `.cursor/hooks/` |
+| MCP | `~/.gemini/antigravity/mcp_config.json` | `.cursor/mcp.json` |
+| Plugins | X | `.cursor/plugins/` |
+
+## Plugins
+
+- Github Copilot
+- Kilo Code
+- OpenChamber
+
+| Config Area | Github Copilot | Kilo Code | OpenChamber |
+| ----------- | -------------- | --------- | ----------- |
+| Commands | `.github/prompts/` | `.kilo/commands/` | `.opencode/commands/*.md` |
+| Skills | `.agents/skills/`, `.claude/skills/`, `.github/skills`, `.copilot/skills` | `.agents/skills/`, `.claude/skills/`, `.kilo/skills/` | `.agents/skills/`, `.claude/skills/`, `.opencode/skills/` |
+| Rules | `.github/instructions/*.instructions.md`, `.github/copilot-instructions.md`, `AGENTS.md` | `.kilo/rules/`, `AGENTS.md` | `.opencode/rules/`, `AGENTS.md` |
+| Agents | `.github/agents/` | `.kilo/agents/` | `.opencode/agents/` |
+| Hooks | `.github/hooks/*.json` | ? | `.opencode/hook/hooks.md` |
+| MCP | `.vscode/mcp.json` | `.kilo/kilo.jsonc` | `.opencode/opencode.jsonc` |
+| Plugins | X | X | `.opencode/plugins/` |
+
+## Agents
+
+- kilo cli
+- Opencode
+- Gemini
+- Claude Code
+- Codex
+- pi
+
+| Config Area | kilo cli | Opencode | Gemini | Claude Code | Codex | pi |
+| ----------- | -------- | -------- | ------ | ----------- | ----- | -- |
+| Commands | `.kilo/commands/` | `.opencode/commands/*.md` | `.gemini/commands/*.toml` | ? | ? | ? |
+| Skills | `.agents/skills/`, `.claude/skills/`, `.kilo/skills/` | `.agents/skills/`, `.claude/skills/`, `.opencode/skills/` | `.agents/skills/` | `.agents/skills/`, `.claude/skills/` | `.agents/skills/` | ? |
+| Rules | `.kilo/rules/`, `AGENTS.md` | `.opencode/rules/`, `AGENTS.md` | ? | `AGENTS.md` | `AGENTS.md` | ? |
+| Agents | `.kilo/agents/` | `.opencode/agents/` | ? | ? | ? | ? |
+| Hooks | ? | `.opencode/hook/hooks.md` | `.gemini/settings.json` | ? | ? | ? |
+| MCP | `.kilo/kilo.jsonc` | `.opencode/opencode.jsonc` | `.gemini/settings.json` | ? | ? | ? |
+| Plugins | X | `.opencode/plugins/` | ? | ? | ? | ? |
 
 ### Google Antigravity
 

@@ -42,6 +42,21 @@ Then:
 5. Run tests and build (real execution)
 6. Build the spec compliance matrix
 
+BOARD ESCALATION (critical/conflict path):
+- If verification evidence is conflicting, or a high-risk architecture/security/release decision is required, invoke `/sdd-board` before final status.
+- Use board presets based on decision type:
+  - architecture -> `explore-architect`, `code-reviewer`, `test-engineer`
+  - security -> `security-auditor`, `code-reviewer`, `spec-verifier`
+  - go-no-go -> `spec-verifier`, `code-reviewer`, `test-engineer` (+ optional `security-auditor`)
+- Persist board outputs to:
+  - `.skillgrid/tasks/research/<change-id>/`
+  - `.skillgrid/tasks/context_<change-id>.md`
+  - `.skillgrid/tasks/events/<change-id>.jsonl`
+- Enforce hard block semantics:
+  - `spec-verifier` critical finding => `status: failed`
+  - `security-auditor` critical finding => `status: failed`
+  - unresolved persona conflict => `status: blocked` (HITL required)
+
 ENFORCEMENT CONTRACT:
 - Canonical enforcement is centralized in `.agents/skills/_shared/sdd-enforcement-contract.md`.
 - This workflow MUST apply that shared contract for:
@@ -51,6 +66,7 @@ ENFORCEMENT CONTRACT:
   - standard return envelope
 - Verify-specific progression rule:
   - any critical finding in Stage 1 or Stage 2 => `status: failed` with explicit remediation in `next_recommended`
+  - board escalation failures or unresolved board conflicts must prevent progression to `/sdd-archive`
   - both stages pass => allow progression to `/sdd-archive`
 
 Return a structured verification report with:

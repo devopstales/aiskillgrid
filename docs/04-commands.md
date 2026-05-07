@@ -27,8 +27,10 @@ Each command should leave something behind: a config update, PRD, task list, han
 flowchart LR
   Init[Init] --> Explore[Explore]
   Explore --> Brainstorm[Brainstorm]
-  Brainstorm --> Apply[Apply]
-  Apply --> Verify[Verify]
+  Brainstorm --> Loop[BuildLoop]
+  Loop --> Apply[Apply]
+  Apply --> Board[PersonaBoard]
+  Board --> Verify[Verify]
   Verify --> Archive[Archive]
 ```
 
@@ -63,11 +65,21 @@ Use these when you need to understand a codebase or define a change.
 
 ### Build
 
-Use this command to implement task items from active change artifacts.
+Use these commands to implement task items from active change artifacts.
 
 - `/sdd-apply` implements remaining incomplete tasks and updates task progress.
+- `/sdd-loop` runs a controlled continuation loop: pick one AFK-safe slice, execute, capture evidence, reassess, then continue or stop.
 
 Implementation should stay in small slices. For behavioral changes, `/sdd-apply` should run TDD (RED, GREEN, REFACTOR) using the `skillgrid-tdd` skill.
+`/sdd-loop` is the preferred controlled continuation wrapper for repeated AFK-safe execution.
+
+### Decision Board
+
+Use this when a high-risk or conflicting decision needs independent specialist viewpoints before progression.
+
+- `/sdd-board` runs the specialist persona board with preset-based persona routing, parallel reports, decision merge, and hard-block conflict semantics.
+
+Board outputs must include persona reports, handoff decision records, and event-log timeline entries.
 
 ### Verification
 
@@ -97,6 +109,8 @@ The active workflow commands in this repository are:
 - `/sdd-design-ui`
 - `/sdd-diagnose`
 - `/sdd-apply`
+- `/sdd-loop`
+- `/sdd-board`
 - `/sdd-verify`
 - `/sdd-archive`
 

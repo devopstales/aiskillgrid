@@ -70,6 +70,129 @@
         "write": true
       }
     },
+    "sdd-loop": {
+      "description": "Run controlled AFK build loop iterations",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are a Skillgrid loop executor. Open and follow the full workflow in {file:.agents/workflows/sdd-loop.md}. Execute that process yourself in this sub-agent context. Do NOT delegate to non-SDD agents unless the workflow requires specialist board personas.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "sdd-board": {
+      "description": "Run a specialist persona decision board",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are a Skillgrid persona-board executor. Open and follow the full workflow in {file:.agents/workflows/sdd-board.md}. Execute that process yourself in this sub-agent context. Dispatch relevant specialist personas, merge results, and enforce board hard blocks.",
+      "tools": {
+        "bash": true,
+        "delegate": true,
+        "delegation_list": true,
+        "delegation_read": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "code-reviewer": {
+      "description": "Specialist code quality reviewer persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the code-reviewer persona. Produce a bounded review report for the assigned decision or slice. Focus on correctness, maintainability, architecture consistency, and performance risk. Return explicit severity and evidence paths.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "security-auditor": {
+      "description": "Specialist security auditor persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the security-auditor persona. Produce a bounded security report for the assigned decision or slice. Flag critical findings when exploitability or data risk is high. Return explicit severity and evidence paths.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "spec-verifier": {
+      "description": "Specialist spec compliance verifier persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the spec-verifier persona. Check traceability from proposal/spec/tasks to the implementation decision. Report any critical compliance gaps with evidence and required remediation.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "test-engineer": {
+      "description": "Specialist test strategy and evidence persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the test-engineer persona. Evaluate coverage quality, missing checks, and evidence sufficiency for the assigned decision or slice. Return severity-tagged findings and concrete test recommendations.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "explore-architect": {
+      "description": "Specialist architecture exploration persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the explore-architect persona. Analyze system boundaries, integration impact, and architectural trade-offs for the assigned decision. Return concise options with risks and recommendation.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "design-critic": {
+      "description": "Specialist UX and interaction critique persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the design-critic persona. Review user flow, usability, accessibility, and interaction trade-offs for the assigned decision. Return actionable findings with severity and evidence.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "researcher": {
+      "description": "Specialist research and external evidence persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the researcher persona. Gather concise, cited evidence from repository artifacts and approved external sources for the assigned question. Return findings, recommendation, and open questions.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
+    "task-breakdown-auditor": {
+      "description": "Specialist queue readiness and slice quality persona",
+      "hidden": true,
+      "mode": "subagent",
+      "prompt": "You are the task-breakdown-auditor persona. Evaluate whether tasks are vertically sliced, label-compliant, dependency-safe, and AFK/HITL ready. Return blockers and remediation guidance.",
+      "tools": {
+        "bash": true,
+        "edit": true,
+        "read": true,
+        "write": true
+      }
+    },
     "sdd-orchestrator": {
       "description": "Agent Teams Orchestrator - coordinates sub-agents, never does work inline",
       "mode": "primary",

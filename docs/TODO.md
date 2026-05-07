@@ -120,6 +120,8 @@
   * [-] sdd-verify
   * [-] sdd-archive
   * [-] sdd-ui-design
+  * [ ] sdd-test - runs tests and captures evidence tied to success criteria.
+  * [ ] sdd-security - performs a deeper security pass when needed.
 
   * [ ] orchestrator ???
   * [ ] skill-registry
@@ -144,7 +146,7 @@ Implement the highest-impact workflow upgrades from:
 - obra/superpowers
 - gsd-build/get-shit-done
 
-Focus on enforceable pipeline behavior (not branding), with strict phase gates, model routing, and persona-board decisions.
+Focus on enforceable pipeline behavior with strict phase gates, model routing, and persona-board decisions, plus workflow-level Norse mythology persona branding where it improves operator clarity.
 
 ### Source-specific imports to adopt
 
@@ -222,21 +224,51 @@ Focus on enforceable pipeline behavior (not branding), with strict phase gates, 
 
 ### Milestone 2 — Build Loop + Persona Board
 
-- [ ] Implement `/sdd-loop` command (Ralph-loop style):
-  - [ ] pick one AFK-safe slice
-  - [ ] execute
-  - [ ] capture evidence
-  - [ ] reassess
-  - [ ] continue or stop
-- [ ] Implement specialist persona board as executable workflow:
-  - [ ] preset selection by decision type (arch/security/UX/go-no-go)
-  - [ ] parallel persona reports
-  - [ ] merge + accepted/rejected options
-  - [ ] conflict -> HITL block
-- [ ] Define hard block semantics:
-  - [ ] `spec-verifier` critical => block
-  - [ ] `security-auditor` critical => block
-  - [ ] unresolved persona conflict => block
+- [X] Implement `/sdd-loop` command (Ralph-loop style):
+  - [X] pick one AFK-safe slice
+  - [X] execute
+  - [X] capture evidence
+  - [X] reassess
+  - [X] continue or stop
+- [X] Implement specialist persona board as executable workflow:
+  - [X] preset selection by decision type (arch/security/UX/go-no-go)
+  - [X] parallel persona reports
+  - [X] merge + accepted/rejected options
+  - [X] conflict -> HITL block
+- [X] Define hard block semantics:
+  - [X] `spec-verifier` critical => block
+  - [X] `security-auditor` critical => block
+  - [X] unresolved persona conflict => block
+
+### Milestone 2.5 — Norse Persona Theming + Command Functions
+
+- [ ] Plan specialist agent personas with Norse mythology branding (workflow-facing, not decorative-only):
+  - [ ] `Odin` -> orchestrator/planner authority
+  - [ ] `Thor` -> implementation enforcer (delivery and momentum)
+  - [ ] `Tyr` -> spec/compliance verifier
+  - [ ] `Heimdall` -> security and gate sentinel
+  - [ ] `Frigg` -> UX/product clarity reviewer
+  - [ ] `Loki` -> adversarial critic/challenge persona
+- [ ] Define persona selection matrix by decision type:
+  - [ ] architecture
+  - [ ] security
+  - [ ] UX/content
+  - [ ] go/no-go release
+  - [ ] risk acceptance
+- [ ] Planned command functions for Norse persona workflow:
+  - [ ] `/sdd-persona-board --preset <arch|security|ux|release>`
+  - [ ] `/sdd-persona-list` (show personas, roles, and availability)
+  - [ ] `/sdd-persona-route --decision <type>` (auto-select personas)
+  - [ ] `/sdd-persona-report --id <decision-id>` (merge verdicts and conflicts)
+  - [ ] `/sdd-persona-resolve --id <decision-id>` (record accepted/rejected options)
+  - [ ] `/sdd-persona-health` (check persona prompt packs and tool readiness)
+- [ ] Define command return contracts for persona commands:
+  - [ ] `status`, `executive_summary`, `artifacts`, `next_recommended`, `risks`
+  - [ ] `personas_invoked`, `conflicts`, `hitl_required`, `accepted_decision`
+- [ ] Add HITL safety rules for themed personas:
+  - [ ] no persona can override hard gates
+  - [ ] unresolved critical conflict -> block
+  - [ ] user remains final authority on release/destructive choices
 
 ### Milestone 3 — Model Routing + Session Efficiency
 
@@ -267,6 +299,6 @@ Focus on enforceable pipeline behavior (not branding), with strict phase gates, 
 
 ### Out of Scope (for now)
 
-- [ ] Thematic/lore persona branding
+- [ ] Full narrative/lore UI storytelling layers beyond command-level persona mapping
 - [ ] Multiplexer/UI novelty features
 - [ ] Broad cross-harness packaging before core gates are stable

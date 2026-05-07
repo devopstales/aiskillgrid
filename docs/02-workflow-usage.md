@@ -35,8 +35,10 @@ flowchart TD
   Clear -->|No| Explore[sdd-explore]
   Clear -->|Yes| Brainstorm[sdd-brainstorm]
   Explore --> Brainstorm
-  Brainstorm --> Apply[sdd-apply]
-  Apply --> Verify[sdd-verify]
+  Brainstorm --> Loop[sdd-loop]
+  Loop --> Apply[sdd-apply]
+  Apply --> Board[sdd-board optional]
+  Board --> Verify[sdd-verify]
   Verify --> Archive[sdd-archive]
 ```
 
@@ -178,10 +180,14 @@ There is no dedicated `/skillgrid-import` command in the current workflow surfac
 Use:
 
 ```text
-/sdd-apply
+/sdd-loop
 ```
 
-for implementation from an approved task list.
+for controlled implementation from an approved task list.
+
+`/sdd-loop` performs one AFK-safe slice at a time (`pick -> execute -> evidence -> reassess -> continue/stop`) and should be the default continuation entrypoint.
+
+Use `/sdd-apply` directly when you intentionally want a single targeted implementation pass without loop control.
 
 The agent should:
 
@@ -201,7 +207,7 @@ For behavioral code, implementation should follow TDD:
 
 Do not delete, weaken, or bypass tests to get green.
 
-Controlled continuation is handled by repeating `/sdd-apply` in small, verified increments. It is not an excuse for unbounded autonomous work.
+Controlled continuation is handled by `/sdd-loop` in small, verified increments. It is not an excuse for unbounded autonomous work.
 
 ```mermaid
 flowchart TD
@@ -210,7 +216,10 @@ flowchart TD
   Gate -->|No| Stop[Stop For HITL Or Breakdown]
   Gate -->|Yes| Apply[Apply One Slice]
   Apply --> Evidence[Capture Evidence]
-  Evidence --> Update[Update Handoff And Events]
+  Evidence --> BoardNeed{Board Needed}
+  BoardNeed -->|Yes| Board[sdd-board]
+  BoardNeed -->|No| Update[Update Handoff And Events]
+  Board --> Update
   Update --> Reassess[Reassess Context And Risk]
   Reassess --> Pick
 ```
@@ -237,6 +246,8 @@ Ordering matters. Do not accept code quality review before spec compliance passe
 For user-facing behavior, add UAT notes or a manual QA checklist after automated evidence. Failed UAT should create focused fix tasks rather than a vague “try again” loop.
 
 When a decision needs multiple viewpoints, use a specialist persona board. The parent picks only the relevant personas, asks each for a bounded report, reads the reports, records the accepted decision and rejected options, then either continues or marks the issue HITL.
+
+Use `/sdd-board <decision>` as the dedicated entrypoint for this process, and allow `/sdd-loop` or `/sdd-verify` to invoke it automatically when conflict/critical escalation is detected.
 
 The board must write durable state:
 
