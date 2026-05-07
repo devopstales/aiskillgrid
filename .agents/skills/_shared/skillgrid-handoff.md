@@ -65,6 +65,16 @@ Supported fields:
 
 Do not replace `context_<change-id>.md` with events. The event log is the timeline; the handoff remains the current-state summary.
 
+### Enforcement Contracts
+
+Apply enforcement to all `sdd-*` phases handled by `sdd-orchestrator` using:
+
+- `skills/_shared/sdd-enforcement-contract.md`
+- `skills/_shared/sdd-return-envelope.md`
+- `skills/_shared/sdd-label-gate-contract.md`
+
+This handoff document remains focused on state, timeline, and evidence tracking. Enforcement semantics are centralized in the shared contracts above.
+
 ### Decision Board Records
 
 When a specialist persona board is used, the parent must record the decision in the handoff before advancing:

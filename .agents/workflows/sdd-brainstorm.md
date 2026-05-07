@@ -72,6 +72,16 @@ ORCHESTRATOR RULES:
   - All artifacts are persisted per artifact_store mode
 - If user interrupts or requests changes, use `mem_get_observation` to reload prior phase artifacts instead of re-running.
 
+ENFORCEMENT CONTRACT:
+- Canonical enforcement is centralized in `.agents/skills/_shared/sdd-enforcement-contract.md`.
+- This workflow MUST apply that shared contract for:
+  - phase routing and stop conditions
+  - mandatory skill-gate checks
+  - two-stage review gate
+  - standard return envelope
+- Brainstorm-specific override:
+  - For planning-only execution, Stage 2 (`code quality`) is `not_applicable` unless implementation code was produced in error.
+
 UI DESIGN HANDOFF CONTRACT:
 When UI sub-agents complete, ensure the design artifact includes:
 

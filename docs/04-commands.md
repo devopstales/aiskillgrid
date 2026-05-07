@@ -100,6 +100,21 @@ The active workflow commands in this repository are:
 - `/sdd-verify`
 - `/sdd-archive`
 
+## Milestone 1 Core Enforcement
+
+Milestone 1 runtime enforcement is centralized in:
+
+- `.agents/skills/_shared/sdd-enforcement-contract.md`
+
+That shared contract is authoritative for:
+
+- phase routing and stop conditions
+- mandatory skill-gate matrix
+- two-stage review gate
+- standard return envelope for all `sdd-*`
+
+Workflow files may define stricter phase-specific overrides, but must not weaken the shared contract.
+
 ## Why Commands Matter
 
 Commands reduce drift. A chat prompt can change meaning as context grows, but a command has a stable job.

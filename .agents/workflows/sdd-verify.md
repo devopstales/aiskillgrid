@@ -17,6 +17,7 @@ Verify the active SDD change. Read the proposal, specs, design, and tasks artifa
 MANDATORY PRECHECK:
 - Run `.skillgrid/scripts/validate-task-labels.sh openspec/changes/{change-name}/tasks.md` before verification.
 - If validation fails, report a CRITICAL gate failure and return FAIL.
+- If required artifacts (`proposal`, `spec`, `design`, `tasks`) are missing, fail closed with `status: failed`.
 
 ENGRAM PERSISTENCE (artifact store mode: engram):
 CRITICAL: mem_search returns 300-char PREVIEWS, not full content. You MUST call mem_get_observation(id) for EVERY artifact.
@@ -41,4 +42,23 @@ Then:
 5. Run tests and build (real execution)
 6. Build the spec compliance matrix
 
-Return a structured verification report with: status, executive_summary, detailed_report, artifacts, and next_recommended.
+ENFORCEMENT CONTRACT:
+- Canonical enforcement is centralized in `.agents/skills/_shared/sdd-enforcement-contract.md`.
+- This workflow MUST apply that shared contract for:
+  - phase routing and stop conditions
+  - mandatory skill-gate checks
+  - two-stage review gate
+  - standard return envelope
+- Verify-specific progression rule:
+  - any critical finding in Stage 1 or Stage 2 => `status: failed` with explicit remediation in `next_recommended`
+  - both stages pass => allow progression to `/sdd-archive`
+
+Return a structured verification report with:
+- `status`: `completed | blocked | failed`
+- `executive_summary`:
+  - `overview`
+  - `used_tokens` (`input`, `output`, `total`, or `not_available`)
+- `detailed_report`: verification matrix, executed checks, and critical findings
+- `artifacts`: report paths and evidence paths
+- `next_recommended`: concrete next command/action
+- `risks`: open/accepted risks or explicit `none`
