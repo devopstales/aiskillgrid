@@ -73,6 +73,7 @@
     * [X] `_shared/skillgrid-handoff.md`
   * sdd-verify
     * [X] `_shared/skillgrid-handoff.md`
+  * sdd-ui-design
 * skill
   * [X] `_shared/engram-convention.md`
   * [-] `_shared/openspec-convention.md`
@@ -117,6 +118,7 @@
   * [-] sdd-apply
   * [-] sdd-verify
   * [-] sdd-archive
+  * [-] sdd-ui-design
 
   * [ ] orchestrator ???
   * [ ] skill-registry
