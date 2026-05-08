@@ -14,6 +14,11 @@ CONTEXT:
 TASK:
 Archive the active SDD change. Read the verification report first to confirm the change is ready. Then:
 
+MANDATORY PRECHECK (CI-ready default, fail closed):
+- Confirm verification evidence exists for the active change before archive.
+- If verification report/artifacts are missing or indicate unresolved critical findings, return `status: failed` and do not archive.
+- If needed, route to `/sdd-verify` first and set `next_recommended` accordingly.
+
 ENGRAM PERSISTENCE (artifact store mode: engram):
 CRITICAL: mem_search returns 300-char PREVIEWS, not full content. You MUST call mem_get_observation(id) for EVERY artifact.
 STEP A — SEARCH (get IDs only):
@@ -32,7 +37,7 @@ Record all observation IDs in the archive report for traceability.
 Save:
   mem_save(title: "sdd/{change-name}/archive-report", topic_key: "sdd/{change-name}/archive-report", type: "architecture", project: "{project}", content: "{archive report with observation IDs}")
 FILESYSTEM PERSISTENCE:
-  Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
+  Read `.agents/skills/_shared/skillgrid-handoff.md` for filesystem persistence instructions.
 
 Then:
 1. **Read `.skillgrid/project/CONTEXT.md`** if it exists. Note any relevant glossary terms, assumptions, or success criteria before proceeding.

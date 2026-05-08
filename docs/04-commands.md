@@ -99,6 +99,14 @@ When needed, run specialist skills in parallel (for example GitNexus debugging/r
 
 For subagent operating rules, use `08-multi-agent-work.md` and the `sdd-*` skill set under `.agents/skills/`.
 
+CI-ready default path:
+
+- `/sdd-loop` (or `/sdd-apply`) for implementation slices
+- `/sdd-verify` as mandatory quality gate
+- `/sdd-archive` only after verification evidence is present and passing
+
+The archive path should fail closed when verification artifacts are missing, stale, or blocked by unresolved critical findings.
+
 ### Finish
 
 Use this command when verification passes and the change is ready to close.

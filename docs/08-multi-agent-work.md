@@ -63,6 +63,14 @@ Multi-agent work must be visible outside chat. Skillgrid uses three durable path
 - The event log is the append-only timeline: starts, completions, blockers, subagent dispatches, returns, and decisions.
 - The research directory holds long outputs: reports, audits, browser evidence, comparisons, design critiques, and subagent findings.
 
+Use a compact dispatch index for recent state:
+
+```text
+.skillgrid/tasks/registry_<change-id>.md
+```
+
+The registry is a short, recent index (decisions/progress/blockers/next candidates). It exists to avoid repeatedly scanning long reports during subagent dispatch.
+
 Every delegated subagent should either append an event or return a suggested event object for the parent to append. The parent should not advance the workflow until the handoff and event log reflect the subagent result.
 
 Useful event fields:
@@ -107,6 +115,16 @@ Subagent prompts should include:
 - expected output path under `.skillgrid/tasks/research/<change-id>/`;
 - selected project standards from `.skillgrid/project/SKILL_REGISTRY.md` when relevant;
 - exact return format.
+
+Required context injection packet fields:
+
+- objective (one sentence);
+- constraints and non-goals;
+- exact task or slice id;
+- file ownership/edit boundaries;
+- ordered artifact read list (handoff, events, registry, PRD/OpenSpec as needed);
+- expected output path and format;
+- verification command with expected pass condition.
 
 Do not paste session history into subagent prompts. Build the prompt from durable artifacts and a short task-specific context packet.
 
@@ -176,6 +194,12 @@ Rules:
 - tasks touching the same files should be sequential unless ownership is explicit and non-overlapping;
 - failed verification in one wave blocks dependent waves;
 - the parent merges evidence after each wave before dispatching the next.
+
+Dispatch decision test:
+
+- **Will agent B need to read agent A output?**
+  - yes -> sequential
+  - no -> parallel allowed (only with non-overlapping ownership and planned merge verification)
 
 Dependency waves pair naturally with vertical slices. Horizontal layer plans usually parallelize badly because later tasks cannot be verified until the stack is assembled.
 
@@ -252,6 +276,24 @@ Before launching parallel subagents, the parent should verify:
 - file ownership is clear for any writer;
 - the parent has time to read and merge all results;
 - verification can cover the integrated result.
+
+## Retry Ladder (Artifact Mismatch)
+
+If a subagent claims completion but expected artifacts are missing, empty, or inconsistent, use a bounded retry ladder:
+
+1. Clarify missing artifacts and resend with exact output paths.
+2. Tighten scope to one artifact and restate boundaries plus verification command.
+3. Route to alternate persona/model tier for the same bounded deliverable.
+4. If still failing, mark `blocked`, append failure event, and require HITL.
+
+Per-attempt checks:
+
+- output file exists;
+- output is non-empty;
+- output is logged in handoff/event artifacts;
+- summary claims match produced files.
+
+Do not run unbounded retries. Maximum automated retries per mismatch set: **3**.
 
 ## Implementation Delegation
 

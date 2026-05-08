@@ -12,7 +12,19 @@ Planning logic and how pieces connect: **`docs/skillgrid-templates-and-logic.md`
 | `template-openspec-tasks.md` | `openspec/changes/<id>/tasks.md` |
 | `template-openspec-slice-spec.md` | `openspec/changes/<id>/specs/<slice>/spec.md` |
 | `template-handoff-context.md` | `.skillgrid/tasks/context_<change-id>.md` |
+| `template-handoff-registry.md` | `.skillgrid/tasks/registry_<change-id>.md` compact dispatch index |
+| `template-handoff-session-full.md` | `.skillgrid/handoffs/<timestamp>-<slug>.md` full session handoff |
+| `template-handoff-session-quick.md` | `.skillgrid/handoffs/<timestamp>-<slug>.md` quick session handoff |
 | `template-project.md` | `.skillgrid/project/PROJECT.md` |
 | `template-architecture.md` | `.skillgrid/project/ARCHITECTURE.md` |
 | `template-structure.md` | `.skillgrid/project/STRUCTURE.md` |
 | `template-design.md` | Repo root `DESIGN.md` |
+
+Handoff helper scripts:
+
+- `.skillgrid/scripts/handoff-create.sh` (`full` or `quick`)
+- `.skillgrid/scripts/handoff-resume.sh`
+- `.skillgrid/scripts/handoff-list.sh`
+- `.skillgrid/scripts/handoff-validate.sh`
+- `.skillgrid/scripts/handoff-check-staleness.sh`
+- `.skillgrid/scripts/handoff-registry-init.sh`

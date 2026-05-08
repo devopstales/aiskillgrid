@@ -23,6 +23,10 @@
 
 - <Decision> — <why> — <where recorded>
 
+## Failed approaches
+
+- <What was attempted, why it failed, and what to avoid repeating>
+
 ## HITL blockers
 
 - [ ] `<owner>` <decision/action needed before AFK work can continue>
@@ -44,6 +48,12 @@
 
 - `<checkpoint-name>` — <timestamp or git SHA>
 
+## Next steps
+
+1. <Immediate action, e.g. `/sdd-verify`>
+2. <Follow-up action>
+3. <Verification or decision checkpoint>
+
 ## Next recommended action
 
-<Next command or task, e.g. `/skillgrid-apply <change-id> task 2`.>
+<Single best next command or task, e.g. `/skillgrid-apply <change-id> task 2`.>

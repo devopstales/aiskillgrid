@@ -265,6 +265,14 @@ The board advises. It does not silently vote the workflow forward.
 
 For the full multi-agent operating model, see `08-multi-agent-work.md`. It covers personas, dependency waves, handoff and event logs, the subagent orchestration skill, planned git worktree separation, and parallelism rules.
 
+CI-ready default progression is verify-first:
+
+```text
+/sdd-loop (or /sdd-apply) -> /sdd-verify -> /sdd-archive
+```
+
+Do not archive directly after implementation. `sdd-archive` should fail closed if verification artifacts are missing or unresolved critical findings remain.
+
 ## Finishing Work
 
 Use:
@@ -327,6 +335,35 @@ The agent should inspect the durable state:
 Then it should recommend the next command.
 
 If Engram returns memory search hits, the agent should retrieve full observations before relying on them. Search previews are not enough for requirements, blocker state, task status, or user decisions.
+
+### Session handoff helpers
+
+For explicit session-to-session transfer, use the handoff helper scripts:
+
+```bash
+.skillgrid/scripts/handoff-create.sh full <slug> [continues-from]
+.skillgrid/scripts/handoff-create.sh quick <slug>
+.skillgrid/scripts/handoff-resume.sh [latest|.skillgrid/handoffs/<file>.md] [max-age-days]
+.skillgrid/scripts/handoff-list.sh
+.skillgrid/scripts/handoff-validate.sh .skillgrid/handoffs/<file>.md
+.skillgrid/scripts/handoff-check-staleness.sh .skillgrid/handoffs/<file>.md [max-age-days]
+```
+
+These files are intentionally agent-agnostic and live in `.skillgrid/handoffs/` so another agent/session can resume without replaying full chat history.
+
+Mode contract:
+
+- `create` (`full`) writes a complete transfer-ready handoff.
+- `quick` writes a compact interruption handoff.
+- `resume` loads a handoff, runs validation and staleness checks, and then continues from explicit `Next steps`.
+
+For active changes, initialize and maintain a compact dispatch registry:
+
+```bash
+.skillgrid/scripts/handoff-registry-init.sh <change-id>
+```
+
+Use this file as the short index for parent-agent context injection packets to subagents, instead of repeating long report/history reads.
 
 ## What To Expect After Each Phase
 

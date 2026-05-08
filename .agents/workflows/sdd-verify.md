@@ -32,7 +32,7 @@ STEP B — RETRIEVE FULL CONTENT (mandatory):
 Save report:
   mem_save(title: "sdd/{change-name}/verify-report", topic_key: "sdd/{change-name}/verify-report", type: "architecture", project: "{project}", content: "{verification report}")
 FILESYSTEM PERSISTENCE:
-  Reade .agents/skills/_shared/skillgrid-handoff.md for filesystem persistence instructions.
+  Read `.agents/skills/_shared/skillgrid-handoff.md` for filesystem persistence instructions.
 
 Then:
 1. **Read `.skillgrid/project/CONTEXT.md`** if it exists. Note any relevant glossary terms, assumptions, or success criteria before proceeding.

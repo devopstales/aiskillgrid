@@ -10,18 +10,66 @@ For any identified Skillgrid change id, create `.skillgrid/tasks/events/` if nee
 ```text
 .skillgrid/tasks/context_<change-id>.md
 .skillgrid/tasks/events/<change-id>.jsonl
+.skillgrid/tasks/registry_<change-id>.md
 .skillgrid/tasks/research/<change-id>/
 ```
 
-The handoff file is the rolling state for one change. The event log is the append-only workflow timeline. The research directory holds long reports, scrapes, browser evidence, or subagent output.
+The handoff file is the rolling state for one change. The event log is the append-only workflow timeline. The compact registry is the short recent index for dispatch-time context injection. The research directory holds long reports, scrapes, browser evidence, or subagent output.
 
 Treat the handoff as the current-state file for the change. It should answer: where are we, what is blocked, what evidence exists, and what should happen next.
+
+### Session Handoff Modes
+
+Use explicit mode names whenever handoff work is requested by any `sdd-*` flow:
+
+- `create`: full handoff snapshot for session transfer or pause.
+- `quick`: minimal handoff snapshot for short interruptions.
+- `resume`: reload handoff state, run staleness check, then continue from next steps.
+
+Mode guidance:
+
+- Use `create` after major milestones, architecture decisions, broad edits, or before ending a long session.
+- Use `quick` for short pauses where full context restatement is unnecessary.
+- Use `resume` at session start when a handoff file exists or when continuing interrupted work.
 
 ### Handoff Contents
 
 Keep `context_<change-id>.md` concise and skimmable. Copy the canonical blank from **`.skillgrid/templates/template-handoff-context.md`**. Planning logic: **`docs/03-skillgrid-logic.md`**.
 
 Do not turn the handoff into a raw transcript. Link to research files when details are long.
+
+Required sections in every active handoff context file:
+
+- `Goal`
+- `Current state`
+- `Active artifacts`
+- `Decisions`
+- `Failed approaches` (what was tried and should not be repeated)
+- `HITL blockers`
+- `AFK-ready work`
+- `Dependency waves`
+- `Research index`
+- `Last checkpoint`
+- `Next steps` (ordered immediate continuation actions)
+
+Canonical schema boundaries:
+
+- **State now** lives in `.skillgrid/tasks/context_<change-id>.md`.
+- **Timeline** lives in `.skillgrid/tasks/events/<change-id>.jsonl`.
+- **Compact recent index** lives in `.skillgrid/tasks/registry_<change-id>.md`.
+- **Deep evidence** lives in `.skillgrid/tasks/research/<change-id>/`.
+
+### Compact Registry Discipline
+
+Maintain `.skillgrid/tasks/registry_<change-id>.md` as a short dispatch index:
+
+- latest decisions (with reasons and source paths);
+- latest progress and status by slice/task;
+- active blockers;
+- safe next dispatch candidates;
+- seed fields for context injection packets.
+
+The registry should stay concise and represent only recent, high-signal state. Do not duplicate full reports; link to handoff/event/research artifacts.
 
 ### Engram State Alignment
 
@@ -173,11 +221,49 @@ Every subagent prompt for a Skillgrid change should include:
 
 - the handoff path
 - the event log path
+- the compact registry path
 - the PRD path
 - the OpenSpec change path when present
 - the expected output file under `research/<change-id>/`
 - a requirement to append a short event when write-capable, or return a suggested event object when read-only
 - a requirement to return a short summary with file paths
+
+Parent session must pass an explicit **context injection packet** (no raw transcript dump):
+
+- objective (one sentence);
+- constraints and non-goals;
+- exact task/slice id;
+- owned files/edit boundaries;
+- required artifacts to read (ordered list of paths);
+- expected output path and return format;
+- verification command with expected pass condition.
+
+### Sequencing Gate
+
+Before dispatching multiple subagents, answer:
+
+**Will any agent need to read another agent's output before it can produce correct work?**
+
+- If **yes**, dispatch sequentially in dependency order.
+- If **no**, parallel dispatch is allowed only when file ownership is non-overlapping and merge verification is planned.
+
+### Retry Policy For Missing/Inconsistent Artifacts
+
+When expected artifacts are missing, empty, or inconsistent with return claims, use this bounded retry ladder before continuing:
+
+1. **Attempt 1 (clarify):** resend the same task with explicit missing artifact list, exact output path, and required return format.
+2. **Attempt 2 (tighten):** reduce scope to one artifact/output and restate ownership boundaries and verification command.
+3. **Attempt 3 (route):** switch reviewer/implementer persona or model tier and request the same bounded deliverable.
+4. **Escalate:** if still failing, mark workflow `blocked`, append event log with failure details, and require HITL decision.
+
+Required checks on each retry:
+
+- artifact path exists;
+- artifact is non-empty;
+- artifact is referenced in handoff/event log;
+- summary claims match produced files.
+
+Do not run unbounded retries. Maximum automated retries per missing/inconsistent artifact set: **3**.
 
 After a subagent returns, the parent session must read the handoff and cited research files before editing product code or changing workflow state.
 
