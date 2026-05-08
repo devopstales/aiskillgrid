@@ -8,12 +8,15 @@
   * Kilo Code
   * OpenChamber
 * Agents
+  * Gemini
+  * cursor cli
+  * Copilot CLI
   * kilo cli
   * Opencode
-  * Gemini
   * Claude Code
   * Codex
   * pi
+  * factory droid
 
 # IDE Configs
 
@@ -32,6 +35,30 @@
 | MCP | `~/.gemini/antigravity/mcp_config.json`, `.agent/mcp_config.json` | `.cursor/mcp.json` |
 | Plugins | X | `.cursor/plugins/` |
 
+Hub workflow rules (modular Cursor-style `.mdc`, scope via `description` / `globs` / `alwaysApply`) live under **`.agents/rules/`**, for example:
+
+- `skillgrid-context-contract.mdc` — `.skillgrid/project/CONTEXT.md`, glossary, conflicts
+- `skillgrid-gentle-persona.mdc` — senior-architect tone, workspace rules, skill triggers
+- `skillgrid-gentle-orchestrator-extended.mdc` — init guard, registry resolution, artifact keys
+- `skillgrid-strict-tdd-mode.mdc` — strict TDD expectation flag
+- `skillgrid-karpathy-coding.mdc` — think / simplicity / surgical / goal-driven habits (always on; [upstream CLAUDE.md](https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/refs/heads/main/CLAUDE.md))
+- `skillgrid-coding-discipline.mdc` — deprecated alias → `skillgrid-karpathy-coding.mdc`
+- `skillgrid-sdd-workflow.mdc` — SDD phases and handoff paths
+- `skillgrid-sdd-enforcement.mdc` — gates, labels, two-stage review
+- `skillgrid-sdd-orchestrator.mdc` — coordinator-only delegation and subagent CONTEXT protocol
+- `skillgrid-sdd-execution.mdc` — apply/loop/TDD/evidence expectations
+- `skillgrid-persona-board.mdc` — Norse board commands and hard stops
+- `skillgrid-multiagent-handoff.mdc` — subagent parallelism and merge duty
+- `skillgrid-engram-memory.mdc` — Engram retrieval, proactive saves, session close
+- `skillgrid-communication-discipline.mdc` — honesty, pause, commits (pairs with persona rule)
+- `skillgrid-workflow-rule-index.mdc` — cross-links hub workflow rules (local paths)
+- `skillgrid-planning-artifact-parity.mdc` — durable planning paths → `.skillgrid` / `openspec`
+- `skillgrid-branch-finish-target.mdc` — after verify: explicit merge/PR/keep/discard → cleanup (manual target)
+- `skillgrid-gitnexus-nonnegotiables.mdc` — GitNexus graph safety (impact before edit, `gitnexus_rename`, `gitnexus_detect_changes`, embeddings-aware analyze; adapted from upstream [GitNexus `.cursor/index.mdc`](https://github.com/abhigyanpatwari/GitNexus/blob/main/.cursor/index.mdc))
+- `.cursor/rules/skillgrid-gitnexus-index.mdc` — short Cursor-local entry pointing at the canonical GitNexus rule above (mirrors GitNexus [`.cursor` layout](https://github.com/abhigyanpatwari/GitNexus/tree/main/.cursor))
+
+**`.configs/AGENTS.md`** is the short **index** into these rules and key docs (no duplicate policy text).
+
 ## Plugins
 
 - Github Copilot
@@ -44,7 +71,7 @@
 | Skills | `.agents/skills/`, `.claude/skills/`, `.github/skills`, `.copilot/skills` | `.agents/skills/`, `.claude/skills/`, `.kilo/skills/` | `.agents/skills/`, `.claude/skills/`, `.opencode/skills/` |
 | Rules | `.github/instructions/*.instructions.md`, `.github/copilot-instructions.md`, `AGENTS.md` | `.kilo/rules/`, `AGENTS.md` | `.opencode/rules/`, `AGENTS.md` |
 | Agents | `.github/agents/` | `.kilo/agents/` | `.opencode/agents/` |
-| Hooks | `.github/hooks/*.json` | ? | `.opencode/hook/hooks.md` |
+| Hooks | `.github/hooks/*.json` | `.kilo/hook/hooks.md` | `.opencode/hook/hooks.md` |
 | MCP | `.vscode/mcp.json` | `.kilo/kilo.jsonc` | `.opencode/opencode.jsonc` |
 | Plugins | X | X | `.opencode/plugins/` |
 
@@ -63,7 +90,7 @@
 | Skills | `.agents/skills/`, `.claude/skills/`, `.kilo/skills/` | `.agents/skills/`, `.claude/skills/`, `.opencode/skills/` | `.agents/skills/` | `.agents/skills/`, `.claude/skills/` | `.agents/skills/` | ? |
 | Rules | `.kilo/rules/`, `AGENTS.md` | `.opencode/rules/`, `AGENTS.md` | ? | `AGENTS.md` | `AGENTS.md` | ? |
 | Agents | `.kilo/agents/` | `.opencode/agents/` | ? | ? | ? | ? |
-| Hooks | ? | `.opencode/hook/hooks.md` | `.gemini/settings.json` | ? | ? | ? |
+| Hooks |  `.kilo/hook/hooks.md` | `.opencode/hook/hooks.md` | `.gemini/settings.json` | ? | ? | ? |
 | MCP | `.kilo/kilo.jsonc` | `.opencode/opencode.jsonc` | `.gemini/settings.json` | ? | ? | ? |
 | Plugins | X | `.opencode/plugins/` | ? | ? | ? | ? |
 

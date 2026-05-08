@@ -101,12 +101,14 @@ Read the files in this folder in numeric order:
 4. `03-skillgrid-logic.md` explains PRD/INDEX/OpenSpec hierarchy and **`.skillgrid/templates/`** file blanks.
 5. `04-commands.md` explains the workflow commands.
 6. `05-skills.md` explains reusable agent skills.
-7. `06-multi-agent-work.md` explains subagents, personas, dependency waves, handoff/event logs, orchestration, worktree separation, and parallelism.
-8. `07-subagent-personas.md` explains the specialist persona catalog.
-9. `08-mcp-servers.md` explains external tool connections.
-10. `09-memory-and-indexing.md` explains durable context and codebase search.
-11. `10-ticketing-integrations.md` explains local and external work tracking.
-12. `11-webui.md` explains the local dashboard.
+7. `06-rules-and-governance.md` explains where project rules live and how they are maintained.
+8. `07-hooks-and-automation.md` explains shared hooks and automation policy.
+9. `08-multi-agent-work.md` explains subagents, personas, dependency waves, handoff/event logs, orchestration, worktree separation, and parallelism.
+10. `09-subagent-personas.md` explains the specialist persona catalog.
+11. `10-mcp-servers.md` explains external tool connections.
+12. `11-memory-and-indexing.md` explains durable context and codebase search.
+13. `12-ticketing-integrations.md` explains local and external work tracking.
+14. `13-webui.md` explains the local dashboard.
 
 ## First Mental Model
 

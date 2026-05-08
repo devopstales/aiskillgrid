@@ -163,21 +163,31 @@ If mode is `openspec` or `hybrid`: the config was already written in Step 3.
 
 If mode is `hybrid`: also call `mem_save` as above (write to BOTH backends).
 
-### Step 7: Initialize CCC and GitNexus
+### Step 7: Initialize and Refresh Indexes (MANDATORY)
 
 If `ccc` is detected in the project:
 ```
 ccc init
+ccc index
 ```
-You can reade .agents/skills/ccc/SKILL.md for more details on how to handle `ccc` initialization and indexing.
+`ccc index` is required during `/sdd-init` so semantic search starts from a known-fresh baseline.
+
+You can read `.agents/skills/ccc/SKILL.md` for more details on how to handle `ccc` initialization and indexing.
 
 If `gitnexus` is detected in the project:
 ```
-gitnexus init
+npx gitnexus analyze
 ```
-You can reade .agents/skills/gitnexus-cli/SKILL.md for more details on how to handle `gitnexus` initialization and indexing.
+If the repository already uses embeddings, preserve that mode and refresh with:
+```
+npx gitnexus analyze --embeddings
+```
 
-### Step 7: Return Summary
+You can read `.agents/skills/gitnexus-cli/SKILL.md` for more details on how to handle GitNexus indexing.
+
+Record explicit refresh results in the return envelope (`artifacts` and `executive_summary`).
+
+### Step 8: Return Summary
 
 Return a structured summary adapted to the resolved mode:
 

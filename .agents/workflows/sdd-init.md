@@ -13,6 +13,7 @@ CONTEXT:
 
 TASK:
 Initialize Spec-Driven Development in this project. Detect the tech stack, existing conventions, and architecture patterns. Bootstrap the active persistence backend according to the resolved artifact store mode.
+As part of initialization, run explicit index refresh for any configured indexers (`ccc index`, `npx gitnexus analyze`, preserving `--embeddings` when already in use) and report what was refreshed.
 
 ENGRAM PERSISTENCE (artifact store mode: engram):
 After detecting the project context, save it:

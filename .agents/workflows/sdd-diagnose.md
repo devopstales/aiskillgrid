@@ -9,7 +9,7 @@ description: Structured debugging session to reproduce, isolate, hypothesize, fi
 
 Before starting, read `.skillgrid/project/CONTEXT.md` if it exists. Note any relevant domain terms, assumptions, or success criteria that might relate to the issue.
 
-If the issue involves a term that conflicts with the glossary, flag it immediately (see Conflict Resolution Workflow in AGENTS.md).
+If the issue involves a term that conflicts with the glossary, flag it immediately (see `.agents/rules/skillgrid-context-contract.mdc`).
 
 </context-awareness>
 

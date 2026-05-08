@@ -97,7 +97,7 @@ Repo-wide architectural decisions use **MADR** (Markdown Any Decision Record) fi
 
 ## Session bootstrap
 
-For the read order agents should use at session start, see **`.configs/AGENTS.md`** (Skillgrid session bootstrap) and **`docs/02-workflow-usage.md`**.
+For session bootstrap, see **`.configs/AGENTS.md`** (index into `.agents/rules/`). **Project glossary and `CONTEXT.md` policy** live in **`.agents/rules/skillgrid-context-contract.mdc`**. See also **`docs/02-workflow-usage.md`**.
 
 ## Related docs
 

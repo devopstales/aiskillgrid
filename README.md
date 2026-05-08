@@ -95,12 +95,14 @@ Read in order:
 4. `docs/03-skillgrid-logic.md`
 5. `docs/04-commands.md`
 6. `docs/05-skills.md`
-7. `docs/06-multi-agent-work.md`
-8. `docs/07-subagent-personas.md`
-9. `docs/08-mcp-servers.md`
-10. `docs/09-memory-and-indexing.md`
-11. `docs/10-ticketing-integrations.md`
-12. `docs/11-webui.md`
+7. `docs/06-rules-and-governance.md`
+8. `docs/07-hooks-and-automation.md`
+9. `docs/08-multi-agent-work.md`
+10. `docs/09-subagent-personas.md`
+11. `docs/10-mcp-servers.md`
+12. `docs/11-memory-and-indexing.md`
+13. `docs/12-ticketing-integrations.md`
+14. `docs/13-webui.md`
 13. `docs/100-ide-configs.md`
 
 ## Contributing

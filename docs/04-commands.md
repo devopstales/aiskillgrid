@@ -97,7 +97,7 @@ Verification confirms completeness, correctness, and coherence. Required fixes s
 
 When needed, run specialist skills in parallel (for example GitNexus debugging/review or Engram architecture guardrails), but keep `sdd-verify` as the quality gate.
 
-For subagent operating rules, use `06-multi-agent-work.md` and the `sdd-*` skill set under `.agents/skills/`.
+For subagent operating rules, use `08-multi-agent-work.md` and the `sdd-*` skill set under `.agents/skills/`.
 
 ### Finish
 

@@ -81,7 +81,7 @@ The exact result depends on selected options and the target IDEs, but the intend
 
 | Capability | Typical Target Location | Purpose |
 |---|---|---|
-| Shared rules | `AGENTS.md` | Project-wide agent behavior and operating principles |
+| Shared rules | `AGENTS.md` (index) + `.agents/rules/*.mdc` | Hub + scoped workflow rules |
 | Skills | `.agents/skills/` | Reusable agent procedures and checklists |
 | Skill registry | `.skillgrid/project/SKILL_REGISTRY.md` | Generated compact rules and convention pointers for subagents |
 | Cursor commands | `.cursor/commands/` | Slash command prompts for Cursor |

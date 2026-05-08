@@ -17,7 +17,7 @@ During initialization, decide:
 - Ticketing provider: local, GitHub, GitLab, or Jira.
 - Artifact store: disk-first, memory-first, or hybrid.
 - PRD workflow: default statuses, provider-style statuses, imported statuses, or custom statuses.
-- Optional indexing: GitNexus and ccc.
+- Index refresh policy: initialize and explicitly refresh GitNexus/ccc indexes during `/sdd-init`.
 - Optional persistent memory: Engram.
 - Skill registry: `.skillgrid/project/SKILL_REGISTRY.md` for compact rules used in subagent prompts.
 
@@ -257,7 +257,7 @@ The board must write durable state:
 
 The board advises. It does not silently vote the workflow forward.
 
-For the full multi-agent operating model, see `06-multi-agent-work.md`. It covers personas, dependency waves, handoff and event logs, the subagent orchestration skill, planned git worktree separation, and parallelism rules.
+For the full multi-agent operating model, see `08-multi-agent-work.md`. It covers personas, dependency waves, handoff and event logs, the subagent orchestration skill, planned git worktree separation, and parallelism rules.
 
 ## Finishing Work
 
@@ -276,6 +276,7 @@ Finish should handle closure tasks such as:
 - Marking completed PRDs and journey artifacts closed or archived so stale docs are not mistaken for current architecture.
 - Cleaning up previews or checkpoints when appropriate.
 - Preparing git or PR handoff when requested.
+- Running explicit post-merge index refresh (`ccc index` and `npx gitnexus analyze`, preserving `--embeddings` mode when already enabled).
 - Confirming docs and evidence are not stale.
 - Saving final Engram closure/state summaries when memory is available.
 

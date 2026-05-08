@@ -38,13 +38,14 @@ Scan all existing skill roots that apply to the project:
 
 Also scan project convention files when present:
 
-- `AGENTS.md`
+- `AGENTS.md` (project root, if any)
+- `.configs/AGENTS.md`
+- `.agents/rules/*.mdc`
 - `CLAUDE.md`
 - `GEMINI.md`
 - `.cursorrules`
 - `.github/copilot-instructions.md`
 - `.cursor/rules/`
-- `.configs/AGENTS.md`
 
 Skip generated mirrors only when they duplicate the Cursor source of truth exactly.
 
