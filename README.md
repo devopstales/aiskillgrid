@@ -89,21 +89,20 @@ flowchart LR
 
 Read in order:
 
-1. `docs/00-start-here.md`
-2. `docs/01-installation.md`
-3. `docs/02-workflow-usage.md`
-4. `docs/03-skillgrid-logic.md`
-5. `docs/04-commands.md`
-6. `docs/05-skills.md`
-7. `docs/06-rules-and-governance.md`
-8. `docs/07-hooks-and-automation.md`
-9. `docs/08-multi-agent-work.md`
-10. `docs/09-subagent-personas.md`
-11. `docs/10-mcp-servers.md`
-12. `docs/11-memory-and-indexing.md`
-13. `docs/12-ticketing-integrations.md`
-14. `docs/13-webui.md`
-13. `docs/100-ide-configs.md`
+1. [`docs/00-start-here.md`](docs/00-start-here.md)
+2. [`docs/01-installation.md`](docs/01-installation.md)
+3. [`docs/02-workflow-usage.md`](docs/02-workflow-usage.md)
+4. [`docs/03-skillgrid-logic.md`](docs/03-skillgrid-logic.md)
+5. [`docs/04-commands.md`](docs/04-commands.md)
+6. [`docs/05-skills.md`](docs/05-skills.md)
+7. [`docs/06-rules-and-governance.md`](docs/06-rules-and-governance.md)
+8. [`docs/07-hooks-and-automation.md`](docs/07-hooks-and-automation.md)
+9. [`docs/08-multi-agent-work.md`](docs/08-multi-agent-work.md)
+10. [`docs/09-subagent-personas.md`](docs/09-subagent-personas.md)
+11. [`docs/10-mcp-servers.md`](docs/10-mcp-servers.md)
+12. [`docs/11-memory-and-indexing.md`](docs/11-memory-and-indexing.md)
+13. [`docs/12-ticketing-integrations.md`](docs/12-ticketing-integrations.md)
+14. [`docs/13-webui.md`](docs/13-webui.md)
 
 ## Contributing
 

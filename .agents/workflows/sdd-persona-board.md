@@ -17,8 +17,8 @@ TASK:
 Run a complete persona-board cycle:
 1. Define decision scope (`decisionId`, question, expected output).
 2. Resolve routing preset.
-   - Accept short aliases: `arch`, `security`, `ux`, `release`, `risk`.
-   - Normalize to canonical values: `architecture`, `security`, `ux-content`, `go-no-go-release`, `risk-acceptance`, `bootstrap-readiness`, `spec-quality`, `tasks-readiness`.
+   - Accept short aliases: `arch`, `security`, `ux`, `release`, `risk`, `debug`.
+   - Normalize to canonical values: `architecture`, `security`, `ux-content`, `go-no-go-release`, `risk-acceptance`, `bootstrap-readiness`, `spec-quality`, `tasks-readiness`, `debugging`.
 3. Dispatch selected personas in parallel.
 4. Merge findings into accepted decision + rejected options.
 5. Persist artifacts and emit next safe action.

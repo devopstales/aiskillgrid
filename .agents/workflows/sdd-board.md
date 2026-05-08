@@ -31,6 +31,7 @@ PRESET ROUTING:
 - `bootstrap-readiness`: `mimir`, `odin`, `thor`, `tyr`
 - `spec-quality`: `bragi`, `tyr`, `odin`, `loki`
 - `tasks-readiness`: `bragi`, `thor`, `tyr`, `odin`
+- `debugging`: `vidar`, `thor`, `loki`, `tyr`
 
 REQUIRED OUTPUTS:
 - One focused report per persona under:

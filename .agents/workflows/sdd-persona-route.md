@@ -20,6 +20,7 @@ TASK:
    - `ux` -> `ux-content`
    - `release` -> `go-no-go-release`
    - `risk` -> `risk-acceptance`
+   - `debug` -> `debugging`
 3. Map to the routing matrix entry:
    - `architecture` -> `odin`, `thor`, `tyr`, `loki`, `bragi`
    - `security` -> `heimdall`, `tyr`, `thor`, `loki`
@@ -29,6 +30,7 @@ TASK:
    - `bootstrap-readiness` -> `mimir`, `odin`, `thor`, `tyr`
    - `spec-quality` -> `bragi`, `tyr`, `odin`, `loki`
    - `tasks-readiness` -> `bragi`, `thor`, `tyr`, `odin`
+   - `debugging` -> `vidar`, `thor`, `loki`, `tyr`
 4. Return selected personas with rationale.
 5. If decision type is unknown, fail closed and request supported type.
 
@@ -41,6 +43,7 @@ SUPPORTED TYPES:
 - `bootstrap-readiness`
 - `spec-quality`
 - `tasks-readiness`
+- `debugging`
 
 REQUIRED RETURN FORMAT:
 - `status`: `completed | blocked | failed`

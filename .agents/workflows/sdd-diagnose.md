@@ -17,40 +17,31 @@ If the issue involves a term that conflicts with the glossary, flag it immediate
 
 ## The Diagnostic Loop
 
-Execute the following steps **in order**. Do not skip steps. Ask for user input at each stage before proceeding.
+Execute these phases in order. Do not skip phases.
 
 ### 1. REPRODUCE
-- Get exact steps or code to trigger the issue.
-- Attempt to reproduce locally or ask the user for logs/error messages.
-- If reproduction fails, ask for more details and loop until success.
-- Output: *“Reproduced: [conditions that trigger the issue]”*
+- Capture exact repro steps and reproduction rate (always/sometimes/intermittent).
+- Record expected vs actual behavior.
+- If repro is unclear, request missing evidence (logs, stack traces, inputs, environment details) and loop.
+- Output: *“Reproduced under [conditions], rate: [x]. Expected: [...]. Actual: [...].”*
 
 ### 2. ISOLATE
-- Narrow down the cause:
-  - Which component/function/module?
-  - Which input values cause vs avoid the issue?
-  - Can you write a minimal test or script that fails?
-- Use binary search (comment out code, split inputs) if possible.
-- Output: *“Isolated to [file/function/line range]. Minimal repro: [code snippet]”*
+- Identify responsible component/function/module.
+- Build minimal repro or failing test/script when possible.
+- Use binary narrowing to shrink the failing surface.
+- Output: *“Isolated to [component/path]. Minimal repro: [...].”*
 
-### 3. HYPOTHESIZE
-- Propose a root cause hypothesis. Include:
-  - What is incorrect (logic, state, assumption, external call).
-  - Why it happens (e.g., off-by-one, race condition, missing guard).
-  - What would prove the hypothesis (e.g., changing this line fixes it).
-- If multiple hypotheses, list them and ask the user which to test first.
-- Output: *“Hypothesis: … To confirm, change X to Y and see if issue disappears.”*
+### 3. UNDERSTAND (ROOT CAUSE)
+- Produce a root-cause hypothesis supported by evidence.
+- Run a concise 5-whys chain.
+- Distinguish symptom from actual defect location.
+- Output: *“Root cause: [...]. Why chain: [...]. Evidence: [...].”*
 
-### 4. FIX (with verification)
-- Implement the minimal fix that resolves the hypothesis.
-- **Before writing code**, state the planned change and get user approval.
-- Apply the change.
-- Re-run the reproduction steps to confirm the issue is gone.
-- Output: *“Fix applied. Verified: issue no longer occurs.”*
-
-### 5. REFLECT (optional, but recommended)
-- Ask: *“Should this insight be added to CONTEXT.md (e.g., an assumption or gotcha) or captured as an ADR?”*
-- If yes, propose the update and wait for user confirmation before writing.
+### 4. FIX & VERIFY
+- Implement minimal root-cause fix.
+- Re-run original repro and related safety checks.
+- Add or recommend regression coverage.
+- Output: *“Fix applied and verified. Regression prevention: [...].”*
 
 </workflow>
 
@@ -62,6 +53,24 @@ Execute the following steps **in order**. Do not skip steps. Ask for user input 
 - **One change at a time** – When isolating, change only one variable per attempt.
 - **Preserve evidence** – Keep a log of steps tried and outputs.
 - **Use existing tests** – If the project has a test suite, try to add a failing test before fixing (Red-Green style). Ask the user if they want that.
+- **Fix root cause, not symptom** – Temporary symptom masking is not closure.
+- **Profile before optimizing** – For performance issues, measure bottlenecks first.
+- **Treat intermittent as timing/race candidates** – Prioritize ordering, concurrency, and external dependency behavior.
+
+## Investigation strategy by issue type
+
+- Runtime errors: start from full stack trace and null/type boundaries.
+- Logic bugs: trace data flow and compare expected vs actual transformations.
+- Performance issues: profile first; then optimize the measured hotspot.
+- Intermittent/flaky behavior: inspect race conditions, timing windows, retries, dependency instability.
+- Memory issues: inspect listeners, caches, closure retention, and long-lived objects.
+
+## Anti-patterns
+
+- Random fixes without evidence.
+- Ignoring stack traces or environment differences.
+- Multiple investigative edits at once.
+- Declaring success without verification.
 
 </guidelines>
 
@@ -81,15 +90,14 @@ Agent (Isolate):
 
 User: “Yes.”
 
-Agent (Hypothesize):
-> Hypothesis: The function name in the HTML attribute does not match the actual function defined. To confirm, change `submitForm` to `submitLoginForm` in the HTML.
+Agent (Understand):
+> Root cause: The event handler name in HTML does not match the declared function.  
+> Why chain: click fails -> missing function -> wrong handler name in template -> drift from renamed JS function.
 
 User: “Go ahead.”
 
-Agent (Fix):
+Agent (Fix & Verify):
 > Changed line 42. Now clicking the button shows no error and submits. Verified.
-> 
-> Reflect: Would you like to add an assumption to `CONTEXT.md`? E.g., *“All event handler names must exactly match declared function names.”`
 
 </example>
 
@@ -101,6 +109,14 @@ If after 5 isolation attempts the cause is still unclear:
 - **Pause** and summarise what you’ve eliminated.
 - **Ask the user** to provide additional logs, a debugger session, or a different reproduction environment.
 - **Do not** propose random fixes.
+
+## Completion checklist
+
+Before closing, verify all are true:
+- Reproduction and expected behavior documented.
+- Root cause and 5-whys chain recorded.
+- Fix verified against original reproduction.
+- Regression-prevention action captured.
 
 </error-handling>
 
