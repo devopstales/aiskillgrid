@@ -10,10 +10,11 @@ INPUT:
 - Optional filter: $ARGUMENTS
 
 SOURCE OF TRUTH:
-- `.configs/norse-persona-contract.json`
+- `docs/09-subagent-personas.md`
+- `.agents/workflows/sdd-persona-route.md`
 
 TASK:
-1. List personas (`odin`, `thor`, `tyr`, `heimdall`, `frigg`, `loki`).
+1. List personas (`odin`, `thor`, `tyr`, `heimdall`, `frigg`, `loki`, `mimir`, `bragi`).
 2. Show role intent and replaced legacy persona mapping.
 3. Report availability/readiness by surface when possible.
 4. Highlight missing persona prompt packs or unsupported surfaces.
@@ -40,10 +41,11 @@ INPUT:
 - Optional filter: $ARGUMENTS
 
 SOURCE OF TRUTH:
-- `.configs/norse-persona-contract.json`
+- `docs/09-subagent-personas.md`
+- `.agents/workflows/sdd-persona-route.md`
 
 TASK:
-1. List personas (`odin`, `thor`, `tyr`, `heimdall`, `frigg`, `loki`).
+1. List personas (`odin`, `thor`, `tyr`, `heimdall`, `frigg`, `loki`, `mimir`, `bragi`).
 2. Show role intent and replaced legacy persona mapping.
 3. Report availability/readiness by surface when possible.
 4. Highlight missing persona prompt packs or unsupported surfaces.

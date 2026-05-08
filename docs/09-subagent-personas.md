@@ -39,7 +39,7 @@ Personas help with independent work such as:
 
 The parent session remains responsible for orchestration. Personas should not secretly coordinate with one another or rewrite the plan on their own.
 
-Workflow-facing persona IDs use the Norse set defined in `.configs/norse-persona-contract.json`: `odin`, `thor`, `tyr`, `heimdall`, `frigg`, and `loki`. Legacy neutral labels may still appear as descriptive role text, but command routing and board outputs should use Norse IDs.
+Workflow-facing persona IDs use the Norse set defined in `.agents/workflows/sdd-persona-route.md`: `odin`, `thor`, `tyr`, `heimdall`, `frigg`, `loki`, `mimir`, and `bragi`. Legacy neutral labels may still appear as descriptive role text, but command routing and board outputs should use Norse IDs.
 
 | ID | Title | Role | Hard gate on critical? | Notes |
 | --- | --- | --- | --- | --- |
@@ -49,6 +49,46 @@ Workflow-facing persona IDs use the Norse set defined in `.configs/norse-persona
 | `heimdall` | Heimdall | Security and release-gate sentinel | **Yes** | Threat model, exploitability, release risk. |
 | `frigg` | Frigg | UX and product clarity reviewer | No | Flows, accessibility, content clarity. |
 | `loki` | Loki | Adversarial critic | No | Counterexamples, assumption stress-test; can surface conflicts that require HITL. |
+| `mimir` | Mimir | Bootstrap and memory-knowledge keeper | No | Init quality, context hydration, registry readiness. |
+| `bragi` | Bragi | Structured artifact author | No | Specification/task structure, writing clarity, traceability wording. |
+
+## Agent Files In This Repo
+
+- Nordic personas:
+  - `.cursor/agents/skillgrid-odin.md`
+  - `.cursor/agents/skillgrid-thor.md`
+  - `.cursor/agents/skillgrid-tyr.md`
+  - `.cursor/agents/skillgrid-heimdall.md`
+  - `.cursor/agents/skillgrid-frigg.md`
+  - `.cursor/agents/skillgrid-loki.md`
+  - `.cursor/agents/skillgrid-mimir.md`
+  - `.cursor/agents/skillgrid-bragi.md`
+
+## How To Use Them
+
+1. Use Nordic personas for both execution ownership and gatekeeping.
+2. Route by phase owner:
+   - `init` -> `odin`/`mimir`
+   - `explore` -> `loki` (+ `odin`)
+   - `propose` -> `odin`
+   - `spec` -> `tyr`/`bragi`
+   - `design` -> `odin` (+ `thor`)
+   - `tasks` -> `thor`/`bragi`
+   - `apply` -> `thor`
+   - `verify` -> `tyr` (+ `heimdall` when security/release-sensitive)
+   - `archive` -> `odin` (+ `mimir`/`bragi`)
+3. Keep hard-gate authority independent:
+   - `tyr` and `heimdall` critical findings block progression.
+
+## Enforcement Checklist (Orchestrator)
+
+To ensure both sets are actually used (not just present on disk), enforce this checklist per phase:
+
+1. Phase has matching required Nordic owner invocation.
+2. Verify phase includes `tyr`; include `heimdall` on security/release-sensitive changes.
+3. Completion is blocked if required owner/gate outputs are missing.
+4. Board flows must include `personas_invoked`, `conflicts`, `hitl_required`, and `accepted_decision`.
+5. Critical findings from `tyr` or `heimdall` require fix, explicit risk acceptance, or HITL before progression.
 
 ## Subagent Operating Model
 
@@ -130,7 +170,7 @@ The board is **advisory**. It does not replace the user, PRD, OpenSpec artifacts
 
 ### Source of truth
 
-Canonical definitions (personas, routing matrix, required return fields, hard rules) live in `.configs/norse-persona-contract.json`.
+Canonical definitions (personas, routing matrix, required return fields, hard rules) live in `.agents/workflows/sdd-persona-route.md` and `.agents/workflows/sdd-persona-board.md`.
 
 Workflow prompts for board-related commands live under:
 
@@ -223,7 +263,7 @@ Milestone-wide enforcement envelopes for other `sdd-*` phases remain defined in 
 
 ### Hard gates and HITL rules
 
-From `.configs/norse-persona-contract.json`:
+From `.agents/workflows/sdd-persona-route.md`:
 
 - No persona overrides **hard gates**.
 - **`tyr`** or **`heimdall`** reporting **critical** severity blocks progression until resolved or explicitly handled per policy.

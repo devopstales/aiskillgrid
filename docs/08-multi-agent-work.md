@@ -45,7 +45,7 @@ Milestone 2.5 standardizes workflow-facing persona names to the Norse set:
 - `frigg` — UX/product clarity reviewer.
 - `loki` — adversarial critic/challenge persona.
 
-Legacy neutral personas remain useful as role descriptions, but routing, board contracts, and command outputs should use the Norse IDs from `.configs/norse-persona-contract.json`.
+Legacy neutral personas remain useful as role descriptions, but routing, board contracts, and command outputs should use the Norse IDs from `.agents/workflows/sdd-persona-route.md` and `docs/09-subagent-personas.md`.
 
 Role table, IDE agent paths, persona-board commands, routing matrix, and return envelope fields: **`09-subagent-personas.md`**.
 
@@ -116,7 +116,7 @@ Use a specialist persona board when a decision benefits from **independent viewp
 
 Canonical decision types map to persona sets (for example `architecture`, `security`, `ux-content`, `go-no-go-release`, `risk-acceptance`); workflow aliases such as `arch`, `ux`, `release`, and `risk` normalize to those keys. Full matrix, slash commands (`/sdd-persona-board`, `/sdd-persona-route`, and the rest), return contract extensions, contract source paths, and hard-gate wording: **`09-subagent-personas.md`**. Command inventory: **`04-commands.md`**.
 
-**Hard gates (summary):** no persona overrides hard gates; **`tyr`** or **`heimdall`** reporting **critical** blocks progression until resolved per policy; **unresolved critical conflict** between personas blocks progression (HITL); the **user** is final authority on **release** and **destructive** choices (see `.configs/norse-persona-contract.json`).
+**Hard gates (summary):** no persona overrides hard gates; **`tyr`** or **`heimdall`** reporting **critical** blocks progression until resolved per policy; **unresolved critical conflict** between personas blocks progression (HITL); the **user** is final authority on **release** and **destructive** choices (see `.agents/workflows/sdd-persona-route.md`).
 
 The board is advisory. It does not replace the user, PRD, OpenSpec change, parent session judgment, or orchestration policy.
 

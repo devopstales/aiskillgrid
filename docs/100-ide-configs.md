@@ -98,7 +98,7 @@ Hub workflow rules (modular Cursor-style `.mdc`, scope via `description` / `glob
 
 Norse persona theming and routing are centralized in shared config files:
 
-- `.configs/norse-persona-contract.json` (persona roles, routing matrix, hard rules, return contract)
+- `.agents/workflows/sdd-persona-route.md` and `.agents/workflows/sdd-persona-board.md` (persona roles, routing matrix, hard rules, return contract)
 - `.configs/ide-model-mapping.json` (surface model mapping by `fast|balanced|deep`)
 - `.configs/ide-persona-capabilities.json` (surface capability tiers and fallback policy)
 

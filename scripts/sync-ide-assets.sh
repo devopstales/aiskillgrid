@@ -3,7 +3,7 @@
 # Usage:
 #   ./scripts/sync-ide-assets.sh           # write .kilo, .opencode, .github/prompts, .github/agents
 #   ./scripts/sync-ide-assets.sh --check   # exit 1 if any mirror differs (CI)
-# Removes command/prompt/agent files under mirrors when the matching source file is deleted.
+# Removes command/prompt/agent/rule files under mirrors when the matching source file is deleted.
 set -uo pipefail
 shopt -s nullglob
 
@@ -23,6 +23,7 @@ sync_pair() {
       EXIT=1
     fi
   else
+    mkdir -p "$(dirname "$dst")"
     cp "$src" "$dst"
   fi
 }
@@ -50,13 +51,32 @@ for dest in "$ROOT/.github/agents"; do
   for f in "$ROOT/.cursor/agents"/*.md; do
     sync_pair "$f" "$dest/$(basename "$f")"
   done
-  # Drop mirror files removed from .cursor/agents (e.g. disabled personas)
+  # Drop mirror agent files removed from .cursor/agents (e.g. disabled personas)
   for f in "$dest"/*.md; do
     [[ -f "$f" ]] || continue
     base="$(basename "$f")"
     if [[ ! -f "$ROOT/.cursor/agents/$base" ]]; then
       if [[ $CHECK -eq 1 ]]; then
         echo "ORPHAN: $f (no longer in .cursor/agents)" >&2
+        EXIT=1
+      else
+        rm -f "$f"
+      fi
+    fi
+  done
+done
+
+for dest in "$ROOT/.kilo/rules" "$ROOT/.opencode/rules"; do
+  for f in "$ROOT/.agents/rules"/skillgrid-*.mdc "$ROOT/.cursor/rules"/skillgrid-*.mdc; do
+    sync_pair "$f" "$dest/$(basename "$f")"
+  done
+  # Drop mirror rule files removed from hub/cursor rule sources.
+  for f in "$dest"/skillgrid-*.mdc; do
+    [[ -f "$f" ]] || continue
+    base="$(basename "$f")"
+    if [[ ! -f "$ROOT/.agents/rules/$base" ]] && [[ ! -f "$ROOT/.cursor/rules/$base" ]]; then
+      if [[ $CHECK -eq 1 ]]; then
+        echo "ORPHAN: $f (no longer in .agents/rules or .cursor/rules)" >&2
         EXIT=1
       else
         rm -f "$f"

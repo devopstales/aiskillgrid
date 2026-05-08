@@ -10,7 +10,8 @@ CONTEXT:
 - Working directory: !`echo -n "$(pwd)"`
 - Current project: !`echo -n "$(basename $(pwd))"`
 - Decision input (id or question): $ARGUMENTS
-- Contract source: `.configs/norse-persona-contract.json`
+- Routing source: `.agents/workflows/sdd-persona-route.md`
+- Persona reference: `docs/09-subagent-personas.md`
 
 TASK:
 Treat `/sdd-board` as a compatibility alias for `/sdd-persona-board`.
@@ -22,11 +23,14 @@ Run a complete Norse persona board flow:
 5. Record conflict state and determine continue vs HITL block.
 
 PRESET ROUTING:
-- `architecture`: `odin`, `thor`, `tyr`, `loki`
+- `architecture`: `odin`, `thor`, `tyr`, `loki`, `bragi`
 - `security`: `heimdall`, `tyr`, `thor`, `loki`
-- `ux-content`: `frigg`, `loki`, `thor`
-- `go-no-go-release`: `odin`, `tyr`, `heimdall`, `thor`, `frigg`
-- `risk-acceptance`: `odin`, `loki`, `tyr`, `heimdall`
+- `ux-content`: `frigg`, `loki`, `thor`, `bragi`
+- `go-no-go-release`: `odin`, `tyr`, `heimdall`, `thor`, `frigg`, `mimir`
+- `risk-acceptance`: `odin`, `loki`, `tyr`, `heimdall`, `mimir`
+- `bootstrap-readiness`: `mimir`, `odin`, `thor`, `tyr`
+- `spec-quality`: `bragi`, `tyr`, `odin`, `loki`
+- `tasks-readiness`: `bragi`, `thor`, `tyr`, `odin`
 
 REQUIRED OUTPUTS:
 - One focused report per persona under:

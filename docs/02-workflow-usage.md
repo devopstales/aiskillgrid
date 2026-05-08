@@ -241,6 +241,12 @@ Delegated implementation must pass a double review gate before the parent marks 
 1. **Spec compliance review:** verify PRD/OpenSpec/task traceability, acceptance criteria, and slice boundaries.
 2. **Code quality review:** verify correctness, maintainability, architecture, security, performance, tests, and local conventions.
 
+Execution enforcement when both agent families are configured:
+
+- Use phase executor agents (`sdd-*`) to perform each phase.
+- Use Nordic personas for gate/review authority.
+- Minimum hard gate: `tyr` on verify, plus `heimdall` for security/release-sensitive slices.
+
 Ordering matters. Do not accept code quality review before spec compliance passes. If either review returns required changes, fix the issue, rerun focused verification, and repeat the same review stage. Critical or important findings block completion until fixed, explicitly accepted with rationale, or converted into follow-up work.
 
 For user-facing behavior, add UAT notes or a manual QA checklist after automated evidence. Failed UAT should create focused fix tasks rather than a vague “try again” loop.

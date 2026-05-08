@@ -171,6 +171,7 @@ Ship high-impact workflow upgrades: enforceable pipelines, strict phase gates, m
 
 - [ ] Optional worktree mode for risky or parallel implementation lanes
 - [ ] Agent health-check command (ping all required personas + MCP readiness)
+- [X] Enforce split usage: `sdd-*` executors + Nordic gate personas (`tyr`/`heimdall` hard gate)
 - [ ] Persona report contract template:
   - [ ] severity
   - [ ] evidence path

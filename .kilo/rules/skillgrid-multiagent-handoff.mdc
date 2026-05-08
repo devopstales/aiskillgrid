@@ -1,0 +1,30 @@
+---
+description: Multi-agent discipline — fresh context packets, parallelism, handoff/events, no hidden orchestration
+globs:
+  - "**/.skillgrid/tasks/**"
+alwaysApply: false
+---
+
+# Multi-agent and subagents
+
+Principle: **delegate work, not responsibility.** The parent session owns workflow state, merge decisions, and verification after parallel work.
+
+## Prompt construction
+
+Do not paste unbounded chat history into subagents. Build prompts from **durable artifacts**: PRD path, OpenSpec change path (if any), `.skillgrid/project/CONTEXT.md` excerpts when relevant, handoff path, event log path, explicit output filenames under `.skillgrid/tasks/research/<change-id>/`, and exact return schema.
+
+## Parallelism
+
+Parallelize only when goals are independent, outputs do not collide on the same files without ownership, and the parent can read and merge all results before advancing.
+
+Dependency waves per `docs/08-multi-agent-work.md`: respect `blockedBy` / `unblocks` and failed verification gates downstream.
+
+## Forbidden patterns
+
+- Multiple writers on overlapping files without explicit boundaries
+- One persona secretly deciding which others to invoke (hidden orchestration)
+- Advancing phase while handoff/events omit completed subagent work
+
+## After subagent returns
+
+Read summaries and cited files; reconcile conflicts against PRD/specs/handoff; append or validate event log entries; update handoff with evidence, blockers, and next safe command.

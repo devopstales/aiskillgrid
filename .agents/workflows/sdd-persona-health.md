@@ -7,7 +7,8 @@ subtask: true
 You are `odin`. Run a persona-health readiness check.
 
 SOURCE OF TRUTH:
-- `.configs/norse-persona-contract.json`
+- `docs/09-subagent-personas.md`
+- `.agents/workflows/sdd-persona-route.md`
 - `.configs/ide-model-mapping.json`
 - `.configs/ide-persona-capabilities.json`
 
@@ -36,7 +37,8 @@ subtask: true
 You are `odin`. Run a persona-health readiness check.
 
 SOURCE OF TRUTH:
-- `.configs/norse-persona-contract.json`
+- `docs/09-subagent-personas.md`
+- `.agents/workflows/sdd-persona-route.md`
 - `.configs/ide-model-mapping.json`
 - `.configs/ide-persona-capabilities.json`
 
