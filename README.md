@@ -39,6 +39,10 @@ This repository currently uses:
 - `/sdd-brainstorm`
 - `/sdd-design-ui`
 - `/sdd-diagnose`
+- `/sdd-openspec-git` (OpenSpec git gates vs `main`)
+- `/sdd-adr` (architectural decision records)
+- `/sdd-c4` (C4 diagrams)
+- `/sdd-gherkin` (Gherkin / BDD scenarios)
 - `/sdd-apply`
 - `/sdd-verify`
 - `/sdd-archive`

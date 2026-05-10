@@ -311,7 +311,7 @@ for f in files:
     body = text[m.end() :]
     extra = ("\n".join(extra_lines) + "\n") if extra_lines else ""
     out = f"---\ndescription: {desc}\n{extra}---\n{body}"
-    dest = gh / f.name
+    dest = gh / f"{f.stem}.prompt.md"
     if check:
         if not dest.exists() or dest.read_text(encoding="utf-8") != out:
             print(f"DRIFT: {dest} (expected content from {f})", file=sys.stderr)
@@ -320,8 +320,8 @@ for f in files:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(out, encoding="utf-8")
 # Remove GitHub prompt files for workflows deleted from .agents/workflows.
-expected = {src.name for src in files}
-for dest in sorted(gh.glob("*.md")):
+expected = {f"{src.stem}.prompt.md" for src in files}
+for dest in sorted(gh.glob("*.prompt.md")):
     if dest.name not in expected:
         if check:
             print(f"ORPHAN: {dest} (no longer in .agents/workflows)", file=sys.stderr)

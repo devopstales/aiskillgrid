@@ -54,6 +54,15 @@ These are directly tied to the active `/sdd-*` command surface:
 
 `/sdd-brainstorm` orchestrates most of these phases in sequence.
 
+### Spec, Architecture, And Git Discipline (Intent-driven style)
+
+These complement OpenSpec / SDD without replacing phase skills:
+
+- `architectural-decision-records` — ADRs and decision history (`/sdd-adr`).
+- `c4-diagrams` — C4-style diagrams in ASCII or Mermaid (`/sdd-c4`).
+- `gherkin-authoring` — Gherkin / BDD scenarios and acceptance criteria (`/sdd-gherkin`).
+- `openspec-git-discipline` — git gates so proposal/apply/archive line up with `main` (`/sdd-openspec-git`).
+
 ### Implementation And TDD Skills
 
 - `skillgrid-tdd` enforces RED/GREEN/REFACTOR loops during `/sdd-apply`.

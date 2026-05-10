@@ -15,6 +15,8 @@ skillgrid-cli/tmp*
 skillgrid-cli/*.bun-build
 skillgrid-cli/.npmrc.github-packages
 
+.tmp-idt-skills/
+
 .gitnexus/
 .engram/
 .cocoindex_code/

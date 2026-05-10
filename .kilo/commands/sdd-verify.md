@@ -48,9 +48,9 @@ Then:
 BOARD ESCALATION (critical/conflict path):
 - If verification evidence is conflicting, or a high-risk architecture/security/release decision is required, invoke `/sdd-persona-board` before final status (`/sdd-board` remains a compatibility alias).
 - Use board presets based on decision type:
-  - architecture -> `mimir`, `thor`, `tyr`, `loki`, `bragi`
+  - architecture -> `odin`, `thor`, `tyr`, `loki`
   - security -> `heimdall`, `tyr`, `thor`, `loki`
-  - go-no-go-release -> `tyr`, `heimdall`, `thor`, `frigg`, `mimir`
+  - go-no-go-release -> `odin`, `tyr`, `heimdall`, `thor`, `frigg`
 - Persist board outputs to:
   - `.skillgrid/tasks/research/<change-id>/`
   - `.skillgrid/tasks/context_<change-id>.md`
