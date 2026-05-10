@@ -1,6 +1,6 @@
 ---
 description: Start a new SDD change — runs exploration, clarification, proposal, specs, design (including UI), PRD, and tasks
-agent: sdd-orchestrator
+agent: odin
 ---
 
 Follow the SDD orchestrator workflow for starting a new change named "$ARGUMENTS".
@@ -95,4 +95,4 @@ design_token_usage: ["color.primary", "spacing.md", "typography.body"]
 risks: ["browser compatibility", "performance impact"]
 ```
 
-Read the orchestrator instructions to coordinate this workflow. Do NOT execute phase work inline — delegate to sub-agents.
+Read the **Odin-primary** coordinator rules (`skillgrid-sdd-orchestrator.mdc` + `skillgrid-gentle-orchestrator-extended.mdc`) to coordinate this workflow. Do NOT execute phase work inline — delegate to sub-agents.

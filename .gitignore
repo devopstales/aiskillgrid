@@ -6,3 +6,9 @@
 .skillgrid/tasks/events/
 !.skillgrid/tasks/research/.gitkeep
 .skillgrid/tasks/research/
+.gitnexus/
+.engram/
+.cocoindex_code/
+.beads/
+# CocoIndex Code (ccc)
+/.cocoindex_code/

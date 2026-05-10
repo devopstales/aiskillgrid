@@ -3,5 +3,5 @@
       "command": "trivy",
       "args": ["mcp"]
     }
-  }
+}
   

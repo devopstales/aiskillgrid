@@ -69,6 +69,8 @@ context: |
   Testing: {detected}
   Style: {detected}
 
+strict_tdd: true
+
 rules:
   proposal:
     - Include rollback plan for risky changes
@@ -83,14 +85,19 @@ rules:
     - Keep tasks completable in one session
   apply:
     - Follow existing code patterns
-    tdd: false           # Set to true to enable RED-GREEN-REFACTOR
-    test_command: ""
   verify:
     test_command: ""
     build_command: ""
     coverage_threshold: 0
   archive:
     - Warn before merging destructive deltas
+
+testing:
+  strict_tdd: true
+  detected: "YYYY-MM-DD"
+  runner:
+    command: ""
+    framework: "{detected}"
 ```
 
 ## Archive Structure

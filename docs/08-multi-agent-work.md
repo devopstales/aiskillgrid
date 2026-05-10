@@ -38,7 +38,9 @@ Personas are specialist roles. They are not workflows by themselves. A skill is 
 
 Milestone 2.5 standardizes workflow-facing persona names to the Norse set:
 
-- `odin` — orchestrator/planner authority.
+- `odin` — **primary** allfather session owner (SDD, tools, delegation).
+- `board` — persona-board chair (route, merge, hard gates).
+- `kvasir` — fast read-only codebase recon.
 - `thor` — implementation enforcer and delivery momentum.
 - `tyr` — spec/compliance verifier (hard gate on critical findings).
 - `heimdall` — security and release-gate sentinel (hard gate on critical findings).

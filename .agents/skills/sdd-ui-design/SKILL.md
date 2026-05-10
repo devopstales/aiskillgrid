@@ -1,68 +1,128 @@
 ---
 name: sdd-ui-design
 description: >
-  Create user-facing UI designs, wireframes, and interaction flows.
-  Trigger: When orchestrator needs visual design output before technical implementation.
+  Place UI design decisions, previews, and implementation constraints into durable SDD artifacts.
+  Trigger: UI/UX direction work during SDD explore, brainstorm, design, plan, or verify phases.
 license: Apache-2.0
 metadata:
   author: devopstales
-  version: "1.0"
-  depends_on: [sdd-design, engram-ui-elements, engram-visual-language]
+  version: "2.0"
+  depends_on: [sdd-design, engram-ui-elements, engram-visual-language, engram-project-structure]
 ---
 
-## Purpose
-You produce visual design artifacts that feed into sdd-design's technical decisions.
+## When to Use
 
-## What You Receive
-- change-name
-- artifact-store-mode (engram | openspec | hybrid | none)
-- proposal content (via mem_get_observation or filesystem)
+Use this skill when UI decisions must be captured as durable project artifacts, especially when `/sdd-design-ui`, `/sdd-brainstorm`, or `/sdd-explore` influences interface behavior.
 
-## Execution Contract
-[Follow the same mem_save/mem_search pattern as sdd-design]
-[See skills/_shared/engram-convention.md for naming]
+## Responsibilities
 
-## UI Design Skill
-You are a UI/UX designer. When invoked, you MUST:
+This skill owns artifact placement and decision durability, not visual taste generation itself.
 
-1. **Write `preview.html`** – self-contained, responsive HTML/CSS/JS mockup.
-2. **Write `DESIGN.md`** – design rationale, component list, accessibility notes.
-3. **Run the preview script** using `execute_command`:
+Primary artifact targets:
+
+- root `DESIGN.md`
+- `.skillgrid/preview/`
+- PRD success criteria
+- OpenSpec `design.md`
+- handoff and research files under `.skillgrid/tasks/`
+
+Use visual-quality skills separately when needed:
+
+- `huashu-design`
+- `superdesign`
+- `impeccable`
+- `frontend-design`
+- `frontend-ui-engineering`
+
+## Artifact Placement Rules
+
+- Stable design-system rules belong in `DESIGN.md`.
+- Draft comparisons and exploratory options belong in `.skillgrid/preview/`.
+- User-facing acceptance expectations belong in PRD criteria.
+- Implementation constraints belong in OpenSpec `design.md`.
+- External references and deep comparisons belong in `.skillgrid/tasks/research/<change-id>/`.
+
+## Design-It-Twice Rule For Interface Decisions
+
+When the UI choice also defines an interface shape (component props, routes, module boundaries, API-to-UI contracts, shared primitives), generate at least three distinct options before convergence.
+
+Before generating options, collect:
+
+- problem to solve
+- callers and users (human users, components, modules, tests, external consumers)
+- required operations and states
+- constraints (accessibility, performance, compatibility, existing patterns)
+- what must stay hidden internally vs exposed
+
+For each option, include:
+
+- interface or surface shape
+- usage example
+- hidden complexity
+- tradeoffs and likely failure modes
+
+Compare options using:
+
+- simplicity of surface
+- implementation cost and performance
+- ease of correct use vs misuse
+- responsive behavior
+- accessibility
+- fit with existing design language
+
+Only promote the accepted direction to implementation guidance. Keep rejected options in preview or research artifacts.
+
+## Preview Discipline
+
+For browser-viewable UI options, scaffold preview files with:
 
 ```bash
-bash .skillgrid/scripts/preview.sh preview.html
+.skillgrid/scripts/preview.sh <change-id>-options
 ```
 
-## Workflow
+For text-only comparisons, use:
 
-1. Ask at most one clarifying question if the request is ambiguous.
-2. Otherwise, make reasonable assumptions (use a modern, clean design with light/dark mode optional).
-3. After writing both files, automatically execute the preview script.
-4. Tell the user:
-
-```
-Preview launched at http://localhost:3456 – refresh to see changes.
+```bash
+.skillgrid/scripts/preview.sh --md <change-id>-options
 ```
 
-## Example
+Recommended naming:
 
-User: "Design a login card with email, password, and a dark mode toggle"
-You produce `preview.html` (includes dark mode toggle) and `DESIGN.md`, then run the script.
+- `.skillgrid/preview/<change-id>-options.html`
+- `.skillgrid/preview/<change-id>-option-notes.md`
 
-## References
+Link preview artifacts from PRD blocks or handoff files whenever possible so they are discoverable.
 
-- [Tailwind UI patterns](https://tailwindui.com/components) – for inspiration
-- [Material Design guidelines](https://m3.material.io/) – when generating modern UIs
+## OpenSpec Design Insert Template
 
-## Output Format
-Return a structured envelope with:
-- status: "complete" | "blocked"
-- artifacts: [{type: "wireframe", path: "...", content: "..."}]
-- next_recommended: "sdd-design"
-- risks: ["accessibility concerns", "responsive gaps"]
+When a UI decision affects implementation, insert this section into the change `design.md`:
 
-## Rules
-- Always reference engram-ui-elements for component rules
-- Keep wireframes ASCII or Mermaid-based for portability
-- Include accessibility notes (contrast, keyboard nav, ARIA)
-- Size budget: <600 words + 1 ASCII diagram max
+```markdown
+## UI / UX constraints
+
+- **Design source:** `.skillgrid/preview/<change-id>-options.html`
+- **Tokens:** follow root `DESIGN.md`
+- **States required:** default, loading, empty, error, success
+- **Accessibility:** keyboard reachable, visible focus, reduced motion, contrast compliant
+- **Responsive behavior:** <breakpoints or layout rules>
+- **Interface shape:** <accepted surface contract and hidden internals>
+```
+
+## Delivery Checklist
+
+1. Ask at most one clarifying question if the target surface is ambiguous.
+2. Produce differentiated options when uncertainty exists.
+3. Document accepted direction and key rejected alternatives.
+4. Capture accessibility, responsive, and testing implications.
+5. Update durable artifacts and include exact preview file paths.
+
+## Output Contract
+
+Return:
+
+- `status`: `completed | blocked | failed`
+- `executive_summary`: selected direction and decision rationale
+- `detailed_report`: options considered, tradeoffs, and constraints
+- `artifacts`: updated paths (preview, docs, design artifacts)
+- `next_recommended`: follow-up command, usually `sdd-apply` or `sdd-verify`
+- `risks`: unresolved design or implementation risks, or `none`

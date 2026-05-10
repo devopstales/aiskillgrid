@@ -30,7 +30,22 @@ Each layer answers a different question.
 
 ## Engram
 
-Engram is the persistent memory layer. It stores concise observations that should survive chat compaction and new sessions.
+Engram is the persistent memory layer. It stores concise observations that should survive chat compaction and new sessions. A single Go binary with SQLite + FTS5 full-text search, exposed via CLI, HTTP API, MCP server, and an interactive TUI. 
+
+```
+Agent (Claude Code / OpenCode / Gemini CLI / Codex / VS Code / Antigravity / ...)
+    ↓ MCP stdio
+Engram (single Go binary)
+    ↓
+SQLite + FTS5 (~/.engram/engram.db)
+```
+
+### How It Works:
+
+1. Agent completes significant work (bugfix, architecture decision, etc.)
+2. Agent calls mem_save → title, type, What/Why/Where/Learned
+3. Engram persists to SQLite with FTS5 indexing
+4. Next session: agent searches memory, gets relevant context
 
 Use it for:
 
@@ -50,6 +65,90 @@ skillgrid/<change-id>/state
 ```
 
 This state observation should contain only the current phase, status, artifact-store mode, PRD/OpenSpec/handoff/event paths, blockers, next action, and last updated timestamp. It is a recovery index, not a second copy of the PRD or task list.
+
+### Recommended Engram data shape
+
+Use stable, predictable structures so reads and merges stay deterministic.
+
+Top-level observation envelope:
+
+```json
+{
+  "project": "aiskillgrid-v2",
+  "scope": "project",
+  "topic_key": "skillgrid/handoff-rebuild/state",
+  "type": "decision|state|bugfix|learning|session-summary",
+  "title": "Short searchable title",
+  "content": "Human-readable markdown summary",
+  "version": {
+    "id": 7,
+    "previous_id": 6
+  },
+  "timestamps": {
+    "created_at": "2026-05-08T14:00:00Z",
+    "updated_at": "2026-05-08T14:42:00Z"
+  },
+  "meta": {
+    "change_id": "handoff-rebuild",
+    "phase": "verify",
+    "status": "active"
+  }
+}
+```
+
+### Topic key conventions
+
+Prefer hierarchical keys so lookup and upsert are straightforward:
+
+- `skillgrid/<change-id>/state` for compact active-change state.
+- `skillgrid/<change-id>/decision/<slug>` for durable change decisions.
+- `skillgrid/<change-id>/risk/<slug>` for accepted or unresolved risks.
+- `skillgrid/project/context` for durable project-level conventions.
+- `skillgrid/session/<yyyy-mm-dd>/<slug>` for session summaries.
+
+Rules:
+
+- keep keys lowercase and slash-delimited;
+- avoid embedding timestamps in state keys (state should be upserted);
+- use new keys for independent decisions, same key for updated state.
+
+### State payload for `skillgrid/<change-id>/state`
+
+Recommended `content` payload (compact index only):
+
+```json
+{
+  "phase": "apply",
+  "status": "blocked",
+  "artifact_store_mode": "hybrid",
+  "artifacts": {
+    "prd": ".skillgrid/prd/PRD07_handoff_rebuild.md",
+    "openspec": "openspec/changes/handoff-rebuild/",
+    "handoff": ".skillgrid/tasks/context_handoff-rebuild.md",
+    "events": ".skillgrid/tasks/events/handoff-rebuild.jsonl",
+    "registry": ".skillgrid/tasks/registry_handoff-rebuild.md"
+  },
+  "blockers": [
+    "Need HITL decision on archive gate strictness"
+  ],
+  "next_recommended": "/sdd-verify",
+  "last_updated": "2026-05-08T14:42:00Z"
+}
+```
+
+### Write and read discipline
+
+Write discipline:
+
+- update state with the same `topic_key` and increment `version.id`;
+- store long evidence on disk and keep only pointers in Engram;
+- write one observation per decision/risk to avoid monolithic blobs.
+
+Read discipline:
+
+- use `mem_search` for discovery only;
+- use `mem_get_observation(id)` before acting on requirements or blocker state;
+- reconcile Engram state with disk artifacts when drift exists, favoring verified files.
 
 Versioning is required for state-like artifacts:
 
@@ -80,6 +179,19 @@ engram sync --import          # Import committed .engram/ memories on another ma
 ```
 
 Commit `.engram/` only when your team explicitly wants shared memory in git. It can contain prompts, decisions, and project context, so treat it like a reviewable knowledge artifact.
+
+### Git Sync
+
+Share memories across machines. Uses compressed chunks — no merge conflicts, no huge files.
+
+Local SQLite remains the source of truth. Cloud integration is opt-in replication.
+
+```
+engram sync                    # Export new memories as compressed chunk
+git add .engram/ && git commit -m "sync engram memories"
+engram sync --import           # On another machine: import new chunks
+engram sync --status           # Check sync status
+```
 
 ## Per-Change Handoff
 

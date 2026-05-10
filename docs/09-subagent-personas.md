@@ -37,42 +37,48 @@ Personas help with independent work such as:
 - Critiquing design and UX.
 - Researching external evidence.
 
-The parent session remains responsible for orchestration. Personas should not secretly coordinate with one another or rewrite the plan on their own.
+The parent session remains responsible for orchestration. On OpenCode, the **primary** agent is **Odin** (allfather session owner). Persona-board flows use the **`board`** chair subagent; personas should not secretly coordinate with one another or rewrite the plan on their own.
 
-Workflow-facing persona IDs use the Norse set defined in `.agents/workflows/sdd-persona-route.md`: `odin`, `thor`, `tyr`, `heimdall`, `frigg`, `loki`, `mimir`, and `bragi`. Legacy neutral labels may still appear as descriptive role text, but command routing and board outputs should use Norse IDs.
+Workflow-facing persona IDs use the Norse set defined in `.agents/workflows/sdd-persona-route.md`: **`odin`** (primary), **`board`** (board chair), **`kvasir`**, `thor`, `tyr`, `heimdall`, `frigg`, `loki`, `mimir`, `bragi`, `vidar`. Legacy neutral labels may still appear as descriptive role text (for example “orchestrator” in skills meaning Odin-primary), but command routing and board outputs should use Norse IDs.
 
 | ID | Title | Role | Hard gate on critical? | Notes |
 | --- | --- | --- | --- | --- |
-| `odin` | Odin | Orchestrator and planner authority | No | Board routing, merge, HITL boundaries. |
+| `odin` | Odin | **Primary** session owner (SDD, tools, delegation) | No | Default OpenCode agent; delegates specialists and `/sdd-persona-*` to `board`. |
+| `board` | Board | Persona-board chair (route, merge, gates) | No | Invoked by `/sdd-persona-board`, `/sdd-persona-route`, `/sdd-board`, etc. |
+| `kvasir` | Kvasir | Fast codebase recon (read-only map) | No | Slim-style explorer; keeps Heimdall for security-only reviews. |
 | `thor` | Thor | Implementation enforcer | No | Delivery feasibility, execution quality, momentum. |
 | `tyr` | Tyr | Spec and compliance verifier | **Yes** | Traceability, acceptance criteria, spec compliance. |
 | `heimdall` | Heimdall | Security and release-gate sentinel | **Yes** | Threat model, exploitability, release risk. |
 | `frigg` | Frigg | UX and product clarity reviewer | No | Flows, accessibility, content clarity. |
 | `loki` | Loki | Adversarial critic | No | Counterexamples, assumption stress-test; can surface conflicts that require HITL. |
-| `mimir` | Mimir | Bootstrap and memory-knowledge keeper | No | Init quality, context hydration, registry readiness. |
+| `mimir` | Mimir | Wisdom / bootstrap / architecture coherence | No | Init and context hydration; also architecture-board strategic voice. |
 | `bragi` | Bragi | Structured artifact author | No | Specification/task structure, writing clarity, traceability wording. |
+| `vidar` | Vidar | Root-cause debugging specialist | No | Systematic investigation, regression prevention. |
 
 ## Agent Files In This Repo
 
 - Nordic personas:
-  - `.cursor/agents/skillgrid-odin.md`
-  - `.cursor/agents/skillgrid-thor.md`
-  - `.cursor/agents/skillgrid-tyr.md`
-  - `.cursor/agents/skillgrid-heimdall.md`
-  - `.cursor/agents/skillgrid-frigg.md`
-  - `.cursor/agents/skillgrid-loki.md`
-  - `.cursor/agents/skillgrid-mimir.md`
-  - `.cursor/agents/skillgrid-bragi.md`
+  - `.cursor/agents/odin.md`
+  - `.cursor/agents/thor.md`
+  - `.cursor/agents/tyr.md`
+  - `.cursor/agents/heimdall.md`
+  - `.cursor/agents/frigg.md`
+  - `.cursor/agents/loki.md`
+  - `.cursor/agents/mimir.md`
+  - `.cursor/agents/bragi.md`
+  - `.cursor/agents/vidar.md`
+  - `.cursor/agents/kvasir.md`
+  - `.cursor/agents/board.md`
 
 ## How To Use Them
 
 1. Use Nordic personas for both execution ownership and gatekeeping.
-2. Route by phase owner:
+2. Route by phase owner (parent is **`odin`** primary unless a command pins `board`):
    - `init` -> `odin`/`mimir`
-   - `explore` -> `loki` (+ `odin`)
+   - `explore` -> `kvasir`/`loki` (+ `odin` for scope)
    - `propose` -> `odin`
    - `spec` -> `tyr`/`bragi`
-   - `design` -> `odin` (+ `thor`)
+   - `design` -> `odin` (+ `thor`/`mimir`)
    - `tasks` -> `thor`/`bragi`
    - `apply` -> `thor`
    - `verify` -> `tyr` (+ `heimdall` when security/release-sensitive)
@@ -80,7 +86,7 @@ Workflow-facing persona IDs use the Norse set defined in `.agents/workflows/sdd-
 3. Keep hard-gate authority independent:
    - `tyr` and `heimdall` critical findings block progression.
 
-## Enforcement Checklist (Orchestrator)
+## Enforcement Checklist (Odin-primary)
 
 To ensure both sets are actually used (not just present on disk), enforce this checklist per phase:
 
@@ -113,7 +119,19 @@ The parent session must read the returned summaries and cited files before updat
 
 ### Odin
 
-Orchestrator and planner authority for board decisions. Owns routing, synthesis, and HITL boundaries.
+**Primary** allfather: owns the session, SDD sequencing, tools, and delegation. Does **not** run the persona-board FSM inline — call **`board`** (or `/sdd-persona-*`) for that.
+
+### Board
+
+Board chair: routing matrix, parallel persona dispatch, merge, hard gates, and durable board artifacts.
+
+### Kvasir
+
+Fast read-only reconnaissance and codebase mapping before deep design or large edits.
+
+### Mimir
+
+Bootstrap and memory continuity; also the **strategic / architecture coherence** voice on boards where the matrix assigns `mimir`.
 
 ### Thor
 
@@ -134,6 +152,14 @@ UX and product-clarity reviewer focused on user flow, accessibility, and content
 ### Loki
 
 Adversarial critic that challenges assumptions, proposes counterexamples, and stress-tests risk acceptance.
+
+### Bragi
+
+Structured artifact author for specs, tasks, and traceable requirement wording.
+
+### Vidar
+
+Root-cause debugging and regression prevention when evidence and reproduction matter.
 
 ## Orchestration Skill
 
@@ -183,11 +209,15 @@ Presets map **decision types** to **which personas** participate. Aliases such a
 
 | Decision type | Personas invoked (order is workflow-defined) |
 | --- | --- |
-| `architecture` | `odin`, `thor`, `tyr`, `loki` |
+| `architecture` | `mimir`, `thor`, `tyr`, `loki`, `bragi` |
 | `security` | `heimdall`, `tyr`, `thor`, `loki` |
-| `ux-content` | `frigg`, `loki`, `thor` |
-| `go-no-go-release` | `odin`, `tyr`, `heimdall`, `thor`, `frigg` |
-| `risk-acceptance` | `odin`, `loki`, `tyr`, `heimdall` |
+| `ux-content` | `frigg`, `thor`, `loki`, `bragi` |
+| `go-no-go-release` | `tyr`, `heimdall`, `thor`, `frigg`, `mimir` |
+| `risk-acceptance` | `loki`, `tyr`, `heimdall`, `mimir` |
+| `bootstrap-readiness` | `mimir`, `kvasir`, `thor`, `tyr` |
+| `spec-quality` | `bragi`, `tyr`, `mimir`, `loki` |
+| `tasks-readiness` | `bragi`, `thor`, `tyr`, `mimir` |
+| `debugging` | `vidar`, `thor`, `loki`, `tyr` |
 
 ### Commands (persona board family)
 
@@ -274,7 +304,7 @@ Unresolved conflicts escalated by `loki` or merged reports still flow through th
 
 ### Where agent prompts live by surface
 
-Specialist persona markdown agents use the shared `skillgrid-<persona>.md` filenames (same body conventions: identity, mandatory context, rules, composition):
+Specialist persona markdown agents use `<persona>.md` filenames matching the Norse keys (`odin`, `thor`, …, `board`; same body conventions: identity, mandatory context, rules, composition):
 
 - Cursor: `.cursor/agents/`
 - GitHub Copilot agents mirror: `.github/agents/`

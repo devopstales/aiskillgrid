@@ -6,7 +6,6 @@
   * [X] context7
   * [X] deepwiki
   * [X] exa
-  * [X] fire-claw
   * [ ] playwright
   * [ ] ai-mcp-sequentialthinking
   * [ ] agent-browser
@@ -34,12 +33,19 @@
   * web ui
     * engram integration ?
 * search
-  * web search
+  * researcher persona
+  * it search
     * use mcp
   * code search
     * use ccc gitnexus
   * [X] agent personas
   * paralel search subagents
+  * Missing skills: deep-research, tavily, perplexity-sonar, and the whole brave-* set (brave-web-search, brave-news-search, etc.)
+* documentation operations
+  * Missing skills: documentation-lookup, documentation-and-adrs, documentation-templates
+* [-] ui design
+  * [X] sdd-design-ui
+  * [ ] Missing skills: design-taste-frontend, frontend-ui-engineering, high-end-visual-design, impeccable, superdesign, huashu-design, image-to-code, etc.
 * questions
   * Assign different AI models to different SDD phases
   * Build Loop
@@ -127,7 +133,10 @@
   * [-] sdd-archive
   * [-] sdd-ui-design
   * [ ] sdd-test - runs tests and captures evidence tied to success criteria.
+    * Missing skills: playwright, browser-testing-with-devtools, e2e-testing, e2e-runner
   * [ ] sdd-security - performs a deeper security pass when needed.
+    * Missing skills: security-review, security-scan, semgrep-security, trivy-security, vulnerability-scanner
+
 
   * [ ] orchestrator ???
   * [ ] skill-registry
@@ -138,7 +147,6 @@
   * [X] context7
   * [ ] deepwiki
   * [X] exa-search
-  * [ ] fire-claw
   * [ ] playwright
 
 ## Plan
@@ -147,34 +155,14 @@
 
 Ship high-impact workflow upgrades: enforceable pipelines, strict phase gates, model routing, persona-board decisions, and Norse-themed operator clarity where it helps.
 
+### Rethink personas
+
 ### Workflow backlog
 
 - [-] Enforcement & review (partial — see Milestone 1):
   - [-] branch-finish protocol (`verify -> merge/PR/keep/discard -> cleanup`)
     - [X] explicit post-merge index refresh (`ccc index`, `npx gitnexus analyze`)
   - [ ] optional git-worktree execution mode for risky/parallel slices
-- [X] Handoff rebuild with a plan:
-  - [X] Baseline (how it works now): `context_<change-id>.md` + `events/<change-id>.jsonl` + `research/<change-id>/` + Engram state pointer (`skillgrid/<change-id>/state`) + compaction context injection in plugins.
-  - [X] Phase 1 - Unified protocol contract:
-    - [X] Define `create | quick | resume` handoff modes for `sdd-*` flows.
-    - [X] Keep one canonical schema for "state now" vs "timeline" vs "deep evidence" (handoff/event/research).
-    - [X] Add required `failed_approaches` and `next_steps` sections (do-not-repeat + immediate actionability).
-  - [X] Phase 2 - Registry and context injection discipline:
-    - [X] Add compact registry index for recent decisions/work (avoid re-reading long reports).
-    - [X] Require parent-agent context injection packet for subagents (no raw transcript dump).
-    - [X] Explicit sequencing rule: parallel only when outputs are independent; otherwise dependency-ordered.
-  - [X] Phase 3 - Verification gates and drift checks:
-    - [X] Add post-task verification checklist (artifacts exist, non-empty, referenced in handoff/event log).
-    - [X] Add staleness check on resume (git drift, changed files, age threshold).
-    - [X] Add retry policy when expected artifacts are missing or inconsistent.
-  - [X] Phase 4 - Tooling and templates:
-    - [X] Add/update template(s) for `full` vs `quick` handoff.
-    - [X] Add lightweight scripts/commands for create/list/validate/check-staleness handoff flow.
-    - [X] Keep handoff chain metadata (`continues_from`) for long-running initiatives.
-  - [X] Phase 5 - Rollout:
-    - [X] Pilot on one active `sdd-*` change and collect friction notes.
-    - [X] Update docs and command help text after pilot.
-    - [X] Make verification checks default in CI-ready workflow path.
 
 ### Milestone 3 — Model Routing + Session Efficiency
 

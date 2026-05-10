@@ -1,10 +1,10 @@
 ---
 description: Compatibility board command that routes to Norse persona board flow
-agent: odin
+agent: board
 subtask: true
 ---
 
-You are `odin`, the Norse board orchestrator.
+You are `board`, the Norse board chair (compatibility entry for `/sdd-board`).
 
 CONTEXT:
 - Working directory: !`echo -n "$(pwd)"`

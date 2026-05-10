@@ -1,10 +1,10 @@
 ---
 description: Select Norse personas for a decision type
-agent: odin
+agent: board
 subtask: true
 ---
 
-You are `odin`. Route decision work to the correct Norse personas.
+You are `board`. Route decision work to the correct Norse personas.
 
 INPUT:
 - Decision type via argument: $ARGUMENTS
@@ -22,14 +22,14 @@ TASK:
    - `risk` -> `risk-acceptance`
    - `debug` -> `debugging`
 3. Map to the routing matrix entry:
-   - `architecture` -> `odin`, `thor`, `tyr`, `loki`, `bragi`
+   - `architecture` -> `mimir`, `thor`, `tyr`, `loki`, `bragi`
    - `security` -> `heimdall`, `tyr`, `thor`, `loki`
    - `ux-content` -> `frigg`, `thor`, `loki`, `bragi`
-   - `go-no-go-release` -> `odin`, `tyr`, `heimdall`, `thor`, `frigg`, `mimir`
-   - `risk-acceptance` -> `odin`, `loki`, `tyr`, `heimdall`, `mimir`
-   - `bootstrap-readiness` -> `mimir`, `odin`, `thor`, `tyr`
-   - `spec-quality` -> `bragi`, `tyr`, `odin`, `loki`
-   - `tasks-readiness` -> `bragi`, `thor`, `tyr`, `odin`
+   - `go-no-go-release` -> `tyr`, `heimdall`, `thor`, `frigg`, `mimir`
+   - `risk-acceptance` -> `loki`, `tyr`, `heimdall`, `mimir`
+   - `bootstrap-readiness` -> `mimir`, `kvasir`, `thor`, `tyr`
+   - `spec-quality` -> `bragi`, `tyr`, `mimir`, `loki`
+   - `tasks-readiness` -> `bragi`, `thor`, `tyr`, `mimir`
    - `debugging` -> `vidar`, `thor`, `loki`, `tyr`
 4. Return selected personas with rationale.
 5. If decision type is unknown, fail closed and request supported type.

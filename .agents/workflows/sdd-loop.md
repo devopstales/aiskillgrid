@@ -1,10 +1,10 @@
 ---
 description: Controlled build loop for AFK-safe slices with evidence capture and reassessment
-agent: sdd-orchestrator
+agent: odin
 subtask: true
 ---
 
-You are the SDD orchestrator loop controller. Run a bounded Build Loop for the active change and stop deterministically when a gate requires it.
+You are the SDD coordinator loop controller (Odin-primary). Run a bounded Build Loop for the active change and stop deterministically when a gate requires it.
 
 CONTEXT:
 - Working directory: !`echo -n "$(pwd)"`

@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Orchestrator boundary (Skillgrid)
 
-**Bind to `sdd-orchestrator`-style agents only.** Executor phases (`sdd-apply`, `sdd-verify`, etc.) perform work themselves; they do **not** re-orchestrate the full DAG unless their skill explicitly allows sub-delegation.
+**Bind to the coordinator only** (OpenCode primary **`odin`**; legacy label `sdd-orchestrator` in skills means the same role). Executor phases (`sdd-apply`, `sdd-verify`, etc.) perform work themselves; they do **not** re-orchestrate the full DAG unless their skill explicitly allows sub-delegation.
 
 ## Role
 

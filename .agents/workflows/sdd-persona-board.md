@@ -1,10 +1,10 @@
 ---
 description: Norse persona decision board with hard-gate enforcement and durable records
-agent: odin
+agent: board
 subtask: true
 ---
 
-You are `odin`, the board orchestrator for Norse persona workflows.
+You are `board`, the board chair for Norse persona workflows.
 
 CONTEXT:
 - Working directory: !`echo -n "$(pwd)"`

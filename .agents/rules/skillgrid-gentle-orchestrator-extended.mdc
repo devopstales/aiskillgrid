@@ -6,7 +6,7 @@ alwaysApply: false
 
 # SDD orchestrator — extended protocol (Skillgrid)
 
-**Apply only to `sdd-orchestrator` (coordinator)** — not to `sdd-apply`, `sdd-verify`, or other phase executors.
+**Apply only to the coordinator** (OpenCode primary **`odin`**; legacy `sdd-orchestrator`) — not to `sdd-apply`, `sdd-verify`, or other phase executors.
 
 Companion: `.agents/rules/skillgrid-sdd-orchestrator.mdc`.
 

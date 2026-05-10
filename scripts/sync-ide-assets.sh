@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Sync hub IDE mirrors from Cursor sources of truth.
+# Sync hub IDE mirrors from .agents sources of truth.
 # Usage:
-#   ./scripts/sync-ide-assets.sh           # write .kilo, .opencode, .github/prompts, .github/agents
+#   ./scripts/sync-ide-assets.sh           # write commands/prompts plus agent/rule mirrors
 #   ./scripts/sync-ide-assets.sh --check   # exit 1 if any mirror differs (CI)
 # Removes command/prompt/agent/rule files under mirrors when the matching source file is deleted.
 set -uo pipefail
@@ -28,24 +28,90 @@ sync_pair() {
   fi
 }
 
-for dest in "$ROOT/.kilo/commands" "$ROOT/.opencode/commands"; do
-  for f in "$ROOT/.cursor/commands"/skillgrid-*.md "$ROOT/.cursor/commands"/opsx-*.md; do
-    sync_pair "$f" "$dest/$(basename "$f")"
-  done
-  # Drop mirror files removed from .cursor/commands (e.g. disabled commands)
-  for f in "$dest"/skillgrid-*.md "$dest"/opsx-*.md; do
-    [[ -f "$f" ]] || continue
-    base="$(basename "$f")"
-    if [[ ! -f "$ROOT/.cursor/commands/$base" ]]; then
-      if [[ $CHECK -eq 1 ]]; then
-        echo "ORPHAN: $f (no longer in .cursor/commands)" >&2
-        EXIT=1
-      else
-        rm -f "$f"
-      fi
-    fi
-  done
-done
+# Cursor/Kilo/OpenCode workflow commands are rendered from .agents/workflows.
+if ! python3 - "$ROOT" "$CHECK" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+check = sys.argv[2] == "1"
+src_dir = root / ".agents/workflows"
+dest_dirs = [root / ".cursor/commands", root / ".kilo/commands", root / ".opencode/commands"]
+drift = False
+
+
+def frontmatter(text: str, src: Path):
+    match = re.match(r"^---\n(.*?)\n---\n?", text, re.DOTALL)
+    if not match:
+        print(f"sync-ide-assets: missing frontmatter: {src}", file=sys.stderr)
+        sys.exit(2)
+    fields = []
+    for line in match.group(1).splitlines():
+        if not line.strip() or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        fields.append((key.strip(), value.strip()))
+    return fields, text[match.end() :]
+
+
+def field_map(fields):
+    return {key: value for key, value in fields}
+
+
+def render_command(src: Path) -> str:
+    text = src.read_text(encoding="utf-8")
+    fields, body = frontmatter(text, src)
+    values = field_map(fields)
+    stem = src.stem
+    description = values.get("description")
+    if not description:
+        print(f"sync-ide-assets: missing description: {src}", file=sys.stderr)
+        sys.exit(2)
+
+    rendered = [
+        "---",
+        f"name: /{values.get('id') or stem}",
+        f"id: {values.get('id') or stem}",
+        f"category: {values.get('category') or 'Workflow'}",
+        f"description: {description}",
+    ]
+    for key, value in fields:
+        if key in {"name", "id", "category", "description"}:
+            continue
+        rendered.append(f"{key}: {value}")
+    rendered.append("---")
+    return "\n".join(rendered) + "\n" + body
+
+
+files = sorted(src_dir.glob("*.md"))
+expected = {src.name for src in files}
+for dest_dir in dest_dirs:
+    for src in files:
+        out = render_command(src)
+        dest = dest_dir / src.name
+        if check:
+            if not dest.exists() or dest.read_text(encoding="utf-8") != out:
+                print(f"DRIFT: {dest} (expected content from {src})", file=sys.stderr)
+                drift = True
+        else:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(out, encoding="utf-8")
+
+    # Drop mirror commands removed from .agents/workflows.
+    for dest in sorted(dest_dir.glob("*.md")):
+        if dest.name not in expected:
+            if check:
+                print(f"ORPHAN: {dest} (no longer in .agents/workflows)", file=sys.stderr)
+                drift = True
+            else:
+                dest.unlink()
+
+sys.exit(1 if drift else 0)
+PY
+then
+  EXIT=1
+fi
 
 for dest in "$ROOT/.github/agents"; do
   for f in "$ROOT/.cursor/agents"/*.md; do
@@ -86,7 +152,7 @@ for dest in "$ROOT/.kilo/rules" "$ROOT/.opencode/rules"; do
 done
 
 # Kilo/OpenCode agents use OpenCode's Markdown agent schema:
-# - the filename is the agent name
+# - the filename is the agent id (e.g. tyr.md — same stem as Norse persona key)
 # - access is configured through permission, not comma-separated tools
 if ! python3 - "$ROOT" "$CHECK" <<'PY'
 import re
@@ -113,8 +179,15 @@ def frontmatter(text: str):
     return fields, text[match.end() :]
 
 
+PERSONA_AGENT_STEMS = frozenset(
+    {"board", "odin", "thor", "tyr", "heimdall", "frigg", "loki", "mimir", "bragi", "vidar"}
+)
+# Markdown agents with the same frontmatter + body section contract as Norse personas
+CONTRACT_AGENT_STEMS = PERSONA_AGENT_STEMS | frozenset({"orchestrator"})
+
+
 def verify_agent_contract(src: Path, fields: dict, body: str):
-    if not src.name.startswith("skillgrid-"):
+    if src.stem not in CONTRACT_AGENT_STEMS:
         return
     required_fields = ["name", "description", "tools", "color"]
     for field in required_fields:
@@ -146,24 +219,33 @@ def render_agent(src: Path) -> str:
         sys.exit(2)
 
     tools = {tool.strip() for tool in fields.get("tools", "").split(",") if tool.strip()}
+    mode_raw = fields.get("mode", "subagent").strip().strip('"').strip("'").lower()
+    mode = "primary" if mode_raw == "primary" else "subagent"
+
     lines = [
         "---",
         f"description: {description}",
-        "mode: subagent",
+        f"mode: {mode}",
         "permission:",
         "  read: allow",
         "  glob: allow",
         "  grep: allow",
-        "  edit: deny",
-        "  task: deny",
-        f"  bash: {'allow' if 'Bash' in tools else 'deny'}",
     ]
+    if mode == "primary":
+        edit_ok = "Edit" in tools or "Write" in tools
+        lines.append(f"  edit: {'allow' if edit_ok else 'deny'}")
+        lines.append(f"  task: {'allow' if 'Task' in tools else 'deny'}")
+    else:
+        lines.append("  edit: deny")
+        lines.append("  task: deny")
+    lines.append(f"  bash: {'allow' if 'Bash' in tools else 'deny'}")
     if "WebSearch" in tools:
         lines.append("  websearch: allow")
     if "WebFetch" in tools:
         lines.append("  webfetch: allow")
     if color := fields.get("color"):
-        lines.append(f"color: {color}")
+        c = color.strip().strip('"').strip("'")
+        lines.append(f'color: "{c}"')
     lines.append("---")
     return "\n".join(lines) + "\n" + body
 
@@ -197,7 +279,7 @@ then
   EXIT=1
 fi
 
-# GitHub Copilot prompts: description-only frontmatter + body
+# GitHub Copilot prompts: workflow body with Copilot-compatible frontmatter.
 if ! python3 - "$ROOT" "$CHECK" <<'PY'
 import re
 import sys
@@ -205,9 +287,9 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 check = sys.argv[2] == "1"
-cur = root / ".cursor/commands"
+src_dir = root / ".agents/workflows"
 gh = root / ".github/prompts"
-files = sorted(cur.glob("skillgrid-*.md")) + sorted(cur.glob("opsx-*.md"))
+files = sorted(src_dir.glob("*.md"))
 drift = False
 for f in files:
     text = f.read_text(encoding="utf-8")
@@ -232,17 +314,17 @@ for f in files:
     dest = gh / f.name
     if check:
         if not dest.exists() or dest.read_text(encoding="utf-8") != out:
-            print(f"DRIFT: {dest}", file=sys.stderr)
+            print(f"DRIFT: {dest} (expected content from {f})", file=sys.stderr)
             drift = True
     else:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(out, encoding="utf-8")
-# Remove GitHub prompt files for commands deleted from .cursor/commands
-for dest in sorted(gh.glob("skillgrid-*.md")) + sorted(gh.glob("opsx-*.md")):
-    src = cur / dest.name
-    if not src.exists():
+# Remove GitHub prompt files for workflows deleted from .agents/workflows.
+expected = {src.name for src in files}
+for dest in sorted(gh.glob("*.md")):
+    if dest.name not in expected:
         if check:
-            print(f"ORPHAN: {dest}", file=sys.stderr)
+            print(f"ORPHAN: {dest} (no longer in .agents/workflows)", file=sys.stderr)
             drift = True
         else:
             dest.unlink()
