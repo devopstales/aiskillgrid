@@ -56,6 +56,8 @@ These are directly tied to the active `/sdd-*` command surface:
 
 ### Spec, Architecture, And Git Discipline (Intent-driven style)
 
+Adapted from [intent-driven-template](https://github.com/intent-driven-dev/intent-driven-template/tree/main/.agents/skills) (`grill-me` not vendored here). Slash workflows: **`docs/04-commands.md`** (*Discovery and planning*, adjunct list, and *Current command surface*).
+
 These complement OpenSpec / SDD without replacing phase skills:
 
 - `architectural-decision-records` — ADRs and decision history (`/sdd-adr`).

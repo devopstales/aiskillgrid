@@ -19,7 +19,7 @@ During initialization, decide:
 - PRD workflow: default statuses, provider-style statuses, imported statuses, or custom statuses.
 - Index refresh policy: initialize and explicitly refresh GitNexus/ccc indexes during `/sdd-init`.
 - Optional persistent memory: Engram.
-- Skill registry: `.skillgrid/project/SKILL_REGISTRY.md` for compact rules used in subagent prompts.
+- Skill registry: `.skillgrid/project/SKILL_REGISTRY.md` for compact rules used in subagent prompts (refresh when skills under `.agents/skills/` change; see `docs/11-memory-and-indexing.md`).
 
 The recommended default for most users is a hybrid model: keep reviewable files in the repository and save concise durable memory summaries.
 
@@ -43,6 +43,17 @@ flowchart TD
 ```
 
 Use `/sdd-explore` when the idea still needs shape. Use `/sdd-brainstorm` when you want the full change pipeline (clarify, propose, spec, design, PRD, tasks).
+
+### Optional cross-cutting commands
+
+These do not replace a phase; they support decisions, specs, and git hygiene around the same change:
+
+- **`/sdd-openspec-git`** — before heavy **apply** or **archive**, check OpenSpec artifacts and branches against the `main`-first rules in `openspec-git-discipline`.
+- **`/sdd-adr`** — record or review a **single** significant architecture decision (see `.skillgrid/adr/` and `docs/03-skillgrid-logic.md`).
+- **`/sdd-c4`** — communicate boundaries and dependencies with a **C4-style** diagram when design or onboarding needs a picture.
+- **`/sdd-gherkin`** — express or refine **acceptance examples** as Gherkin when scenarios help align testers and implementers.
+
+Details and skill links: **`docs/05-skills.md`** (Intent-driven style) and **`docs/04-commands.md`**.
 
 ## PRD index, hierarchy, and OpenSpec layout
 

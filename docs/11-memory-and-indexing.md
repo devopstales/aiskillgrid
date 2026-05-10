@@ -233,7 +233,7 @@ The project skill registry records the locally available skills, compact actiona
 .skillgrid/project/SKILL_REGISTRY.md
 ```
 
-It is generated or refreshed by `/sdd-init` (via the skill registry flow). Parent sessions use it before launching subagents, selecting only the compact rules relevant to the delegated task.
+The hub ships a baseline **`.skillgrid/project/SKILL_REGISTRY.md`** (skill inventory plus **compact rules** for selected skills). Refresh it when you add or remove directories under **`.agents/skills/`**, or follow **`skillgrid-skill-registry`** to regenerate a fuller index. Parent sessions use it before launching subagents, selecting only the compact rules relevant to the delegated task.
 
 ## GitNexus
 

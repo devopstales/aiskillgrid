@@ -51,6 +51,13 @@ Use these when you need to understand a codebase or define a change.
 - `/sdd-design-ui <description>` runs the UI-design flow for preview and design artifacts.
 - `/sdd-diagnose` runs a structured debug loop (reproduce, isolate, hypothesize, fix, verify).
 
+These commands are **orthogonal** to the main phase chain: use them when the task matches, any time in a change.
+
+- `/sdd-openspec-git [context]` applies **OpenSpec git discipline** (when proposal state must be on `main` before apply, archive only from `main`, explicit commits — see skill `openspec-git-discipline`).
+- `/sdd-adr <topic-or-path>` drafts or reviews **ADRs** using hub templates (`architectural-decision-records`).
+- `/sdd-c4 <scope>` produces **C4-style** architecture diagrams in ASCII or Mermaid (`c4-diagrams`).
+- `/sdd-gherkin <scope>` authors or tightens **Gherkin** / BDD scenarios (`gherkin-authoring`).
+
 ### Orchestrated Planning Phases
 
 `/sdd-brainstorm` delegates to these skills/phases in order:
@@ -122,6 +129,10 @@ The active workflow commands in this repository are:
 - `/sdd-brainstorm`
 - `/sdd-design-ui`
 - `/sdd-diagnose`
+- `/sdd-openspec-git`
+- `/sdd-adr`
+- `/sdd-c4`
+- `/sdd-gherkin`
 - `/sdd-apply`
 - `/sdd-loop`
 - `/sdd-persona-board`

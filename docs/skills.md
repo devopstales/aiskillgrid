@@ -1,4 +1,6 @@
-# Skills
+# Skills (legacy stub)
+
+Canonical skill and command documentation lives in **`05-skills.md`** and **`04-commands.md`**. The sections below are a short internal map only.
 
 ## sdd-brainstorm command
 

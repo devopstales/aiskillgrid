@@ -93,7 +93,7 @@ openspec/specs/<change-id>/spec.md   # optional umbrella
 
 ## ADRs (MADR)
 
-Repo-wide architectural decisions use **MADR** (Markdown Any Decision Record) files under **`.skillgrid/adr/`** (named `NNNN-kebab-title.md`). That directory holds **only** those **ADR** (architecture decision record) files — no README or other metadata there. Copy **`.skillgrid/templates/template-adr.md`**. Summaries and links belong in **`.skillgrid/project/ARCHITECTURE.md`** under **Durable decisions** so others can discover decisions. See **`documentation-and-adrs`** skill.
+Repo-wide architectural decisions use **MADR** (Markdown Any Decision Record) files under **`.skillgrid/adr/`** (named `NNNN-kebab-title.md`). That directory holds **only** those **ADR** (architecture decision record) files — no README or other metadata there. Copy **`.skillgrid/templates/template-adr.md`**. Summaries and links belong in **`.skillgrid/project/ARCHITECTURE.md`** under **Durable decisions** so others can discover decisions. To draft or review an ADR with the hub’s templates and discipline, use **`/sdd-adr`** (skill **`architectural-decision-records`**).
 
 ## Session bootstrap
 
