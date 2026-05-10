@@ -1,8 +1,8 @@
 ---
 name: engram-pr-review-deep
 description: >
-  Deep technical review protocol for Engram pull requests.
-  Trigger: Reviewing any external or internal contribution before merge.
+  Reviewer workflow: deep technical review protocol for Engram pull requests before merge.
+  Trigger: Reviewing any external or internal contribution as a reviewer (not the author integrating review comments — use receiving-code-review).
 license: Apache-2.0
 metadata:
   author: gentleman-programming
@@ -15,6 +15,8 @@ Use this skill when:
 - Evaluating PRs from contributors
 - Reviewing risky refactors
 - Deciding merge vs request-changes
+
+Do **not** use this skill when **you** are the PR author responding to review threads — use **`receiving-code-review`**.
 
 ---
 

@@ -54,6 +54,10 @@ These are directly tied to the active `/sdd-*` command surface:
 
 `/sdd-brainstorm` orchestrates most of these phases in sequence.
 
+### Authoring new agent skills
+
+New `SKILL.md` files should follow the shared scaffold: **`.agents/skills/_shared/SKILL-authoring-template.md`** (front matter, triggers, out of scope, stop conditions, example user prompt). Use **`skillgrid-skill-registry`** to refresh `.skillgrid/project/SKILL_REGISTRY.md` after adding skills.
+
 ### Spec, Architecture, And Git Discipline (Intent-driven style)
 
 Adapted from [intent-driven-template](https://github.com/intent-driven-dev/intent-driven-template/tree/main/.agents/skills) (`grill-me` not vendored here). Slash workflows: **`docs/04-commands.md`** (*Discovery and planning*, adjunct list, and *Current command surface*).
@@ -67,8 +71,25 @@ These complement OpenSpec / SDD without replacing phase skills:
 
 ### Implementation And TDD Skills
 
+- `micro-plan` — short operational plans (3–7 steps, exit criteria) for quick work; does not replace `sdd-tasks` / `sdd-design` / `openspec-continue-change`.
 - `skillgrid-tdd` enforces RED/GREEN/REFACTOR loops during `/sdd-apply`.
 - `skillgrid-vertical-slices` helps split work into independently testable slices.
+
+### Parallel delegation (sub-agents)
+
+- `parallel-delegate` — coordinator playbook for **parallel Task-style** runs: split independent lanes, child prompt shape, merge and conflict rules. Does not replace `sdd-*` / OpenSpec phases.
+
+### Pull request work modes (author vs reviewer)
+
+Keep **author** and **reviewer** paths in different skills so one `SKILL.md` does not mix roles (for example *requesting* human review vs *integrating* review feedback).
+
+| Mode | Who | Skill |
+| --- | --- | --- |
+| Open PR (Engram policy) | Author | `engram-branch-pr` |
+| Ask for human review (readiness, context, reviewers) | Author | `requesting-code-review` |
+| Integrate review feedback (threads, fixes, push) | Author | `receiving-code-review` |
+| Assess merge risk with GitNexus | Reviewer | `gitnexus-pr-review` |
+| Deep Engram merge gate | Reviewer | `engram-pr-review-deep` |
 
 ### Memory And Persistence Skills
 
@@ -85,7 +106,7 @@ These keep SDD artifacts durable across sessions and subagent runs.
 - `gitnexus-exploring`
 - `gitnexus-debugging`
 - `gitnexus-impact-analysis`
-- `gitnexus-pr-review`
+- `gitnexus-pr-review` — **reviewer** workflow on someone else’s PR (with GitNexus); authors use `receiving-code-review` / `requesting-code-review` instead.
 - `gitnexus-refactoring`
 - `gitnexus-guide`
 

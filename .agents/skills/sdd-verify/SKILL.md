@@ -217,6 +217,19 @@ FOR EACH REQUIREMENT in specs/:
 
 A spec scenario is only considered COMPLIANT when there is a test that passed proving the behavior at runtime. Code existing in the codebase is NOT sufficient evidence.
 
+### Step 6b: Pre-done gate (before PASS or archive-ready claims)
+
+Do **not** set **Verdict** to `PASS` or `PASS WITH WARNINGS`, and do not tell the orchestrator the change is **ready to archive**, until this gate is satisfied. Record each line in the report (evidence or explicit `N/A` with one-line reason).
+
+| Check | Requirement |
+|--------|-------------|
+| **Tests** | Step **5b** was executed; command, exit code, and pass/fail/skip counts appear in the report. Claiming green without a real run is **CRITICAL**. |
+| **Regression** | Adjacent or high-risk flows named; spot-checked, covered by tests you ran, or `N/A` with reason (e.g. doc-only, isolated constant). |
+| **Docs** | User-facing, API, config, or migration docs updated when behavior changed; otherwise state **`Docs: N/A`** with reason. |
+| **Persistence** | Per resolved `artifact_store.mode`: verify-report (and Engram steps, if any) completed as in **Execution and Persistence Contract**; `none` mode states inline-only. |
+
+If any row is unmet or unevidenced, **Verdict: FAIL** (or remain in progress) until fixed or the user explicitly accepts documented risk.
+
 ### Step 7: Persist Verification Report
 
 Persist the report according to the resolved `artifact_store.mode`, following the conventions in `skills/_shared/`:
@@ -226,6 +239,8 @@ Persist the report according to the resolved `artifact_store.mode`, following th
 - **none**: Return the full report inline, do NOT write any files
 
 ### Step 8: Return Summary
+
+Re-check **Step 6b** against the draft report before sending; the returned **Verdict** must match the gate.
 
 Return to the orchestrator the same content you wrote to `verify-report.md`:
 
@@ -307,6 +322,17 @@ Return to the orchestrator the same content you wrote to `verify-report.md`:
 
 ---
 
+### Pre-done gate
+
+| Check | Status | Evidence or N/A (one line) |
+|-------|--------|----------------------------|
+| Tests | ✅ / ❌ | Step 5b command, exit code, counts |
+| Regression | ✅ / N/A | |
+| Docs | ✅ / N/A | |
+| Persistence | ✅ / N/A | |
+
+---
+
 ### Verdict
 {PASS / PASS WITH WARNINGS / FAIL}
 
@@ -315,6 +341,7 @@ Return to the orchestrator the same content you wrote to `verify-report.md`:
 
 ## Rules
 
+- **Step 6b** is mandatory: no PASS / archive-ready language until the pre-done gate table is filled with evidence or explicit `N/A`.
 - ALWAYS read the actual source code — don't trust summaries
 - ALWAYS execute tests — static analysis alone is not verification
 - A spec scenario is only COMPLIANT when a test that covers it has PASSED

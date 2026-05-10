@@ -19,7 +19,7 @@ Neural search for web content, code, companies, and people via the Exa MCP serve
 
 ## When Used From Skillgrid
 
-For Skillgrid work, Exa is one research provider coordinated by `skillgrid-parallel-research`. Put long findings under `.skillgrid/tasks/research/<change-id>/`, cite sources, and update the handoff with the short decision or open question.
+For Skillgrid work, Exa is one research provider; coordinate multi-lane research with **`parallel-delegate`**. Put long findings under `.skillgrid/tasks/research/<change-id>/`, cite sources, and update the handoff with the short decision or open question.
 
 ## MCP Requirement
 

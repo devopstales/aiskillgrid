@@ -53,6 +53,7 @@ Orchestrators read this file before delegating. Inject **Compact rules** blocks 
 | `image-to-code` | `.agents/skills/image-to-code/SKILL.md` |
 | `karpathy-guidelines` | `.agents/skills/karpathy-guidelines/SKILL.md` |
 | `markdown-converter` | `.agents/skills/markdown-converter/SKILL.md` |
+| `micro-plan` | `.agents/skills/micro-plan/SKILL.md` |
 | `mgrep-code-search` | `.agents/skills/mgrep-code-search/SKILL.md` |
 | `minimalist-ui` | `.agents/skills/minimalist-ui/SKILL.md` |
 | `openspec-apply-change` | `.agents/skills/openspec-apply-change/SKILL.md` |
@@ -65,6 +66,9 @@ Orchestrators read this file before delegating. Inject **Compact rules** blocks 
 | `openspec-propose` | `.agents/skills/openspec-propose/SKILL.md` |
 | `openspec-sync-specs` | `.agents/skills/openspec-sync-specs/SKILL.md` |
 | `openspec-verify-change` | `.agents/skills/openspec-verify-change/SKILL.md` |
+| `parallel-delegate` | `.agents/skills/parallel-delegate/SKILL.md` |
+| `receiving-code-review` | `.agents/skills/receiving-code-review/SKILL.md` |
+| `requesting-code-review` | `.agents/skills/requesting-code-review/SKILL.md` |
 | `sdd-apply` | `.agents/skills/sdd-apply/SKILL.md` |
 | `sdd-archive` | `.agents/skills/sdd-archive/SKILL.md` |
 | `sdd-clarify` | `.agents/skills/sdd-clarify/SKILL.md` |
@@ -118,6 +122,31 @@ Orchestrators read this file before delegating. Inject **Compact rules** blocks 
 - Prefer the smallest structure that fits: Feature, optional Rule/Background, Scenario or Scenario Outline + Examples.
 - Validate syntax, duplicated steps, and table/doc string layout before returning.
 
+### micro-plan
+
+- 3–7 numbered steps max; each step one primary action; explicit **exit criteria** checkboxes before closing.
+- Not for full SDD/OpenSpec changes — hand off to `sdd-tasks`, `sdd-design`, or `openspec-continue-change` when scope grows.
+- Do not expand scope silently; residual work → follow-up or formal change track.
+
+### parallel-delegate
+
+- Split only **independent** lanes; one writer per mutable path per wave; prefer parallel for read-only exploration.
+- Each child prompt: role, in/out scope, inputs, deliverable format, stop condition, optional compact rules from `SKILL_REGISTRY.md`.
+- Merge: dedupe, resolve contradictions, one user summary; run sanity build/tests once after coordinated writes.
+- Does not replace `sdd-*` / OpenSpec lifecycle skills.
+
+### receiving-code-review
+
+- Author only: triage existing review threads → implement → verify → reply → resolve → re-request review if needed.
+- Do not open PR mechanics here; do not run full reviewer merge assessment unless asked.
+- Defer new scope to follow-up issues instead of expanding this PR silently.
+
+### requesting-code-review
+
+- Author only: self-review diff, reviewer-facing risk/context, readiness and optional `gh` reviewers — no fixing review comments yet.
+- Defer issue linkage, template, labels, branch naming to `engram-branch-pr` (Engram) or project PR workflow.
+- Stop once PR is reviewable and reviewers are requested or user declines.
+
 ## Project conventions
 
 | File | Role |
@@ -128,5 +157,5 @@ Orchestrators read this file before delegating. Inject **Compact rules** blocks 
 
 ## Refresh notes
 
-- Last refreshed: 2026-05-10
+- Last refreshed: 2026-05-10 (added `micro-plan`, `parallel-delegate`; `requesting-code-review`, `receiving-code-review`; PR author vs reviewer split; `SKILL-authoring-template.md`)
 - Re-run inventory when adding or removing directories under `.agents/skills/`.

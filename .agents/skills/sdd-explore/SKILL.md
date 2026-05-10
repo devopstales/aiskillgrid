@@ -89,7 +89,7 @@ Read relevant code to understand:
 - Existing behavior that relates to the request
 - Potential constraints or risks
 
-Use `skillgrid-parallel-research` local templates for independent repo, docs, or web research lanes; spill long output to `.skillgrid/tasks/research/<change-id>/`.
+For independent repo, docs, or web research lanes in parallel, follow **`parallel-delegate`** (child prompts + merge); spill long output to `.skillgrid/tasks/research/<change-id>/` when using Skillgrid research paths.
 
 ```
 INVESTIGATE:

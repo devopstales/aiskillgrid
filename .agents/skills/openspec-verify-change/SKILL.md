@@ -107,6 +107,17 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
      - Add SUGGESTION: "Code pattern deviation: <details>"
      - Recommendation: "Consider following project pattern: <example>"
 
+7b. **Pre-done gate (before “ready for archive” or “all clear”)**
+
+   Do not state **ready for archive**, **all checks passed**, or equivalent until this checklist is satisfied and reflected in the report (evidence or explicit `N/A` with one line each):
+
+   - **Tests** — Project test command was actually run (or CI link / run output captured); zero unexplained failures.
+   - **Regression** — Affected adjacent behavior noted; smoke-tested, covered by executed tests, or `N/A` with reason.
+   - **Docs** — Delta- or user-visible docs updated when behavior changed; else **`Docs: N/A`** with reason.
+   - **Persistence / memory** — If the change uses Engram or required artifacts, saves or verify outputs required by the workflow are done; else **`Persistence: N/A`** with reason.
+
+   If any item is missing or unevidenced, keep **CRITICAL** issues open and do not claim archive readiness.
+
 8. **Generate Verification Report**
 
    **Summary Scorecard**:
@@ -119,6 +130,14 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
    | Completeness | X/Y tasks, N reqs|
    | Correctness  | M/N reqs covered |
    | Coherence    | Followed/Issues  |
+
+   ### Pre-done gate
+   | Check | Status | Evidence or N/A |
+   |-------|--------|-----------------|
+   | Tests | | |
+   | Regression | | |
+   | Docs | | |
+   | Persistence / memory | | |
    ```
 
    **Issues by Priority**:
@@ -139,6 +158,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
       - Each with specific recommendation
 
    **Final Assessment**:
+   - Confirm **Pre-done gate** (step 7b) is filled in the report before any “ready for archive” / “all clear” wording.
    - If CRITICAL issues: "X critical issue(s) found. Fix before archiving."
    - If only warnings: "No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements)."
    - If all clear: "All checks passed. Ready for archive."

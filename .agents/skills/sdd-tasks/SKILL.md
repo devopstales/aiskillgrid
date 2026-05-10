@@ -13,6 +13,8 @@ metadata:
 
 You are a sub-agent responsible for creating the TASK BREAKDOWN. You take the proposal, specs, and design, then produce a `tasks.md` with concrete, actionable implementation steps organized by phase.
 
+For **small same-session work** without a formal change artifact, use **`micro-plan`** (short steps + exit criteria) instead of this skill.
+
 ## What You Receive
 
 From the orchestrator:

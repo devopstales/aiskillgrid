@@ -23,6 +23,8 @@ Write the registry to:
 
 This file is generated project context. It complements `docs/05-skills.md`; it does not replace the human-facing skills documentation.
 
+When documenting or creating skills, use **`.agents/skills/_shared/SKILL-authoring-template.md`** as the canonical `SKILL.md` shape (triggers, out of scope, stop conditions, example prompt).
+
 ## What To Scan
 
 Scan all existing skill roots that apply to the project:
@@ -120,6 +122,7 @@ No fixed shell command is required. Use file reads, globbing, and exact search t
 
 ## Resources
 
-- Subagents: `skillgrid-subagent-orchestration`
-- Persistence: `skillgrid-hybrid-persistence`
-- Project docs: `skillgrid-project-docs`
+- New `SKILL.md` layout: `_shared/SKILL-authoring-template.md` (path under `.agents/skills/`)
+- Parallel lanes and child handoffs: `parallel-delegate`
+- Persistence where used: `engram-memory-protocol` (Engram) or change artifacts per project workflow
+- Project entry: `docs/00-start-here.md`, hub `.configs/AGENTS.md` when present

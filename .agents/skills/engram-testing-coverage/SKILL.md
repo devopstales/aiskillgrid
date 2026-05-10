@@ -46,3 +46,18 @@ go test -cover ./...
 ```
 
 Report package coverage and total coverage in the PR.
+
+---
+
+## Pre-done gate (before you call the change done)
+
+Do not treat implementation as **finished** (PR ready, task closed, or “done” in chat) until you can confirm each item below. State evidence or **`N/A`** with one line.
+
+| Check | Requirement |
+|--------|-------------|
+| **Tests** | `go test ./...` (and e2e or package targets the project expects) ran; failures addressed or explicitly deferred with written rationale. |
+| **Regression** | At least one sanity pass on adjacent code paths, or `N/A` with reason (scope isolated). |
+| **Docs** | `docs/` or user-facing strings updated if behavior or flags changed; else **`Docs: N/A`**. |
+| **Memory / handoff** | If the session used Engram or team memory rules, required `mem_save` (or equivalent) for decisions and risky edge cases; else **`Persistence: N/A`**. |
+
+Skipping the gate and claiming “done” without evidence is a workflow defect.

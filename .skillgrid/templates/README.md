@@ -20,6 +20,8 @@ Planning logic and how pieces connect: **`docs/skillgrid-templates-and-logic.md`
 | `template-structure.md` | `.skillgrid/project/STRUCTURE.md` |
 | `template-design.md` | Repo root `DESIGN.md` |
 
+Agent skill files (`SKILL.md` under `.agents/skills/<name>/`) use the shared scaffold at **`.agents/skills/_shared/SKILL-authoring-template.md`** (not a `template-*.md` file in this folder).
+
 Handoff helper scripts:
 
 - `.skillgrid/scripts/handoff-create.sh` (`full` or `quick`)

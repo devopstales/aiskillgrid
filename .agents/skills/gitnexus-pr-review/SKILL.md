@@ -1,11 +1,16 @@
 ---
 name: gitnexus-pr-review
-description: "Use when the user wants to review a pull request, understand what a PR changes, assess risk of merging, or check for missing test coverage. Examples: \"Review this PR\", \"What does PR #42 change?\", \"Is this PR safe to merge?\""
+description: >
+  Reviewer workflow (not PR author): use GitNexus to assess someone else's PR — diff, blast radius, merge risk, missing tests.
+  Examples: "Review this PR", "What does PR #42 change?", "Is this PR safe to merge?"
+  If you are the author integrating comments, use receiving-code-review instead.
 ---
 
 # PR Review with GitNexus
 
 ## When to Use
+
+You act as **reviewer** or **merge risk assessor**, not as the author addressing feedback.
 
 - "Review this PR"
 - "What does PR #42 change?"

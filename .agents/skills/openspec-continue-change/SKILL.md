@@ -11,6 +11,8 @@ metadata:
 
 Continue working on a change by creating the next artifact.
 
+For **small same-session work** without creating the next OpenSpec artifact, use **`micro-plan`** instead.
+
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Steps**

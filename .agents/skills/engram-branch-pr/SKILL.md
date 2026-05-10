@@ -2,7 +2,8 @@
 name: engram-branch-pr
 description: >
   PR creation workflow for Engram following the issue-first enforcement system.
-  Trigger: When creating a pull request, opening a PR, or preparing changes for review.
+  Trigger: When creating a pull request, opening a PR, or preparing a branch for submission (issue linkage, template, labels, CI).
+  For author review-readiness use requesting-code-review; for integrating review comments use receiving-code-review.
 license: Apache-2.0
 metadata:
   author: gentleman-programming
@@ -13,8 +14,13 @@ metadata:
 
 Use this skill when:
 - Creating a pull request for any change
-- Preparing a branch for submission
+- Preparing a branch for submission (naming, commits, push, `gh pr create`)
 - Helping a contributor open a PR
+
+Related (narrow author modes — do not merge into this skill):
+
+- **`requesting-code-review`** — after the PR exists: self-review, reviewer context, ready-for-review, request reviewers.
+- **`receiving-code-review`** — review comments arrived: fix, reply, resolve threads, re-request review.
 
 ---
 
