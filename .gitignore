@@ -6,6 +6,15 @@
 .skillgrid/tasks/events/
 !.skillgrid/tasks/research/.gitkeep
 .skillgrid/tasks/research/
+
+!skillgrid-cli/bin/.gitkeep
+skillgrid-cli/bin/*
+skillgrid-cli/node_modules
+skillgrid-cli/dist
+skillgrid-cli/tmp*
+skillgrid-cli/*.bun-build
+skillgrid-cli/.npmrc.github-packages
+
 .gitnexus/
 .engram/
 .cocoindex_code/

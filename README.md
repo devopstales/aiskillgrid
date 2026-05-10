@@ -77,13 +77,9 @@ flowchart LR
    /sdd-archive
    ```
 
-## Core Structure
+## Core Concepts
 
-- `.agents/workflows/` — command-level workflow entry points
-- `.agents/skills/` — executable skill procedures and guardrails
-- `.skillgrid/templates/` — canonical artifact templates
-- `openspec/changes/` — per-change specs, tasks, proposal/design artifacts
-- `docs/` — numbered documentation for installation, workflow, logic, skills, multi-agent, memory, ticketing, and UI
+## High Council - Agent personas
 
 ## Documentation
 
