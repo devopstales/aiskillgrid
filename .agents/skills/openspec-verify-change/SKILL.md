@@ -11,6 +11,8 @@ metadata:
 
 Verify that an implementation matches the change artifacts (specs, tasks, design).
 
+**Alternative**: If you need full behavioral verification with test execution and spec compliance matrix, consider delegating to `sdd-verify`.
+
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Steps**
@@ -120,48 +122,57 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
 8. **Generate Verification Report**
 
-   **Summary Scorecard**:
-   ```
-   ## Verification Report: <change-name>
+    **Summary Scorecard**:
+    ```
+    ## Verification Report: <change-name>
 
-   ### Summary
-   | Dimension    | Status           |
-   |--------------|------------------|
-   | Completeness | X/Y tasks, N reqs|
-   | Correctness  | M/N reqs covered |
-   | Coherence    | Followed/Issues  |
+    ### Summary
+    | Dimension    | Status           |
+    |--------------|------------------|
+    | Completeness | X/Y tasks, N reqs|
+    | Correctness  | M/N reqs covered |
+    | Coherence    | Followed/Issues  |
 
-   ### Pre-done gate
-   | Check | Status | Evidence or N/A |
-   |-------|--------|-----------------|
-   | Tests | | |
-   | Regression | | |
-   | Docs | | |
-   | Persistence / memory | | |
-   ```
+    ### Pre-done gate
+    | Check | Status | Evidence or N/A |
+    |-------|--------|-----------------|
+    | Tests | | |
+    | Regression | | |
+    | Docs | | |
+    | Persistence / memory | | |
+    ```
 
-   **Issues by Priority**:
+    **Issues by Priority**:
 
-   1. **CRITICAL** (Must fix before archive):
-      - Incomplete tasks
-      - Missing requirement implementations
-      - Each with specific, actionable recommendation
+    1. **CRITICAL** (Must fix before archive):
+       - Incomplete tasks
+       - Missing requirement implementations
+       - Each with specific, actionable recommendation
 
-   2. **WARNING** (Should fix):
-      - Spec/design divergences
-      - Missing scenario coverage
-      - Each with specific recommendation
+    2. **WARNING** (Should fix):
+       - Spec/design divergences
+       - Missing scenario coverage
+       - Each with specific recommendation
 
-   3. **SUGGESTION** (Nice to fix):
-      - Pattern inconsistencies
-      - Minor improvements
-      - Each with specific recommendation
+    3. **SUGGESTION** (Nice to fix):
+       - Pattern inconsistencies
+       - Minor improvements
+       - Each with specific recommendation
 
-   **Final Assessment**:
-   - Confirm **Pre-done gate** (step 7b) is filled in the report before any “ready for archive” / “all clear” wording.
-   - If CRITICAL issues: "X critical issue(s) found. Fix before archiving."
-   - If only warnings: "No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements)."
-   - If all clear: "All checks passed. Ready for archive."
+8c. **Retrospective Analysis (if Beads enabled)**
+
+    If `beads_enable` is `true` in `.skillgrid/config.json` and Beads issues were tracked:
+
+    - Run `beads-retrospective` to analyze completed work patterns
+    - Identify tech debt, repeated discoveries, or missing specs
+    - Suggest new OpenSpec proposals based on findings
+    - Creates feedback loop from execution back to planning
+
+**Final Assessment**:
+    - Confirm **Pre-done gate** (step 7b) is filled in the report before any "ready for archive" / "all clear" wording.
+    - If CRITICAL issues: "X critical issue(s) found. Fix before archiving."
+    - If only warnings: "No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements)."
+    - If all clear: "All checks passed. Ready for archive."
 
 **Verification Heuristics**
 

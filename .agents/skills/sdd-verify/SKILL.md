@@ -21,6 +21,11 @@ From the orchestrator:
 - Change name
 - Artifact store mode (`engram | openspec | hybrid | none`)
 
+## Workflow Selection
+
+- If the change was created via OpenSpec CLI (`openspec/changes/{name}/.openspec.yaml` exists), consider delegating to `openspec-verify-change` for OpenSpec-native verification
+- Otherwise, use the full SDD verification workflow below
+
 ## Execution and Persistence Contract
 
 - If mode is `engram`:
@@ -65,6 +70,14 @@ From the orchestrator:
 The orchestrator provides your skill path in the launch prompt. Load it now. If no path was provided, proceed without additional skills.
 
 > Read `skills/_shared/sdd-phase-common.md` for the engram upsert note and return envelope format.
+
+**If mode is `openspec` and the change has `.openspec.yaml`**, you MAY delegate to `openspec-verify-change` by ending with:
+
+```
+Returning to orchestrator with: "Delegating to openspec-verify-change for OpenSpec-native verification."
+```
+
+Otherwise, proceed with the full SDD verification workflow below.
 
 ### Step 2: Check Completeness
 
@@ -234,9 +247,18 @@ If any row is unmet or unevidenced, **Verdict: FAIL** (or remain in progress) un
 
 Persist the report according to the resolved `artifact_store.mode`, following the conventions in `skills/_shared/`:
 
-- **engram**: Use `engram-convention.md` — artifact type `verify-report`
+- **engram**: Use `engram-convention.md` — artifact type `verify-report`, `retrospective`
 - **openspec**: Write to `openspec/changes/{change-name}/verify-report.md`
 - **none**: Return the full report inline, do NOT write any files
+
+### Step 7b: Retrospective Analysis (if Beads enabled)
+
+If `beads_enable` is `true` in `.skillgrid/config.json` and Beads issues were tracked for this change:
+
+- Run `beads-retrospective` to analyze completed work patterns and gaps
+- Identify tech debt, repeated discoveries, or missing specs
+- Suggest new OpenSpec proposals based on findings
+- This creates a feedback loop from execution back to planning
 
 ### Step 8: Return Summary
 

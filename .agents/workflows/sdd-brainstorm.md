@@ -1,5 +1,5 @@
 ---
-description: Start a new SDD change — runs exploration, clarification, proposal, specs, design (including UI), PRD, tasks, and beads-sync
+description: Start a new SDD change — runs exploration, clarification, proposal, specs, design (including UI), ADRs, PRD, and tasks
 agent: odin
 ---
 
@@ -27,6 +27,15 @@ If the proposal involves user-facing changes (components, layouts, interactions,
   c. `sdd-ui-design` (if available) — generate wireframes, interaction flows, or ASCII/Mermaid mockups
 - Merge UI artifacts into the technical design before proceeding to PRD
 
+### ARCHITECTURAL DECISION RECORDS (ADR) INTEGRATION POINT
+
+If the exploration or clarification phases uncover significant architectural decisions:
+
+- Launch `sdd-adr` after `sdd-design` to capture any architecturally significant choices
+- ADR triggers: technology stack changes, framework selections, data storage decisions, API patterns, security approaches
+- Create one ADR per decision; link related ADRs for traceability
+- ADRs should precede PRD finalization to ensure decisions are documented before implementation planning
+
 ### CONTINUE WITH STANDARD PHASES
 
 Run these sub-agents in sequence after clarification (and UI design if applicable):
@@ -34,12 +43,13 @@ Run these sub-agents in sequence after clarification (and UI design if applicabl
 1. `sdd-propose` — create the proposal (using the clarifications)
 2. `sdd-spec` — write functional & technical specifications
 3. `sdd-design` — create technical design architecture
-   → **If UI scope**: trigger UI design sub-flow above, then merge outputs
-4. `sdd-prd` — consolidate into PRD (`.skillgrid/prd/PRD<NN>_$ARGUMENTS.md`)
-   - Include UI decisions, wireframe references, and accessibility notes in the PRD
-5. `sdd-tasks` — break down into vertically sliced implementation tasks
+    → **If UI scope**: trigger UI design sub-flow above, then merge outputs
+4. `sdd-adr` — author architectural decision records for any significant decisions discovered during explore/clarify
+5. `sdd-prd` — consolidate into PRD (`.skillgrid/prd/PRD<NN>_$ARGUMENTS.md`)
+    - Include UI decisions, wireframe references, and accessibility notes in the PRD
+6. `sdd-tasks` — break down into vertically sliced implementation tasks
     - Tag UI-related tasks with `area: frontend` or `area: ui`
-6. `beads-sync` — sync OpenSpec changes to Beads tasks (run after brainstorm completes)
+7. `beads-sync` — sync OpenSpec changes to Beads tasks (run after brainstorm completes)
 
 CONTEXT:
 - Working directory: !`echo -n "$(pwd)"`
@@ -50,7 +60,7 @@ CONTEXT:
 
 ENGRAM NOTE:
 Sub-agents handle persistence automatically. Each phase saves its artifact to engram with topic_key:
-- `"sdd/$ARGUMENTS/{type}"` where type ∈ {explore, clarify, propose, spec, design, prd, tasks}
+- `"sdd/$ARGUMENTS/{type}"` where type ∈ {explore, clarify, propose, spec, design, adr, prd, tasks}
 - UI-specific artifacts use: `"sdd/$ARGUMENTS/ui/{wireframes, decisions, tokens}"`
 
 FILESYSTEM PERSISTENCE:
@@ -66,6 +76,9 @@ openspec/changes/$ARGUMENTS/
 
 ORCHESTRATOR RULES:
 - Do NOT execute phase work inline — delegate to sub-agents.
+- Before launching `sdd-adr`, verify:
+  - Significant architectural decisions were discovered in explore/clarify phases
+  - Decision context and constraints are documented
 - Before launching `sdd-tasks`, verify:
   - Technical design is complete
   - UI artifacts are merged (if ui_scope: true)
@@ -82,6 +95,7 @@ BEADS INTEGRATION:
 - The `beads-sync` skill reads `openspec/changes/$ARGUMENTS/proposal.md` and `tasks.md`
 - Creates an epic with child beads for each implementation task
 - Run `bd ready` to see available work after sync completes
+- `beads-retrospective` runs in `sdd-verify` after implementation is validated
 
 ENFORCEMENT CONTRACT:
 - Canonical enforcement is centralized in `.agents/skills/_shared/sdd-enforcement-contract.md`.
