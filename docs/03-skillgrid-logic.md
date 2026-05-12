@@ -8,43 +8,92 @@ The diagram below is the Skillgrid mental model: product intent lives in **PRD**
 
 ```mermaid
 flowchart TB
-  subgraph Intent["Product intent on disk"]
-    Idea([Initiative / idea])
-    PRDNode["PRD file<br/>product requirements document<br/>.skillgrid/prd/ (see naming below)"]
-    IndexNode["INDEX<br/>PRD catalog + execution snapshot<br/>.skillgrid/prd/INDEX.md"]
+  %% ── Planning Phase (from docs/skills.md) ──
+  subgraph Planning["Phase 1 – Planning"]
+    direction TB
+    Decision(["Decision"])
+    ADR["/sdd-adr"]
+    AdrSkill["architectural-decision-records<br/>skill"]
+
+    Idea(["Initiative / idea"])
+
+    Brainstorm["/sdd-brainstorm<br/>(orchestrator)"]
+    subgraph BrainstormInternals["Brainstorm delegates to..."]
+      ProposeSkill["sdd-propose skill"]
+      SpecSkill["sdd-spec skill"]
+      DesignSkill["sdd-design skill"]
+      TasksSkill["sdd-tasks skill"]
+      PlanSkill["sdd-plan skill"]
+      BeadsSyncSkill1["beads-sync skill"]
+    end
+    PRD["PRD.md<br/>.skillgrid/prd/"]
+    Prop["openspec/changes/&lt;change&gt;/proposal.md"]
+    Tasks["openspec/changes/&lt;change&gt;/tasks.md"]
+    Design["openspec/changes/&lt;change&gt;/design.md"]
+    Specs["openspec/specs/&lt;verticle-slice&gt;/spec.md"]
   end
 
-  subgraph Change["OpenSpec change folder openspec/changes/change-id/"]
-    Prop[proposal.md]
-    Des[design.md]
-    Task[tasks.md]
-    Slice["Slice spec<br/>openspec ... specs slice spec.md"]
+  %% ── Beads Handoff Phase ──
+  subgraph Handoff["Phase 2 – Beads Handoff"]
+    BeadsSyncSkill2["beads-sync skill"]
+    Epic["Beads Epic<br/>(enriched with PRD &amp; proposal)"]
+    BeadsTasks["Beads Tasks<br/>(dependency‑aware, HTML links)"]
   end
 
-  subgraph Loop["Engineering and proof"]
-    Ctx["Handoff context stub<br/>.skillgrid/tasks per change"]
-    Impl[Implement / apply]
-    TV["Test + validate"]
+  %% ── Implementation & Verification ──
+  subgraph Engineering["Phase 3 – Implementation"]
+    Impl["/sdd-apply &lt;change-id&gt;"]
+    Code["Code + Tests"]
   end
 
-  subgraph Decisions["Durable architecture"]
-    Madr["MADR file<br/>Markdown Any Decision Record<br/>.skillgrid/adr/NNNN_slug.md"]
-    Arch["ARCHITECTURE.md<br/>links + summaries"]
+  subgraph VerifyPhase["Phase 4 – Verification"]
+    VerCmd["/sdd-verify"]
   end
 
-  Idea --> PRDNode
-  PRDNode --> IndexNode
-  PRDNode --> Prop
-  Prop --> Des
-  Des --> Task
-  Task --> Slice
-  Slice --> Ctx
-  Ctx --> Impl
-  Impl --> TV
-  TV -->|"next slice, status, evidence"| IndexNode
-  Des -.->|"significant tradeoffs"| Madr
-  Madr -.-> Arch
-  IndexNode -.-> Arch
+  %% ── Retrospective & Learning ──
+  subgraph Retro["Phase 5 – Learning"]
+    RetroCmd["/beads-retrospective"]
+    Insights["Insights &amp; Patterns"]
+    UpdateIndex["Update<br/>.skillgrid/prd/INDEX.md"]
+    UpdateDecisions["Enrich<br/>.skillgrid/adr/*.md"]
+  end
+
+  subgraph Knowledge["Persistent Knowledge"]
+    DecFile[".skillgrid/adr/*.md"]
+  end
+
+  %% Connections
+  Decision -->|Optional| ADR --> AdrSkill --> DecFile
+  Idea --> Brainstorm
+  Brainstorm --> ProposeSkill --> PRD
+  Brainstorm --> SpecSkill --> Specs 
+  Brainstorm --> DesignSkill --> Design
+  Brainstorm --> TasksSkill --> Specs
+  Brainstorm --> BeadsSyncSkill1 --> BeadsSyncSkill2
+
+  Brainstorm --> PlanSkill
+  ProposeSkill --> Prop
+  PlanSkill --> Tasks
+  Tasks --> Specs
+
+  PRD -->|epic context| BeadsSyncSkill2
+  Prop --> BeadsSyncSkill2
+  Tasks --> BeadsSyncSkill2
+  Specs --> BeadsSyncSkill2
+  DecFile -.->|dependency rules| BeadsSyncSkill2
+
+  BeadsSyncSkill2 --> Epic
+  BeadsSyncSkill2 --> BeadsTasks
+
+  BeadsTasks -->|next unblocked| Impl
+  Impl --> Code
+  Code --> VerCmd
+  VerCmd -->|slice complete| RetroCmd
+  RetroCmd --> Insights
+  Insights -->|status| UpdateIndex
+  Insights -->|lessons| UpdateDecisions
+
+  UpdateDecisions -.->|next cycle| DecFile
 ```
 
 ## Where templates live
@@ -52,7 +101,7 @@ flowchart TB
 | Path | Purpose |
 |------|---------|
 | [`.skillgrid/templates/README.md`](../.skillgrid/templates/README.md) | Naming convention + index of all `template-*.md` files |
-| [`.skillgrid/templates/template-adr.md`](../.skillgrid/templates/template-adr.md) | **MADR** (Markdown Any Decision Record) template for new **ADRs** (architecture decision records) in `.skillgrid/adr/` |
+| [`.skillgrid/templates/template-adr.md`](../.skillgrid/templates/template-adr.md) | **ADR** (Architecture Decision Record) template for new **ADRs** (architecture decision records) in `.skillgrid/adr/` |
 | [`.skillgrid/templates/template-prd.md`](../.skillgrid/templates/template-prd.md) | New **PRD** (product requirements document) body |
 | [`.skillgrid/templates/template-index.md`](../.skillgrid/templates/template-index.md) | `.skillgrid/prd/INDEX.md` |
 | [`.skillgrid/templates/template-openspec-tasks.md`](../.skillgrid/templates/template-openspec-tasks.md) | `openspec/changes/<change-id>/tasks.md` |
@@ -84,7 +133,6 @@ openspec/changes/<change-id>/
   tasks.md
   specs/<vertical-slice-slug>/
     spec.md
-openspec/specs/<change-id>/spec.md   # optional umbrella
 ```
 
 - **`tasks.md`** — cross-slice ordering and integration checklist.

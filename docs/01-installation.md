@@ -37,19 +37,23 @@ Use `--sanity-check` before installing when you want a quick machine readiness c
 The core install path expects common development tools:
 
 - `bash`
-- `rsync`
-- `jq`
 - Node.js and `npx`
 - Python 3
+- `uv`
+- `rsync`
+- `jq`
+- `git`
 
 Optional capabilities may use:
 
-- `uv` for Python-based tools.
-- Docker for Docker-backed MCP servers.
-- Engram for persistent memory.
-- GitNexus for repository maps and graph-aware agent context.
-- CocoIndex Code, usually called `ccc`, for semantic code search.
-- Trivy for security scanning.
+- ***OpenSpec*** for spec based development augmentation.
+- ***Engram*** for persistent memory.
+- ***GitNexus*** for repository maps and graph-aware agent context.
+- ***CocoIndex Code***, usually called `ccc`, for semantic code search.
+- ***Trivy*** for security scanning.
+- ***Beads*** , usually called `bd`. An issue tracker for status.
+- ***beads_viewer***, usually called `bv`. A TUI viewer for beads issue tracker.
+- ***beadbox***, native viewer app for beads issue tracker.
 
 Missing optional tools should not block the basic workflow. They reduce capability, not the value of the whole system.
 

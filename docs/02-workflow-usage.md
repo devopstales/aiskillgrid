@@ -72,7 +72,8 @@ openspec/changes/<change-id>/
   proposal.md
   design.md
   tasks.md
-  specs/<vertical-slice-slug>/spec.md   # slice-scoped requirements + checklist
+  specs/<vertical-slice-slug>
+    spec.md   # slice-scoped requirements + checklist
 ```
 
 Optional umbrella: `openspec/specs/<change-id>/spec.md` for cross-cutting requirements. There is **no** `.skillgrid/project/TASK.md`; use INDEX snapshot + `tasks.md` + slice specs for “where we are” and sub-task detail.
