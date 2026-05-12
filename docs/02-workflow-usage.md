@@ -57,6 +57,23 @@ Details and skill links: **`docs/05-skills.md`** (Intent-driven style) and **`do
 
 ## PRD index, hierarchy, and OpenSpec layout
 
+AISkillGrid takes a deliberate multi-artifact, layered specification approach. It does not treat all specifications as one monolithic document type. Instead, it separates product intent (PRDs), architectural decisions (ADRs), project-level context (PROJECT/ARCHITECTURE/STRUCTURE), and implementation specs (OpenSpec slice specs) into distinct, traceable artifacts. This is a conscious design, not an accidental duplication.
+
+## Artifact Responsibility
+- PRD:           Product intent, user stories (`.skillgrid/prd/`)
+- OpenSpec:      Immutable spec, tasks, acceptance criteria (`openspec/changes/`)
+- ADR:           Technical decision rationale (`.skillgrid/adr/`)
+- Beads:         Live task execution and tracking (`.beads/`)
+
+## Flow
+```
+PRD → OpenSpec proposal → approve → openspec-to-beads → bd ready → execute → OpenSpec archive
+```
+
+## Linking
+- Each Beads issue must have label `openspec:<change-name>` and include spec reference in description.
+- ADRs referenced by both OpenSpec proposals and Beads issues where relevant.
+
 Skillgrid uses one mental model for planning and execution (see `skillgrid-prd-artifacts`, `skillgrid-vertical-slices`, `skillgrid-spec-artifacts`):
 
 | Concept | Jira-style | GitHub-style | Where it lives |

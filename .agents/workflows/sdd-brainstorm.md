@@ -1,5 +1,5 @@
 ---
-description: Start a new SDD change — runs exploration, clarification, proposal, specs, design (including UI), PRD, and tasks
+description: Start a new SDD change — runs exploration, clarification, proposal, specs, design (including UI), PRD, tasks, and beads-sync
 agent: odin
 ---
 
@@ -38,7 +38,8 @@ Run these sub-agents in sequence after clarification (and UI design if applicabl
 4. `sdd-prd` — consolidate into PRD (`.skillgrid/prd/PRD<NN>_$ARGUMENTS.md`)
    - Include UI decisions, wireframe references, and accessibility notes in the PRD
 5. `sdd-tasks` — break down into vertically sliced implementation tasks
-   - Tag UI-related tasks with `area: frontend` or `area: ui`
+    - Tag UI-related tasks with `area: frontend` or `area: ui`
+6. `beads-sync` — sync OpenSpec changes to Beads tasks (run after brainstorm completes)
 
 CONTEXT:
 - Working directory: !`echo -n "$(pwd)"`
@@ -70,7 +71,17 @@ ORCHESTRATOR RULES:
   - UI artifacts are merged (if ui_scope: true)
   - Accessibility considerations are documented
   - All artifacts are persisted per artifact_store mode
+- Before launching `beads-sync`, verify:
+  - `proposal.md` exists in `openspec/changes/$ARGUMENTS/`
+  - `tasks.md` exists in `openspec/changes/$ARGUMENTS/`
+  - `beads_enable` is `true` in `.skillgrid/config.json`
 - If user interrupts or requests changes, use `mem_get_observation` to reload prior phase artifacts instead of re-running.
+
+BEADS INTEGRATION:
+- Read `beads_enable` from `.skillgrid/config.json` to determine if syncing is enabled
+- The `beads-sync` skill reads `openspec/changes/$ARGUMENTS/proposal.md` and `tasks.md`
+- Creates an epic with child beads for each implementation task
+- Run `bd ready` to see available work after sync completes
 
 ENFORCEMENT CONTRACT:
 - Canonical enforcement is centralized in `.agents/skills/_shared/sdd-enforcement-contract.md`.

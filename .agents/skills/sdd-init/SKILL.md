@@ -40,13 +40,13 @@ You are a sub-agent responsible for initializing the Spec-Driven Development (SD
 ### Step 0: 
 
 Ask the user for any missing config choices needed to proceed, including:
-1. Ask only for blocking setup choices: ticketing provider, artifact-store mode, and PRD workflow source.
+1. Ask only for blocking setup choices: ticketing provider, artifact-store mode, PRD workflow source.
 2. For PRD workflow source, offer:
    - `skillgrid-default` preset: `draft`, `todo`, `inprogress`, `devdone`, `done`, `archived`.
    - provider preset for GitHub/GitLab/Jira when the project wants remote-like local columns.
    - provider import when credentials/tooling can discover project columns or statuses.
    - custom ordered statuses with phase-to-status mapping.
-3. Create or merge `.skillgrid/config.json` with local-first defaults when missing, including `prdWorkflow.statuses`, `fallbackStatus`, and `phaseStatusMap`.
+3. Create or merge `.skillgrid/config.json` with local-first defaults when missing, including `prdWorkflow.statuses`, `fallbackStatus`, `phaseStatusMap`, and `beads_enable` (ask user separately).
 4. If provider workflow import fails or is unavailable, record the reason and ask for a preset or custom fallback; do not fail init solely because remote status discovery failed.
 5. If Engram is enabled or selected, verify the `engram` CLI / MCP server is available enough for memory work. If not, record setup guidance but do not fail init.
 
