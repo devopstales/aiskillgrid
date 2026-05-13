@@ -23,3 +23,4 @@ skillgrid-cli/.npmrc.github-packages
 .beads/
 # CocoIndex Code (ccc)
 /.cocoindex_code/
+.truecourse/

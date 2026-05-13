@@ -1,21 +1,23 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "kilo/kilo-auto/free",
+  "plugin": [
+    "opencode-command-hooks"
+  ],
   "mcp": {
     "context7-http": { 
       "enabled": true,
       "type": "remote",
-      "url": "https://mcp.context7.com/sse"
+      "url": "https://mcp.context7.com/mcp"
     },
     "deepwiki-http": {
       "enabled": true, 
       "type": "remote",
-      "url": "https://mcp.deepwiki.com/sse"
+      "url": "https://mcp.deepwiki.com/mcp"
     },
     "exa-http": { 
       "enabled": true,
       "type": "remote",
-      "url": "https://mcp.exa.ai/sse"
+      "url": "https://mcp.exa.ai/mcp"
     },
     "engram": {
       "command": [

@@ -8,92 +8,45 @@ The diagram below is the Skillgrid mental model: product intent lives in **PRD**
 
 ```mermaid
 flowchart TB
-  %% ── Planning Phase (from docs/skills.md) ──
+  SddAdr["sdd-adr"]
+  SddApply["add-apply"]
+  SddArchive["sdd-archive"]
+  SddBoard["sdd-board"]
+  SddBrainstorm["sdd-brainstorm"]
+  SddDesignUi["sdd-design-ui"]
+  SdddDiagnose["sdd-diagnose"]
+  SddExplore["sdd-explore"]
+  SddInit["sdd-init"]
+  SddLoop["sdd-loop"]
+  SddVerify["sdd-verify"]
+
   subgraph Planning["Phase 1 – Planning"]
-    direction TB
-    Decision(["Decision"])
-    ADR["/sdd-adr"]
-    AdrSkill["architectural-decision-records<br/>skill"]
-
-    Idea(["Initiative / idea"])
-
-    Brainstorm["/sdd-brainstorm<br/>(orchestrator)"]
-    subgraph BrainstormInternals["Brainstorm delegates to..."]
-      ProposeSkill["sdd-propose skill"]
-      SpecSkill["sdd-spec skill"]
-      DesignSkill["sdd-design skill"]
-      TasksSkill["sdd-tasks skill"]
-      PlanSkill["sdd-plan skill"]
-      BeadsSyncSkill1["beads-sync skill"]
-    end
-    PRD["PRD.md<br/>.skillgrid/prd/"]
-    Prop["openspec/changes/&lt;change&gt;/proposal.md"]
-    Tasks["openspec/changes/&lt;change&gt;/tasks.md"]
-    Design["openspec/changes/&lt;change&gt;/design.md"]
-    Specs["openspec/specs/&lt;verticle-slice&gt;/spec.md"]
+    SddInit --> SddExplore --> SddBrainstorm
+    SddInit --> SddBrainstorm
+    SddBrainstorm --> SddAdr
+    SddBrainstorm --> SddDesignUi
+    SddBrainstorm --> SddBoard --> SddAdr
   end
 
-  %% ── Beads Handoff Phase ──
-  subgraph Handoff["Phase 2 – Beads Handoff"]
-    BeadsSyncSkill2["beads-sync skill"]
-    Epic["Beads Epic<br/>(enriched with PRD &amp; proposal)"]
-    BeadsTasks["Beads Tasks<br/>(dependency‑aware, HTML links)"]
+  subgraph Implementation["Phase 2 – Implementation"]
+    SddAdr --> SddLoop
+    SddAdr --> SddApply
+    SddDesignUi --> SddLoop
+    SddDesignUi --> SddApply
   end
 
-  %% ── Implementation & Verification ──
-  subgraph Engineering["Phase 3 – Implementation"]
-    Impl["/sdd-apply &lt;change-id&gt;"]
-    Code["Code + Tests"]
+  subgraph Verification["Phase 3 – Verification"]
+    SddLoop --> SddVerify
+    SddApply --> SddVerify
+  end
+  subgraph Debug["Phase 4 – Debug"]
+    SddVerify --> SdddDiagnose
   end
 
-  subgraph VerifyPhase["Phase 4 – Verification"]
-    VerCmd["/sdd-verify"]
+  subgraph Archive["Phase 5 – Archive"]
+    SddVerify --> SddArchive
+    SdddDiagnose --> SddArchive
   end
-
-  %% ── Retrospective & Learning ──
-  subgraph Retro["Phase 5 – Learning"]
-    RetroCmd["/beads-retrospective"]
-    Insights["Insights &amp; Patterns"]
-    UpdateIndex["Update<br/>.skillgrid/prd/INDEX.md"]
-    UpdateDecisions["Enrich<br/>.skillgrid/adr/*.md"]
-  end
-
-  subgraph Knowledge["Persistent Knowledge"]
-    DecFile[".skillgrid/adr/*.md"]
-  end
-
-  %% Connections
-  Decision -->|Optional| ADR --> AdrSkill --> DecFile
-  Idea --> Brainstorm
-  Brainstorm --> ProposeSkill --> PRD
-  Brainstorm --> SpecSkill --> Specs 
-  Brainstorm --> DesignSkill --> Design
-  Brainstorm --> TasksSkill --> Specs
-  Brainstorm --> BeadsSyncSkill1 --> BeadsSyncSkill2
-
-  Brainstorm --> PlanSkill
-  ProposeSkill --> Prop
-  PlanSkill --> Tasks
-  Tasks --> Specs
-
-  PRD -->|epic context| BeadsSyncSkill2
-  Prop --> BeadsSyncSkill2
-  Tasks --> BeadsSyncSkill2
-  Specs --> BeadsSyncSkill2
-  DecFile -.->|dependency rules| BeadsSyncSkill2
-
-  BeadsSyncSkill2 --> Epic
-  BeadsSyncSkill2 --> BeadsTasks
-
-  BeadsTasks -->|next unblocked| Impl
-  Impl --> Code
-  Code --> VerCmd
-  VerCmd -->|slice complete| RetroCmd
-  RetroCmd --> Insights
-  Insights -->|status| UpdateIndex
-  Insights -->|lessons| UpdateDecisions
-
-  UpdateDecisions -.->|next cycle| DecFile
 ```
 
 ## Where templates live
@@ -145,7 +98,7 @@ Repo-wide architectural decisions use **MADR** (Markdown Any Decision Record) fi
 
 ## Session bootstrap
 
-For session bootstrap, see **`.configs/AGENTS.md`** (index into `.agents/rules/`). **Project glossary and `CONTEXT.md` policy** live in **`.agents/rules/skillgrid-context-contract.mdc`**. See also **`docs/02-workflow-usage.md`**.
+For session bootstrap, see **`.agents/rules/`** (coordinator rules). **Project glossary and `CONTEXT.md` policy** live in **`.skillgrid/project/CONTEXT.md`**. Configuration lives in **`.skillgrid/config.json`** (artifact store mode, PRD workflow, phase order, beads toggle). See also **`docs/02-workflow-usage.md`**.
 
 ## Related docs
 

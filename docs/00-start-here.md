@@ -64,11 +64,12 @@ The result is less prompt babysitting and more deliberate progress. Agents can m
 | **Smart zone / dumb zone** | Long context makes coding judgment worse. Keep implementation and review units small enough to fit in a fresh, focused context. |
 | **Context rot** | Accuracy drops when a session carries too much stale chat, compacted history, or unrelated work. AISkillGrid fights this with slices, artifacts, and fresh subagents. |
 | **Vertical slices** | Break work into thin, testable increments that cross the necessary layers and produce feedback early. Avoid long horizontal phases that only build one layer. |
-| **TDD loop** | Behavioral implementation should use RED/GREEN/refactor: write a failing test, make it pass with minimal code, then clean up. |
-| **Build Loop** | A controlled `/sdd-loop` iteration that advances one safe `[AFK]` slice, records evidence, then reassesses before continuing or stopping. |
-| **User validation** | Explicit checks: spec alignment, review gates, test evidence, security passes, not silent merge-by-default. |
-| **Spec-driven development** | Intent lives in specs and change artifacts before and during code. AI implements toward those specs; verification traces back to them. |
+| **Spec-driven development (SDD)** | Intent lives in specs and change artifacts before and during code. AI implements toward those specs; verification traces back to them. |
+| **Test Driven Development (TDD)** | Behavioral implementation should use RED/GREEN/refactor: write a failing test, make it pass with minimal code, then clean up. |
 | **Intent-driven development** | The workflow starts from durable user intent: goals, scope, constraints, and success criteria. Shared understanding and specs translate that intent into plans and slices so implementation stays aligned with what “done” means—not only with files changed. |
+| **Verification-Driven Development (VDD)** | |
+| **User validation** | Explicit checks: spec alignment, review gates, test evidence, security passes, not silent merge-by-default. |
+| **Build Loop** | A controlled `/sdd-loop` iteration that advances one safe `[AFK]` slice, records evidence, then reassesses before continuing or stopping. |
 | **Agentic pipeline** | A sequence of command-driven phases (`/sdd-init`, `/sdd-explore`, `/sdd-brainstorm`, `/sdd-loop`, `/sdd-apply`, `/sdd-board`, `/sdd-verify`, `/sdd-archive`) with tools and skills attached, not one long autonomous chat. Optional adjuncts (`/sdd-openspec-git`, `/sdd-adr`, `/sdd-c4`, `/sdd-gherkin`) support git gates, ADRs, diagrams, and Gherkin — see `docs/04-commands.md`. |
 | **Harness** | The configured layer around the model: rules, skills, MCP, memory, indexing, handoff paths, UI, so behavior is repeatable and auditable. |
 | **Artifacts over transcripts** | PRDs, OpenSpec changes, handoff markdown, logs, and checkpoints are the system of record; chat is ephemeral. |

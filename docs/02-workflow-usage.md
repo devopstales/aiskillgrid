@@ -42,27 +42,16 @@ flowchart TD
   Verify --> Archive[sdd-archive]
 ```
 
-Use `/sdd-explore` when the idea still needs shape. Use `/sdd-brainstorm` when you want the full change pipeline (clarify, propose, spec, design, PRD, tasks).
-
-### Optional cross-cutting commands
-
-These do not replace a phase; they support decisions, specs, and git hygiene around the same change:
-
-- **`/sdd-openspec-git`** — before heavy **apply** or **archive**, check OpenSpec artifacts and branches against the `main`-first rules in `openspec-git-discipline`.
-- **`/sdd-adr`** — record or review a **single** significant architecture decision (see `.skillgrid/adr/` and `docs/03-skillgrid-logic.md`).
-- **`/sdd-c4`** — communicate boundaries and dependencies with a **C4-style** diagram when design or onboarding needs a picture.
-- **`/sdd-gherkin`** — express or refine **acceptance examples** as Gherkin when scenarios help align testers and implementers.
-
-Details and skill links: **`docs/05-skills.md`** (Intent-driven style) and **`docs/04-commands.md`**.
+Use `/sdd-explore` when the project is braun field. Use `/sdd-brainstorm` when you want the full change pipeline (clarify, propose, spec, design, PRD, tasks).
 
 ## PRD index, hierarchy, and OpenSpec layout
 
 AISkillGrid takes a deliberate multi-artifact, layered specification approach. It does not treat all specifications as one monolithic document type. Instead, it separates product intent (PRDs), architectural decisions (ADRs), project-level context (PROJECT/ARCHITECTURE/STRUCTURE), and implementation specs (OpenSpec slice specs) into distinct, traceable artifacts. This is a conscious design, not an accidental duplication.
 
 ## Artifact Responsibility
+- ADR:           Technical decision rationale (`.skillgrid/adr/`)
 - PRD:           Product intent, user stories (`.skillgrid/prd/`)
 - OpenSpec:      Immutable spec, tasks, acceptance criteria (`openspec/changes/`)
-- ADR:           Technical decision rationale (`.skillgrid/adr/`)
 - Beads:         Live task execution and tracking (`.beads/`)
 
 ## Flow

@@ -1,0 +1,35 @@
+{
+  // Kilo command hooks configuration
+  // See: https://github.com/shanebishop1/opencode-command-hooks
+  "truncationLimit": 30000,
+  "ignoreGlobalConfig": false,
+  "session": [
+    {
+      // Index refresh after merge/pull/bootstrap operations.
+      // The script itself filters by command, so we fire on every shell exit.
+      "id": "refresh-indexes",
+      "when": { "event": "session.idle" },
+      "run": "./.agents/hooks/refresh-indexes.sh",
+    },
+    {
+      // Agent status — mark done on session end.
+      "id": "agent-status-stop",
+      "when": { "event": "session.idle" },
+      "run": "./.agents/hooks/kilo-hook.sh Stop",
+    },
+  ],
+  "tool": [
+    {
+      // Agent status tracking — mark working before tool use.
+      "id": "agent-status-pre-tool",
+      "when": { "phase": "before", "tool": "bash" },
+      "run": "./.agents/hooks/kilo-hook.sh PreToolUse",
+    },
+    {
+      // Agent status tracking — mark done after tool use.
+      "id": "agent-status-post-tool",
+      "when": { "phase": "after", "tool": "bash" },
+      "run": "./.agents/hooks/kilo-hook.sh PostShell",
+    },
+  ],
+}

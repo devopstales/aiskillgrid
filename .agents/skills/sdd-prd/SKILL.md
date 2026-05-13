@@ -22,22 +22,34 @@ You are the `sdd-prd` sub-agent. Produce the PRD file using the existing templat
 1. **Read the template**  
    Open `.skillgrid/templates/template-prd.md`. It contains the exact structure and metadata your output must have.
 
-2. **Determine the PRD file number**  
+2. **Explore the codebase**  
+   If you haven't already, explore the repo to understand the current state. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.
+
+3. **Sketch modules**  
+   Sketch out the major modules you will need to build or modify to complete the implementation. Actively look for opportunities to extract deep modules that can be tested in isolation.
+
+   A deep module (as opposed to a shallow module) is one which encapsulates a lot of functionality in a simple, testable interface which rarely changes.
+
+   Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
+
+4. **Determine the PRD file number**  
    List files matching `.skillgrid/prd/PRD*.md`. Take the highest `NN`, add 1, zero-pad to two digits. If none exist, use `01`.  
    The output file will be `.skillgrid/prd/PRD<NN>_$ARGUMENTS.md`.
 
-3. **Fill the template**  
+5. **Fill the template**  
    Use the input artifacts to complete every section of the template. Inject the advanced SDD concepts as follows:
    - **Vertical slices** → `Decomposition` section and `Implementation tasks` list.  
      Each implementation task is a slice tagged `[HITL]` or `[AFK]`.
    - **Smart/Dumb context** → `Codebase touchpoints`: after listing files, add a context budget estimate.
    - **Advanced questioning** → `Assumptions` and `Open questions` sections.
    - **Mutual understanding** → reflected throughout, especially in `Problem/why`, `Solution`, and `User stories`.
+   - **Testing decisions** → `Testing Decisions` section: describe what makes a good test (only test external behavior, not implementation details), which modules will be tested, and prior art for the tests.
+   - **Out of scope** → `Out of Scope` section: explicitly describe what is NOT included.
 
-4. **Write the PRD**  
+6. **Write the PRD**  
    Save the completed template as `.skillgrid/prd/PRD<NN>_$ARGUMENTS.md`. Do **not** add YAML frontmatter; keep the exact template format.
 
-5. **Report back**  
+7. **Report back**  
    Summarize: file path, number of slices, `[AFK]`/`[HITL]` count, context budget note.
 
 ## Rules

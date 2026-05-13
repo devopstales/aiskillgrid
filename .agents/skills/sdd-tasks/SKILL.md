@@ -118,7 +118,7 @@ Only after this step is complete and the PRD is updated may you proceed to the a
 
 **Now, for each validated vertical slice** (as they appear in the updated `Implementation tasks` list):
 
-1. Read the slice’s goal, acceptance criteria, and any technical constraints.
+1. Read the slice's goal, acceptance criteria, and any technical constraints.
 2. Produce a concrete, ordered list of implementation steps (one line per step).
 3. Tag each step with `[Slice: <name>] [Label: AFK|HITL] [Reason: <why this label applies>] [Budget: safe|RISK]`.
 4. If the slice is `[HITL]`, make the very first step a human‑decision point.
@@ -138,6 +138,24 @@ openspec/changes/{change-name}/
 ```
 
 - **IF mode is `engram` or `none`:** Do NOT create any `openspec/` directories or files. Compose the tasks content in memory — you will persist it in Step 4.
+
+### Vertical Slice Rules
+
+Each slice is a **tracer bullet** — a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
+
+- Each slice delivers a narrow but COMPLETE path through every layer (schema, API, UI, tests)
+- A completed slice is demoable or verifiable on its own
+- Prefer many thin slices over few thick ones
+- Slices may be 'HITL' or 'AFK'. HITL slices require human interaction (architectural decision, design review). AFK slices can be implemented and merged without human interaction.
+
+### Vertical Slice Rules
+
+Each slice is a **tracer bullet** — a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
+
+- Each slice delivers a narrow but COMPLETE path through every layer (schema, API, UI, tests)
+- A completed slice is demoable or verifiable on its own
+- Prefer many thin slices over few thick ones
+- Slices may be 'HITL' or 'AFK'. HITL slices require human interaction (architectural decision, design review). AFK slices can be implemented and merged without human interaction.
 
 ### Task Writing Rules
 
