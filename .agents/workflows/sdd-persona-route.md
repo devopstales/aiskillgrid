@@ -1,4 +1,7 @@
 ---
+name: /sdd-persona-route
+id: sdd-persona-route
+category: Workflow
 description: Select Norse personas for a decision type
 agent: board
 subtask: true

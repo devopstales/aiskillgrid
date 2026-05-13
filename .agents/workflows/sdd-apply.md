@@ -1,4 +1,7 @@
 ---
+name: /sdd-apply
+id: sdd-apply
+category: Workflow
 description: Implement SDD tasks — writes code following specs and design
 agent: odin
 subtask: true

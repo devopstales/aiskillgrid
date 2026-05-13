@@ -18,6 +18,8 @@ flowchart TB
   SddExplore["sdd-explore"]
   SddInit["sdd-init"]
   SddLoop["sdd-loop"]
+  SddParalelExecute["sdd-parallel-execute"]
+  SddReview["sdd-review"]
   SddVerify["sdd-verify"]
 
   subgraph Planning["Phase 1 – Planning"]
@@ -31,14 +33,19 @@ flowchart TB
   subgraph Implementation["Phase 2 – Implementation"]
     SddAdr --> SddLoop
     SddAdr --> SddApply
+    SddAdr --> SddParalelExecute
     SddDesignUi --> SddLoop
     SddDesignUi --> SddApply
+    SddDesignUi --> SddParalelExecute
   end
 
   subgraph Verification["Phase 3 – Verification"]
-    SddLoop --> SddVerify
-    SddApply --> SddVerify
+    SddLoop --> SddReview
+    SddApply --> SddReview
+    SddParalelExecute --> SddReview
+    SddReview --> SddVerify
   end
+
   subgraph Debug["Phase 4 – Debug"]
     SddVerify --> SdddDiagnose
   end

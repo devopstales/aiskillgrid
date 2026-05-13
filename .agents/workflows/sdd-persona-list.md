@@ -1,4 +1,7 @@
 ---
+name: /sdd-persona-list
+id: sdd-persona-list
+category: Workflow
 description: List Norse personas, mapped roles, and runtime availability
 agent: board
 subtask: true

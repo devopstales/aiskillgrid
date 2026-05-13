@@ -1,4 +1,7 @@
 ---
+name: /sdd-persona-board
+id: sdd-persona-board
+category: Workflow
 description: Norse persona decision board with hard-gate enforcement and durable records
 agent: board
 subtask: true

@@ -1,4 +1,7 @@
 ---
+name: /sdd-persona-health
+id: sdd-persona-health
+category: Workflow
 description: Validate Norse persona prompt packs, model routing, and surface readiness
 agent: board
 subtask: true

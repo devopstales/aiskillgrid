@@ -1,4 +1,7 @@
 ---
+name: /sdd-brainstorm
+id: sdd-brainstorm
+category: Workflow
 description: Start a new SDD change — runs exploration, clarification, proposal, specs, design (including UI), ADRs, PRD, and tasks
 agent: odin
 ---

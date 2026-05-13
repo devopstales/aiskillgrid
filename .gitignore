@@ -16,6 +16,7 @@ skillgrid-cli/*.bun-build
 skillgrid-cli/.npmrc.github-packages
 
 .tmp-idt-skills/
+*node_modules
 
 .gitnexus/
 .engram/
@@ -24,3 +25,4 @@ skillgrid-cli/.npmrc.github-packages
 # CocoIndex Code (ccc)
 /.cocoindex_code/
 .truecourse/
+.gitnexus

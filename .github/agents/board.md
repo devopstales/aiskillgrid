@@ -1,4 +1,5 @@
 ---
+name: board
 description: Board — Norse persona-board chair (route, parallel dispatch, merge, hard gates)
 mode: subagent
 permission:
@@ -8,6 +9,10 @@ permission:
   edit: deny
   task: deny
   bash: allow
+tools:
+  - file_system
+  - execute_command
+  - memory
 color: "#7C3AED"
 ---
 

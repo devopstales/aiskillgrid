@@ -1,5 +1,7 @@
 ---
-name: sdd-gherkin
+name: /sdd-gherkin
+id: sdd-gherkin
+category: Workflow
 description: Draft, review, or tighten Gherkin / BDD scenarios and acceptance criteria
 usage: "/sdd-gherkin <feature-path-or-inline-topic>"
 ---

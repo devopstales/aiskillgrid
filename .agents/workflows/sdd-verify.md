@@ -1,4 +1,7 @@
 ---
+name: /sdd-verify
+id: sdd-verify
+category: Workflow
 description: Validate implementation matches specs, design, and tasks
 agent: odin
 subtask: true

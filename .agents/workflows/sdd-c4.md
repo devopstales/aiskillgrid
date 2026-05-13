@@ -1,5 +1,7 @@
 ---
-name: sdd-c4
+name: /sdd-c4
+id: sdd-c4
+category: Workflow
 description: C4-style architecture diagrams (ASCII or Mermaid) for systems and codebases
 usage: "/sdd-c4 <system-or-scope-description>"
 ---

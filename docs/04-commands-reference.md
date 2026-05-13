@@ -10,15 +10,16 @@ This document lists every slash command, what it does, and which skills it uses.
 | `/sdd-brainstorm <name>` | Planning | Full planning pipeline: explore → propose → spec → design → tasks |
 | `/sdd-explore <topic>` | Planning | Free-form codebase investigation (no code changes) |
 | `/sdd-clarify <name>` | Planning | Interactive questioning to sharpen terminology, update CONTEXT.md |
-| `/sdd-apply [name]` | Build | Implement tasks from a change (TDD: RED → GREEN → REFACTOR) |
+| `/sdd-apply [name]` | Build | Implement tasks — orchestrates workspace setup, granular planning, sequential agent execution with TDD enforcement |
 | `/sdd-loop [name]` | Build | Controlled build loop for AFK-safe slices |
-| `/sdd-verify [name]` | Verify | Validate implementation against specs with execution evidence |
-| `/sdd-archive [name]` | Archive | Sync delta specs, move change to archive |
+| `/sdd-verify [name]` | Verify | **Stage 1:** Spec compliance verification — trace requirements to code/tests |
+| `/sdd-review [name]` | Verify | **Stage 2:** Code quality review — style, DRY, error handling, security, maintainability |
+| `/sdd-archive [name]` | Archive | Sync delta specs, merge/PR/keep branch — requires verify + review + pre-merge gate passed |
 | `/sdd-adr [topic]` | Specialist | Author or review architecture decision records |
 | `/sdd-design-ui [surface]` | Specialist | UI design workshop with high-fidelity skills |
 | `/sdd-gherkin <input>` | Specialist | Draft, review, or tighten Gherkin/BDD scenarios |
 | `/sdd-c4 <scope>` | Specialist | C4-style architecture diagrams (ASCII or Mermaid) |
-| `/sdd-diagnose <bug>` | Specialist | Structured debugging session |
+| `/sdd-diagnose <bug>` | Specialist | **4-phase systematic debugging:** reproduce → isolate → root cause → fix → verify |
 | `/sdd-openspec-git` | Gate | OpenSpec git discipline gates |
 | `/sdd-persona-board <decision>` | Board | Multi-perspective decision-making with Norse personas |
 | `/sdd-persona-route <type>` | Board | Select personas for a decision type |
@@ -118,18 +119,28 @@ This document lists every slash command, what it does, and which skills it uses.
 
 **Phase:** Implementation
 
-**What it does:** Implements tasks from an SDD change. Follows TDD (RED → GREEN → REFACTOR) when `strict_tdd: true`. Validates task labels before starting.
+**What it does:** Orchestrates the full implementation pipeline:
+1. Workspace isolation (creates git worktree)
+2. Plan validation (ensures tasks are granular and TDD-compliant)
+3. Sequential agent execution (dispatches fresh subagent per task with two-stage review)
+4. Evidence collection (TDD logs, spec compliance, quality review per task)
 
-**Skills used:** `sdd-apply`, `skillgrid-tdd`
+Follows enforced TDD protocol automatically. No human checkpoints between tasks unless blocked.
+
+**Skills used:** `sdd-apply` (orchestrator), `isolated-workspace`, `granular-planning`, `sequential-agent-executor`, `enforced-tdd-protocol`
 
 **Input:** Optional change name (picks active change if omitted)
 
 **Preflight gate:**
-1. `.skillgrid/scripts/validate-task-labels.sh` must pass
-2. Checks `[Label: AFK|HITL]` and `[Budget: safe|RISK]` per slice
-3. HITL slices stop for human decision; RISK slices warn and ask
+1. Task label validation (`.skillgrid/scripts/validate-task-labels.sh`)
+2. Artifacts present (tasks.md, specs/, design.md)
+3. TDD compliance check (if TDD enabled)
 
-**Output:** Updated codebase, tests, `[x]` marks on `tasks.md`
+**Output:** Implemented code, passing tests, updated `tasks.md` with `[x]` marks, per-task evidence in `.agents/tasks/<change-id>/`
+
+**Execution modes:**
+- Default: `sequential-agent-executor` (fresh subagent per task, two-stage review)
+- Alternative: `batch-executor` (checkpointed batches, manual review between)
 
 ---
 
@@ -137,58 +148,98 @@ This document lists every slash command, what it does, and which skills it uses.
 
 **Phase:** Implementation (controlled continuation)
 
-**What it does:** Picks one AFK-safe slice per iteration, implements it, captures verification evidence, then reassesses risk. Stops deterministically on gate failures. Safer for long-running sessions where context might be lost.
+**What it does:** Picks one AFK-safe slice per iteration, executes it through the full pipeline (workspace → plan → apply → verify locally), captures verification evidence, then reassesses risk. Stops deterministically on gate failures. Safer for long-running sessions where context might be lost.
 
-**Skills used:** `sdd-apply` (delegated per slice), `sdd-persona-board` (escalation on risk)
+**Skills used:** `sdd-apply` (delegated per slice), `sdd-verify` (local check), `sdd-persona-board` (escalation on risk)
 
 **Input:** Optional change name
 
 **Output artifacts:**
 - Updated `.skillgrid/tasks/context_<change-id>.md`
 - Event log `.skillgrid/tasks/events/<change-id>.jsonl`
+- Slice verification reports
 
 ---
 
 ### `/sdd-verify [change-name]`
 
-**Phase:** Verification
+**Phase:** Verification — Stage 1 (Spec Compliance)
 
-**What it does:** Multi-stage verification that implementation matches specs, design, and tasks. Builds a spec compliance matrix, runs tests and build. Can escalate to persona board for critical findings.
+**What it does:** Validates that implementation fully satisfies the slice specification. Builds traceability matrix: every requirement → concrete evidence (code/test file:line). Does NOT review code quality — that's `sdd-review`.
 
-**Skills used:** `sdd-verify`, `openspec-verify-change` (optional delegate), `beads-retrospective` (post-verify)
+**Skills used:** `sdd-verify` (orchestrator), `spec-compliance-verifier` (core logic)
 
-**Verification stages:**
+**Process:**
+1. Read all slice specs for the change
+2. For each slice: parse requirements, gather evidence from codebase
+3. Build traceability table (requirement → evidence location)
+4. Determine verdict: **PASS** (all satisfied) / **FAIL** (missing requirements) / **PARTIAL** (incomplete)
+5. Save report: `openspec/changes/<id>/verification/<slice>-report.md`
 
-| Stage | Check |
-|-------|-------|
-| 1 | Completeness — all tasks done? |
-| 2 | Label contract — HITL/AFK valid? (`validate-task-labels.sh`) |
-| 3 | Correctness — static spec matching |
-| 4 | Coherence — design decisions followed? |
-| 5 | Testing — run tests + build + typecheck |
-| 6 | Spec compliance — behavioral validation (Given/When/Then) |
-| 7 | Pre-done gate — tests, regression, docs, persistence |
+**Verdict meanings:**
+- **PASS** → proceed to `sdd-review`
+- **FAIL** → fix missing requirements via `sdd-apply`, then re-run
+- **PARTIAL** → treat as needing work (some requirements incomplete)
 
-**Verdict:** PASS / PASS WITH WARNINGS / FAIL
+**Gate:** `sdd-archive` checks `.skillgrid/state/verification_status = passed` — requires PASS to proceed.
 
-**Output:** Verification report with CRITICAL / WARNING / SUGGESTION findings
+---
+
+### `/sdd-review [change-name]`
+
+**Phase:** Verification — Stage 2 (Code Quality)
+
+**What it does:** Reviews implementation for code health independent of spec compliance. Evaluates readability, DRY, error handling, test quality, security, performance, maintainability. Produces severity-tagged issues (CRITICAL/IMPORTANT/MINOR) and APPROVED/CHANGES_REQUESTED verdict.
+
+**Skills used:** `sdd-review` (orchestrator), `code-quality-reviewer` (core logic)
+
+**Process:**
+1. Confirm `sdd-verify` passed (pre-check)
+2. Invoke `code-quality-reviewer` on changed files
+3. Categorize issues by severity
+4. Provide concrete fixes for each issue
+5. Verdict: **APPROVED** (zero CRITICAL, zero or resolved IMPORTANT) or **CHANGES_REQUESTED**
+
+**Review loop:** If issues found → implementer fixes → re-run `sdd-review --re-review` until APPROVED.
+
+**Flags:**
+- `--slice <slug>` — review specific slice only
+- `--re-review` — focus on previously flagged items
+- `--reviewer <persona>` — delegate review to persona (e.g., `thor`, `heimdall`)
+- `--force` — skip already-reviewed check
+
+**Gate:** `sdd-archive` requires APPROVED review report present.
 
 ---
 
 ### `/sdd-archive [change-name]`
 
-**Phase:** Archiving (after verification passes)
+**Phase:** Archiving (after both verification gates pass)
 
-**What it does:** Syncs delta specs from the change to main specs. Moves the change folder to `archive/` with a date prefix.
+**What it does:** Three-gate precheck before archiving:
+1. **Spec compliance** (`sdd-verify` passed)
+2. **Code quality** (`sdd-review` approved)
+3. **Pre-merge verification** (tests green, lint clean, worktree clean, branch mergeable, security scan)
 
-**Skills used:** `sdd-archive`, `openspec-sync-specs`, `openspec-archive-change`
+Then executes user-chosen disposition: merge to main / open PR / keep branch / discard. Cleans up workspace if `isolated-workspace` was used.
+
+**Skills used:** `sdd-archive` (orchestrator), `pre-merge-verification` (gate), `isolated-workspace` (cleanup)
 
 **Input:** Optional change name
 
-**Output:**
-- Updated `openspec/specs/` (main specs)
-- `openspec/changes/archive/YYYY-MM-DD-<name>/`
-- Archive report (engram)
+**Disposition** (from config or prompt):
+- `merge` — merge branch to main, push
+- `pr` — push branch, create PR via `gh`
+- `keep` — leave branch, no merge
+- `discard` — delete branch, keep local changes if any
+
+**Post-archive:**
+- Move `openspec/changes/<id>/` → `openspec/archive/YYYY-MM-DD-<id>/`
+- Update `.skillgrid/prd/INDEX.md` if PRD-linked (mark tasks complete)
+- Clear active change state
+- Remove worktree if isolated
+
+**Gate enforcement:** If any precheck fails → `status: blocked`, `next_recommended` lists fixes. No archive until all three gates pass.
 
 ---
 
@@ -244,13 +295,23 @@ This document lists every slash command, what it does, and which skills it uses.
 
 ### `/sdd-diagnose <bug>`
 
-**What it does:** Structured debugging session — reproduce, isolate, root-cause, fix, verify. For bugs, unexpected behavior, or test failures.
+**Phase:** Specialist (Debug)
 
-**Skills used:** Built-in diagnostic loop (no external skill)
+**What it does:** Systematic debugging using 4-phase protocol:
+1. **Root Cause Investigation** — gather evidence, reproduce consistently, instrument multi-component boundaries, trace data flow backward
+2. **Pattern Analysis** — find working examples, compare, read references completely
+3. **Hypothesis & Test** — generate 3–5 ranked falsifiable hypotheses, test minimally one variable at a time
+4. **Implementation** — create failing regression test (if seam exists), apply minimal fix, verify, cleanup
 
-**Input:** Bug report or issue description
+**Enforcement:** NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST. Three-fixes threshold: if 3+ attempted fixes fail → STOP → question architecture → escalate to `sdd-architecture-review`.
 
-**Output:** Root cause analysis, fix, verification evidence
+**Skills used:** `sdd-diagnose` (orchestrator), systematic-debugging methods integrated into skill
+
+**Input:** Bug report, test failure, unexpected behavior
+
+**Output:** Diagnostic report with evidence, root cause, fix, verification, post-mortim. Saved to `.skillgrid/tasks/research/<issue-id>-diagnosis.md`
+
+**Integration:** After diagnosis, optional `sdd-apply` to implement thorough fix if initial fix was minimal. If architecture friction found → `sdd-architecture-review`.
 
 ---
 
@@ -406,33 +467,50 @@ These enforce project-specific conventions for the Engram project. They are auto
     ├── sdd-adr         → ADRs (if architectural)
     ├── sdd-design-ui   → UI artifacts (if user-facing)
     ├── sdd-prd         → PRD<NN>_<name>.md
-    ├── sdd-tasks       → tasks.md (HITL/AFK labels)
+    ├── sdd-tasks       → tasks.md (HITL/AFK labels, granular, TDD-compliant)
     └── beads-sync      → Beads epic + issues (if enabled)
-    │
-    ▼
-/sdd-loop <name>  ──or──  /sdd-apply <name>
-    │   (controlled              (direct
-    │    continuation)           implementation)
-    │
-    ▼
-/sdd-verify <name>
-    ├── completeness check
-    ├── label contract (validate-task-labels.sh)
-    ├── static spec matching
-    ├── design coherence
-    ├── tests + build + typecheck
-    ├── spec compliance matrix
-    └── pre-done gate
-    │
-    ▼  (PASS)
-/sdd-test
-    │
-    ▼  (PASS)
+        │
+        ▼
+/sdd-apply <name>
+    ├── isolated-workspace        → create worktree, baseline tests
+    ├── granular-planning check   → tasks are atomic (2–5 min each)
+    ├── sequential-agent-executor → per-task subagent dispatch
+    │   ├── Implementer (RED/GREEN/REFACTOR)
+    │   ├── Spec compliance review (stage 1)
+    │   └── Code quality review (stage 2)
+    └── TDD evidence collected
+        │
+        ▼
+/sdd-verify <name>           [STAGE 1: SPEC COMPLIANCE]
+    ├── Parse slice specs → requirements
+    ├── Gather evidence (code, tests, config)
+    ├── Build traceability matrix
+    └── Verdict: PASS / FAIL / PARTIAL
+        │
+        ▼ (PASS)
+/sdd-review <name>           [STAGE 2: CODE QUALITY]
+    ├── Analyze: style, DRY, errors, tests, security, perf
+    ├── Severity-tag issues (CRITICAL/IMPORTANT/MINOR)
+    └── Verdict: APPROVED / CHANGES_REQUESTED
+        │
+        ▼ (APPROVED)
+pre-merge-verification        [FINAL GATE]
+    ├── sdd-verify passed ✓
+    ├── sdd-review approved ✓
+    ├── tests green ✓
+    ├── lint clean ✓
+    ├── worktree clean ✓
+    ├── branch mergeable ✓
+    └── security scan ✓ (if enabled)
+        │
+        ▼ (ALL PASS)
 /sdd-archive <name>
-    ├── sync delta specs → openspec/specs/
-    └── move → openspec/changes/archive/
-    │
-    ▼
+    ├── Choose disposition: merge / PR / keep / discard
+    ├── Execute disposition
+    ├── Cleanup workspace (if isolated)
+    └── Archive artifacts → openspec/archive/
+        │
+        ▼
 beads-retrospective
     ├── analyze patterns, tech debt
     └── suggest new OpenSpec proposals

@@ -1,4 +1,7 @@
 ---
+name: /sdd-explore
+id: sdd-explore
+category: Workflow
 description: Explore and investigate an idea or feature — reads codebase and compares approaches
 agent: odin
 subtask: true

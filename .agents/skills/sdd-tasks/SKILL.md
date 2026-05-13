@@ -217,17 +217,35 @@ Within a single vertical slice, order steps logically so that dependencies are s
 
 If a slice is small enough, you may collapse some of these levels into a single flat list. Always keep the steps sequential and bounded by the slice.
 
-### Step 3.5: Run Label-Gate Validator (Mandatory)
+### Step 3.5: Enforce TDD and Granularity Validation (Mandatory)
 
-Before persisting the artifact, validate the generated task list with the automation hook:
+Before persisting the task list, run validations:
 
+**Validation A — TDD enforcement check** (if project uses TDD):
+- Every implementation task must be preceded or accompanied by a corresponding test task
+- No implementation task appears without explicit test-first indicator
+- Each test task follows RED phase pattern: write failing test, capture expected failure
+
+**Validation B — Granularity check**:
+- Count expected file touches per task (from "Files:" section)
+- If any task touches >3 files → flag for split
+- If any task duration estimate >5 minutes → flag for split
+
+**Validation C — No-placeholders scan**:
+- Search for: TODO, TBD, "implement later", "fill in", "appropriate", "proper", "etc"
+- Any placeholder → FAIL validation
+
+**Validation D — Completeness check**:
+- Every task has: exact file paths OR code blocks OR exact commands
+- No vagueness: "handle errors" → "throw ValidationError with message"
+- No references to undefined types/functions
+
+Use the label validation script:
 ```bash
-.skillgrid/scripts/validate-task-labels.sh openspec/changes/{change-name}/tasks.md
+.skillgrid/scripts/validate-task-labels.sh
 ```
 
-If the mode is `engram` or `none` (no filesystem `tasks.md` yet), create a temporary file from your generated tasks content, run the validator against it, and fix failures before persisting.
-
-Never persist tasks that fail this validator.
+Fix ALL failures before persisting. If unable to resolve, escalate to human with clear rationale.
 
 ### Step 4: Persist Artifact
 
@@ -285,6 +303,11 @@ Ready for implementation (sdd-apply).
 - NEVER include vague tasks like "implement feature" or "add tests"
 - ALWAYS include `[Label: ...]` and `[Reason: ...]` tags on every actionable checkbox task line so automated label gating can validate the file
 - Apply any `rules.tasks` from `openspec/config.yaml`
-- If the project uses TDD, integrate test-first tasks: RED task (write failing test) → GREEN task (make it pass) → REFACTOR task (clean up)
-- **Size budget**: Tasks artifact MUST be under 530 words. Each task: 1-2 lines max. Use checklist format, not paragraphs.
+- **TDD requirement:** If project uses TDD (detected from config or presence of test infra), every implementation task MUST be paired with explicit test-first tasks in RED-GREEN-REFACTOR sequence:
+  - RED task: write failing test, capture expected failure output
+  - GREEN task: minimal implementation, make test pass
+  - REFACTOR task: extract helpers, rename, remove duplication
+  - No GREEN task without preceding RED task in same slice
+- **Size budget:** Tasks artifact must be under 530 words. Each task: 1-2 lines max. Use checklist format, not paragraphs.
+- **Completeness contract:** No placeholders (TBD/TODO/"later"/"appropriate"/"proper"/"etc"). Every code block must be complete and executable as written. Every command must have expected output. Every file modification must specify exact line ranges or full file content.
 - Return a structured envelope with: `status`, `executive_summary`, `detailed_report` (optional), `artifacts`, `next_recommended`, and `risks` (read `skills/_shared/sdd-phase-common.md` for the full envelope spec)

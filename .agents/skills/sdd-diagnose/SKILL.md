@@ -28,115 +28,312 @@ A discipline for hard bugs. Skip phases only when explicitly justified.
 
 When exploring the codebase, use the project's domain glossary to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
 
-## Phase 1 — Build a feedback loop
+## Phase 0 — Preflight
+
+Before any investigation:
+1. Check `sdd-verify` last status — was this change already verified? Might be spec gap vs bug
+2. Read `.skillgrid/project/CONTEXT.md` for domain assumptions
+3. Determine: is this a bug in current code or a failing test from ongoing `sdd-apply`?
+
+If bug originates from uncommitted work in progress → redirect to `sdd-apply` for fix, not diagnose.
+
+---
+
+## Phase 1 — Build a Feedback Loop (Systematic Debugging Phase 1: Root Cause Investigation)
 
 **This is the skill.** Everything else is mechanical. If you have a fast, deterministic, agent-runnable pass/fail signal for the bug, you will find the cause. If you don't have one, no amount of staring at code will save you.
 
 Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**
 
-### Ways to construct one — try them in roughly this order
+### Evidence Gathering Checklist
 
-1. **Failing test** at whatever seam reaches the bug — unit, integration, e2e.
-2. **Curl / HTTP script** against a running dev server.
-3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.
-4. **Headless browser script** — drives the UI, asserts on DOM/console/network.
-5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.
-6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.
-7. **Property / fuzz loop.** If the bug is "sometimes wrong output", run 1000 random inputs and look for the failure mode.
-8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate "boot at state X, check, repeat" so you can bisect it.
-9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.
-10. **HITL bash script.** Last resort. If a human must click, drive _them_ with a structured script so the loop is still structured. Captured output feeds back to you.
+Before hypothesizing, collect:
 
-Build the right feedback loop, and the bug is 90% fixed.
+**A. Error documentation:**
+- Full error message verbatim
+- Complete stack trace (all frames, not just top)
+- Error codes or HTTP status
+- Timestamp and environment
 
-### Iterate on the loop itself
+**B. Reproduction script:**
+- Build a deterministic repro (script, test, curl command)
+- Capture exact steps, inputs, expected vs actual
+- Note reproduction rate (always/sometimes/intermittent)
 
-Treat the loop as a product. Once you have _a_ loop, ask:
+**C. Recent changes correlation:**
+```bash
+git log --oneline -20
+git diff origin/main...HEAD --name-only
+# What changed recently that could cause this?
+```
 
-- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)
-- Can I make the signal sharper? (Assert on the specific symptom, not "didn't crash".)
-- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)
+**D. Multi-component boundaries** (if system has layers):
+- Instrument each layer entry/exit
+- Log state propagation
+- Verify config/env propagation
+- Check secrets/credentials at boundaries
 
-A 30-second flaky loop is barely better than no loop. A 2-second deterministic loop is a debugging superpower.
+**E. Data flow trace** (for deep errors):
+- Trace bad value backward to its origin
+- Find first caller that introduces incorrect state
+- Fix at source, not at symptom
 
-### Non-deterministic bugs
+### Constructing the Feedback Loop
 
-The goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not — keep raising the rate until it's debuggable.
+Try in order:
+1. **Failing test** — unit/integration/e2e at the bug's seam
+2. **CLI invocation** with fixture input, diff stdout
+3. **HTTP script** against running dev server
+4. **Headless browser** script (for UI bugs)
+5. **Replay captured trace** (HAR file, network log)
+6. **Throwaway harness** — minimal subset exercising bug path
+7. **Property/fuzz loop** — 1000 random inputs to find pattern
+8. **Bisection harness** — automate state boot to bisect bug origin
+9. **Differential loop** — compare old vs new version/config
+10. **HITL bash script** — drive human with structured repro steps
 
-### When you genuinely cannot build a loop
+**Non-deterministic bugs:** Loop 100×, parallelize, add stress, raise repro rate to >50%. A 1% flake is not debuggable.
 
-Stop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.
+### When You Genuinely Cannot Build a Loop
 
-Do not proceed to Phase 2 until you have a loop you believe in.
+Stop explicitly. List all attempts. Ask user for:
+- Access to reproducing environment
+- Captured artifact (HAR, logs, core dump, screen recording)
+- Permission to add temporary production instrumentation
 
-## Phase 2 — Reproduce
+**Do NOT proceed to hypothesis without a loop.**
+
+### Iron Law — No Hypotheses Before Evidence
+
+```
+NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
+```
+
+All 4 phases must be completed in order:
+- Phase 1: Root cause investigation (evidence gathering)
+- Phase 2: Pattern analysis (find working examples, compare)
+- Phase 3: Hypothesis and minimal testing
+- Phase 4: Implementation (create test, fix, verify)
+
+**3-fixes threshold:** If 3+ attempted fixes fail → STOP. Question architecture. Escalate to HITL.
+
+---
+
+## Phase 2 — REPRODUCE
 
 Run the loop. Watch the bug appear.
 
-Confirm:
+**Confirm:**
+- [ ] Loop produces exact user-described failure (not adjacent failure)
+- [ ] Failure reproducible across multiple runs (or high-enough rate for flaky)
+- [ ] Symptom captured exactly (error message, wrong output, timing)
+- [ ] Minimal repro isolated to smallest possible trigger
 
-- [ ] The loop produces the failure mode the **user** described — not a different failure that happens to be nearby. Wrong bug = wrong fix.
-- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).
-- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.
+**Do NOT proceed until bug is reproduced reliably.**
 
-Do not proceed until you reproduce the bug.
+---
 
-## Phase 3 — Hypothesise
+## Phase 3 — ISOLATE
 
-Generate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.
+Binary narrowing to shrink failing surface.
 
-Each hypothesis must be **falsifiable**: state the prediction it makes.
+**Techniques:**
+- Comment out code halves until bug disappears
+- Add logs at critical boundaries
+- Use debugger to step through stack
+- Substitute mocks/fakes to isolate component
 
-> Format: "If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse."
+**Output:** "Isolated to `src/auth/middleware.ts:45-50` — token parsing branch"
 
-If you cannot state the prediction, the hypothesis is a vibe — discard or sharpen it.
+---
 
-**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly, or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it — proceed with your ranking if the user is AFK.
+## Phase 4 — UNDERSTAND / ROOT CAUSE (Systematic Debugging Phase 3: Pattern Analysis + Hypothesis)
 
-## Phase 4 — Instrument
+### Pattern Analysis (Phase 2 of 4-phase model)
 
-Each probe must map to a specific prediction from Phase 3. **Change one variable at a time.**
+**Before hypothesizing:**
 
-Tool preference:
+1. **Find working examples** in same codebase:
+   - Similar features that work correctly
+   - Adjacent components with correct pattern
+   
+2. **Compare working vs broken:**
+   - What's different? List every difference
+   - Don't assume small differences don't matter
 
-1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.
-2. **Targeted logs** at the boundaries that distinguish hypotheses.
-3. Never "log everything and grep".
+3. **Read reference implementations COMPLETELY** if using external pattern
+   - Every line, not skim
 
-**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.
+4. **Understand dependencies:**
+   - Required config?
+   - Environment/setup assumptions?
+   - External service behavior?
 
-**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second.
+### Hypothesise (Phase 3 of 4-phase model)
 
-## Phase 5 — Fix + regression test
+Generate **3–5 ranked hypotheses** before testing any.
 
-Write the regression test **before the fix** — but only if there is a **correct seam** for it.
+**Each hypothesis MUST be falsifiable:**
+> "If X is root cause, then changing Y will make bug disappear (or Z will make it worse)."
 
-A correct seam is one where the test exercises the **real bug pattern** as it occurs at the call site. If the only available seam is too shallow (single-caller test when the bug needs multiple callers, unit test that can't replicate the chain that triggered the bug), a regression test there gives false confidence.
+Show ranked list to user (they often re-rank based on domain knowledge).
 
-**If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.
+If user AFK, proceed with your ranking.
 
-If a correct seam exists:
+**Rationale per hypothesis:** 1-2 sentences of evidence supporting it.
 
-1. Turn the minimised repro into a failing test at that seam.
-2. Watch it fail.
-3. Apply the fix.
-4. Watch it pass.
-5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.
+---
 
-## Phase 6 — Cleanup + post-mortem
+## Phase 5 — INSTRUMENT (Systematic Debugging Phase 3 continued)
+
+Each probe maps to specific hypothesis prediction. **Change one variable at a time.**
+
+**Tool preference:**
+1. Debugger / REPL inspection (one breakpoint > ten logs)
+2. Targeted logs at hypothesis-distinguishing boundaries
+3. Never "log everything and grep"
+
+**Tag every log with unique prefix:** `[DEBUG-{id}]`. Cleanup becomes single grep. Untagged logs survive; tagged logs die.
+
+**Perf branch:** For performance, establish baseline measurement (profiler, timing harness), then bisect. Measure first, fix second.
+
+---
+
+## Phase 6 — FIX + REGRESSION TEST (Systematic Debugging Phase 4: Implementation)
+
+**Write regression test BEFORE fix** — but only if correct seam exists.
+
+A correct seam exercises the **real bug pattern** at call site. If only shallow seam available (single-caller test when bug needs multi-caller chain), a test there gives false confidence.
+
+**If no correct seam exists → that IS the finding.** Flag architecture issue. Codebase prevents clean regression lock-down. Escalate to `sdd-architecture-review`.
+
+### Fix sequence:
+
+1. **Turn minimized repro into failing test** at the correct seam
+2. **Watch it fail** (verify test catches bug)
+3. **Apply minimal root-cause fix** (no extra changes)
+4. **Watch it pass**
+5. **Re-run original Phase 1 feedback loop** against full original scenario (not just minimized version)
+
+---
+
+## Phase 7 — CLEANUP + POST-MORTEM
 
 Required before declaring done:
 
-- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
-- [ ] Regression test passes (or absence of seam is documented)
-- [ ] All `[DEBUG-...]` instrumentation removed (grep the prefix)
-- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
-- [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns
+- [ ] Original repro no longer reproduces (re-run Phase 1 loop)
+- [ ] Regression test passes
+- [ ] All `[DEBUG-…]` instrumentation removed (grep for prefix)
+- [ ] Throwaway prototypes deleted or moved to clearly-marked debug location
+- [ ] Hypothesis that was correct stated in commit/PR message (so next debugger learns)
+- [ ] If architecture friction prevented clean regression test → hand off to `sdd-architecture-review`
 
-**Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) hand off to the `sdd-architecture-review` skill with the specifics. Make the recommendation **after** the fix is in, not before — you have more information now than when you started.
+**Then ask:** "What would have prevented this bug?"
 
-## Integration with SDD
+If answer involves:
+- No good test seam
+- Tangled callers
+- Hidden coupling
+- Missing abstraction
 
-- Read `.skillgrid/project/CONTEXT.md` before starting.
-- If diagnosis uncovers new domain assumptions, propose updating CONTEXT.md.
-- If architectural friction prevented a clean regression test, escalate to `sdd-architecture-review`.
+→ escalate to `sdd-architecture-review` **after** fix is in (you have more information now than at start).
+
+---
+
+## Phase 8 — GATE ESCALATION (3-Fixes Threshold)
+
+**Hard rule:**
+
+```
+IF 3+ attempted fixes failed → STOP → QUESTION ARCHITECTURE
+```
+
+Pattern indicating architectural problem (not failed hypothesis):
+- Each fix reveals new shared state/coupling in different place
+- Fixes require "massive refactoring" to implement
+- Each fix creates new symptoms elsewhere
+
+**Action:**
+1. STOP attempting more fixes
+2. Document: "Three fixes attempted, each revealed architectural issue X"
+3. Escalate to `sdd-architecture-review` with evidence
+4. Mark as HITL pending architectural decision
+
+**Do NOT try fix #4.** This is a wrong architecture pattern, not a hard bug.
+
+---
+
+## Integration with SDD Workflow
+
+- After diagnosis complete → optional `sdd-apply` to implement thorough fix (if initial fix was minimal/quick)
+- If diagnosis reveals missing CONTEXT.md entry → `/sdd-clarify` to update
+- If architectural friction found → `sdd-architecture-review` before more work
+- Diagnosis report saved to: `.skillgrid/tasks/research/<issue-id>-diagnosis.md`
+
+## Rules Summary
+
+- **Don't guess** — cannot reproduce → ask for data
+- **One change at a time** — isolate with single variable changes
+- **Preserve evidence** — log every step, command, output
+- **Use existing tests** — add failing test first if TDD project
+- **Fix root cause** — never mask symptoms
+- **Profile first** — for performance issues
+- **Intermittent = race/time** — inspect ordering, concurrency, dependency stability
+- **3 fixes threshold** → architectural review
+- **No hypothesizing before evidence gathering** (Phase 1 complete)
+- **Show hypotheses to user** before testing (cheap checkpoint)
+
+## Red Flags — STOP and Return to Phase 1
+
+- "Quick fix first, investigate later"
+- "Just try changing X and see"
+- "Add multiple changes, run tests"
+- "Skip loop, I'll manually verify"
+- "It's probably X, let me fix that"
+- "I don't fully understand but this might work"
+- "One more fix attempt" (when already tried 2+)
+- Each fix reveals different new problem
+- Proposing solutions before tracing data flow
+
+**ALL mean: STOP. Return to Phase 1. If 3+ fixes attempted → question architecture.**
+
+---
+
+## Command Output Format
+
+```
+[DIAGNOSE REPORT]
+
+Issue: [description]
+
+Phase 1 — Evidence gathered:
+  - Reproduction: [script/steps]
+  - Error: [exact message]
+  - Recent changes: [git diff summary]
+
+Phase 2 — Isolated to:
+  [file:line-range]
+
+Phase 3 — Root cause hypothesis:
+  [clearest cause with evidence]
+
+Phase 4 — Fix applied:
+  [description + commit SHA]
+
+Phase 5 — Verification:
+  [repro no longer triggers]
+
+Phase 6 — Next steps:
+  [optional: sdd-apply for thorough implementation]
+
+Status: COMPLETED
+```
+
+---
+
+## See Also
+
+- Superpowers source: `skills/systematic-debugging/SKILL.md` (4-phase model)
+- TDD integration: `enforced-tdd-protocol` for test-first bug fixes
+- Architecture review: `sdd-architecture-review` if architectural friction found
+- Related: `spec-compliance-verifier` (check if bug is spec gap instead)

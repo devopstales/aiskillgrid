@@ -1,4 +1,7 @@
 ---
+name: /sdd-archive
+id: sdd-archive
+category: Workflow
 description: Archive a completed SDD change — syncs specs and closes the cycle
 agent: odin
 subtask: true

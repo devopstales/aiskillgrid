@@ -35,5 +35,95 @@
       "validate",
       "finish"
     ]
+  },
+  "tdd": {
+    "enforcement": "strict",
+    "allow_hitl_tests": true,
+    "evidence_retention_days": 30,
+    "auto_cleanup_on_violation": true
+  },
+  "workspace": {
+    "enabled": true,
+    "auto_create": true,
+    "auto_cleanup": "prompt",
+    "worktree_root": ".worktrees",
+    "baseline_tests_required": true,
+    "resume_existing": true
+  },
+  "apply": {
+    "execution_mode": "sequential_agent",
+    "auto_workspace": true,
+    "tdd_enforcement": true,
+    "resume_enabled": true
+  },
+  "tasks": {
+    "granularity_min_minutes": 2,
+    "granularity_max_minutes": 5,
+    "require_complete_code": true,
+    "max_files_per_task": 3,
+    "context_budget_threshold": 5
+  },
+  "executor": {
+    "default_model_tier": "fast",
+    "max_retries_per_task": 2,
+    "stop_on_first_failure": false,
+    "enable_final_integration_review": true,
+    "parallel_slices": false
+  },
+  "verify": {
+    "require_full_coverage": true,
+    "allow_partial": false,
+    "auto_evidence_collection": true
+  },
+  "review": {
+    "required": true,
+    "allow_auto_approve": false,
+    "max_iterations": 3,
+    "require_two_reviewers": false,
+    "auto_assign_persona": null,
+    "security": {
+      "trivy_scan": true,
+      "trivy_severity": ["CRITICAL", "HIGH", "MEDIUM"],
+      "fail_on_cve": true,
+      "fail_on_secret": true
+    },
+    "architecture": {
+      "truecourse_enabled": false,
+      "truecourse_mode": "diff",
+      "truecourse_llm": false,
+      "fail_on_new_violations": true,
+      "min_severity_to_fail": "high"
+    }
+  },
+  "pre_merge": {
+    "require_spec_compliance": true,
+    "require_code_review": true,
+    "require_tests_green": true,
+    "require_lint_clean": false,
+    "allow_dirty_worktree": false,
+    "auto_merge_on_pass": false,
+    "security_scan": true
+  },
+  "archive": {
+    "default_disposition": "prompt",
+    "auto_merge_after_verify": false,
+    "delete_worktree_after_archive": true,
+    "keep_verification_reports": true,
+    "retention_policy_days": 90
+  },
+  "parallel": {
+    "slice_independence_check": true,
+    "max_parallel_slices": 3
+  },
+  "skills": {
+    "auto_invoke": ["isolated-workspace", "enforced-tdd-protocol"],
+    "mandatory": ["enforced-tdd-protocol"],
+    "pre_review_checklist": true,
+    "post_review_integration": true
+  },
+  "diagnose": {
+    "protocol": "four_phase",
+    "auto_escalate_after_fixes": 3,
+    "require_evidence_first": true
   }
 }

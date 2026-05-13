@@ -1,4 +1,7 @@
 ---
+name: /sdd-persona-report
+id: sdd-persona-report
+category: Workflow
 description: Merge and summarize persona verdicts for one decision
 agent: board
 subtask: true

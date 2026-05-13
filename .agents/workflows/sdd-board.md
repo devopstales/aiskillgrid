@@ -1,4 +1,7 @@
 ---
+name: /sdd-board
+id: sdd-board
+category: Workflow
 description: Compatibility board command that routes to Norse persona board flow
 agent: board
 subtask: true
