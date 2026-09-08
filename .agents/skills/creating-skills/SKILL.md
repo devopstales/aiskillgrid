@@ -91,6 +91,20 @@ Body rules of thumb (patterns for templates/checklists):
 - Gotchas = concrete corrections; working example for non-obvious formats
 - Target a tight SKILL.md — move branch-only detail out
 
+**Description = discovery surface (SDO).** For model-invoked skills, the `description` is the *only* thing the agent sees when deciding whether to load the skill. Write it for triggering, not summarizing:
+
+- Start with "Use when …" — describe the *triggering conditions*, not the workflow
+- Include the keywords an agent would use when facing the problem ("bug", "test failure", "refactor")
+- Do NOT summarize the workflow in the description — the agent may follow the summary instead of reading the skill
+- Do NOT use first person ("I will…") or vague abstractions ("helps with development")
+- Technology-specific skills: name the technology explicitly ("Use when writing Playwright E2E tests")
+- Token budget: aim for <200 chars. Every character is in context on every request.
+
+```
+❌ "A skill for writing great tests using TDD principles"
+✅ "Use when implementing any feature or bugfix, before writing implementation code"
+```
+
 ### Step 7: Prune
 
 Before shipping, run a pruning pass:
@@ -104,16 +118,53 @@ Before shipping, run a pruning pass:
 
 Run `scripts/validate_skill.sh <path-to-skill-dir>`. Fix every failure; re-run until clean.
 
-### Step 9: Test and iterate
+### Step 9: Test and iterate (TDD for skills)
 
-Run a real task that should use the skill. Read the actual execution (and reasoning), not only the final output. Add every mistake to Gotchas. Cut instructions the agent followed without help. One execute→revise loop helps a lot; hard domains need more.
+**Writing skills IS TDD applied to process documentation.** If you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.
 
-## Gotchas
+**RED — baseline (before writing the skill):**
+1. Give a fresh subagent the task the skill will govern, *without* the skill loaded.
+2. Read the actual execution and reasoning traces — not just the final output.
+3. Document the exact rationalizations, skips, and mistakes the agent made. These are the failure modes the skill must close.
 
-- `name` must match the directory exactly — uppercase/`My-Skill` is invalid.
-- Description without "when to use" mis-triggers or never triggers. For model-invoked skills the description is the always-loaded context pointer — keep it sharp.
-- Don't create a skill the agent already handles well — context cost with no gain.
-- Every model-invoked skill adds permanent context load; pile-up is skill hell.
-- Branch-only templates left in SKILL.md bloat every invocation — context-pointer them out.
-- Scripts must be self-contained (document deps) — the agent won't know your local setup.
-- Never commit secrets into examples or references.
+**GREEN — write the minimal skill:**
+4. Write the smallest SKILL.md that would have prevented each documented failure.
+5. Give a fresh subagent the same task *with* the skill loaded.
+6. Read the traces: did the agent comply? If not, the skill's wording is wrong — fix it and re-test.
+
+**REFACTOR — close loopholes:**
+7. Micro-test wording: change one sentence, re-run the subagent, see if compliance holds. A rule that survives paraphrase is a rule that works.
+8. Cut instructions the agent followed without help (deletion-test each paragraph).
+9. Add every remaining mistake to the red-flags table.
+
+**Match the form to the failure:**
+
+| Skill type | Test focus |
+|---|---|
+| **Discipline** (rules, requirements) | Does the agent still rationalize past the rule? Close every loophole explicitly. |
+| **Technique** (how-to guide) | Does the agent produce the correct output format? |
+| **Pattern** (mental model) | Does the agent apply the pattern in a *new* context, not just the example? |
+| **Reference** (docs, API) | Does the agent find and use the right section without being pointed? |
+
+**Bulletproofing discipline skills against rationalization:**
+- Close every loophole explicitly ("no exceptions," "not just this once")
+- Address "spirit vs letter" arguments ("violating the letter IS violating the spirit")
+- Build a red-flags table — every rationalization the agent actually used becomes a row
+- Update the red-flags table for new violation symptoms found in testing
+
+One execute→revise loop helps a lot; hard domains need more.
+
+## Red flags
+
+| Thought | Reality |
+|---|---|
+| "I'll write the skill, then test it on a real task" | That's GREEN without RED. Run the baseline first — watch the agent fail *without* the skill, then write the minimal skill that fixes the failure. |
+| "The description can summarize the workflow" | The agent may follow the summary instead of reading the skill. Description = triggering conditions, not workflow. |
+| "I'll name it `My-Skill` with a capital" | `name` must match the directory exactly. Uppercase is invalid. |
+| "I'll add more detail to the description so it triggers better" | Every character is in context on every request. <200 chars. More keywords, less prose. |
+| "The agent already handles this well, but a skill would be nice" | Context cost with no gain. Don't create a skill the agent already handles. |
+| "I'll leave the branch-only template in SKILL.md for convenience" | It bloats every invocation. Context-pointer it out to `references/`. |
+| "I'll skip the red-flags table, the rules are clear" | Clear to you. The agent will find the loophole. Every rationalization it actually uses becomes a row. |
+| "The script will work, the agent knows the setup" | The agent won't know your local setup. Scripts must be self-contained — document every dependency. |
+| "I'll add a 'similar to the other skill' reference" | Cross-reference the other skill by name. Don't restate its content. |
+| "I'll commit the example with the real API key, it's just a sample" | Never commit secrets into examples or references. |
