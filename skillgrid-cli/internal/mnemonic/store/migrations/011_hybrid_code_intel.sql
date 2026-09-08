@@ -21,14 +21,16 @@ CREATE TABLE IF NOT EXISTS edges (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kind TEXT NOT NULL,
     from_id INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
+    file_id INTEGER REFERENCES files(id) ON DELETE CASCADE,
     to_id INTEGER REFERENCES symbols(id) ON DELETE CASCADE,
     to_name TEXT,
     target_path TEXT,
     confidence TEXT NOT NULL DEFAULT 'EXTRACTED',
     line INTEGER,
-    UNIQUE(kind, from_id, to_id, to_name, target_path, line)
+    UNIQUE(kind, from_id, file_id, to_id, to_name, target_path, line)
 );
 CREATE INDEX IF NOT EXISTS idx_edges_from ON edges(from_id);
+CREATE INDEX IF NOT EXISTS idx_edges_file ON edges(file_id);
 CREATE INDEX IF NOT EXISTS idx_edges_to ON edges(to_id);
 CREATE INDEX IF NOT EXISTS idx_edges_kind ON edges(kind);
 

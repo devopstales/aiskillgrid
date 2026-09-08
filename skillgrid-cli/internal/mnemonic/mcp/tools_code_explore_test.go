@@ -18,7 +18,12 @@ import (
 func exploreFixture(t *testing.T) (dataDir, root string) {
 	t.Helper()
 	dataDir = t.TempDir()
-	root = t.TempDir()
+	raw := t.TempDir()
+	abs, err := filepath.Abs(raw)
+	if err != nil {
+		t.Fatalf("abs: %v", err)
+	}
+	root = abs
 	write := func(name, content string) {
 		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o644); err != nil {
 			t.Fatalf("write %s: %v", name, err)
@@ -26,6 +31,14 @@ func exploreFixture(t *testing.T) (dataDir, root string) {
 	}
 	write("a.py", "def alpha(a, b):\n    return a + b\n")
 	write("b.py", "import a\n\ndef beta():\n    return a.alpha(1, 2)\n")
+	if err := os.MkdirAll(filepath.Join(root, "config.d"), 0o755); err != nil {
+		t.Fatalf("mkdir config.d: %v", err)
+	}
+	write(filepath.Join("config.d", "indexing.yaml"),
+		"mnemonic:\n  include:\n    - \"**/*.py\"\n  exclude:\n    - \"**/.git/**\"\n")
+	// Pin the project BEFORE indexing so both the index and later queries land
+	// in the same stable bucket (the temp dir is nested in the skillgit repo).
+	t.Setenv("MNEMONIC_PROJECT", "explore-probe")
 	svc := service.New(dataDir)
 	SetService(svc)
 	t.Cleanup(func() { SetService(nil) })
@@ -43,6 +56,9 @@ func exploreFixture(t *testing.T) (dataDir, root string) {
 func TestExploreToolSurface(t *testing.T) {
 	dataDir, root := exploreFixture(t)
 	_ = root
+	// Pin the project so the temp-dir fixture (inside the skillgrid git repo)
+	// resolves to one stable bucket for both the index and the query.
+	t.Setenv("MNEMONIC_PROJECT", "explore-probe")
 
 	// The composite tool is registered and its description documents it as the
 	// primary tool.

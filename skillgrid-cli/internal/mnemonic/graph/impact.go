@@ -105,7 +105,9 @@ func Impact(ctx context.Context, db *sql.DB, sym Symbol, opts ImpactOptions) (Im
 		rows, err := db.QueryContext(ctx, `
 			SELECT e.from_id, e.kind, e.confidence, e.line
 			FROM edges e
-			WHERE e.to_id = ? AND e.kind IN ('calls','imports','reference','route','extends','implements')
+			WHERE e.to_id IS NULL
+			  AND e.to_name IN (SELECT name FROM symbols WHERE id = ?)
+			  AND e.kind IN ('calls','imports','reference','route','extends','implements')
 			ORDER BY e.id`, cur.id)
 		if err != nil {
 			return out, err

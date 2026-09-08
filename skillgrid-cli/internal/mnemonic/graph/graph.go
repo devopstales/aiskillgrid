@@ -138,7 +138,7 @@ func loadSymbolsByName(ctx context.Context, db *sql.DB, name string) ([]Symbol, 
 // "where the graph stops" answer.
 func fetchEdges(ctx context.Context, db *sql.DB, sym Symbol) ([]Edge, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT e.id, e.kind, e.from_id, e.to_id, e.to_name, e.target_path,
+		SELECT e.id, e.kind, e.from_id, e.to_name, e.to_id, e.target_path,
 		       e.confidence, e.line
 		FROM edges e
 		WHERE e.from_id = ? OR e.to_id = ?
@@ -206,6 +206,33 @@ func fetchEdges(ctx context.Context, db *sql.DB, sym Symbol) ([]Edge, error) {
 		}
 	}
 	return out, rows.Err()
+}
+
+// resolvedEndpoints returns (from, to, fromCandidates, toCandidates) for a raw
+// edge row, resolving each endpoint by id first and falling back to name-only
+// resolution (a name matching several symbols yields multiple candidates).
+// This is the shared endpoint-resolution used by fetchEdges and Impact.
+func resolvedEndpoints(ctx context.Context, db *sql.DB, fromID int64, toID *int64, toName string) (from, to Symbol, toCands []Symbol, err error) {
+	from, err = loadSymbolByID(ctx, db, fromID)
+	if err != nil {
+		return Symbol{}, Symbol{}, nil, err
+	}
+	if toID != nil && *toID != 0 {
+		if t, e2 := loadSymbolByID(ctx, db, *toID); e2 == nil {
+			return from, t, nil, nil
+		}
+	}
+	if toName != "" {
+		cands, e2 := loadSymbolsByName(ctx, db, toName)
+		if e2 != nil {
+			return from, Symbol{}, nil, e2
+		}
+		if len(cands) == 1 {
+			return from, cands[0], nil, nil
+		}
+		return from, Symbol{}, cands, nil
+	}
+	return from, Symbol{}, nil, nil
 }
 
 func viewMatches(view View, e Edge, sym Symbol) bool {

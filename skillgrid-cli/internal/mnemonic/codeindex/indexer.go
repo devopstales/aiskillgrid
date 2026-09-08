@@ -485,20 +485,30 @@ func writeFileGraph(tx *sql.Tx, fileID int64, syms []extract.Symbol, edges []ext
 			allUIDs.Close()
 		}
 	}
+	// Target-state: drop this file's existing outgoing edges before upserting
+	// the freshly extracted set. Pruning by file_id (not by the from-symbol's
+	// id) is essential: the edges table has no per-symbol cascade that can
+	// reach a file's edges once its symbols are re-keyed on rewrite, so a
+	// re-index would otherwise leave stale rows behind.
+		if _, err := tx.Exec(`DELETE FROM edges WHERE file_id = ?`, fileID); err != nil {
+		return 0, fmt.Errorf("prune edges for file %d: %w", fileID, err)
+	}
 	// Upsert edges. Edges require a resolvable from_id (the symbol they
 	// originate from); import edges are stored with the file's package/first
 	// symbol as the source when no specific symbol is bound.
 	for _, e := range edges {
 		fromID, okFrom := uidToIDFinal[e.FromUID]
 		if !okFrom {
-			// Resolve a default source: for imports, the file's first symbol
-			// (or the file's module). For calls with no enclosing def, the
-			// first symbol in the file.
-			if defID, ok := fileFirstSymbol[fileID]; ok {
-				fromID = defID
-			} else {
+			// The extractor binds call/heritage edges to their enclosing
+			// definition, but a name-only edge (or one the extractor left
+			// unbound) must still resolve to a real source: the file's first
+			// symbol. Edges carry a NOT-NULL from_id, so an unresolved source
+			// must fall back here rather than silently store a null source.
+			defID, ok := fileFirstSymbol[fileID]
+			if !ok {
 				continue
 			}
+			fromID = defID
 		}
 		var toID sql.NullInt64
 		if e.ToUID != "" {
@@ -508,11 +518,11 @@ func writeFileGraph(tx *sql.Tx, fileID int64, syms []extract.Symbol, edges []ext
 			}
 		}
 		if _, err := tx.Exec(`
-			INSERT INTO edges (kind, from_id, to_id, to_name, target_path, confidence, line)
-			VALUES (?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT(kind, from_id, to_id, to_name, target_path, line) DO UPDATE SET
+			INSERT INTO edges (kind, from_id, file_id, to_id, to_name, target_path, confidence, line)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(kind, from_id, file_id, to_id, to_name, target_path, line) DO UPDATE SET
 			  confidence = excluded.confidence`,
-			e.Kind, fromID, toID, e.ToName, e.TargetPath, e.Confidence, e.Line,
+			e.Kind, fromID, fileID, toID, e.ToName, e.TargetPath, e.Confidence, e.Line,
 		); err != nil {
 			return 0, fmt.Errorf("upsert edge %s: %w", e.Kind, err)
 		}

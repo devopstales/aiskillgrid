@@ -1258,12 +1258,14 @@ type ImpactOptions struct {
 // single resolved symbol) or Candidates is set (a ranked ambiguous list —
 // never a silent pick).
 type ImpactResultDTO struct {
+	Found      bool                 `json:"found"`
 	Ambiguous  bool                 `json:"ambiguous,omitempty"`
 	Candidates []graph.Symbol       `json:"candidates,omitempty"`
 	Target     *graph.Symbol        `json:"target,omitempty"`
 	WillBreak  []graph.ImpactEdge   `json:"will_break,omitempty"`
 	Likely     []graph.ImpactEdge   `json:"likely_affected,omitempty"`
 	Excluded   int                  `json:"excluded_low_confidence,omitempty"`
+	Reason     string               `json:"reason,omitempty"`
 }
 
 func (r *ImpactResultDTO) Summary() string {
@@ -1296,14 +1298,14 @@ func (s *Service) CodeImpact(ctx context.Context, projectID, symbol string, opts
 		return nil, err
 	}
 	if res.NotFound {
-		return &ImpactResultDTO{}, nil
+		return &ImpactResultDTO{Found: false, Reason: "symbol not found: " + symbol}, nil
 	}
 	if res.Ambiguous {
 		ranked, err := graph.RankCandidates(ctx, h.store.DB, res.Matches)
 		if err != nil {
 			return nil, err
 		}
-		return &ImpactResultDTO{Ambiguous: true, Candidates: ranked}, nil
+		return &ImpactResultDTO{Found: true, Ambiguous: true, Candidates: ranked}, nil
 	}
 	impact, err := graph.Impact(ctx, h.store.DB, res.Target, graph.ImpactOptions{
 		MinConfidence: opts.MinConfidence,
@@ -1314,6 +1316,7 @@ func (s *Service) CodeImpact(ctx context.Context, projectID, symbol string, opts
 	}
 	target := res.Target
 	return &ImpactResultDTO{
+		Found:     true,
 		Target:    &target,
 		WillBreak: impact.WillBreak,
 		Likely:    impact.Likely,
