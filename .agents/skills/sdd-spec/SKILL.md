@@ -53,6 +53,18 @@ From Step Blueprint allocate every `NN-<name>`. Never renumber after `tasks.md` 
 6. Assign every Impacted Files row to exactly one step.
 7. Write `docs/skillgrid/changes/<NNN-slug>/tasks.md`.
 
+**Task right-sizing.** A task is the smallest unit that carries its own test cycle and is worth a fresh reviewer's gate. Fold setup, configuration, scaffolding, and documentation into the task whose deliverable needs them. Split only where a reviewer could meaningfully reject one task while approving its neighbor. Each task ends with an independently testable deliverable.
+
+**Bite-sized steps.** Each step is one action (2–5 minutes): "write the failing test" → "run it, verify it fails" → "implement minimal code" → "run tests, verify they pass" → "commit." A step that does more than one of these is two steps.
+
+**No placeholders.** Every step must contain the actual content an executor needs. These are **plan failures** — never write them:
+- "TBD", "TODO", "implement later", "fill in details"
+- "Add appropriate error handling" / "add validation" / "handle edge cases"
+- "Write tests for the above" (without actual test code)
+- "Similar to Task N" (repeat the content — the executor may read tasks out of order)
+- Steps that describe what to do without showing how (code blocks required for code steps)
+- References to types, functions, or methods not defined in any task
+
 ### 4. Write acceptance.feature
 
 1. READ [`../_shared/templates/template-acceptance.feature`](../_shared/templates/template-acceptance.feature) + [references/acceptance-format.md](references/acceptance-format.md).
@@ -65,6 +77,9 @@ From Step Blueprint allocate every `NN-<name>`. Never renumber after `tasks.md` 
 
 - Every Blueprint step has `## NN` + `@step-NN` Feature + explicit `Depends on:`.
 - Every `[RED]` has Run/Expected; Global Constraints present.
+- **Placeholder scan:** search `tasks.md` for the "No Placeholders" patterns above. Fix them inline.
+- **Type consistency:** do the types, function names, and signatures in later steps match what earlier steps defined? A function called `clearLayers()` in step 03 but `clearFullLayers()` in step 07 is a bug.
+- **Spec coverage:** skim each section of `change.md`. Can you point to a step that implements it? If a requirement has no step, add one.
 - `mem_session_start` → save `sdd/<NNN-slug>/tasks` and `sdd/<NNN-slug>/spec`.
 
 ### 6. STOP — user gate
@@ -81,12 +96,19 @@ From Step Blueprint allocate every `NN-<name>`. Never renumber after `tasks.md` 
 
 Wait for human decision. Never auto-apply.
 
-## Gotchas
+## Red flags
 
-- Missing `Depends on:` breaks parallel apply — treat as incomplete spec.
-- Omitting `@edge`/`@failure` blocks verify.
-- Do not invent a PASS under `### Verification` — apply leaves PENDING; verify fills it.
-- Retired: `sdd-tasks`, `sdd-design`, `steps/` tree.
+| Thought | Reality |
+|---|---|
+| "I'll skip `Depends on:`, the order is obvious" | Missing `Depends on:` breaks parallel apply — treat as incomplete spec. |
+| "I'll omit the `@edge` scenario, it's obvious" | Omitting `@edge`/`@failure` blocks verify. Every step needs all three. |
+| "I'll write a PASS under Verification now, save time" | Do not invent a PASS — apply leaves PENDING; verify fills it. |
+| "This step is 'similar to step 03'" | Repeat the content. The executor may read tasks out of order. |
+| "I'll add 'handle edge cases' and fill in later" | That's a placeholder. Name the edge cases, show the test code. |
+| "This step does three things, but they're related" | A step that does more than one action is two steps. Split it. |
+| "I'll fold the config into its own step" | Fold setup/config/scaffolding into the task whose deliverable needs them. |
+| "The Global Constraints can be inferred from change.md" | Copy them verbatim. The executor reads `tasks.md` as the primary document. |
+| "I'll renumber the steps after I've written them" | Never renumber after `tasks.md` exists. Renumbering breaks the DAG and the Mnemonic topic keys. |
 
 ## References
 
