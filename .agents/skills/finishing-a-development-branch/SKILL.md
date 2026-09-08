@@ -1,11 +1,10 @@
 ---
 name: finishing-a-development-branch
-description: Use when an SDD change is complete (all `### Verification` verdicts in `tasks.md` are PASS or PASS WITH WARNINGS, all `[x]` marks in place) and you need to decide how to integrate the work. Verifies tests on the integrated tree, detects environment, presents the merge/PR/keep menu, and owns worktree cleanup.
+description: Use when an SDD change is complete and you need to decide how to integrate the work
 license: MIT
 metadata:
-  author: skillgrid
-  version: "1.0"
-  source: derived from superpowers finishing-a-development-branch, adapted for skillgrid's worktree conventions
+  version: "2.0"
+  part-of: skillgrid
 ---
 
 # Finishing a Development Branch
@@ -14,11 +13,32 @@ metadata:
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
-In skillgrid, this skill is the **close-out companion** of `isolated-workspace`:
+**Iron law:**
+
+```
+DO NOT MERGE OR PUSH UNTIL THE TEST SUITE IS GREEN ON THE INTEGRATED TREE
+```
+
+A green run only proves the tree it ran on. `sdd-verify` ran against the branch's tree — run the suite again on the tree you are about to integrate.
+
+This skill is the **close-out companion** of `isolated-workspace`:
 
 - `isolated-workspace` *created* the branch and proved a green baseline at the start.
 - `sdd-apply` + `sdd-verify` produced the commits and `tasks.md` Verification verdicts.
 - `finishing-a-development-branch` is the final integration step before `sdd-archive` mechanically moves the change folder.
+
+```dot
+digraph process {
+  rankdir=LR;
+  verify [label="Step 1\nVerify tests\non integrated tree", shape=box, style=filled, fillcolor="#ffcccc"];
+  env [label="Step 2\nDetect environment", shape=box];
+  base [label="Step 3\nDetermine base branch", shape=box];
+  menu [label="Step 4\nPresent options", shape=box, style=filled, fillcolor="#ccffcc"];
+  exec [label="Step 5\nExecute choice", shape=box];
+  clean [label="Step 6\nCleanup workspace", shape=box, style=filled, fillcolor="#ccccff"];
+  verify -> env -> base -> menu -> exec -> clean;
+}
+```
 
 ## Step 1: Verify Tests on the Integrated Tree
 
@@ -31,8 +51,6 @@ Tests failing (<N> failures). Must fix before completing:
 
 [Show failures]
 ```
-
-**Why this matters:** the `sdd-verify` runs (verdicts in `tasks.md`) were against the branch's tree, not the tree you are about to integrate. A green run only proves the tree it ran on. Run the suite again on the *integrated* tree (post-merge, or on the branch you are about to push).
 
 **If tests pass:** continue to Step 2.
 
@@ -207,7 +225,7 @@ Carry out the choice, then remove the worktree.
 | 3. Keep as-is | - | - | yes | - |
 | Discard (explicit request only) | - | - | - | yes (force) |
 
-## Common Rationalizations
+## Red flags
 
 | Excuse | Reality |
 |---|---|
@@ -224,14 +242,20 @@ Carry out the choice, then remove the worktree.
 
 ## Integration with skillgrid
 
-- **`sdd-archive`** is the close-out *artifact* move (`docs/skillgrid/changes/<NNN-slug>/` → `archive/`). This skill is the close-out *integration* step (merge / PR / keep) that runs *before* archive. Order: `sdd-verify` (`tasks.md` verdicts) → `requesting-code-review` (high-risk) → **this skill** → `sdd-archive`.
-- **`isolated-workspace`** is the up-front step that creates the branch and proves the baseline. This skill is its mirror at the end — the workspace came from there, the cleanup returns there.
-- **For PR-backed changes**, the tracker convention lives in `_shared/issue-tracker/`; use the right CLI for the PR creation step (e.g. `gh pr create`, `glab mr create`).
-- **For SDD worktrees created by the runtime's native worktree tool** (not `git worktree add`), prefer the runtime's cleanup primitive over `git worktree remove` — manual removal creates phantom state the harness cannot see.
+| Skill | Relationship |
+|---|---|
+| `sdd-verify` | Produces the `tasks.md` verdicts that gate this skill |
+| `requesting-code-review` | Runs before this skill for high-risk changes |
+| **this skill** | The close-out *integration* step (merge / PR / keep) |
+| `sdd-archive` | The close-out *artifact* move that runs *after* this skill |
+| `isolated-workspace` | The up-front mirror — created the branch, this skill cleans it up |
+| `_shared/issue-tracker/` | Tracker CLI choice for the PR-creation step |
+
+**For SDD worktrees created by the runtime's native worktree tool** (not `git worktree add`), prefer the runtime's cleanup primitive over `git worktree remove` — manual removal creates phantom state the harness cannot see.
 
 ## References
 
-- [../isolated-workspace/SKILL.md](../isolated-workspace/SKILL.md) — the up-front mirror of this skill; owns creation, the green baseline, and the `.worktrees/` ownership contract.
-- [../sdd-archive/SKILL.md](../sdd-archive/SKILL.md) — the close-out artifact move that runs *after* this skill.
-- [../_shared/conventions/commits.md](../_shared/conventions/commits.md) — commit hygiene enforced by this skill's reviewers and the merge/PR step.
-- [../_shared/issue-tracker/](../_shared/issue-tracker/) — tracker CLI choice for the PR-creation step.
+- [../isolated-workspace/SKILL.md](../isolated-workspace/SKILL.md) — the up-front mirror of this skill
+- [../sdd-archive/SKILL.md](../sdd-archive/SKILL.md) — the close-out artifact move that runs *after* this skill
+- [../_shared/conventions/commits.md](../_shared/conventions/commits.md) — commit hygiene enforced by the merge/PR step
+- [../_shared/issue-tracker/](../_shared/issue-tracker/) — tracker CLI choice for the PR-creation step

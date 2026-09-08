@@ -3,8 +3,7 @@ name: debugging
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
 license: MIT
 metadata:
-  author: devopstales
-  version: "1.0"
+  version: "2.0"
   part-of: skillgrid
 ---
 
@@ -23,6 +22,21 @@ NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
 If you haven't completed Phase 1, you cannot propose fixes.
+
+```dot
+digraph phases {
+  rankdir=LR;
+  p1 [label="Phase 1\nRoot Cause\nInvestigation", shape=box, style=filled, fillcolor="#ffcccc"];
+  p2 [label="Phase 2\nPattern\nAnalysis", shape=box];
+  p3 [label="Phase 3\nHypothesis\nand Testing", shape=box, style=filled, fillcolor="#ccffcc"];
+  p4 [label="Phase 4\nImplementation", shape=box, style=filled, fillcolor="#ccccff"];
+  arch [label="3+ fixes failed?\nQuestion architecture", shape=diamond];
+  p1 -> p2 -> p3 -> p4;
+  p3 -> p1 [label="hypothesis\nfails"];
+  p4 -> p1 [label="fix didn't work\n(< 3 tries)"];
+  p4 -> arch [label="3+ fixes failed"];
+}
+```
 
 ## When to Use
 
