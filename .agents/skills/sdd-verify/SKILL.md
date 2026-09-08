@@ -22,6 +22,7 @@ Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-s
 - An `@step-NN` scenario is COMPLIANT only when a covering test **passed at runtime**.
 - On human QA or review findings → **append tasks**, set `## State.phase` to **`apply`**, do **not** archive.
 - Archive eligibility only when: every step PASS or PASS WITH WARNINGS, no open `- [ ]`, human QA accepted **or explicitly waived**.
+- When `change.md` **`Ticket:`** is set: comment the verify verdict on the ticket (tracker CLI); do not mark done — **`sdd-archive` closes** the ticket.
 - Hybrid: disk + Mnemonic `sdd/<NNN-slug>/verification`, upsert `…/tasks`, and `…/qa-plan`.
 
 ## Workflow

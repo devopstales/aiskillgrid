@@ -47,7 +47,8 @@ Read: `change.md`, `tasks.md` (`## NN-<name>`), `acceptance.feature` (`@step-NN`
 
 - Review workload High / chained / unresolved `ask-on-risk` → STOP until delivery path resolved (`auto-chain` | `exception-ok` | explicit `size:exception`).
 - Prefer **`isolated-workspace`** for non-trivial branches.
-- Commits: **`work-unit-commits`** / [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) — checkpoint when green. **Per step always**, even under `single-pr` (one PR ≠ one commit).
+- Commits: **`work-unit-commits`** / [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) — checkpoint when green. **Per step always**, even under `single-pr` (one PR ≠ one commit). Skipping step commits requires an explicit user override recorded in apply-progress.
+- **Ticket (when `change.md` `Ticket:` is not `none`):** follow the tracker’s **Ticket lifecycle** in [`../_shared/issue-tracker/`](../_shared/issue-tracker/) — set in-progress at apply start; every step commit footer references the id (`Refs:` / `Refs #…`). Creating the ticket is propose/spec’s job (`force_ticket_creation`); apply **owns progress updates**, not creation.
 
 ### 3. Route execution (do not freestyle inline)
 

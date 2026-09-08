@@ -30,7 +30,7 @@ This directory stores shared reference documents consumed by real SDD skills. Do
 - `conventions/` — shared contract documents every SDD skill must honor:
    - [conventions/sdd-structure.md](conventions/sdd-structure.md) — the `docs/skillgrid/` directory layout (changes/archive, NNN-slug, per-step files), artifact paths, phase order, and `config.yaml` reference.
    - [conventions/mnemonic-memory.md](conventions/mnemonic-memory.md) — naming, write, recovery, and session-close rules for all Mnemonic memory saves (the common memory config for every sdd-* skill).
-  - [conventions/mnemonic-code-indexing.md](conventions/mnemonic-code-indexing.md) — the Mnemonic code-indexing ladder (`code_status` → `code_index` → `code_search` → `code_read`), config, and gotchas shared by every code-exploring skill (full schemas in the `mnemonic-code-index` skill).
+  - [conventions/mnemonic-code-indexing.md](conventions/mnemonic-code-indexing.md) — Orientation Ladder (`code_status` → `code_map` → symbols/outline → related → `code_read`), Index Freshness, Search Intent Router, config, and gotchas (full detail in the `mnemonic-code-index` skill).
   - [conventions/commits.md](conventions/commits.md) — commit message contract (conventional commits, no AI trailers, issue-tracker close token, multi-commit batches) shared by `sdd-apply`, `sdd-verify`, and any skill that commits.
 - `triage-labels.md` — the five canonical triage roles shared across trackers.
 - `templates/` — canonical blanks for SDD v3 change artifacts (instantiate; do not freestyle):

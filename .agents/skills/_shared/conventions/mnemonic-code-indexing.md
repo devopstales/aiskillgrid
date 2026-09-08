@@ -1,84 +1,130 @@
 # Mnemonic Code-Indexing Convention (shared)
 
-NOTE: This is the shared convention for the Mnemonic **code index** (`code_*` MCP tools: `code_status`, `code_index`, `code_search`, `code_read`). It is supplementary — the full reference, including exact return schemas, the chunking model, and per-tool parameters, lives in the **`mnemonic-code-index` skill** (`.agents/skills/mnemonic-code-index/SKILL.md`). Sub-agents do NOT need to read that whole file to use the ladder; read it only when a tool returns an unexpected shape or you need to tune indexing.
+NOTE: This is the shared convention for the Mnemonic **code index** and retrieval surface (`code_*` MCP tools, `skillgrid search` / `export` / `serve`). It is supplementary — the full reference lives in the **`mnemonic-code-index` skill** (`.agents/skills/mnemonic-code-index/SKILL.md`). Sub-agents do NOT need to read that whole file to follow the Orientation Ladder; read it when a tool returns an unexpected shape or you need CLI/operator detail.
 
 Applies to every Skillgrid SDD skill that explores, reads, or changes source code. The code index lives in the same per-project SQLite store as the memory layer and web cache (`~/.skillgrid/mnemonic/<project>.sqlite`) — same project scope, same session lifecycle as `mem_*`.
 
-## The Ladder (canonical order)
+## Orientation Ladder (canonical order)
 
-Run in this order; do not skip to reading before you know the index is populated.
+Primary repo navigation. Prefer this over listing whole directory trees into chat.
 
 ```
-1. code_status   → health + staleness. If stale:true or file_count==0, go to 2.
-2. code_index    → incremental index (cheap, idempotent). Safe to run in doubt.
-3. code_search   → BM25 search over chunk ranges → path + line range + snippet.
-4. code_read     → read the exact slice for the path + range that code_search gave.
+1. code_status      → health + Index Freshness (fresh|lag|empty|unknown)
+2. code_map         → structural overview from the index (not a prose dump)
+3. symbols / outline → code_search_symbols / code_outline (narrow the unit)
+4. code_related     → neighbors via Edges
+5. code_read        → exact slice for a path + range already narrowed
 ```
+
+When freshness is `lag`, `empty`, or `unknown` (or compat `stale=true` for empty-only), run `code_index` before trusting search/map results. `stale=true` remains **empty-index compat only** — lag is `freshness=lag`, not silent “fine”.
 
 Rules:
-- `code_read` is **only** for a path + line range that `code_search` already narrowed. Never read a whole file speculatively.
-- Search first, then read. A hit covers a chunk's `start_line`–`end_line`, not the whole file.
-- Prefer `code_search` over `rg`/`grep` when exploring an **unfamiliar** large repo. Use `rg`/`grep` for exact-identifier lookups and when the index is a poor fit (generated code, single-token exact match).
+- Do **not** dump the whole tree as primary orientation. Use the Orientation Ladder; the narrative Codebase Map under `docs/skillgrid/codebase/` is secondary context only.
+- `code_read` is **only** for a path + line range already narrowed by map/symbols/related/search. Never read a whole file speculatively.
+- Prefer index tools over `rg`/`grep` when exploring an **unfamiliar** large repo. Use `rg`/`grep` for exact-identifier lookups and when the index is a poor fit.
 
-## When to `code_index`
+## Index Freshness
 
-- **Fresh clone** — run before the first `code_search`; an empty index returns zero hits.
-- **`code_status` reports `stale: true` or `file_count == 0`.**
-- **After a large refactor / branch switch** — the incremental run re-indexes only changed files.
-- **In doubt** — it is cheap (90%+ of files skip as unchanged); run it anyway.
+`code_status` reports:
+
+| Field | Meaning |
+|---|---|
+| `freshness` | `fresh` \| `lag` \| `empty` \| `unknown` |
+| `stale` | **compat:** `true` only when the index is empty — not a lag signal |
+| `lagged_paths` | optional paths when `freshness=lag` |
+
+- Unreadable mtime/hash → `unknown` (never false-clean).
+- After clone, branch switch, large edits: check status; reindex when not `fresh`.
+
+## Search Intent Router (daily path vs advanced)
+
+Retrieval is **not** “six equal corpora” as the only model. The **Search Intent Router** picks a **daily path**; advanced corpora are an escape hatch (`skillgrid search --corpus …`).
+
+| Intent signal | Daily path |
+|---|---|
+| Identifier-shaped query | `symbols` |
+| Structural / `func $NAME` / Matcher dialect | `grep` |
+| Decision / remember / past work | `mem` |
+| Unclassified | `code` (`route=default`) |
+
+Advanced modes (`--corpus`): `code`, `grep`, `mem`, `symbols`, `hybrid`, `semantic`. Multi-corpus results must keep **provenance** (mem vs code never silently fused unlabeled).
+
+### Explicit semantic degrade
+
+The `semantic` corpus must never pretend full quality when the Local Code Embedder is unavailable. Expect `degraded=true` plus reason + fallback. **Never silent** degrade to FTS-as-semantic.
+
+## Extractors and tree-sitter Python
+
+- Default Go/TS extractors stay CGo-free.
+- Python tree-sitter Extractor Adapter compiles only with **`-tags treesitter`**. Without the tag, Python uses stub/regex fallback (`warn+continue`).
+- Tree-sitter/CGo stay **inside** Extractor Adapters — Matchers and MCP handlers remain CGo-free at the process edge where feasible.
+
+## Matcher dialect v2
+
+Structural `code_grep` / `--corpus grep` patterns (invalid pattern → abort):
+
+- v1: `func $NAME($ARGS)`, `$FUNC($ARGS)`, `class $NAME`, `type $NAME`, `interface $NAME`
+- v2: `struct $NAME`, `method $NAME($ARGS)`, `const $NAME`, `enum $NAME`
+
+## Impact Analysis
+
+`code_impact` is **additive** blast-radius over Edges (callers, callees, dependents, … with Confidence Labels). It does **not** replace `code_get_*`.
+
+## Memory export and serve visualization
+
+- `skillgrid export --project ID --out DIR` — read-only Obsidian Markdown + viz JSON under an allowed root (path outside root → abort).
+- **Memory Visualization** lives in the **`skillgrid serve`** dashboard webui (read-only observation browser). Viz clients must not mutate/delete observations.
+- **Code Graph dashboard** (CodeGraph-shaped, same serve UI): 3-pane callers | source | callees, blast-radius, symbol search, entry points, flow/path — read-only over Edges (`/graph/*`; mutate → 405).
 
 ## Tool quick-reference
 
-| tool | required params | optional | returns (shape) |
-|---|---|---|---|
-| `code_status` | — | — | `file_count`, `chunk_count`, `last_indexed`, `stale` |
-| `code_index` | — | — | `files_indexed`, `files_skipped`, `files_deleted`, `chunks_added` |
-| `code_search` | `query` | `limit` (default 20) | `hits[]`: `path`, `start_line`, `end_line`, `snippet`, `score` |
-| `code_read` | `path` | `start_line`, `end_line` | `path`, `start_line`, `end_line`, `text` |
-
-Index root: `code_index` walks the **git root** (`git rev-parse --show-toplevel`) when inside a repo, else cwd. Raise `limit` if the first `code_search` pass misses the symbol.
+| tool | role |
+|---|---|
+| `code_status` | Index Freshness + health |
+| `code_index` | Incremental index when not fresh |
+| `code_map` | Orientation overview |
+| `code_outline` / `code_related` | Symbol outline / neighbors |
+| `code_search` / `code_search_symbols` | Chunk / symbol FTS |
+| `code_grep` | Structural Matcher (dialect v1+v2) |
+| `code_impact` | Additive Impact Analysis |
+| `code_read` | Narrowed slice |
+| `code_get_*` | Symbol/signature getters (unchanged) |
 
 ## Configuration
 
-Config file `config.d/indexing.yaml`, searched up from the indexed dir; repo-local and `~/.skillgrid/config.d/indexing.yaml` override defaults (first found wins per key).
+Config file `config.d/indexing.yaml`, searched up from the indexed dir; repo-local and `~/.skillgrid/config.d/indexing.yaml` override defaults.
 
 | field | default |
 |---|---|
 | `chunk_lines` | `80` |
-| `chunk_overlap` | `10` (windows overlap by 10 lines) |
-| `max_file_size_kb` | `512` (hard cap; larger files silently skipped) |
-| `exclude` | `.git`, `node_modules`, `vendor`, `dist`, `build`, `target`, `__pycache__`, `.next`, `.cache`, `.venv`, `venv`, `coverage`, `.idea`, `.vscode`, `go.sum`, `.terraform`, … |
-
-An empty `include` means "everything not excluded". A skill should never hardcode a different chunk window — it inherits these.
+| `chunk_overlap` | `10` |
+| `max_file_size_kb` | `512` (hard cap; larger files skipped) |
 
 ## Recording findings
 
-After indexing or searching, `mem_save` what you learned (architecture notes, surprising file locations, gotchas) following the memory rules in [mnemonic-memory.md](mnemonic-memory.md) (`scope: project`, active `session_id`, `title == topic_key`).
+After indexing or searching, `mem_save` what you learned following [mnemonic-memory.md](mnemonic-memory.md).
 
 ## CLI fallback
 
-The same indexer is exposed via the `skillgrid` CLI for contexts that cannot call MCP (scripts, CI):
-
 ```bash
 skillgrid index [--dir <path>] [--project <id>]
+skillgrid search <query>                 # Search Intent Router daily path
+skillgrid search --corpus semantic …   # advanced; watch degraded flag
+skillgrid export --project ID --out DIR
+skillgrid serve                          # dashboard: Memory Visualization + Code Graph
 ```
-
-Equivalent to `code_index` over MCP; the CLI requires `--dir` or runs from cwd (MCP auto-detects the git root).
 
 ## Gotchas
 
-- `code_index` indexes the **git root**, not the cwd. If your sources live in a sub-repo, run from the repo root or pass `--dir`.
-- **512 KB file cap is hardcoded** — large generated/bundled files are silently skipped (counted in `files_skipped`).
-- `code_search` is an **FTS5 phrase query** — the whole string is one phrase. For "A AND B", issue separate `code_search` calls.
-- `score` is the **negated BM25 rank** (a negative number; lower = better). Sort score descending when ranking hits yourself.
-- FTS5 tokenizer is **trigram** (no Porter stemming): substring / partial-word matches work; morphological variants (`validate` vs `validation`) do not collapse.
-- `code_read` returns **joined chunk text** with a few duplicated lines at boundaries (chunks overlap) — don't treat boundary lines as authoritative.
-- `code_status` staleness is **binary** (populated or not) — there is no "stale after N hours". Run `code_index` if unsure.
-- The index is **per-project** (one SQLite file, one project scope). No cross-project search; index each repo in a multi-repo workspace separately.
+- `code_index` indexes the **git root**, not the cwd.
+- Semantic path without embedder → **explicit** `degraded` metadata, never silent.
+- `stale=true` ≠ lag; use `freshness`.
+- Codebase Map prose under `docs/skillgrid/codebase/` does **not** replace the Orientation Ladder.
+- The index is **per-project** (one SQLite file). No cross-project search.
 
 ## Why This Convention
 
-- Single canonical ladder → every skill orders its code-exploration calls identically; no skill skips `code_status`.
-- Search-then-read → context stays bounded (a slice, not a file), matching the memory layer's "preview then retrieve" recovery pattern.
-- Shared config → chunking/caps live in `config.d/indexing.yaml`, so skills and the CLI stay consistent instead of each hardcoding a window.
-- Pointers, not copies → the heavy detail (schemas, chunking, params) stays in the `mnemonic-code-index` skill; this file only keeps the contract every skill must honor.
+- Orientation Ladder first → agents stop tree-dumping as primary nav.
+- Search Intent Router → daily path vs advanced corpora, not flat six-peer-only UX.
+- Honest freshness + explicit semantic degrade → agents reindex and trust labels.
+- Pointers, not copies → heavy schemas stay in the `mnemonic-code-index` skill.

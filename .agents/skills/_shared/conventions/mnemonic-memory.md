@@ -146,6 +146,16 @@ Before ending a phase, session, or saying "done":
 
 After compaction / resumed session: FIRST call `mem_session_summary` with the compacted content, then `mem_context` to recover prior context.
 
+## Operator export and visualization
+
+Read-only observation surfaces (not SDD write authority):
+
+- `skillgrid export --project ID --out DIR` — Obsidian Markdown + viz JSON under an allowed root
+- **Memory Visualization** in the `skillgrid serve` dashboard webui — browse observations; mutate/delete via viz is rejected
+- **Code Graph** in the same dashboard — callers | source | callees explorers over Edges; graph viz mutate is rejected
+
+For code retrieval (Search Intent Router, Index Freshness, Orientation Ladder), see [mnemonic-code-indexing.md](mnemonic-code-indexing.md).
+
 ## Why This Convention
 
 - Deterministic `title` == `topic_key` → recovery works by exact match

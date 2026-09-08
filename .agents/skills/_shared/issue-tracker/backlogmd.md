@@ -84,4 +84,17 @@ For `force_ticket_creation` plan/acceptance tickets (propose/spec), still fill T
 
 ## force_ticket_creation
 
-When `force_ticket_creation` is `true`, the `issue-creation` skill MUST be invoked to create the ticket for the `change.md` and `tasks.md` artifacts at the `sdd-propose` and `sdd-spec` phases. Required-field gate still applies.
+When `force_ticket_creation` is `true`, the `issue-creation` skill MUST be invoked to create the ticket for the `change.md` and `tasks.md` artifacts at the `sdd-propose` and `sdd-spec` phases. Required-field gate still applies. Write the resulting id into `change.md` **`Ticket:`** (never leave `none` after a successful create).
+
+### Ticket lifecycle (mandatory when `Ticket:` is set)
+
+Creation alone is not enough. When `change.md` has a real ticket id (from `force_ticket_creation` or a pre-linked ticket), every later SDD phase owns a tracker update via the `backlog` CLI (filesystem fallback only on CLI crash):
+
+| Phase | Tracker action |
+|---|---|
+| **`sdd-apply` (start)** | `backlog task edit <ID> -s in-progress` (if not already); comment or `--notes` that apply began for `<NNN-slug>` |
+| **`sdd-apply` (per step commit)** | Commit footer **`Refs: <ID>`** (see `_shared/conventions/commits.md`) |
+| **`sdd-verify` (PASS / PASS WITH WARNINGS)** | Comment that verify passed; leave status `in-progress` until archive (or `ready-for-human` only if human QA is still open) |
+| **`sdd-archive`** | `backlog task edit <ID> -s done` → `backlog task complete <ID>`; include ticket path changes in the **archive commit** |
+
+If `Ticket: none`, skip all tracker mutations. Do not invent an id.

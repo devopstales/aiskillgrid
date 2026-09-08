@@ -11,7 +11,7 @@ metadata:
 
 # SDD Map Codebase
 
-Optional brownfield narrative map. **Skip greenfield.** Primary navigation stays Mnemonic code-index (`code_status` → `code_index` → `code_search` → `code_read`). This map is refreshable context for humans/agents — not a second search index.
+Optional brownfield narrative map. **Skip greenfield.** Primary navigation stays the Mnemonic Orientation Ladder (`code_status` → `code_map` → symbols/outline → related → `code_read`; reindex when freshness is not `fresh`). This map is refreshable context for humans/agents — not a second search index.
 
 Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md).
 

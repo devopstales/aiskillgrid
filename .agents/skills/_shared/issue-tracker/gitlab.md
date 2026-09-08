@@ -31,4 +31,12 @@ The `issue-creation` skill maps each step's `tasks.md` items (`docs/skillgrid/ch
 
 ## force_ticket_creation
 
-When `force_ticket_creation` is `true`, the `issue-creation` skill MUST be invoked to create the ticket for the `change.md` and `tasks.md` artifacts at the `sdd-propose` and `sdd-spec` phases.
+When `force_ticket_creation` is `true`, the `issue-creation` skill MUST be invoked to create the ticket for the `change.md` and `tasks.md` artifacts at the `sdd-propose` and `sdd-spec` phases. Write the resulting `#<iid>` into `change.md` **`Ticket:`**.
+
+### Ticket lifecycle (mandatory when `Ticket:` is set)
+
+| Phase | Tracker action |
+|---|---|
+| **`sdd-apply`** | Keep issue open; every step commit uses `Refs #<iid>`; optional progress comment |
+| **`sdd-verify`** | Comment verify verdict |
+| **`sdd-archive`** | Closing commit / MR uses `Closes #<iid>` (or `glab issue close`); ticket close is part of archive, not optional |

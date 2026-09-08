@@ -143,3 +143,16 @@ If you see a message about compaction or context reset:
 
 Do not skip step 1. Without it, everything done before compaction is lost from memory.
 All core tools are loaded automatically by the hook at session start. If they are unexpectedly missing, rerun `skillgrid setup` and restart the agent.
+
+## Related retrieval surfaces
+
+Code navigation, Search Intent Router, Index Freshness, and Orientation Ladder live in the `mnemonic-code-index` skill and `_shared/conventions/mnemonic-code-indexing.md`.
+
+Operator paths for memory outside MCP:
+
+```bash
+skillgrid export --project ID --out DIR   # Obsidian Markdown + viz JSON (read-only export)
+skillgrid serve                           # dashboard Memory Visualization + Code Graph (read-only)
+```
+
+Viz/export are not a second write authority for SDD artifacts — filesystem + `mem_*` remain authoritative.

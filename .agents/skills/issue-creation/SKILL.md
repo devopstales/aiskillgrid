@@ -78,7 +78,7 @@ When the resolved tracker is Backlog.md, a ticket is **not published** until all
 
 Also require Description (Current/Expected), Acceptance Criteria, and `priority:`.
 
-**SDD / `force_ticket_creation`:** seed References to `change.md` / `tasks.md` / `acceptance.feature`; seed Plan from the Step Blueprint; seed DoD from project defaults + change-level DoD. Thin one-line description stubs are **forbidden**.
+**SDD / `force_ticket_creation`:** seed References to `change.md` / `tasks.md` / `acceptance.feature`; seed Plan from the Step Blueprint; seed DoD from project defaults + change-level DoD. Thin one-line description stubs are **forbidden**. After create, write the id into `change.md` **`Ticket:`**. Later phases (`sdd-apply` / `sdd-verify` / `sdd-archive`) **must** run the tracker **Ticket lifecycle** in `_shared/issue-tracker/` — creation without progress/close-out is incomplete.
 
 **CLI crash:** filesystem fallback under `.backlog/tasks/` is allowed only if it still satisfies this gate (see `_shared/issue-tracker/backlogmd.md`).
 

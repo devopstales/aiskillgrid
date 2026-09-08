@@ -22,6 +22,8 @@ Commit by **work unit**, not by file type. Typical caller: `sdd-apply`.
 | Reviewable alone | After this commit alone, the repo should still make sense. |
 | Message tells why | Conventional Commits; outcome, not a file list. |
 | Per step always | Each SDD `## NN-<name>` step gets its own commit(s) when DoD is met — **even if** `Delivery strategy` is `single-pr`. One PR may contain many step commits; never collapse steps into one mega-commit. |
+| Ticket footer | When `change.md` `Ticket:` is set, every step commit includes the tracker footer (`Refs:` / `Refs #…`). |
+| Archive commit | `sdd-archive` always commits the `changes/` → `archive/` move (+ ticket close-out when Ticket set). |
 
 Shared contract: [`_shared/conventions/commits.md`](../_shared/conventions/commits.md).
 
