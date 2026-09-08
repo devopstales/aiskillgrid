@@ -6,7 +6,7 @@ argument-hint: "What out-of-scope problem should the brief cover?"
 
 # handoff
 
-Peel a **side problem** out of the current change so this context stays on-scope. The brief feeds a **subagent** or a separate session — not archive, not session close (those use `sdd-archive` + `mnemonic-memory`).
+Peel a **side problem** out of the current change so this context stays on-scope. The brief feeds a **subagent** or a separate session — not archive, not session close (those use `sdd-archive` + `mnemonic`).
 
 Save to OS temp (`/tmp` on Linux/macOS, `%TEMP%` on Windows). **Never** under `docs/skillgrid/changes/` or the workspace change folder.
 
@@ -18,7 +18,7 @@ Save to OS temp (`/tmp` on Linux/macOS, `%TEMP%` on Windows). **Never** under `d
 4. **Artifacts** — Link paths/URLs; do not duplicate content:
    - Parent change (orientation only): `docs/skillgrid/changes/<NNN-slug>/`
    - Issues, code paths, research the receiver needs
-5. **Suggested skills** — Skills the receiver should load (e.g. `investigate`, `debugging`, `design-spike`, `issue-creation`). If starting fresh: `mnemonic-memory` + `mem_session_start`.
+5. **Suggested skills** — Skills the receiver should load (e.g. `investigate`, `debugging`, `design-spike`, `issue-creation`). If starting fresh: `mnemonic` + `mem_session_start`.
 6. **Next steps** — Concrete ordered actions for the **spun-off** problem only.
 7. **Gotchas** — Non-obvious traps that would waste the receiver's time.
 

@@ -77,7 +77,7 @@ Include **verbatim** `diff -r` output in the result. Do not write `archive-repor
 ### 4. Optional finish-branch + learnings
 
 - Optionally call **`finishing-a-development-branch`** (merge / PR / discard) — ship path is optional, not a separate stage.
-- Extract learnings via **`mnemonic-memory`** (`mem_save` decisions/patterns; changelog line on `sdd/{project}/changelog`).
+- Extract learnings via **`mnemonic`** (`mem_save` decisions/patterns; changelog line on `sdd/{project}/changelog`).
 - Do **not** call `handoff` to “close” the cycle.
 
 ### 5. Persist + envelope
@@ -106,6 +106,6 @@ Include **verbatim** `diff -r` output in the result. Do not write `archive-repor
 ## References
 
 - [`../sdd-verify/SKILL.md`](../sdd-verify/SKILL.md) · [`../finishing-a-development-branch/SKILL.md`](../finishing-a-development-branch/SKILL.md)
-- [`../mnemonic-memory/SKILL.md`](../mnemonic-memory/SKILL.md)
+- [`../mnemonic/SKILL.md`](../mnemonic/SKILL.md)
 - [`../_shared/templates/template-tasks.md`](../_shared/templates/template-tasks.md)
 - [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) · [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md)

@@ -7,7 +7,7 @@ Two kinds of skills. Do not duplicate a general capability as an `sdd-*` stage s
 | Kind | Rule | Examples |
 |------|------|----------|
 | **Workflow** | Owns a pipeline stage (or the entry orchestrator). Writes stage artifacts under `docs/skillgrid/`. | `use-skillgrid`, `sdd-propose`, `sdd-apply` |
-| **General** | Reusable across stages and outside SDD. Stages invoke them; they do not own `## State.phase`. | `tdd`, `questioning`, `mnemonic-memory` |
+| **General** | Reusable across stages and outside SDD. Stages invoke them; they do not own `## State.phase`. | `tdd`, `questioning`, `mnemonic` |
 
 Priority: `use-skillgrid` → `sdd-*` stage → general skills the stage loads.
 
@@ -47,7 +47,7 @@ Skills live under `.agents/skills/` (hub copied to `~/.agents/` on install). Pro
 | `verification` | Verify, any “done” claim |
 | `requesting-code-review` / `review-reception` / `judgment-day` | Verify |
 | `finishing-a-development-branch` | Archive / ship |
-| `mnemonic-memory` | All stages |
+| `mnemonic` | All stages |
 | `handoff` | Peel out-of-scope side work mid-change |
 | `issue-creation` | When tracker tickets are forced |
 | `work-unit-commits` | Apply |

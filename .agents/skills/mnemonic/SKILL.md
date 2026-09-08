@@ -1,6 +1,6 @@
 ---
 name: mnemonic
-description: "skillgrid-cli memory + code index + web cache — sessions, mem_save/search, code ladder, centralized search router"
+description: "ALWAYS ACTIVE — Mnemonic memory, code index, and web cache protocol: proactive mem_save, code ladder, search router, sessions"
 trigger: /mnemonic
 ---
 
@@ -11,6 +11,17 @@ Three things it does that a bare agent cannot:
 1. **Persistent memory** — decisions, bugfixes, and discoveries in `~/.skillgrid/mnemonic/<project>.sqlite` survive across sessions and compactions. Recall weeks later without re-reading everything.
 2. **Code index** — per-project chunk/symbol/edge graph with freshness tracking. Orient without dumping whole trees.
 3. **Web cache** — Context7/Exa/DeepWiki/WebFetch snapshots with TTLs, so online research is reused instead of re-fetched.
+
+## Tools
+
+- Core (loaded automatically at session start by the hook or the `mnemonic` MCP — no manual search needed):
+  `mem_save`, `mem_search`, `mem_context`, `mem_session_start`, `mem_session_end`, `mem_session_summary`,
+  `mem_save_prompt`, `mem_get_observation`, `mem_suggest_topic_key`,
+  `code_status`, `code_index`, `code_search`, `code_read`,
+  `web_cache_lookup`, `web_cache_save`, `web_cache_search`, `web_cache_get`
+- Deferred (fetch on demand): `mem_stats`, `mem_delete`, `mem_timeline`, `mem_pin`, `mem_review`, `mem_capture_passive`
+
+**Fallback**: if tools are unexpectedly unavailable, run `skillgrid setup` again and restart the agent. Setup repairs the durable MCP config and permissions allowlist.
 
 ## Usage
 
@@ -73,7 +84,14 @@ Also search proactively when starting work that may overlap prior sessions, or w
 
 ### Step 4 — Save during work (mandatory — do NOT wait to be asked)
 
-Call `mem_save` IMMEDIATELY after: bug fix, architecture/decision, non-obvious discovery, config change, new pattern, user preference/correction/confirmation.
+Call `mem_save` IMMEDIATELY and WITHOUT BEING ASKED after:
+
+- **Decisions/conventions**: architecture or design decision made, team convention documented, workflow change agreed, tool/library choice made with tradeoffs
+- **Completed work**: bug fix (include root cause), feature with non-obvious approach, artifact created with significant content, config/environment change
+- **Discoveries**: non-obvious codebase finding, gotcha or edge case, pattern established, user preference or constraint learned
+- **User confirmation/rejection**: user confirms a recommendation, rejects an approach, expresses a preference, or a discussion concludes with a chosen direction — even if the agent proposed it
+
+Self-check after EVERY task: "Did I or the user just make a decision, confirm a recommendation, express a preference, fix a bug, learn something non-obvious, or establish a convention? If yes, call `mem_save` NOW."
 
 ```
 mem_save(
@@ -128,9 +146,33 @@ web_cache_lookup(source: context7|exa|deepwiki|fetch|manual, ...)  # BEFORE the 
 ### Step 7 — Close the session (mandatory before saying "done")
 
 ```
-1. mem_session_summary(session_id: sid, summary: "## Goal… ## Discoveries… ## Accomplished… ## Next Steps… ## Relevant Files…")
+1. mem_session_summary(session_id: sid, summary: <structure below>)
 2. mem_session_end(session_id: sid, summary: "one-line outcome")
 ```
+
+`mem_session_summary` structure (required):
+
+```
+## Goal
+[What we were working on this session]
+
+## Instructions
+[User preferences or constraints discovered — skip if none]
+
+## Discoveries
+- [Technical findings, gotchas, non-obvious learnings]
+
+## Accomplished
+- [Completed items with key details]
+
+## Next Steps
+- [What remains to be done — for the next session]
+
+## Relevant Files
+- path/to/file — [what it does or what changed]
+```
+
+This is NOT optional — if you skip it, the next session starts blind.
 
 After compaction / "FIRST ACTION REQUIRED": FIRST call `mem_session_summary` with the compacted content, then `mem_context`, only then continue.
 
@@ -148,4 +190,4 @@ After compaction / "FIRST ACTION REQUIRED": FIRST call `mem_session_summary` wit
 | `skillgrid trail <recent\|show>` | inspect retrieval trails |
 | `skillgrid export --project ID --out DIR` | Obsidian Markdown + viz JSON (allowed-root enforced) |
 
-Full protocol refs: `.agents/skills/mnemonic-memory/SKILL.md`, `.agents/skills/mnemonic-code-index/SKILL.md`, `.agents/skills/_shared/conventions/mnemonic-memory.md`.
+Full protocol refs: `.agents/skills/_shared/conventions/mnemonic-memory.md` (SDD artifact naming, two-step recovery, upserts), `.agents/skills/mnemonic-code-index/SKILL.md` (code index + search router), `.agents/skills/_shared/conventions/mnemonic-code-indexing.md`.

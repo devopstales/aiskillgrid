@@ -60,7 +60,7 @@ Skill-registry / CONTEXT / CONSTRAINTS / `docs/adr/` are **not** init signals.
 |---|---|---|
 | Uninitialized | `sdd-onboard` → `sdd-init` | After validate, if change stated → propose path |
 | Initialized + change | optional `sdd-explore` / `design-spike` → `sdd-propose` | `sdd-spec` → gate → `sdd-apply` ⇄ `sdd-verify` → `sdd-archive` |
-| Q&A / lookup | *(no pipeline)* | `mnemonic-memory` / code-index / `investigate` |
+| Q&A / lookup | *(no pipeline)* | `mnemonic` / code-index / `investigate` |
 | Spike-only | `design-spike` | Promote to propose if user keeps findings |
 | Mid-change | Resume from `tasks.md` `## State.phase` | verify findings may force apply |
 
