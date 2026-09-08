@@ -15,13 +15,38 @@ const (
 // data directory from SKILLGRID_MNEMONIC_DATA_DIR / ~/.skillgrid/mnemonic.
 var svc *service.Service
 
+// pool is the lazy per-project store pool shared by the MCP server. It is
+// initialized on the first query; tests may replace it.
+var pool *StorePool
+
+// serverOptions returns the MCP server options: the initialize-injected
+// guidance (steer to the composite primary tool, don't re-grep) and the
+// tool filter that hides the narrow code_* menu tools by default.
+func serverOptions() []server.ServerOption {
+	return []server.ServerOption{
+		server.WithInstructions(exploreInitializeGuidance()),
+		server.WithToolFilter(applyCodeToolFilter()),
+	}
+}
+
+// ensurePool lazily creates the shared store pool on first use.
+func ensurePool() *StorePool {
+	if pool == nil {
+		d, _ := service.DefaultDataDir()
+		pool = NewStorePool(d, 0, 0)
+	}
+	return pool
+}
+
 // Start blocks on the stdio MCP loop until the client disconnects.
 func Start() error {
-	s := server.NewMCPServer(serverName, serverVersion)
+	s := server.NewMCPServer(serverName, serverVersion, serverOptions()...)
 	registerMemoryTools(s)
 	registerCodeTools(s)
 	registerOrientTools(s)
 	registerGrepTools(s)
+	registerGraphTools(s)
+	registerExploreTools(s)
 	registerWebTools(s)
 	registerTeamsTools(s)
 	registerRetrievalTools(s)
@@ -35,11 +60,13 @@ type Server = server.MCPServer
 
 // NewServer returns an MCP server instance with all tools registered.
 func NewServer() *Server {
-	s := server.NewMCPServer(serverName, serverVersion)
+	s := server.NewMCPServer(serverName, serverVersion, serverOptions()...)
 	registerMemoryTools(s)
 	registerCodeTools(s)
 	registerOrientTools(s)
 	registerGrepTools(s)
+	registerGraphTools(s)
+	registerExploreTools(s)
 	registerWebTools(s)
 	registerTeamsTools(s)
 	registerRetrievalTools(s)

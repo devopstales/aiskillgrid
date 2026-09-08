@@ -10,6 +10,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
 
 func registerCodeTools(s *server.MCPServer) {
@@ -70,12 +71,19 @@ func handleCodeStatus(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 	if err != nil {
 		return toolError(err)
 	}
+	// Additive: per-language fair coverage (measured from edges). Existing
+	// fields stay unchanged.
+	coverage := map[string]service.FairCoverageDTO{}
+	if cov, covErr := svc.CodeFairCoverage(ctx, projectID); covErr == nil {
+		coverage = cov
+	}
 
 	return JSONResult(map[string]any{
-		"file_count":   status.FileCount,
-		"chunk_count":  status.ChunkCount,
-		"last_indexed": status.LastIndexed,
-		"stale":        stale,
+		"file_count":    status.FileCount,
+		"chunk_count":   status.ChunkCount,
+		"last_indexed":  status.LastIndexed,
+		"stale":         stale,
+		"fair_coverage": coverage,
 	})
 }
 

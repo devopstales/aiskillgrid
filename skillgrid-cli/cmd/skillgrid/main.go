@@ -52,6 +52,16 @@ func main() {
 		fmt.Fprintln(w, `  index         Incremental code indexing`)
 		fmt.Fprintln(w, `  orient        Tier-1 code orientation (signature, TOC, map, list, metadata)`)
 		fmt.Fprintln(w, `  grep          Structural by-example grep (index-free, per-language AST)`)
+		fmt.Fprintln(w, `  callers       Graph callers for a symbol (confidence-labeled)`)
+		fmt.Fprintln(w, `  callees       Graph callees for a symbol (confidence-labeled)`)
+		fmt.Fprintln(w, `  dependents    Graph dependents for a symbol (confidence-labeled)`)
+		fmt.Fprintln(w, `  implementors  Graph implementors for a symbol`)
+		fmt.Fprintln(w, `  hierarchy     Structural hierarchy (extends/implements)`)
+		fmt.Fprintln(w, `  tests-for     Test relationships for a symbol`)
+		fmt.Fprintln(w, `  path          Shortest edge path, or where the graph stops`)
+		fmt.Fprintln(w, `  explain       Symbol node + degree + connections ranked by degree`)
+		fmt.Fprintln(w, `  impact        Risk-tiered blast radius (WILL BREAK / LIKELY AFFECTED)`)
+		fmt.Fprintln(w, `  explore       Composite: source + call-flow + blast radius in one call`)
 		fmt.Fprintln(w, `  setup         Install agent plugins (opencode|kilocode|cursor)`)
 		fmt.Fprintln(w, `  migrate       Backfill mnemonic tier sidecars (--tier)`)
 		fmt.Fprintln(w, `  trail         Inspect retrieval trails (recent|show)`)
@@ -127,6 +137,10 @@ func main() {
 		runCodeIntel(version, rest)
 		return
 	case "grep":
+		runCodeIntel(version, rest)
+		return
+	case "callers", "callees", "dependents", "implementors", "hierarchy",
+		"tests-for", "path", "explain", "impact", "explore":
 		runCodeIntel(version, rest)
 		return
 	case "setup":

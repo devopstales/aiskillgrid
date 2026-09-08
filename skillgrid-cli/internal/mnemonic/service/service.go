@@ -16,6 +16,7 @@ import (
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/config"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/files"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/project"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
@@ -1242,6 +1243,327 @@ func (s *Service) ReadIndexedCode(ctx context.Context, projectID, path string, s
 	}
 	defer cleanup()
 	return readIndexedCode(h.store.DB, path, startLine, endLine)
+}
+
+// ImpactOptions tunes a blast-radius traversal (narrowing + confidence).
+type ImpactOptions struct {
+	File          string
+	UID           string
+	Kind          string
+	MinConfidence string
+	MaxDepth      int
+}
+
+// ImpactResultDTO is the code_impact answer. Either Target+tiers is set (a
+// single resolved symbol) or Candidates is set (a ranked ambiguous list —
+// never a silent pick).
+type ImpactResultDTO struct {
+	Ambiguous  bool                 `json:"ambiguous,omitempty"`
+	Candidates []graph.Symbol       `json:"candidates,omitempty"`
+	Target     *graph.Symbol        `json:"target,omitempty"`
+	WillBreak  []graph.ImpactEdge   `json:"will_break,omitempty"`
+	Likely     []graph.ImpactEdge   `json:"likely_affected,omitempty"`
+	Excluded   int                  `json:"excluded_low_confidence,omitempty"`
+}
+
+func (r *ImpactResultDTO) Summary() string {
+	if r == nil {
+		return ""
+	}
+	if r.Ambiguous {
+		return fmt.Sprintf("ambiguous: %d candidates (narrow with file/uid/kind)", len(r.Candidates))
+	}
+	return fmt.Sprintf("will_break: %d, likely_affected: %d", len(r.WillBreak), len(r.Likely))
+}
+
+// Impact is the risk-tiered blast-radius DTO for the graph package result.
+type Impact = graph.ImpactResult
+
+// CodeImpact returns the risk-tiered blast radius for symbol, honoring the
+// narrowing + confidence options. A name matching several symbols returns a
+// ranked candidate list (never a silent pick); an unknown symbol returns an
+// empty (not-found) result.
+func (s *Service) CodeImpact(ctx context.Context, projectID, symbol string, opts ImpactOptions) (*ImpactResultDTO, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	res, err := graph.Resolve(ctx, h.store.DB, symbol, graph.ResolveFilter{
+		File: opts.File, UID: opts.UID, Kind: opts.Kind,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if res.NotFound {
+		return &ImpactResultDTO{}, nil
+	}
+	if res.Ambiguous {
+		ranked, err := graph.RankCandidates(ctx, h.store.DB, res.Matches)
+		if err != nil {
+			return nil, err
+		}
+		return &ImpactResultDTO{Ambiguous: true, Candidates: ranked}, nil
+	}
+	impact, err := graph.Impact(ctx, h.store.DB, res.Target, graph.ImpactOptions{
+		MinConfidence: opts.MinConfidence,
+		MaxDepth:      opts.MaxDepth,
+	})
+	if err != nil {
+		return nil, err
+	}
+	target := res.Target
+	return &ImpactResultDTO{
+		Target:    &target,
+		WillBreak: impact.WillBreak,
+		Likely:    impact.Likely,
+		Excluded:  impact.Excluded,
+	}, nil
+}
+
+// NeighborsDTO is the graph neighbor answer (every edge confidence-labeled).
+type NeighborsDTO struct {
+	Symbol *graph.Symbol `json:"symbol,omitempty"`
+	Edges  []graph.Edge  `json:"edges"`
+	Reason string        `json:"reason,omitempty"`
+}
+
+// GrabNeighbors returns a symbol's confidence-labeled edges for view. An
+// unknown symbol returns not-found (no invented edges).
+func (s *Service) GrabNeighbors(ctx context.Context, projectID, view, symbol string) (*NeighborsDTO, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	res, err := graph.Resolve(ctx, h.store.DB, symbol, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	if res.NotFound {
+		return &NeighborsDTO{Edges: []graph.Edge{}, Reason: "symbol not found: " + symbol}, nil
+	}
+	if res.Ambiguous {
+		// Report ambiguity as a not-found-with-candidates rather than a
+		// silent pick; graph views are single-symbol answers.
+		return &NeighborsDTO{Edges: []graph.Edge{}, Reason: fmt.Sprintf("ambiguous symbol %q: %d candidates (narrow with file/uid/kind)", symbol, len(res.Matches))}, nil
+	}
+	v := graph.View(view)
+	edges, err := graph.Neighbors(ctx, h.store.DB, res.Target, v)
+	if err != nil {
+		return nil, err
+	}
+	sym := res.Target
+	return &NeighborsDTO{Symbol: &sym, Edges: edges}, nil
+}
+
+// PathDTO is the code_path answer.
+type PathDTO struct {
+	Found      bool             `json:"found"`
+	Path       []graph.Edge     `json:"path,omitempty"`
+	GraphStops *graph.GraphStops `json:"graph_stops,omitempty"`
+	Reason     string           `json:"reason,omitempty"`
+}
+
+// CodePath returns the shortest edge path between two symbols or a
+// where-the-graph-stops answer. Unknown endpoints yield a not-found reason.
+func (s *Service) CodePath(ctx context.Context, projectID, from, to string) (*PathDTO, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	resFrom, err := graph.Resolve(ctx, h.store.DB, from, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	resTo, err := graph.Resolve(ctx, h.store.DB, to, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	if resFrom.NotFound || resTo.NotFound {
+		missing := from
+		if !resFrom.NotFound {
+			missing = to
+		}
+		return &PathDTO{Found: false, Reason: "symbol not found: " + missing}, nil
+	}
+	res, err := graph.Path(ctx, h.store.DB, resFrom.Target, resTo.Target)
+	if err != nil {
+		return nil, err
+	}
+	return &PathDTO{Found: res.Found, Path: res.Path, GraphStops: res.GraphStops}, nil
+}
+
+// ExplainDTO is the code_explain answer.
+type ExplainDTO struct {
+	Found       bool          `json:"found"`
+	Symbol      *graph.Symbol `json:"symbol,omitempty"`
+	Degree      int           `json:"degree"`
+	Connections []graph.Conn  `json:"connections"`
+	Reason      string        `json:"reason,omitempty"`
+}
+
+// CodeExplain returns a symbol's node, degree, and connections ranked by the
+// neighbor's degree. Unknown symbol returns not-found.
+func (s *Service) CodeExplain(ctx context.Context, projectID, symbol string) (*ExplainDTO, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	res, err := graph.Resolve(ctx, h.store.DB, symbol, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	if res.NotFound {
+		return &ExplainDTO{Found: false, Connections: []graph.Conn{}, Reason: "symbol not found: " + symbol}, nil
+	}
+	out, err := graph.Explain(ctx, h.store.DB, res.Target)
+	if err != nil {
+		return nil, err
+	}
+	sym := res.Target
+	return &ExplainDTO{Found: true, Symbol: &sym, Degree: out.Degree, Connections: out.Connections}, nil
+}
+
+// FairCoverageDTO is the per-language fair-coverage field for code_status.
+type FairCoverageDTO = graph.CoverageLang
+
+// CodeFairCoverage returns measured per-language fair coverage from edges.
+func (s *Service) CodeFairCoverage(ctx context.Context, projectID string) (map[string]FairCoverageDTO, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return graph.FairCoverage(ctx, h.store.DB)
+}
+
+// ExploreSourceSpan is one symbol's verbatim source slice.
+type ExploreSourceSpan struct {
+	Symbol    string
+	StartLine int
+	EndLine   int
+	Content   string
+}
+
+// ExploreFlowEdge is one call-flow hop between returned symbols.
+type ExploreFlowEdge struct {
+	From       string
+	To         string
+	Kind       string
+	Confidence string
+	Line       int
+}
+
+// ExploreResult is the composite code_explore answer.
+type ExploreResult struct {
+	Symbol string
+	Source map[string][]ExploreSourceSpan
+	Flow   []ExploreFlowEdge
+	Impact *ImpactResultDTO
+}
+
+// CodeExplore assembles the composite answer: the symbol's source (grouped by
+// file), its call-flow neighbors (including INFERRED dynamic-dispatch hops),
+// and a blast-radius summary.
+func (s *Service) CodeExplore(ctx context.Context, projectID, symbol string) (*ExploreResult, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	res, err := graph.Resolve(ctx, h.store.DB, symbol, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	out := &ExploreResult{Symbol: symbol, Source: map[string][]ExploreSourceSpan{}}
+	if res.NotFound {
+		return out, nil
+	}
+	target := res.Target
+	// Pull verbatim source for the target symbol.
+	spans, err := s.readSymbolSpans(ctx, h.store.DB, []graph.Symbol{target})
+	if err == nil {
+		for path, ss := range spans {
+			out.Source[path] = ss
+		}
+	}
+	// Gather the call-flow: forward (callees) and reverse (callers) edges,
+	// including INFERRED dynamic-dispatch hops.
+	callees, _ := graph.Neighbors(ctx, h.store.DB, target, graph.ViewCallees)
+	callers, _ := graph.Neighbors(ctx, h.store.DB, target, graph.ViewCallers)
+	related := []graph.Symbol{}
+	seen := map[int64]bool{target.ID: true}
+	for _, e := range append(append([]graph.Edge{}, callees...), callers...) {
+		other := e.To
+		if e.From.ID == target.ID && e.To.ID != target.ID {
+			other = e.To
+		}
+		if e.From.ID != target.ID && e.To.ID != target.ID {
+			other = e.To
+		}
+		if other.ID == 0 {
+			continue
+		}
+		out.Flow = append(out.Flow, ExploreFlowEdge{
+			From:       nameOf(target, other),
+			To:         nameOf(other, target),
+			Kind:       e.Kind,
+			Confidence: e.Confidence,
+			Line:       e.Line,
+		})
+		if !seen[other.ID] {
+			seen[other.ID] = true
+			related = append(related, other)
+		}
+	}
+	if len(related) > 0 {
+		if spans, err := s.readSymbolSpans(ctx, h.store.DB, related); err == nil {
+			for path, ss := range spans {
+				out.Source[path] = append(out.Source[path], ss...)
+			}
+		}
+	}
+	out.Impact, err = s.CodeImpact(ctx, projectID, symbol, ImpactOptions{})
+	if err != nil {
+		out.Impact = &ImpactResultDTO{}
+	}
+	return out, nil
+}
+
+// nameOf returns the from-side name for a flow hop relative to target.
+func nameOf(a, b graph.Symbol) string {
+	if a.ID != 0 {
+		return a.Name
+	}
+	if b.ID != 0 {
+		return b.Name
+	}
+	return ""
+}
+
+// readSymbolSpans returns each symbol's verbatim source grouped by file.
+func (s *Service) readSymbolSpans(ctx context.Context, db *sql.DB, syms []graph.Symbol) (map[string][]ExploreSourceSpan, error) {
+	out := map[string][]ExploreSourceSpan{}
+	for _, sym := range syms {
+		if sym.ID == 0 {
+			continue
+		}
+		res, err := readIndexedCode(db, sym.Path, sym.StartLine, sym.EndLine)
+		if err != nil {
+			continue
+		}
+		text, _ := res["text"].(string)
+		out[sym.Path] = append(out[sym.Path], ExploreSourceSpan{
+			Symbol:    sym.Name,
+			StartLine: sym.StartLine,
+			EndLine:   sym.EndLine,
+			Content:   text,
+		})
+	}
+	return out, nil
 }
 
 // RunCodeIndex runs incremental code indexing for directory.
