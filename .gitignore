@@ -8,13 +8,6 @@ node_modules
 install*.sh*
 !install.sh
 
-.skillgrid/prd/
-.skillgrid/tasks/*.md
-.skillgrid/tasks/events/*.jsonl
-.skillgrid/tasks/events/*.json
-.skillgrid/acceptance-tests/.extracted/
-.skillgrid/acceptance-tests/reports/
-
 # skillgrid-cli build artifacts (Taskfile at repo root builds into dist/)
 /dist/
 skillgrid-cli/dist/
