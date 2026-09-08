@@ -1,4 +1,13 @@
 
+skill-pi (Pi distribution)
+    * [03-skill-pi.md](03-skill-pi.md) — full plan for skill-pi: fat Pi distribution with SDD subagents, Mnemonic, dashboard, permissions, local LLM
+    * command: `skill-pi`, home: `~/skill-pi/`, install: `npm i -g skill-pi` or `skillgrid install --agents skill-pi`
+    * extensions: splash, mnemonic, sdd, permissions, dashboard, local-llm
+    * subagents: sdd-explore, sdd-propose, sdd-spec, sdd-apply, sdd-verify, sdd-archive
+    * bundled plugins: pi-mcp-adapter, pi-web-access, pi-subagents, rpiv-ask-user-question, rpiv-todo, rpiv-web-tools
+    * local LLM: Ollama + vLLM auto-detect in /login
+    * permission: gotgenes gates + inobit ask/plan UX, config at ~/skill-pi/permission.json
+    * theme: tokyonight + skillgrid logo (omegon-style splash)
 opencode plugins
     * hooks plugin allowing the execution of `/.cursor/hooks/`
     * mnemonic memory plugin similare to engram

@@ -281,11 +281,13 @@ Carry forward the v3 change-folder layout; first stage is **onboard**; **explore
 
 ### Multi-harness context model (rethink)
 
-Target harnesses: **OpenCode, Kilo Code, VS Code (Copilot/agent), Cursor**. All share one Skillgrid tree; harness files only **point**, they do not fork project facts.
+Target harnesses: **OpenCode, Kilo Code, VS Code (Copilot/agent), Cursor, skill-pi (Pi)**. All share one Skillgrid tree; harness files only **point**, they do not fork project facts.
+
+**skill-pi** is a fat npm distribution that vendors `@earendil-works/pi-coding-agent` and layers Skillgrid SDD, Mnemonic, sub-agents, dashboard, permissions, and local LLM on top. Command: `skill-pi`. Home: `~/skill-pi/`. Install: `npm i -g skill-pi` or `skillgrid install --agents skill-pi`. See [03-skill-pi](03-skill-pi.md).
 
 | Artifact | Verdict | Why |
 |---|---|---|
-| `docs/skillgrid/config.yaml` | **Required — single SoT** | Stack, tracker, testing, `rules.*` (quality bar), short `context`. Every harness reads the same file via the AGENTS block. No second YAML per tool. |
+| `docs/skillgrid/config.yaml` | **Required — single SoT** | Stack, tracker, testing, `rules.*` (quality bar), short `context`. Every harness (including skill-pi) reads the same file via the AGENTS block. No second YAML per tool. |
 | `AGENTS.md` (+ optional one-line pointers in harness files) | **Required pointer** | Cross-agent standard. Full Skillgrid block once here; Cursor/OpenCode/Kilo/VS Code follow or get a one-line “see AGENTS.md”. Never duplicate project facts in four root files. |
 | `docs/skillgrid/glossary/` | **Required when terms exist; stub on init** | Shared business/technical vocabulary for specs. Sibling of `agents/`, not inside it. Prefer this over a root `CONTEXT.md` glossary dump. |
 | `docs/skillgrid/agents/skill-registry.md` | **Optional / generated** | Harnesses already discover `.agents/skills/`. Keep as on-demand index (script), not a gate. Do not block onboard if missing. Drop from “initialized?” detection. |
