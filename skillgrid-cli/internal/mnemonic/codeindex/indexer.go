@@ -14,10 +14,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/extract"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/store"
 )
 
-const maxFileSize = 512 * 1024
+// MaxFileSize is the default first-class size skip threshold. Files larger
+// than this are skipped (counted in stats), not an error, not a fallback.
+const MaxFileSize = 500 * 1024
+
+// maxFileSize is the current run's effective threshold (bytes).
+var maxFileSize int64 = MaxFileSize
 
 // Config controls incremental indexing behavior.
 type Config struct {
@@ -25,14 +31,18 @@ type Config struct {
 	Exclude      []string
 	ChunkLines   int
 	ChunkOverlap int
+	MaxFileSize  int
 }
 
 // Stats summarizes one indexing run.
 type Stats struct {
-	FilesIndexed int `json:"files_indexed"`
-	FilesSkipped int `json:"files_skipped"`
-	FilesDeleted int `json:"files_deleted"`
-	ChunksAdded  int `json:"chunks_added"`
+	FilesIndexed  int `json:"files_indexed"`
+	FilesSkipped  int `json:"files_skipped"`
+	FilesDeleted  int `json:"files_deleted"`
+	ChunksAdded   int `json:"chunks_added"`
+	FilesOversized int `json:"files_oversized"`
+	SymbolsAdded  int `json:"symbols_added"`
+	EdgesAdded    int `json:"edges_added"`
 }
 
 // ScannedFile is a candidate file discovered under the index root.
@@ -69,9 +79,9 @@ func Scan(root string, include, exclude []string) ([]ScannedFile, error) {
 		if err != nil {
 			return err
 		}
-		if info.Size() > maxFileSize {
-			return nil
-		}
+		// Note: size-based skipping is first-class in Indexer.Run (counted in
+		// stats as FilesOversized), not here — so an oversized file is a skip,
+		// not a silent drop, and is independently of exclude globs.
 		rel, err := filepath.Rel(root, path)
 		if err != nil {
 			return err
@@ -240,11 +250,17 @@ type existingFile struct {
 	ContentHash string
 }
 
-// Run scans root and upserts changed files; removes stale entries.
+// Run scans root and upserts changed files; removes stale entries. The graph
+// extract/prune (symbols/edges/embeddings/LSH) runs in the SAME transaction as
+// the chunk sync so the content-hash + mtime guards stay single-path (no
+// dual-sync drift).
 func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, error) {
 	var stats Stats
 	if idx == nil || idx.store == nil || idx.store.DB == nil {
 		return stats, fmt.Errorf("indexer not initialized")
+	}
+	if cfg.MaxFileSize > 0 {
+		maxFileSize = int64(cfg.MaxFileSize)
 	}
 	scanned, err := Scan(root, cfg.Include, cfg.Exclude)
 	if err != nil {
@@ -255,6 +271,7 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 		return stats, err
 	}
 	scannedPaths := make(map[string]struct{}, len(scanned))
+	targetUIDs := make(map[string]struct{})
 	now := time.Now().UTC().Format(time.RFC3339)
 	tx, err := idx.store.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -266,6 +283,12 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 			return stats, err
 		}
 		scannedPaths[file.Path] = struct{}{}
+		if file.Size > maxFileSize {
+			// First-class size skip: counted in stats, not an error, not a
+			// fallback. The file is left out of the index entirely.
+			stats.FilesOversized++
+			continue
+		}
 		prev, ok := existing[file.Path]
 		if ok && prev.MtimeNs == file.MtimeNs && prev.Size == file.Size && prev.ContentHash == file.Hash {
 			stats.FilesSkipped++
@@ -290,21 +313,220 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 			}
 			stats.ChunksAdded++
 		}
+		// Graph pass: extract symbols/edges for this file in the same tx.
+		syms, edges, err := idx.extractFile(file)
+		if err != nil {
+			return stats, fmt.Errorf("extract %s: %w", file.Path, err)
+		}
+		if n, err := writeFileGraph(tx, fileID, syms, edges); err != nil {
+			return stats, err
+		} else {
+			stats.SymbolsAdded += n
+			stats.EdgesAdded += len(edges)
+		}
+		// Record the file's target UIDs for the end-of-tx global prune.
+		for _, s := range syms {
+			targetUIDs[s.UID] = struct{}{}
+		}
 		stats.FilesIndexed++
 	}
+	// Target-state prune: a deleted file prunes its whole footprint via the
+	// file_id cascade; symbols whose file still exists but was rewritten are
+	// handled by the per-file writeFileGraph re-upsert above.
 	for path, prev := range existing {
 		if _, ok := scannedPaths[path]; ok {
 			continue
 		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM files WHERE id = ?`, prev.ID); err != nil {
+		if err := pruneFileFootprint(tx, prev.ID); err != nil {
 			return stats, fmt.Errorf("delete file %s: %w", path, err)
 		}
 		stats.FilesDeleted++
+	}
+	// Global target-state prune: any symbol whose uid is not in the declared
+	// target set is an orphan (its file was deleted or its function removed).
+	// Deleting it cascades to edges, embeddings, LSH buckets, rationale, and
+	// FTS rows in one pass.
+	if err := pruneOrphanSymbols(tx, targetUIDs); err != nil {
+		return stats, fmt.Errorf("prune orphan symbols: %w", err)
+	}
+	// Stale edges: an edge whose to_name no longer matches any live symbol and
+	// whose to_id is null is a dangling name-only edge; drop it. (Name-only
+	// edges to live symbols are kept so step 03 can resolve them.)
+	if _, err := tx.Exec(`
+		DELETE FROM edges
+		WHERE to_id IS NULL
+		  AND NOT EXISTS (SELECT 1 FROM symbols s WHERE s.name = edges.to_name)
+	`); err != nil {
+		return stats, fmt.Errorf("prune dangling edges: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return stats, err
 	}
 	return stats, nil
+}
+
+// pruneOrphanSymbols deletes symbols whose uid is not in the declared target
+// set. The file_id cascade (for deleted files) has already removed their
+// symbols; this catches symbols in surviving files that were rewritten (e.g.
+// a removed function) and whose uid is no longer produced by extraction.
+func pruneOrphanSymbols(tx *sql.Tx, targetUIDs map[string]struct{}) error {
+	rows, err := tx.Query(`SELECT id, uid FROM symbols`)
+	if err != nil {
+		return err
+	}
+	var orphanIDs []int64
+	for rows.Next() {
+		var id int64
+		var uid string
+		if err := rows.Scan(&id, &uid); err != nil {
+			rows.Close()
+			return err
+		}
+		if _, ok := targetUIDs[uid]; !ok {
+			orphanIDs = append(orphanIDs, id)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, id := range orphanIDs {
+		if _, err := tx.Exec(`DELETE FROM symbols WHERE id = ?`, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// extractFile runs the Extractor for one scanned file and returns its symbols
+// and edges. Per-file extraction failures fall back to regex and never abort
+// the run.
+func (idx *Indexer) extractFile(file ScannedFile) ([]extract.Symbol, []extract.Edge, error) {
+	ex := extract.Default()
+	g, err := ex.ExtractFile(file.Path, file.Contents)
+	if err != nil {
+		return nil, nil, err
+	}
+	return g.Symbols, g.Edges, nil
+}
+
+// fileFirstSymbol caches the first (lowest id) symbol of a file for the
+// duration of a writeFileGraph call, used as a default edge source.
+var fileFirstSymbol = map[int64]int64{}
+
+// writeFileGraph upserts a file's target-state symbols and edges. It declares
+// the target rows (the file's extracted symbols), upserts them, prunes the
+// file's now-orphaned symbols (and their edges/vectors/buckets via cascade),
+// then upserts the edges.
+func writeFileGraph(tx *sql.Tx, fileID int64, syms []extract.Symbol, edges []extract.Edge) (int, error) {
+	targetUIDs := make(map[string]struct{}, len(syms))
+	for _, s := range syms {
+		targetUIDs[s.UID] = struct{}{}
+	}
+	// Upsert symbols (and their FTS rows via trigger).
+	var upserted int
+	for _, s := range syms {
+		if _, err := tx.Exec(`
+			INSERT INTO symbols (file_id, name, qualified_name, kind, language, signature, start_line, end_line, content_hash, uid)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(uid) DO UPDATE SET
+			  file_id = excluded.file_id,
+			  name = excluded.name,
+			  qualified_name = excluded.qualified_name,
+			  kind = excluded.kind,
+			  language = excluded.language,
+			  signature = excluded.signature,
+			  start_line = excluded.start_line,
+			  end_line = excluded.end_line,
+			  content_hash = excluded.content_hash`,
+			fileID, s.Name, s.QualifiedName, s.Kind, s.Language, s.Signature, s.StartLine, s.EndLine, s.ContentHash, s.UID,
+		); err != nil {
+			return 0, fmt.Errorf("upsert symbol %s: %w", s.Name, err)
+		}
+		upserted++
+	}
+	// Resolve UIDs to ids for edges, and record the file's first symbol.
+	uidToIDFinal := map[string]int64{}
+	rr, err := tx.Query(`SELECT id, uid FROM symbols WHERE file_id = ? ORDER BY start_line, id`, fileID)
+	if err != nil {
+		return 0, err
+	}
+	for rr.Next() {
+		var id int64
+		var uid string
+		if err := rr.Scan(&id, &uid); err != nil {
+			rr.Close()
+			return 0, err
+		}
+		uidToIDFinal[uid] = id
+		if _, ok := fileFirstSymbol[fileID]; !ok {
+			fileFirstSymbol[fileID] = id
+		}
+	}
+	rr.Close()
+	if err := rr.Err(); err != nil {
+		return 0, err
+	}
+	// Also resolve cross-file target UIDs (a call to a symbol in another file
+	// that is already indexed).
+	if len(edges) > 0 {
+		allUIDs, err := tx.Query(`SELECT uid, id FROM symbols`)
+		if err == nil {
+			for allUIDs.Next() {
+				var uid string
+				var id int64
+				if err := allUIDs.Scan(&uid, &id); err == nil {
+					if _, ok := uidToIDFinal[uid]; !ok {
+						uidToIDFinal[uid] = id
+					}
+				}
+			}
+			allUIDs.Close()
+		}
+	}
+	// Upsert edges. Edges require a resolvable from_id (the symbol they
+	// originate from); import edges are stored with the file's package/first
+	// symbol as the source when no specific symbol is bound.
+	for _, e := range edges {
+		fromID, okFrom := uidToIDFinal[e.FromUID]
+		if !okFrom {
+			// Resolve a default source: for imports, the file's first symbol
+			// (or the file's module). For calls with no enclosing def, the
+			// first symbol in the file.
+			if defID, ok := fileFirstSymbol[fileID]; ok {
+				fromID = defID
+			} else {
+				continue
+			}
+		}
+		var toID sql.NullInt64
+		if e.ToUID != "" {
+			if id, ok := uidToIDFinal[e.ToUID]; ok {
+				toID.Valid = true
+				toID.Int64 = id
+			}
+		}
+		if _, err := tx.Exec(`
+			INSERT INTO edges (kind, from_id, to_id, to_name, target_path, confidence, line)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(kind, from_id, to_id, to_name, target_path, line) DO UPDATE SET
+			  confidence = excluded.confidence`,
+			e.Kind, fromID, toID, e.ToName, e.TargetPath, e.Confidence, e.Line,
+		); err != nil {
+			return 0, fmt.Errorf("upsert edge %s: %w", e.Kind, err)
+		}
+	}
+	return upserted, nil
+}
+
+// pruneFileFootprint deletes a file's whole graph footprint in one pass.
+// Deleting the file cascades to chunks and symbols; deleting each symbol
+// cascades to edges, embeddings, LSH buckets, rationale, and FTS rows.
+func pruneFileFootprint(tx *sql.Tx, fileID int64) error {
+	if _, err := tx.Exec(`DELETE FROM files WHERE id = ?`, fileID); err != nil {
+		return err
+	}
+	return nil
 }
 
 func loadExistingFiles(db *sql.DB) (map[string]existingFile, error) {

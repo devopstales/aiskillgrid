@@ -6,6 +6,7 @@ require (
 	github.com/charmbracelet/huh v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/mark3labs/mcp-go v0.58.0
+	github.com/odvcencio/gotreesitter v0.52.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
 	gopkg.in/yaml.v3 v3.0.1

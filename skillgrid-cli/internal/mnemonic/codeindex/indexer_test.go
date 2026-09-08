@@ -246,13 +246,15 @@ func TestChunkLines(t *testing.T) {
 	}
 }
 
-// TestScanRespectsMaxFileSize skips files > 512KB.
-func TestScanRespectsMaxFileSize(t *testing.T) {
+// TestScanReturnsOversizedFiles verifies Scan returns all matching files;
+// size-based skipping is first-class in Indexer.Run (counted as FilesOversized),
+// not a silent drop in Scan.
+func TestScanReturnsOversizedFiles(t *testing.T) {
 	root := t.TempDir()
 	small := filepath.Join(root, "small.go")
 	mustWrite(t, small, "package main\n")
 	big := filepath.Join(root, "big.go")
-	bigContent := make([]byte, maxFileSize+1)
+	bigContent := make([]byte, MaxFileSize+1)
 	for i := range bigContent {
 		bigContent[i] = 'x'
 	}
@@ -263,11 +265,8 @@ func TestScanRespectsMaxFileSize(t *testing.T) {
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
-	if len(files) != 1 {
-		t.Fatalf("expected 1 file (big.go skipped), got %d", len(files))
-	}
-	if files[0].Path != "small.go" {
-		t.Errorf("unexpected path: %s", files[0].Path)
+	if len(files) != 2 {
+		t.Fatalf("expected Scan to return both files (skip happens in Run), got %d", len(files))
 	}
 }
 
