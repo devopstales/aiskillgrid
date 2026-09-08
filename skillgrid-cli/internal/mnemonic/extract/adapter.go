@@ -41,7 +41,7 @@ func (e *extractor) ExtractFile(path string, src []byte) (*FileGraph, error) {
 	// the file and falls back; the worker respawns up to a bound and the
 	// breaker trips on repeated deaths.
 	var (
-		res treeResult
+		res      treeResult
 		panicked bool
 	)
 	func() {
@@ -108,13 +108,13 @@ func (e *extractor) mapTree(path, lang string, tree *ts.Tree) (*FileGraph, error
 		hash      string
 	}
 	type edgeRec struct {
-		kind     string
-		fromUID  string
-		toUID    string
-		toName   string
-		target   string
-		conf     string
-		line     int
+		kind    string
+		fromUID string
+		toUID   string
+		toName  string
+		target  string
+		conf    string
+		line    int
 	}
 	var defs []defRec
 	var edges []edgeRec
@@ -153,11 +153,11 @@ func (e *extractor) mapTree(path, lang string, tree *ts.Tree) (*FileGraph, error
 			toUID = u
 		}
 		edges = append(edges, edgeRec{
-			kind:    "calls",
-			toUID:   toUID,
-			toName:  target,
-			conf:    conf,
-			line:    line,
+			kind:   "calls",
+			toUID:  toUID,
+			toName: target,
+			conf:   conf,
+			line:   line,
 		})
 	}
 
@@ -170,11 +170,11 @@ func (e *extractor) mapTree(path, lang string, tree *ts.Tree) (*FileGraph, error
 			toUID = u
 		}
 		edges = append(edges, edgeRec{
-			kind:    "extends",
-			toUID:   toUID,
-			toName:  parent,
-			conf:    ConfidenceExtracted,
-			line:    line,
+			kind:   "extends",
+			toUID:  toUID,
+			toName: parent,
+			conf:   ConfidenceExtracted,
+			line:   line,
 		})
 	}
 
@@ -183,11 +183,11 @@ func (e *extractor) mapTree(path, lang string, tree *ts.Tree) (*FileGraph, error
 			return
 		}
 		edges = append(edges, edgeRec{
-			kind:    "imports",
-			toName:  target,
-			target:  target,
-			conf:    conf,
-			line:    line,
+			kind:   "imports",
+			toName: target,
+			target: target,
+			conf:   conf,
+			line:   line,
 		})
 	}
 
@@ -329,5 +329,9 @@ func (e *extractor) mapTree(path, lang string, tree *ts.Tree) (*FileGraph, error
 
 	sort.SliceStable(g.Symbols, func(i, j int) bool { return g.Symbols[i].StartLine < g.Symbols[j].StartLine })
 	sort.SliceStable(g.Edges, func(i, j int) bool { return g.Edges[i].Line < g.Edges[j].Line })
+
+	// Rationale: scan comments for NOTE/WHY/ADR markers and link each to the
+	// nearest enclosing symbol (language-agnostic, comment-text based).
+	g.Rationales = ExtractRationale(src, g.Symbols)
 	return g, nil
 }

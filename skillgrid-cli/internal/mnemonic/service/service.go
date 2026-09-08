@@ -1036,6 +1036,153 @@ func (h *projectHandle) rowCount(ctx context.Context, table string, out *int) {
 	_ = h.store.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table).Scan(out)
 }
 
+// SymbolHitDTO is a public identifier-FTS hit.
+type SymbolHitDTO = search.SymbolHit
+
+// SymbolSearch runs identifier-aware FTS over indexed symbols.
+func (s *Service) SymbolSearch(ctx context.Context, projectID, query string, limit int) ([]search.SymbolHit, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return search.SymbolFTS(h.store.DB, query, limit)
+}
+
+// OrientResult is the Tier-1 orientation answer for one symbol: its metadata,
+// the file TOC (all symbols in the file), a signature, and linked rationale.
+type OrientResult struct {
+	Found     bool             `json:"found"`
+	Symbol    map[string]any   `json:"symbol,omitempty"`
+	FileTOC   []map[string]any `json:"file_toc,omitempty"`
+	Signature string           `json:"signature,omitempty"`
+	List      []map[string]any `json:"list,omitempty"`
+	Rationale []map[string]any `json:"rationale,omitempty"`
+	Reason    string           `json:"reason,omitempty"` // not-found note
+}
+
+// OrientSymbol returns Tier-1 orientation for a resolved symbol: signature,
+// file TOC, map, list, and metadata, plus linked rationale. An unknown symbol
+// returns Found=false with a not-found reason (no fabricated symbol).
+func (s *Service) OrientSymbol(ctx context.Context, projectID, symbol string) (*OrientResult, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return orientSymbol(h.store.DB, symbol)
+}
+
+// CodeGrep runs a structural by-example grep over root, index-free.
+func (s *Service) CodeGrep(ctx context.Context, root, pattern string) (*search.GrepResult, error) {
+	if pattern == "" {
+		return nil, fmt.Errorf("code_grep: pattern is required")
+	}
+	return search.GrepByExample(root, pattern)
+}
+
+// orientSymbol resolves symbol (exact or FTS) and returns its orientation.
+func orientSymbol(db *sql.DB, symbol string) (*OrientResult, error) {
+	// Resolve the symbol: exact name match first (deterministic), then
+	// identifier-FTS. Multiple exact matches are the first (lowest id) —
+	// orientation is a single-symbol answer, not a candidate list (that is
+	// step 03's code_impact job).
+	row := db.QueryRow(`
+		SELECT s.id, s.name, s.qualified_name, s.kind, s.language, s.signature,
+		       s.start_line, s.end_line, f.path, s.file_id
+		FROM symbols s INNER JOIN files f ON f.id = s.file_id
+		WHERE s.name = ?
+		ORDER BY s.id LIMIT 1`, symbol)
+	var id, fileID int64
+	var name, qualified, kind, lang, sig string
+	var startLine, endLine int
+	var path string
+	err := row.Scan(&id, &name, &qualified, &kind, &lang, &sig, &startLine, &endLine, &path, &fileID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Fallback: identifier-FTS.
+			hits, e2 := search.SymbolFTS(db, symbol, 1)
+			if e2 != nil {
+				return nil, e2
+			}
+			if len(hits) == 0 {
+				return &OrientResult{Found: false, Reason: "symbol not found: " + symbol}, nil
+			}
+			hit := hits[0]
+			row2 := db.QueryRow(`
+				SELECT s.id, s.name, s.qualified_name, s.kind, s.language, s.signature,
+				       s.start_line, s.end_line, f.path, s.file_id
+				FROM symbols s INNER JOIN files f ON f.id = s.file_id
+				WHERE s.id = ?`, hit.ID)
+			if err := row2.Scan(&id, &name, &qualified, &kind, &lang, &sig, &startLine, &endLine, &path, &fileID); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	out := &OrientResult{
+		Found: true,
+		Symbol: map[string]any{
+			"id":             id,
+			"name":           name,
+			"qualified_name": qualified,
+			"kind":           kind,
+			"language":       lang,
+			"path":           path,
+			"start_line":     startLine,
+			"end_line":       endLine,
+		},
+		Signature: sig,
+	}
+
+	// File TOC + list: every symbol in the file, ordered by start line.
+	tocRows, err := db.Query(`
+		SELECT id, name, qualified_name, kind, start_line, end_line
+		FROM symbols WHERE file_id = ? ORDER BY start_line, id`, fileID)
+	if err != nil {
+		return out, nil
+	}
+	for tocRows.Next() {
+		var tID int64
+		var tName, tQualified, tKind string
+		var tStart, tEnd int
+		if err := tocRows.Scan(&tID, &tName, &tQualified, &tKind, &tStart, &tEnd); err != nil {
+			tocRows.Close()
+			return out, nil
+		}
+		entry := map[string]any{
+			"id":         tID,
+			"name":       tName,
+			"kind":       tKind,
+			"start_line": tStart,
+			"end_line":   tEnd,
+		}
+		out.FileTOC = append(out.FileTOC, entry)
+	}
+	tocRows.Close()
+	out.List = out.FileTOC
+
+	// Rationale linked to this symbol.
+	rationaleRows, err := db.Query(`SELECT text, kind, line FROM rationale WHERE symbol_id = ? ORDER BY line`, id)
+	if err == nil {
+		for rationaleRows.Next() {
+			var text, kind string
+			var line int
+			if rationaleRows.Scan(&text, &kind, &line) == nil {
+				out.Rationale = append(out.Rationale, map[string]any{
+					"text": text,
+					"kind": kind,
+					"line": line,
+				})
+			}
+		}
+		rationaleRows.Close()
+	}
+	return out, nil
+}
+
 // CodeStatus returns index stats and whether the index is stale.
 func (s *Service) CodeStatus(ctx context.Context, projectID string) (codeindex.Status, bool, error) {
 	h, cleanup, err := s.openProject(projectID, ".")
@@ -1110,6 +1257,7 @@ func (s *Service) RunCodeIndex(ctx context.Context, directory string) (codeindex
 		Exclude:      cfg.Exclude,
 		ChunkLines:   cfg.ChunkLines,
 		ChunkOverlap: cfg.ChunkOverlap,
+		MaxFileSize:  cfg.MaxFileSize,
 	}
 	return codeindex.New(h.store).Run(ctx, directory, idxCfg)
 }

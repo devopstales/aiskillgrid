@@ -17,12 +17,18 @@ type WebCache struct {
 	Sources       []string
 }
 
+// MaxFileSizeDefault is the first-class size-skip threshold (bytes) for
+// generated bundles / vendored blobs. Files larger are skipped (counted in
+// stats), not an error, not a fallback.
+const MaxFileSizeDefault = 500 * 1024
+
 // Indexing holds code index settings from indexing.yaml mnemonic section.
 type Indexing struct {
 	Include      []string
 	Exclude      []string
 	ChunkLines   int
 	ChunkOverlap int
+	MaxFileSize  int
 	WebCache     WebCache
 }
 
@@ -36,6 +42,7 @@ type mnemonicSection struct {
 	Exclude      []string        `yaml:"exclude"`
 	ChunkLines   int             `yaml:"chunk_lines"`
 	ChunkOverlap int             `yaml:"chunk_overlap"`
+	MaxFileSize  int             `yaml:"max_file_size"`
 	WebCache     webCacheSection `yaml:"web_cache"`
 }
 
@@ -79,6 +86,7 @@ func DefaultIndexing() Indexing {
 		},
 		ChunkLines:   80,
 		ChunkOverlap: 10,
+		MaxFileSize:  MaxFileSizeDefault,
 		WebCache:     DefaultWebCache(),
 	}
 }
@@ -133,6 +141,9 @@ func mergeIndexing(defaults Indexing, section mnemonicSection) Indexing {
 	}
 	if section.ChunkOverlap > 0 {
 		out.ChunkOverlap = section.ChunkOverlap
+	}
+	if section.MaxFileSize > 0 {
+		out.MaxFileSize = section.MaxFileSize
 	}
 	out.WebCache = mergeWebCache(defaults.WebCache, section.WebCache)
 	return out

@@ -36,13 +36,13 @@ type Config struct {
 
 // Stats summarizes one indexing run.
 type Stats struct {
-	FilesIndexed  int `json:"files_indexed"`
-	FilesSkipped  int `json:"files_skipped"`
-	FilesDeleted  int `json:"files_deleted"`
-	ChunksAdded   int `json:"chunks_added"`
+	FilesIndexed   int `json:"files_indexed"`
+	FilesSkipped   int `json:"files_skipped"`
+	FilesDeleted   int `json:"files_deleted"`
+	ChunksAdded    int `json:"chunks_added"`
 	FilesOversized int `json:"files_oversized"`
-	SymbolsAdded  int `json:"symbols_added"`
-	EdgesAdded    int `json:"edges_added"`
+	SymbolsAdded   int `json:"symbols_added"`
+	EdgesAdded     int `json:"edges_added"`
 }
 
 // ScannedFile is a candidate file discovered under the index root.
@@ -313,12 +313,13 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 			}
 			stats.ChunksAdded++
 		}
-		// Graph pass: extract symbols/edges for this file in the same tx.
-		syms, edges, err := idx.extractFile(file)
+		// Graph pass: extract symbols/edges/rationale for this file in the
+		// same tx.
+		syms, edges, rationale, err := idx.extractFile(file)
 		if err != nil {
 			return stats, fmt.Errorf("extract %s: %w", file.Path, err)
 		}
-		if n, err := writeFileGraph(tx, fileID, syms, edges); err != nil {
+		if n, err := writeFileGraph(tx, fileID, syms, edges, rationale); err != nil {
 			return stats, err
 		} else {
 			stats.SymbolsAdded += n
@@ -398,27 +399,27 @@ func pruneOrphanSymbols(tx *sql.Tx, targetUIDs map[string]struct{}) error {
 	return nil
 }
 
-// extractFile runs the Extractor for one scanned file and returns its symbols
-// and edges. Per-file extraction failures fall back to regex and never abort
-// the run.
-func (idx *Indexer) extractFile(file ScannedFile) ([]extract.Symbol, []extract.Edge, error) {
+// extractFile runs the Extractor for one scanned file and returns its symbols,
+// edges, and rationale nodes. Per-file extraction failures fall back to regex
+// and never abort the run.
+func (idx *Indexer) extractFile(file ScannedFile) ([]extract.Symbol, []extract.Edge, []extract.Rationale, error) {
 	ex := extract.Default()
 	g, err := ex.ExtractFile(file.Path, file.Contents)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return g.Symbols, g.Edges, nil
+	return g.Symbols, g.Edges, g.Rationales, nil
 }
 
 // fileFirstSymbol caches the first (lowest id) symbol of a file for the
 // duration of a writeFileGraph call, used as a default edge source.
 var fileFirstSymbol = map[int64]int64{}
 
-// writeFileGraph upserts a file's target-state symbols and edges. It declares
-// the target rows (the file's extracted symbols), upserts them, prunes the
-// file's now-orphaned symbols (and their edges/vectors/buckets via cascade),
-// then upserts the edges.
-func writeFileGraph(tx *sql.Tx, fileID int64, syms []extract.Symbol, edges []extract.Edge) (int, error) {
+// writeFileGraph upserts a file's target-state symbols, edges, and rationale.
+// It declares the target rows (the file's extracted symbols), upserts them,
+// prunes the file's now-orphaned symbols (and their edges/vectors/buckets via
+// cascade), then upserts the edges and rationale nodes.
+func writeFileGraph(tx *sql.Tx, fileID int64, syms []extract.Symbol, edges []extract.Edge, rationale []extract.Rationale) (int, error) {
 	targetUIDs := make(map[string]struct{}, len(syms))
 	for _, s := range syms {
 		targetUIDs[s.UID] = struct{}{}
@@ -514,6 +515,34 @@ func writeFileGraph(tx *sql.Tx, fileID int64, syms []extract.Symbol, edges []ext
 			e.Kind, fromID, toID, e.ToName, e.TargetPath, e.Confidence, e.Line,
 		); err != nil {
 			return 0, fmt.Errorf("upsert edge %s: %w", e.Kind, err)
+		}
+	}
+	// Upsert rationale nodes. A rationale links to the nearest enclosing
+	// symbol (by UID, resolved to an id); a rationale with no resolvable
+	// symbol is dropped (no fabricated link).
+	if len(rationale) > 0 {
+		// Remove this file's existing rationale rows first (target-state: the
+		// re-extracted set is the full target; orphans are pruned). Rationale
+		// rows reference the file's symbols; symbol id changes on rewrite.
+		if _, err := tx.Exec(`
+			DELETE FROM rationale WHERE symbol_id IN (SELECT id FROM symbols WHERE file_id = ?)
+		`, fileID); err != nil {
+			return 0, fmt.Errorf("prune rationale for %d: %w", fileID, err)
+		}
+		for _, r := range rationale {
+			if r.SymbolUID == "" {
+				continue
+			}
+			symID, ok := uidToIDFinal[r.SymbolUID]
+			if !ok {
+				continue
+			}
+			if _, err := tx.Exec(`
+				INSERT INTO rationale (symbol_id, text, kind, line)
+				VALUES (?, ?, ?, ?)
+			`, symID, r.Text, r.Kind, r.Line); err != nil {
+				return 0, fmt.Errorf("insert rationale: %w", err)
+			}
 		}
 	}
 	return upserted, nil

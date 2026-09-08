@@ -26,6 +26,8 @@ func TestAllToolsRegistered(t *testing.T) {
 		"mem_capture_passive",
 		"mem_pin", "mem_unpin", "mem_unify",
 		"code_status", "code_index", "code_search", "code_read",
+		"code_orient", "code_signature", "code_file_toc", "code_rationale",
+		"code_grep",
 		"web_cache_lookup", "web_cache_save", "web_cache_search",
 		"web_cache_get", "web_cache_status",
 		"team_spawn_task", "agent_pull_next_task", "agent_read_task",

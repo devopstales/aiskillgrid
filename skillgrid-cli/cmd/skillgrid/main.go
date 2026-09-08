@@ -50,6 +50,8 @@ func main() {
 		fmt.Fprintln(w, `  mcp           Run the Mnemonic MCP stdio server`)
 		fmt.Fprintln(w, `  serve         Run the Mnemonic HTTP API (default :7438)`)
 		fmt.Fprintln(w, `  index         Incremental code indexing`)
+		fmt.Fprintln(w, `  orient        Tier-1 code orientation (signature, TOC, map, list, metadata)`)
+		fmt.Fprintln(w, `  grep          Structural by-example grep (index-free, per-language AST)`)
 		fmt.Fprintln(w, `  setup         Install agent plugins (opencode|kilocode|cursor)`)
 		fmt.Fprintln(w, `  migrate       Backfill mnemonic tier sidecars (--tier)`)
 		fmt.Fprintln(w, `  trail         Inspect retrieval trails (recent|show)`)
@@ -120,6 +122,12 @@ func main() {
 		return
 	case "index":
 		runIndex(version, rest[1:])
+		return
+	case "orient":
+		runCodeIntel(version, rest)
+		return
+	case "grep":
+		runCodeIntel(version, rest)
 		return
 	case "setup":
 		runSetup(version, rest[1:])

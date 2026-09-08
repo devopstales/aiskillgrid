@@ -35,23 +35,24 @@ type Symbol struct {
 
 // Edge connects two symbols (or a symbol and an unresolved target name).
 type Edge struct {
-	Kind         string
-	FromUID      string
-	ToUID        string
-	ToName       string
-	TargetPath   string
-	Confidence   string
-	Line         int
+	Kind       string
+	FromUID    string
+	ToUID      string
+	ToName     string
+	TargetPath string
+	Confidence string
+	Line       int
 }
 
 // FileGraph is the extraction result for one file.
 type FileGraph struct {
-	Path      string
-	Language  string
-	Symbols   []Symbol
-	Edges     []Edge
-	Extractor string // "treesitter" | "regex"
-	Error     string // set when the primary extractor failed and fallback was used
+	Path       string
+	Language   string
+	Symbols    []Symbol
+	Edges      []Edge
+	Rationales []Rationale
+	Extractor  string // "treesitter" | "regex"
+	Error      string // set when the primary extractor failed and fallback was used
 }
 
 // Extractor produces a FileGraph for a single source file. Implementations
@@ -87,24 +88,24 @@ type grammarLoaderFn func(name string) (func() any, bool)
 // (regex fallback), the worker respawns up to a bound per slot, and a circuit
 // breaker trips if one grammar dies repeatedly.
 type Pool struct {
-	mu           sync.Mutex
-	quarantined  map[string]map[string]bool // lang -> path
-	breaker      map[string]bool            // lang
-	respawns     map[string]int             // lang
-	deaths       map[string]int             // lang
-	MaxRespawns  int
-	TripAfter    int
+	mu          sync.Mutex
+	quarantined map[string]map[string]bool // lang -> path
+	breaker     map[string]bool            // lang
+	respawns    map[string]int             // lang
+	deaths      map[string]int             // lang
+	MaxRespawns int
+	TripAfter   int
 }
 
 // NewPool returns a self-healing pool with default bounds.
 func NewPool() *Pool {
 	return &Pool{
-		quarantined:  map[string]map[string]bool{},
-		breaker:      map[string]bool{},
-		respawns:     map[string]int{},
-		deaths:       map[string]int{},
-		MaxRespawns:  3,
-		TripAfter:    3,
+		quarantined: map[string]map[string]bool{},
+		breaker:     map[string]bool{},
+		respawns:    map[string]int{},
+		deaths:      map[string]int{},
+		MaxRespawns: 3,
+		TripAfter:   3,
 	}
 }
 
@@ -193,56 +194,56 @@ func (e *extractor) RespawnsUsed(lang string) int {
 // extToLang maps file extensions to their supported language. Grammar reuse
 // is applied here (e.g. .mts/.cts -> typescript, .cu/.cuh -> cpp).
 var extToLang = map[string]string{
-	".go": "go",
-	".ts":  "typescript",
-	".mts": "typescript",
-	".cts": "typescript",
-	".tsx": "tsx",
-	".js":  "javascript",
-	".mjs": "javascript",
-	".cjs": "javascript",
-	".py":  "python",
-	".rs":  "rust",
-	".java": "java",
-	".c":   "c",
-	".h":   "c",
-	".cpp": "cpp",
-	".cc":  "cpp",
-	".cxx": "cpp",
-	".cu":  "cpp",
-	".cuh": "cpp",
-	".hpp": "cpp",
-	".hh":  "cpp",
-	".cs":  "c_sharp",
-	".php": "php",
-	".rb":  "ruby",
-	".kt":  "kotlin",
-	".kts": "kotlin",
-	".swift": "swift",
-	".scala": "scala",
-	".dart": "dart",
-	".lua": "lua",
-	".r":   "r",
-	".R":   "r",
-	".m":   "matlab",
-	".pl":  "perl",
-	".pm":  "perl",
-	".ex":  "elixir",
-	".exs": "elixir",
-	".hs":  "haskell",
-	".clj": "clojure",
-	".cljs": "clojure",
-	".cljc": "clojure",
-	".zig": "zig",
-	".nim": "nim",
+	".go":     "go",
+	".ts":     "typescript",
+	".mts":    "typescript",
+	".cts":    "typescript",
+	".tsx":    "tsx",
+	".js":     "javascript",
+	".mjs":    "javascript",
+	".cjs":    "javascript",
+	".py":     "python",
+	".rs":     "rust",
+	".java":   "java",
+	".c":      "c",
+	".h":      "c",
+	".cpp":    "cpp",
+	".cc":     "cpp",
+	".cxx":    "cpp",
+	".cu":     "cpp",
+	".cuh":    "cpp",
+	".hpp":    "cpp",
+	".hh":     "cpp",
+	".cs":     "c_sharp",
+	".php":    "php",
+	".rb":     "ruby",
+	".kt":     "kotlin",
+	".kts":    "kotlin",
+	".swift":  "swift",
+	".scala":  "scala",
+	".dart":   "dart",
+	".lua":    "lua",
+	".r":      "r",
+	".R":      "r",
+	".m":      "matlab",
+	".pl":     "perl",
+	".pm":     "perl",
+	".ex":     "elixir",
+	".exs":    "elixir",
+	".hs":     "haskell",
+	".clj":    "clojure",
+	".cljs":   "clojure",
+	".cljc":   "clojure",
+	".zig":    "zig",
+	".nim":    "nim",
 	".groovy": "groovy",
-	".gvy":  "groovy",
-	".sh":  "bash",
-	".bash": "bash",
-	".sql": "sql",
-	".css": "css",
-	".html": "html",
-	".htm":  "html",
+	".gvy":    "groovy",
+	".sh":     "bash",
+	".bash":   "bash",
+	".sql":    "sql",
+	".css":    "css",
+	".html":   "html",
+	".htm":    "html",
 }
 
 // DetectLanguage returns the supported language for a file path, or "" if the
