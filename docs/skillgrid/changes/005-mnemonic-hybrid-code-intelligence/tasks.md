@@ -310,18 +310,18 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 03.1 `[RED]` Mnemonic tool surface — `code_explore` primary + menu unlisted-by-default + `code_status` coverage field (Scenario: code_explore is the primary tool and menu tools re-enable) — threat: Mnemonic tool surface
-  - [ ] 03.1.a Write failing test — assert composite `code_explore` is registered and is the documented primary MCP tool; narrow `code_*` menu tools are unlisted by default but re-enable via config; `code_status` returns a per-language fair-coverage field
-  - [ ] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ExploreToolSurface -count=1` — Expected: FAIL
-  - [ ] 03.1.c Minimal implementation — `tools_code_explore.go` (composite + `initialize` guidance) + unlisted-by-default tool list + `coverage.go` + `code_status` coverage field + `pool.go`
-  - [ ] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ExploreToolSurface -count=1` — Expected: PASS
-  - [ ] 03.1.e Commit — `feat(mnemonic): composite code_explore primary tool with fair coverage`
-- [ ] 03.2 `[RED]` Mnemonic tool surface — `code_impact` disambiguation (no silent pick) (Scenario: code_impact tiers risk and disambiguates a multi-symbol target) — threat: Mnemonic tool surface
-  - [ ] 03.2.a Write failing test — assert `code_impact` returns blast radius risk-tiered by depth (`WILL BREAK` depth 1 / `LIKELY AFFECTED` deeper), each edge confidence-tagged, honoring `minConfidence`; a target matching ≥2 symbols returns a ranked candidate list (narrowable via `--file`/`--uid`/`--kind`), never a silent pick
-  - [ ] 03.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -run CodeImpact -count=1` — Expected: FAIL
-  - [ ] 03.2.c Minimal implementation — `graph/impact.go` (risk-tier + disambiguation) + `code_impact` MCP tool + service/CLI facade
-  - [ ] 03.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -run CodeImpact -count=1` — Expected: PASS
-  - [ ] 03.2.e Commit — `feat(mnemonic): risk-tiered code_impact with symbol disambiguation`
+- [x] 03.1 `[RED]` Mnemonic tool surface — `code_explore` primary + menu unlisted-by-default + `code_status` coverage field (Scenario: code_explore is the primary tool and menu tools re-enable) — threat: Mnemonic tool surface
+  - [x] 03.1.a Write failing test — assert composite `code_explore` is registered and is the documented primary MCP tool; narrow `code_*` menu tools are unlisted by default but re-enable via config; `code_status` returns a per-language fair-coverage field
+  - [x] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ExploreToolSurface -count=1` — Expected: FAIL
+  - [x] 03.1.c Minimal implementation — `tools_code_explore.go` (composite + `initialize` guidance) + unlisted-by-default tool list + `coverage.go` + `code_status` coverage field + `pool.go`
+  - [x] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ExploreToolSurface -count=1` — Expected: PASS
+  - [x] 03.1.e Commit — `feat(mnemonic): composite code_explore primary tool with fair coverage`
+- [x] 03.2 `[RED]` Mnemonic tool surface — `code_impact` disambiguation (no silent pick) (Scenario: code_impact tiers risk and disambiguates a multi-symbol target) — threat: Mnemonic tool surface
+  - [x] 03.2.a Write failing test — assert `code_impact` returns blast radius risk-tiered by depth (`WILL BREAK` depth 1 / `LIKELY AFFECTED` deeper), each edge confidence-tagged, honoring `minConfidence`; a target matching ≥2 symbols returns a ranked candidate list (narrowable via `--file`/`--uid`/`--kind`), never a silent pick
+  - [x] 03.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -run CodeImpact -count=1` — Expected: FAIL
+  - [x] 03.2.c Minimal implementation — `graph/impact.go` (risk-tier + disambiguation) + `code_impact` MCP tool + service/CLI facade
+  - [x] 03.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -run CodeImpact -count=1` — Expected: PASS
+  - [x] 03.2.e Commit — `feat(mnemonic): risk-tiered code_impact with symbol disambiguation`
 - [ ] 03.3 `[RED]` Mnemonic tool surface — `maxTokens` truncation stays valid (Scenario: maxTokens truncates the response and stays valid) — threat: Mnemonic tool surface
   - [ ] 03.3.a Write failing test — assert `code_explore` (and the hybrid/semantic surface when present) honors an optional `maxTokens` budget (deterministic ~4-bytes/token estimate); when exceeded the formatted response is truncated with `…` and stays valid (well-formed)
   - [ ] 03.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run MaxTokens -count=1` — Expected: FAIL
@@ -334,9 +334,9 @@ This step is done only when:
 - [ ] 03.7 `[AFK]` Ambiguous resolution is labeled not dropped (Scenario: Ambiguous resolution is labeled not dropped) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... -count=1` — Expected: PASS
 - [ ] 03.8 `[AFK]` Unknown symbol graph query invents no edges (Scenario: Unknown symbol graph query invents no edges) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/graph/... -count=1` — Expected: PASS
 - [ ] 03.9 `[AFK]` Fair coverage is measured per language (Scenario: code_status reports measured fair coverage per language) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
-- [ ] 03.10 `[AFK]` code_explore returns source, call-flow, and blast radius in one call (Scenario: code_explore returns source call-flow and blast radius in one call) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` — Expected: PASS
-- [ ] 03.11 `[AFK]` MCP pool opens lazily, evicts on inactivity, and honors repo (Scenario: MCP pool opens lazily and honors the repo param) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
-- [ ] 03.12 `[AFK]` CLI parity for graph and explore commands — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
+- [x] 03.10 `[AFK]` code_explore returns source, call-flow, and blast radius in one call (Scenario: code_explore returns source call-flow and blast radius in one call) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` — Expected: PASS
+- [x] 03.11 `[AFK]` MCP pool opens lazily, evicts on inactivity, and honors repo (Scenario: MCP pool opens lazily and honors the repo param) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
+- [x] 03.12 `[AFK]` CLI parity for graph and explore commands — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
 
 ### Verification
 
