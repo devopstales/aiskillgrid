@@ -1,6 +1,6 @@
 # Tasks: 005-mnemonic-hybrid-code-intelligence
 
-> **STATUS:** `in-progress` (2026-09-08) — 0/4 steps PASS
+> **STATUS:** `in-progress` (2026-09-08) — 1/4 steps PASS (03 done)
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
@@ -85,7 +85,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 
 ```yaml
 phase: apply         # spec | apply | verify | archive
-current_step: 03-call-graph-traversal
+current_step: 04-hybrid-search-core
 status: in_progress  # in_progress | blocked | done
 updated: 2026-09-08
 ```
@@ -322,35 +322,36 @@ This step is done only when:
   - [x] 03.2.c Minimal implementation — `graph/impact.go` (risk-tier + disambiguation) + `code_impact` MCP tool + service/CLI facade
   - [x] 03.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -run CodeImpact -count=1` — Expected: PASS
   - [x] 03.2.e Commit — `feat(mnemonic): risk-tiered code_impact with symbol disambiguation`
-- [ ] 03.3 `[RED]` Mnemonic tool surface — `maxTokens` truncation stays valid (Scenario: maxTokens truncates the response and stays valid) — threat: Mnemonic tool surface
-  - [ ] 03.3.a Write failing test — assert `code_explore` (and the hybrid/semantic surface when present) honors an optional `maxTokens` budget (deterministic ~4-bytes/token estimate); when exceeded the formatted response is truncated with `…` and stays valid (well-formed)
-  - [ ] 03.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run MaxTokens -count=1` — Expected: FAIL
-  - [ ] 03.3.c Minimal implementation — `maxTokens` param + deterministic estimate + `…` truncation on the composite response formatter
-  - [ ] 03.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run MaxTokens -count=1` — Expected: PASS
-  - [ ] 03.3.e Commit — `feat(mnemonic): maxTokens response budget on code_explore`
-- [ ] 03.4 `[AFK]` Known symbol returns graph views with confidence (Scenario: Known symbol returns graph views with confidence) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
-- [ ] 03.5 `[AFK]` code_path traces the shortest connection or where the graph stops (Scenario: code_path traces the shortest connection or where the graph stops) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
-- [ ] 03.6 `[AFK]` code_explain explains a symbol (Scenario: code_explain explains a symbol) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
-- [ ] 03.7 `[AFK]` Ambiguous resolution is labeled not dropped (Scenario: Ambiguous resolution is labeled not dropped) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... -count=1` — Expected: PASS
-- [ ] 03.8 `[AFK]` Unknown symbol graph query invents no edges (Scenario: Unknown symbol graph query invents no edges) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/graph/... -count=1` — Expected: PASS
-- [ ] 03.9 `[AFK]` Fair coverage is measured per language (Scenario: code_status reports measured fair coverage per language) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
+- [x] 03.3 `[RED]` Mnemonic tool surface — `maxTokens` truncation stays valid (Scenario: maxTokens truncates the response and stays valid) — threat: Mnemonic tool surface
+  - [x] 03.3.a Write failing test — assert `code_explore` (and the hybrid/semantic surface when present) honors an optional `maxTokens` budget (deterministic ~4-bytes/token estimate); when exceeded the formatted response is truncated with `…` and stays valid (well-formed)
+  - [x] 03.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run MaxTokens -count=1` — Expected: FAIL
+  - [x] 03.3.c Minimal implementation — `maxTokens` param + deterministic estimate + `…` truncation on the composite response formatter
+  - [x] 03.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run MaxTokens -count=1` — Expected: PASS
+  - [x] 03.3.e Commit — `feat(mnemonic): maxTokens response budget on code_explore`
+- [x] 03.4 `[AFK]` Known symbol returns graph views with confidence (Scenario: Known symbol returns graph views with confidence) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
+- [x] 03.5 `[AFK]` code_path traces the shortest connection or where the graph stops (Scenario: code_path traces the shortest connection or where the graph stops) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
+- [x] 03.6 `[AFK]` code_explain explains a symbol (Scenario: code_explain explains a symbol) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
+- [x] 03.7 `[AFK]` Ambiguous resolution is labeled not dropped (Scenario: Ambiguous resolution is labeled not dropped) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... -count=1` — Expected: PASS
+- [x] 03.8 `[AFK]` Unknown symbol graph query invents no edges (Scenario: Unknown symbol graph query invents no edges) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/graph/... -count=1` — Expected: PASS
+- [x] 03.9 `[AFK]` Fair coverage is measured per language (Scenario: code_status reports measured fair coverage per language) — `Run: go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
 - [x] 03.10 `[AFK]` code_explore returns source, call-flow, and blast radius in one call (Scenario: code_explore returns source call-flow and blast radius in one call) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` — Expected: PASS
 - [x] 03.11 `[AFK]` MCP pool opens lazily, evicts on inactivity, and honors repo (Scenario: MCP pool opens lazily and honors the repo param) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
 - [x] 03.12 `[AFK]` CLI parity for graph and explore commands — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`
+Verdict: `PASS`
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/...` | PASS | | |
-| Acceptance `@step-03` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `code_explore` / callers / `code_impact` on known symbol | PASS | | |
-| Rollback boundary | Drop `graph/` + graph + explore tools + `pool.go` | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/graph/... ./skillgrid-cli/internal/mnemonic/mcp/...` | PASS | PASS | `ok ... graph 4.592s`, `ok ... mcp 34.769s` |
+| Full module | `go test ./... -count=1` | PASS | PASS | all packages `ok`; `go build ./...` + `go vet` clean |
+| Acceptance `@step-03` / `@p0` | BDD / mapped unit scenarios | PASS | PASS | `TestExploreToolSurface`, `TestCodeImpact*`, `TestCodeExploreMaxTokens*` (explore surface, impact disambiguation, maxTokens truncation) |
+| Runtime harness | `code_explore` / callers / `code_impact` on known symbol | PASS | PASS | MCP handlers exercised end-to-end over a pinned-index fixture; graph views + risk tiers + confidence labels returned |
+| Rollback boundary | Drop `graph/` + graph + explore tools + `pool.go` | PASS | PASS | additive: chunk `code_status`/`code_index`/`code_search`/`code_read` name+signature stable; `code_status` gains only additive `fair_coverage` |
+| Global Constraints | — | held | PASS | CGo-free; every Edge confidence-labeled (`EXTRACTED`/`INFERRED`/`AMBIGUOUS`); no fabricated hops; ambiguous `code_impact` → ranked candidates; `maxTokens` truncation stays valid; bad args → clear error |
 
 ### Commit
 
