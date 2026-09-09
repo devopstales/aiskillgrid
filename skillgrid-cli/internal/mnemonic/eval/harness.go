@@ -323,9 +323,19 @@ func shippedDecisionFor(res *Result, name string) ShipDecision {
 	return ShipDecision{Name: name, Ships: true, Decision: "ship", Reason: "non-negative vs baseline and survived significance"}
 }
 
-// shippedDecision is a test helper mirroring shippedDecisionFor.
+// shippedDecision is a helper to read the gate verdict for one signal.
 func shippedDecision(res *Result, name string) ShipDecision {
 	return res.Decisions[name]
+}
+
+// rowByName returns the Row for a non-baseline variant by name (nil if absent).
+func rowByName(res *Result, name string) *Row {
+	for i := range res.Rows {
+		if res.Rows[i].Name == name {
+			return &res.Rows[i]
+		}
+	}
+	return nil
 }
 
 // aggregateRow pools per-query metrics into one Row (mean over queries for

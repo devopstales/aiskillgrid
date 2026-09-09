@@ -90,10 +90,8 @@ func (c Confidence) WithActionAndFallbacks(query string, likelyPaths []string) C
 	return c
 }
 
-// highScoreThreshold: a rerank base score at/above this (with at least one
-// strong boost) is a high-confidence hit.
-const highScoreThreshold = 0.5
-// mediumScoreThreshold: between this and high is medium; below is low.
+// mediumScoreThreshold: a raw score at/above this (with no named boost) is a
+// cautious medium; below is low.
 const mediumScoreThreshold = 0.15
 
 // hasStrongBoost reports whether the fired factors include a strong positive
@@ -119,19 +117,34 @@ func hasAnyPenalty(factors []RerankFactor) bool {
 	return false
 }
 
-// ConfidenceFromScore derives the categorical confidence from the hit's
-// rerank base score + fired factors (01.10). A strong exact-symbol/definition
-// hit with a high score and no penalty is high; a mid-score or penalized hit
-// is medium; a weak/no-signal hit is low.
+// ConfidenceFromScore derives the categorical confidence from the fired
+// rerank factors + the hit's rerank score (01.10). The factors are the
+// primary signal (a raw FTS bm25 score is not comparable across corpora): a
+// strong exact-symbol/definition hit with no penalty is high; a hit with any
+// boost but weaker, or a penalized hit, is medium; a hit with no signal is low.
 func ConfidenceFromScore(baseScore float64, factors []RerankFactor) Confidence {
 	switch {
-	case baseScore >= highScoreThreshold && hasStrongBoost(factors) && !hasAnyPenalty(factors):
+	case hasStrongBoost(factors) && !hasAnyPenalty(factors):
 		return Confidence{Level: ConfidenceHigh}
+	case hasAnyBoost(factors):
+		return Confidence{Level: ConfidenceMedium}
 	case baseScore >= mediumScoreThreshold:
+		// No named boost fired but the raw score is still above the weak
+		// floor — a cautious medium.
 		return Confidence{Level: ConfidenceMedium}
 	default:
 		return Confidence{Level: ConfidenceLow}
 	}
+}
+
+// hasAnyBoost reports whether any positive (boosting) factor fired.
+func hasAnyBoost(factors []RerankFactor) bool {
+	for _, f := range factors {
+		if f.Delta > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // likelyPaths extracts the distinct file paths from a set of hits (for the

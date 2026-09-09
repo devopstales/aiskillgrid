@@ -310,11 +310,4 @@ func TestFailingSignalDecision(t *testing.T) {
 	}
 }
 
-func rowByName(res *Result, name string) *Row {
-	for i := range res.Rows {
-		if res.Rows[i].Name == name {
-			return &res.Rows[i]
-		}
-	}
-	return nil
-}
+
