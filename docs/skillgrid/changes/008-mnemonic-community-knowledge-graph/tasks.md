@@ -92,9 +92,11 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: spec          # spec | apply | verify | archive
-current_step: 01-community-detection
-status: in_progress  # in_progress | blocked | done
+phase: apply         # spec | apply | verify | archive
+current_step: 02-process-flows
+status: blocked      # in_progress | blocked | done
+blocked_by: 010-mnemonic-framework-routes-affected  # 010 entry points not applied
+next_action: apply change 010 (entry points), then 008 step 02
 updated: 2026-09-09
 ```
 
