@@ -195,25 +195,25 @@ This step is done only when:
   - [ ] 01.4.c Minimal implementation — `--strict` flag + redaction/freshness checks + non-zero exit in `cmd/skillgrid/doctor.go`
   - [ ] 01.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -run DoctorStrict -count=1` — Expected: PASS
   - [ ] 01.4.e Commit — `feat(cli): doctor --strict redaction and freshness state`
-- [ ] 01.5 `[RED]` Mnemonic tool surface — 005 `code_*` schema stable (additive response gains only) before new tools land (Scenario: Community detection returns labeled subsystems and existing search tools stay stable) — threat: Mnemonic tool surface
+- [x] 01.5 `[RED]` Mnemonic tool surface — 005 `code_*` schema stable (additive response gains only) before new tools land (Scenario: Community detection returns labeled subsystems and existing search tools stay stable) — threat: Mnemonic tool surface
   - [ ] 01.5.a Write failing test — assert 005 `code_*` tool names + required params are unchanged (baseline lock); `code_search` response schema may only *gain* confidence/reasons/redaction fields additively
   - [ ] 01.5.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ToolSurfaceBaseline -count=1` — Expected: FAIL (red until the additive-gain assertion exists)
   - [ ] 01.5.c Minimal implementation — lock 005 tool-surface baseline + additive-response assertion
   - [ ] 01.5.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ToolSurfaceBaseline -count=1` — Expected: PASS
   - [ ] 01.5.e Commit — `test(mnemonic): lock 005 tool surface baseline (additive gains only)`
-- [ ] 01.6 `[RED]` Leiden over 005 edges produces labeled communities + community tools (Scenario: Community detection returns labeled subsystems and existing search tools stay stable)
+- [x] 01.6 `[RED]` Leiden over 005 edges produces labeled communities + community tools (Scenario: Community detection returns labeled subsystems and existing search tools stay stable)
   - [ ] 01.6.a Write failing test — fixture graph of symbols/edges; after the community pass, community rows partition the graph coherently, each community carries an LLM-free label; `code_communities` returns the partition; 005 tools still registered
   - [ ] 01.6.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Communities -count=1` — Expected: FAIL
   - [ ] 01.6.c Minimal implementation — `012_*` migration + `community/leiden.go` (loom `NodeRegistry` + `LeidenOptions{Seed, Resolution, MaxIterations, NumRuns}`, partition → community rows) + `labels.go` + `go.mod` dep + `tools_code_community.go` `code_communities` + service facade
   - [ ] 01.6.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Communities -count=1` — Expected: PASS
   - [ ] 01.6.e Commit — `feat(mnemonic): leiden community detection with llm-free labels`
-- [ ] 01.7 `[RED]` God nodes ranked by degree with exclude-hubs (Scenario: God nodes rank hubs and hub exclusion suppresses utility symbols)
+- [x] 01.7 `[RED]` God nodes ranked by degree with exclude-hubs (Scenario: God nodes rank hubs and hub exclusion suppresses utility symbols)
   - [ ] 01.7.a Write failing test — `code_god_nodes` returns symbols ranked by degree; `--exclude-hubs` suppresses utility super-hubs from the ranking
   - [ ] 01.7.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run GodNodes -count=1` — Expected: FAIL
   - [ ] 01.7.c Minimal implementation — `community/godnodes.go` (degree ranking + `--exclude-hubs`) + `code_god_nodes` tool + CLI flag
   - [ ] 01.7.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run GodNodes -count=1` — Expected: PASS
   - [ ] 01.7.e Commit — `feat(mnemonic): god-node ranking with exclude-hubs`
-- [ ] 01.8 `[RED]` Mnemonic tool surface — community + eval tools register and reject bad args (Scenarios: Community tools reject bad args clearly; bad community/eval args rejected) — threat: Mnemonic tool surface
+- [x] 01.8 `[RED]` Mnemonic tool surface — community + eval tools register and reject bad args (Scenarios: Community tools reject bad args clearly; bad community/eval args rejected) — threat: Mnemonic tool surface
   - [ ] 01.8.a Write failing test — `code_communities` / `code_god_nodes` / `code_explain_community` + `skillgrid eval` registered with distinct `code_*` names / CLI verbs; bad/missing args (e.g. non-existent community id, unknown eval corpus) rejected clearly with a validation error, no invented communities or runs
   - [ ] 01.8.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/cmd/skillgrid/... -run CommunityAndEvalArgs -count=1` — Expected: FAIL
   - [ ] 01.8.c Minimal implementation — arg validation in `tools_code_community.go` + `code_intel.go` eval runner + service
@@ -243,10 +243,10 @@ This step is done only when:
   - [ ] 01.12.c Minimal implementation — multi-corpus pooling + non-negative-across-all gate + decision record in `eval/harness.go`; wire the winning config as the shipped ranker config
   - [ ] 01.12.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run ShippedConfigSignificance -count=1` — Expected: PASS
   - [ ] 01.12.e Commit — `feat(eval): ship only the significance-winning ranking config`
-- [ ] 01.13 `[AFK]` Community explanation returns members and entry points (Scenario: Community explanation returns members and entry points) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -run ExplainCommunity -count=1` — Expected: PASS
-- [ ] 01.14 `[AFK]` Tiny graph (< 2 nodes) yields one trivial community, no crash (Scenario: Tiny graph yields a single trivial community) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run TinyGraph -count=1` — Expected: PASS
-- [ ] 01.15 `[AFK]` Community label falls back to community-N when no god node (Scenario: Community label falls back when no god node exists) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run LabelFallback -count=1` — Expected: PASS
-- [ ] 01.16 `[AFK]` Communities are seeded, pinned, and cached by content-hash (Scenario: Community partition is reproducible and cached by content-hash) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -count=1` — Expected: PASS
+- [x] 01.13 `[AFK]` Community explanation returns members and entry points (Scenario: Community explanation returns members and entry points) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -run ExplainCommunity -count=1` — Expected: PASS
+- [x] 01.14 `[AFK]` Tiny graph (< 2 nodes) yields one trivial community, no crash (Scenario: Tiny graph yields a single trivial community) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run TinyGraph -count=1` — Expected: PASS
+- [x] 01.15 `[AFK]` Community label falls back to community-N when no god node (Scenario: Community label falls back when no god node exists) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run LabelFallback -count=1` — Expected: PASS
+- [x] 01.16 `[AFK]` Communities are seeded, pinned, and cached by content-hash (Scenario: Community partition is reproducible and cached by content-hash) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -count=1` — Expected: PASS
 - [ ] 01.17 `[AFK]` Eval harness drops noise commits (merges/reverts/releases/bumps/formatting/changelog-like/benchmark-touching) (Scenario: Evaluation harness drops noise commits from the query set) — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run QuerySetNoiseDrops -count=1` — Expected: PASS
 - [ ] 01.18 `[AFK]` Benchmark scaffolding excluded from the graded corpus (Scenario: Evaluation corpus excludes the benchmark scaffolding) — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run CorpusExcludes -count=1` — Expected: PASS
 - [ ] 01.19 `[AFK]` Ablation shares one index so deltas measure ranking only (Scenario: Ablation shares one index so deltas measure ranking) — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run OneIndexPerCorpus -count=1` — Expected: PASS
