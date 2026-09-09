@@ -68,10 +68,10 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: spec
-current_step: 01-export-project-handle
+phase: apply
+current_step: 02-mcp-single-open
 status: in_progress
-updated: 2026-09-05T12:41:00+02:00
+updated: 2026-09-09T10:00:00+02:00
 ```
 
 ## Step map
@@ -112,11 +112,11 @@ Callers outside `service` can open an exported Project Handle and reach memory/w
 
 This step is done only when:
 
-- [ ] All `### Tasks` checkboxes below are `[x]`
-- [ ] All `@step-01` scenarios in `acceptance.feature` pass
-- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] Produces contracts listed under Interfaces are available to dependents
-- [ ] No Global Constraint violated
+- [x] All `### Tasks` checkboxes below are `[x]`
+- [x] All `@step-01` scenarios in `acceptance.feature` pass
+- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS` (sdd-verify owns)
+- [x] Produces contracts listed under Interfaces are available to dependents
+- [x] No Global Constraint violated
 
 > Depends on: none
 
@@ -131,19 +131,19 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 01.1 `[RED]` Invalid or empty project id aborts open — no partial handle (threat: store open failure)
-  - [ ] 01.1.a Write failing test — Scenario: Invalid project id aborts open
-  - [ ] 01.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -run 'InvalidProject|EmptyProject|AbortOpen' -count=1` — Expected: FAIL
-  - [ ] 01.1.c Minimal implementation (export type; Open validates and aborts)
-  - [ ] 01.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -run 'InvalidProject|EmptyProject|AbortOpen' -count=1` — Expected: PASS
-  - [ ] 01.1.e Commit — `feat(mnemonic): abort Project Handle open on bad project id`
-- [ ] 01.2 `[RED]` Exported handle opens once and exposes Memory/Web for a happy project
-  - [ ] 01.2.a Write failing test — Scenario: Opened handle exposes memory and web
-  - [ ] 01.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -run 'ProjectHandle|OpenOnce|Expose' -count=1` — Expected: FAIL
-  - [ ] 01.2.c Minimal implementation (export `ProjectHandle`; Open* return it)
-  - [ ] 01.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -run 'ProjectHandle|OpenOnce|Expose' -count=1` — Expected: PASS
-  - [ ] 01.2.e Commit — `feat(mnemonic): export Project Handle as single-project seam`
-- [ ] 01.3 `[AFK]` Cross-store methods still compile and ListProjects / resolve smoke — Scenario: Cross-store root ops remain — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -count=1` — Expected: PASS
+- [x] 01.1 `[RED]` Invalid or empty project id aborts open — no partial handle (threat: store open failure)
+  - [x] 01.1.a Write failing test — Scenario: Invalid project id aborts open
+  - [x] 01.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -run 'InvalidProject|EmptyProject|AbortOpen' -count=1` — Expected: FAIL
+  - [x] 01.1.c Minimal implementation (export type; Open validates and aborts)
+  - [x] 01.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -run 'InvalidProject|EmptyProject|AbortOpen' -count=1` — Expected: PASS
+  - [x] 01.1.e Commit — `feat(mnemonic): abort Project Handle open on bad project id`
+- [x] 01.2 `[RED]` Exported handle opens once and exposes Memory/Web for a happy project
+  - [x] 01.2.a Write failing test — Scenario: Opened handle exposes memory and web
+  - [x] 01.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -run 'ProjectHandle|OpenOnce|Expose' -count=1` — Expected: FAIL
+  - [x] 01.2.c Minimal implementation (export `ProjectHandle`; Open* return it)
+  - [x] 01.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -run 'ProjectHandle|OpenOnce|Expose' -count=1` — Expected: PASS
+  - [x] 01.2.e Commit — `feat(mnemonic): export Project Handle as single-project seam`
+- [x] 01.3 `[AFK]` Cross-store methods still compile and ListProjects / resolve smoke — Scenario: Cross-store root ops remain — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ -count=1` — Expected: PASS
 
 ### Verification
 
@@ -153,15 +153,15 @@ Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/service/ -count=1` | PASS | | |
-| Acceptance `@step-01` / `@p0` | map scenarios to unit runs above | PASS | | |
-| Runtime harness | N/A — library seam | PASS | | |
-| Rollback boundary | revert commit; no migrations | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/service/ -count=1` | PASS | PASS | 34/34 tests, 75s |
+| Acceptance `@step-01` / `@p0` | map scenarios to unit runs above | PASS | PASS | TestOpenEmpty/InvalidProjectIDAborts, TestProjectHandleExposesMemoryAndWeb |
+| Runtime harness | N/A — library seam | PASS | PASS | |
+| Rollback boundary | revert commit; no migrations | PASS | PASS | |
+| Global Constraints | — | held | held | only service/ + tests changed |
 
 ### Commit
 
-When step DoD is met: `feat(mnemonic): export Project Handle seam`
+Step 01 commits: `99b97ad` (abort on bad id), `32dc818` (export seam), `e3b67d1` (test: seed webcache snapshot)
 
 ---
 
