@@ -6,28 +6,48 @@ import (
 	"testing"
 )
 
-// dummyIndex resolves a handler to a unique global symbol when name is in the
-// set, and is ambiguous for "ambiguous" (multiple global matches).
+// dummyIndex resolves a handler: a name in `explicit` is a same-file/explicit
+// match (EXTRACTED); a name in `globalOnly` is a name-only best-effort guess
+// (AMBIGUOUS); anything else is unresolvable (dropped). This mirrors the
+// txRouteStore policy (same-file first, then a unique global guess).
 type dummyIndex struct {
-	known map[string]int64
+	explicit   map[string]int64
+	globalOnly map[string]int64
 }
 
-func (d dummyIndex) ResolveHandler(name string) (int64, string, bool) {
-	if name == "ambiguous" {
-		return 0, "", false
+func (d dummyIndex) ResolveHandler(name string) Resolution {
+	if id, ok := d.explicit[name]; ok {
+		return Resolution{ID: id, UID: "uid-" + name, Confidence: ConfidenceExtracted}
 	}
-	if id, ok := d.known[name]; ok {
-		return id, "uid-" + name, true
+	if id, ok := d.globalOnly[name]; ok {
+		return Resolution{ID: id, UID: "uid-" + name, Confidence: ConfidenceAmbiguous}
 	}
-	return 0, "", false
+	return Resolution{}
 }
 
+// known builds an index where every name is an explicit (same-file) match —
+// the EXTRACTED case.
 func known(names ...string) dummyIndex {
 	m := map[string]int64{}
 	for i, n := range names {
 		m[n] = int64(100 + i)
 	}
-	return dummyIndex{m}
+	return dummyIndex{explicit: m}
+}
+
+// ambiguousIndex builds an index where the given names are name-only best-effort
+// guesses (AMBIGUOUS) and everything else is unresolvable.
+func ambiguousIndex(names ...string) dummyIndex {
+	m := map[string]int64{}
+	for i, n := range names {
+		m[n] = int64(200 + i)
+	}
+	return dummyIndex{globalOnly: m}
+}
+
+// nothingIndex resolves nothing (every reference is unresolvable → dropped).
+func nothingIndex() dummyIndex {
+	return dummyIndex{}
 }
 
 func fileSyms(names ...string) []FileSymbol {

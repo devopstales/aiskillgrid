@@ -34,7 +34,7 @@ func TestUnresolvedWebRouteNoRouteServes(t *testing.T) {
 	// `unserved` is a bare identifier (a reference) but no route serves it —
 	// it is unresolvable, so the references edge is dropped, not fabricated.
 	src := "app.get('/mystery', unserved);\n"
-	b := Build("server.js", []byte(src), fileSyms("other"), dummyIndex{known: map[string]int64{}})
+	b := Build("server.js", []byte(src), fileSyms("other"), nothingIndex())
 	found := false
 	for _, n := range b.Nodes {
 		if n.PathPattern == "/mystery" {
@@ -53,18 +53,14 @@ func TestUnresolvedWebRouteNoRouteServes(t *testing.T) {
 }
 
 // TestDropNotGuess covers @step-01 (Scenario: Ambiguous references are dropped
-// not guessed): a reference with no same-file match, no explicit specifier,
-// and no unique global/owner-qualified match is dropped at extraction (no edge
-// stored) and reported as a warning (count + sample), not a silent discard.
-// AMBIGUOUS is reserved for edges that WERE resolved via a heuristic (a
-// markup-written navigates link) — such an edge is stored INFERRED/AMBIGUOUS,
-// while an unresolvable one is absent.
+// not guessed): a reference that is UNRESOLVABLE (no same-file match, no
+// explicit specifier, and no unique global/owner-qualified match) is dropped
+// at extraction (no edge stored) and reported as a warning (count + sample),
+// not a silent discard.
 func TestDropNotGuess(t *testing.T) {
-	// A route whose handler has no same-file match and no unique global match
-	// (the dummy index reports it ambiguous) → dropped, with a warning.
+	// A route whose handler is unresolvable → dropped, with a warning.
 	src := "app.get('/x', someAmbiguousHandler);\n"
-	idx := dummyIndex{known: map[string]int64{}} // nothing known → unresolvable
-	b := Build("server.js", []byte(src), fileSyms("other"), idx)
+	b := Build("server.js", []byte(src), fileSyms("other"), nothingIndex())
 	if b.Dropped != 1 {
 		t.Fatalf("expected 1 dropped reference (drop-not-guess), got %d", b.Dropped)
 	}
@@ -75,20 +71,70 @@ func TestDropNotGuess(t *testing.T) {
 	for _, n := range b.Nodes {
 		if n.PathPattern == "/x" {
 			if n.HandlerSymbol != 0 {
-				t.Errorf("ambiguous handler reference should be dropped (HandlerSymbol=0), got %d", n.HandlerSymbol)
+				t.Errorf("unresolvable handler reference should be dropped (HandlerSymbol=0), got %d", n.HandlerSymbol)
 			}
 		}
 	}
 
-	// A resolvable reference (unique global match) → stored, NOT dropped.
+	// An explicit (same-file) reference → stored EXTRACTED, NOT dropped.
 	src2 := "app.get('/y', knownHandler);\n"
 	b2 := Build("server2.js", []byte(src2), fileSyms("other"), known("knownHandler"))
 	if b2.Dropped != 0 {
-		t.Errorf("resolvable handler should not be dropped, got %d drops", b2.Dropped)
+		t.Errorf("explicit handler should not be dropped, got %d drops", b2.Dropped)
 	}
 	for _, n := range b2.Nodes {
-		if n.PathPattern == "/y" && n.HandlerSymbol == 0 {
-			t.Errorf("resolvable handler reference should be stored (HandlerSymbol!=0)")
+		if n.PathPattern == "/y" {
+			if n.HandlerSymbol == 0 {
+				t.Errorf("explicit handler reference should be stored (HandlerSymbol!=0)")
+			}
+			if n.HandlerConfidence != ConfidenceExtracted {
+				t.Errorf("explicit handler reference should be EXTRACTED, got %q", n.HandlerConfidence)
+			}
+		}
+	}
+}
+
+// TestHeuristicResolvedIsAmbiguous covers @step-01 (01.4.a: a heuristic-
+// resolved edge is stored AMBIGUOUS, an ambiguous-but-unresolvable one is
+// absent). A handler reference that is NOT explicit (no same-file match) but
+// does resolve to a unique global symbol is a name-only best-effort guess: it
+// is STORED with the AMBIGUOUS Confidence Label (low-confidence, not dropped).
+// A reference that resolves to nothing (no same-file, no explicit specifier,
+// no unique global match) is DROPPED — absent, with a warning.
+func TestHeuristicResolvedIsAmbiguous(t *testing.T) {
+	// (a) A name-only-resolved handler → stored AMBIGUOUS (not dropped).
+	src := "app.get('/h', nameOnlyHandler);\n"
+	// No same-file symbol matches nameOnlyHandler; the index reports a unique
+	// global (name-only) guess for it → AMBIGUOUS.
+	b := Build("server.js", []byte(src), fileSyms("other"), ambiguousIndex("nameOnlyHandler"))
+	if b.Dropped != 0 {
+		t.Fatalf("a heuristic-resolved reference should NOT be dropped, got %d drops", b.Dropped)
+	}
+	found := false
+	for _, n := range b.Nodes {
+		if n.PathPattern == "/h" {
+			found = true
+			if n.HandlerSymbol == 0 {
+				t.Fatalf("heuristic-resolved handler should be stored (HandlerSymbol!=0)")
+			}
+			if n.HandlerConfidence != ConfidenceAmbiguous {
+				t.Errorf("name-only-resolved handler reference should be AMBIGUOUS, got %q", n.HandlerConfidence)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("expected a route node for /h, got none")
+	}
+
+	// (b) An unresolvable handler → absent (dropped + warned).
+	src2 := "app.get('/u', unresolvableHandler);\n"
+	b2 := Build("server2.js", []byte(src2), fileSyms("other"), nothingIndex())
+	if b2.Dropped != 1 {
+		t.Errorf("unresolvable handler should be dropped (1 warning), got %d", b2.Dropped)
+	}
+	for _, n := range b2.Nodes {
+		if n.PathPattern == "/u" && n.HandlerSymbol != 0 {
+			t.Errorf("unresolvable handler should be absent (HandlerSymbol=0), got %d", n.HandlerSymbol)
 		}
 	}
 }
@@ -97,7 +143,7 @@ func TestDropNotGuess(t *testing.T) {
 // silent discard" half of the policy: the drop count + a sample are surfaced.
 func TestDropNotGuessWarningIsReported(t *testing.T) {
 	src := "app.get('/a', h1);\napp.get('/b', h2);\n"
-	b := Build("server.js", []byte(src), fileSyms("other"), dummyIndex{known: map[string]int64{}})
+	b := Build("server.js", []byte(src), fileSyms("other"), nothingIndex())
 	if b.Dropped != 2 {
 		t.Errorf("expected 2 dropped refs, got %d", b.Dropped)
 	}

@@ -21,6 +21,10 @@ type RouteNode struct {
 	HandlerSymbol int64 // 0 when the handler could not be resolved
 	HandlerUID    string
 	HandlerExplicit bool
+	// HandlerConfidence is the Confidence Label for the route->handler
+	// references edge: EXTRACTED for a same-file/explicit handler, AMBIGUOUS
+	// for a name-only best-effort guess. Empty when the handler was dropped.
+	HandlerConfidence string
 }
 
 // NavigationNode is one navigation edge to be upserted into the 005 edges
@@ -84,11 +88,13 @@ type Store interface {
 	// FirstSymbolID returns the file's first 005 symbol id (the default
 	// source for top-level navigates edges), or 0 when the file has none.
 	FirstSymbolID(fileID int64) (int64, error)
-	// ResolveHandler resolves a handler name to its symbol id + uid, applying
-	// the drop-not-guess policy: same-file first, then a unique global
-	// owner-qualified / bare-name match. Multiple matches are ambiguous →
-	// (0, "", false) so the caller drops the reference.
-	ResolveHandler(fileID int64, name string) (int64, string, bool)
+	// ResolveHandler resolves a handler name to its symbol id + uid +
+	// confidence, applying the drop-not-guess policy: a same-file (explicit)
+	// match resolves EXTRACTED; a name-only match that hits a unique global
+	// symbol resolves AMBIGUOUS (a best-effort guess, stored low-confidence);
+	// multiple or zero global matches are unresolvable → (0, "", "") so the
+	// caller drops the reference.
+	ResolveHandler(fileID int64, name string) (id int64, uid string, confidence string)
 }
 
 // FileSymbol is a minimal view of one 005-extracted symbol in the file, used
@@ -149,20 +155,32 @@ type resolver struct {
 	fileID int64
 }
 
-func (r resolver) ResolveHandler(name string) (int64, string, bool) {
-	return r.st.ResolveHandler(r.fileID, name)
+func (r resolver) ResolveHandler(name string) Resolution {
+	id, uid, conf := r.st.ResolveHandler(r.fileID, name)
+	if id == 0 {
+		return Resolution{}
+	}
+	return Resolution{ID: id, UID: uid, Confidence: conf}
 }
 
 // SymbolIndex resolves handler names to their symbol IDs. It is backed by the
-// 005 symbols table: same-file lookup first, then a unique global
-// owner-qualified / bare-name match. Multiple matches are ambiguous and yield
-// (0, "") so the caller can drop the reference.
+// 005 symbols table. It returns a Resolution whose confidence labels how the
+// name was resolved: EXTRACTED for a same-file (explicit) match, AMBIGUOUS for
+// a name-only best-effort guess (no same-file / explicit match, but a unique
+// global match was taken), or Unresolved for the drop-not-guess case.
 type SymbolIndex interface {
-	// ResolveHandler returns the symbol ID + UID for a handler name. The
-	// second return is false when the reference is ambiguous (multiple global
-	// matches) or unresolvable (no match) — the drop-not-guess case.
-	ResolveHandler(name string) (id int64, uid string, ok bool)
+	ResolveHandler(name string) Resolution
 }
+
+// Resolution is the outcome of resolving a handler reference.
+type Resolution struct {
+	ID         int64
+	UID        string
+	Confidence string // ConfidenceExtracted | ConfidenceAmbiguous | ""
+}
+
+// Resolved reports whether a handler symbol was found (ok).
+func (r Resolution) Resolved() bool { return r.ID != 0 }
 
 // buildRoutes turns each raw Route into a RouteNode + (optionally) a
 // references edge, applying the drop-not-guess policy to the handler
@@ -188,15 +206,23 @@ func (b *Built) buildRoutes(path string, src []byte, fr *FileRoutes, fileSyms []
 		}
 		// Resolve the handler reference. The route node is always created (it
 		// is the URL endpoint); the references edge is dropped when the
-		// handler reference is ambiguous (drop-not-guess).
+		// handler is unresolvable (drop-not-guess). A same-file match resolves
+		// EXTRACTED; a name-only best-effort guess (unique global hit) resolves
+		// AMBIGUOUS (stored, low-confidence).
 		if r.Handler != "" {
-			id, uid2, ok := index.ResolveHandler(r.Handler)
-			if !ok {
+			res := index.ResolveHandler(r.Handler)
+			if !res.Resolved() {
 				// Drop-not-guess: no same-file match, no unique global match.
 				b.recordDrop(r.Handler)
 			} else {
-				node.HandlerSymbol = id
-				node.HandlerUID = uid2
+				node.HandlerSymbol = res.ID
+				node.HandlerUID = res.UID
+				// Default to the explicit confidence; the index may downgrade
+				// a name-only guess to AMBIGUOUS.
+				node.HandlerConfidence = ConfidenceExtracted
+				if res.Confidence != "" {
+					node.HandlerConfidence = res.Confidence
+				}
 			}
 		}
 		b.Nodes = append(b.Nodes, node)

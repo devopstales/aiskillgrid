@@ -1,10 +1,18 @@
 // Package route extracts framework routing (web frameworks: route -> handler
 // references; routers: function -> screen navigates) into the 005 symbols/
 // edges graph. It is additive on top of the 005 extractors: it never rewrites
-// a 005 symbol or edge, and it applies the drop-rather-than-guess edge policy
-// — an ambiguous reference (no same-file match, no explicit specifier, no
-// unique global/owner-qualified match) is dropped at extraction, not stored as
-// AMBIGUOUS, so a false positive can never inflate blast radius.
+// a 005 symbol or edge, and it applies a crisp three-way Confidence policy to
+// references:
+//
+//	EXTRACTED  — explicit syntax / a same-file handler (a direct reference).
+//	INFERRED   — a convention/heuristic (e.g. a markup-written navigates link).
+//	AMBIGUOUS  — a name-only best-effort guess that resolved to a unique global
+//	             symbol (stored, but low-confidence).
+//
+// A reference that is UNRESOLVABLE (no same-file match, no explicit
+// specifier, and no unique global/owner-qualified match) is dropped at
+// extraction and never stored, so a false positive can never inflate blast
+// radius (drop-not-guess).
 package route
 
 import (
@@ -23,10 +31,17 @@ const (
 	KindNavigates  = "navigates"
 )
 
-// Confidence labels (mirrored from extract).
+// Confidence labels (mirrored from extract/graph).
+//
+//	EXTRACTED  = explicit syntax (same-file handler, programmatic literal).
+//	INFERRED   = convention/heuristic (markup-written navigates link).
+//	AMBIGUOUS  = name-only best-effort guess (a unique global symbol was taken
+//	            as the handler without an explicit specifier — low confidence).
+//	Dropped    = unresolvable (not stored; not a label).
 const (
 	ConfidenceExtracted = "EXTRACTED"
 	ConfidenceInferred  = "INFERRED"
+	ConfidenceAmbiguous = "AMBIGUOUS"
 )
 
 // Symbol kinds assigned by the route extractor.

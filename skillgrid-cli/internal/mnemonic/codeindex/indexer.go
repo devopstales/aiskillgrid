@@ -676,32 +676,35 @@ func (s *txRouteStore) StoreRouteMeta(fileID, symbolID int64, node route.RouteNo
 	return err
 }
 
-func (s *txRouteStore) ResolveHandler(fileID int64, name string) (int64, string, bool) {
-	// 1) Same-file match: a handler defined in the same file wins.
+func (s *txRouteStore) ResolveHandler(fileID int64, name string) (int64, string, string) {
+	// 1) Same-file match: a handler defined in the same file is an explicit
+	// reference (EXTRACTED) and wins over any global guess.
 	if err := s.loadFileSyms(); err != nil {
-		return 0, "", false
+		return 0, "", ""
 	}
 	for _, fs := range s.fileSyms {
 		if fs.Name == name {
-			return fs.ID, fs.UID, true
+			return fs.ID, fs.UID, route.ConfidenceExtracted
 		}
 	}
-	// 2) Unique global match (owner-qualified or bare-name). Multiple matches
-	// are ambiguous → dropped (drop-not-guess).
+	// 2) Name-only match: no same-file / explicit handler, but a unique global
+	// symbol by this name. This is a best-effort name guess → AMBIGUOUS
+	// (stored, low-confidence). Multiple or zero global matches are unresolvable
+	// → dropped (drop-not-guess).
 	var id int64
 	var uid string
 	var matches int
 	err := s.tx.QueryRow(`SELECT COUNT(*) FROM symbols WHERE name = ?`, name).Scan(&matches)
 	if err != nil {
-		return 0, "", false
+		return 0, "", ""
 	}
 	if matches != 1 {
-		return 0, "", false
+		return 0, "", ""
 	}
 	if err := s.tx.QueryRow(`SELECT id, uid FROM symbols WHERE name = ? LIMIT 1`, name).Scan(&id, &uid); err != nil {
-		return 0, "", false
+		return 0, "", ""
 	}
-	return id, uid, true
+	return id, uid, route.ConfidenceAmbiguous
 }
 
 func (s *txRouteStore) StoreReferencesEdges(fileID int64, nodes []route.RouteNode, _ int64) (int, error) {
@@ -723,9 +726,13 @@ func (s *txRouteStore) StoreReferencesEdges(fileID int64, nodes []route.RouteNod
 		if err := s.tx.QueryRow(`SELECT id FROM symbols WHERE uid = ?`, n.UID).Scan(&routeID); err != nil {
 			return stored, err
 		}
-		conf := route.ConfidenceExtracted
-		if !n.HandlerExplicit {
-			conf = route.ConfidenceInferred
+		// The confidence comes from the resolution policy: EXTRACTED for a
+		// same-file/explicit handler, AMBIGUOUS for a name-only best-effort
+		// guess. (INFERRED is not a references-edge confidence — it labels
+		// convention-derived navigates, not route->handler references.)
+		conf := n.HandlerConfidence
+		if conf == "" {
+			conf = route.ConfidenceExtracted
 		}
 		if _, err := s.tx.Exec(`
 			INSERT INTO edges (kind, from_id, file_id, to_id, to_name, target_path, confidence, line)
