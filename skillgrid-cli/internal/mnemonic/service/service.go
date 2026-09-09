@@ -1766,8 +1766,9 @@ func (s *Service) WebCacheStatus(ctx context.Context, projectID string) (webcach
 }
 
 // Open opens a ProjectHandle for an explicit project id (config root ".").
-// It aborts with an error on empty or invalid ids — store.Open rejects blank
-// and ".."-containing ids — and never returns a partial handle.
+// It aborts with an error on empty or invalid ids — blank ids are rejected
+// up front and ".."-containing ids by store.Open — and never returns a
+// partial handle.
 func (s *Service) Open(projectID string) (*ProjectHandle, func(), error) {
 	return s.openProject(projectID, ".")
 }

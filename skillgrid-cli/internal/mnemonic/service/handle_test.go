@@ -72,8 +72,7 @@ func TestProjectHandleExposesMemoryAndWeb(t *testing.T) {
 	if mem == nil {
 		t.Fatal("handle memory service is nil")
 	}
-	var web *webcache.Service = h.Web()
-	if web == nil {
+	if h.Web() == nil {
 		t.Fatal("Web() returned nil")
 	}
 	if h.Store() == nil {
@@ -103,11 +102,32 @@ func TestProjectHandleExposesMemoryAndWeb(t *testing.T) {
 		t.Fatalf("title=%q", got.Title)
 	}
 
-	// Web through the handle: a lookup on the same store must not error.
-	if _, err := h.Web().Lookup(context.Background(), webcache.LookupInput{
+	// Web through the handle: seed a snapshot via Web().Save, then prove the
+	// lookup reaches the same store and actually finds it (hit + id), not just
+	// a nil-error miss.
+	const exaQuery = "handle seam"
+	webID, err := h.Web().Save(context.Background(), webcache.SaveWebInput{
+		Source:  "exa",
+		Query:   exaQuery,
+		Content: "seeded snapshot for handle seam web reachability",
+	})
+	if err != nil {
+		t.Fatalf("Save via handle: %v", err)
+	}
+	if webID == 0 {
+		t.Fatal("Save via handle returned id 0")
+	}
+	lookup, err := h.Web().Lookup(context.Background(), webcache.LookupInput{
 		Source: "exa",
-		Query:  "handle seam",
-	}); err != nil {
+		Query:  exaQuery,
+	})
+	if err != nil {
 		t.Fatalf("Lookup via handle: %v", err)
+	}
+	if lookup.Status != "hit" {
+		t.Fatalf("Lookup status=%q want hit (seeded snapshot not found)", lookup.Status)
+	}
+	if lookup.ID != webID {
+		t.Fatalf("Lookup id=%d want %d (seeded snapshot)", lookup.ID, webID)
 	}
 }
