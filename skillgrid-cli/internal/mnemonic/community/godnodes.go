@@ -93,15 +93,17 @@ func RankGodNodes(db *sql.DB, symbolIDs []int64, excludeHubs bool) ([]GodNode, e
 const HubFileThreshold = 5
 
 // hubSymbols returns the set of symbol ids that are utility super-hubs: their
-// incoming edges originate from >= HubFileThreshold distinct files.
+// incoming edges originate from >= HubFileThreshold distinct files (the
+// source file of each edge, resolved via the source symbol's file).
 func hubSymbols(db *sql.DB) map[int64]bool {
 	rows, err := db.Query(`
-		SELECT e.to_id, COUNT(DISTINCT ef.id)
+		SELECT e.to_id, COUNT(DISTINCT srcf.id)
 		FROM edges e
-		JOIN files ef ON ef.id = e.file_id
+		JOIN symbols srcs ON srcs.id = e.from_id
+		JOIN files srcf ON srcf.id = srcs.file_id
 		WHERE e.to_id IS NOT NULL
 		GROUP BY e.to_id
-		HAVING COUNT(DISTINCT ef.id) >= ?`, HubFileThreshold)
+		HAVING COUNT(DISTINCT srcf.id) >= ?`, HubFileThreshold)
 	if err != nil {
 		return map[int64]bool{}
 	}

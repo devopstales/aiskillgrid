@@ -88,8 +88,9 @@ This change is done only when **all** of the following are true:
 - **Risk:** CFG/PDG construction is slow or memory-heavy on large functions — **Mitigation:** opt-in (off by default); per-function scope (bounded by function size); depth/step caps; a pathological function degrades to a truncated PDG + warning, never aborts the index
 - **Risk:** Intraprocedural taint misses cross-function flows (false negatives) — **Mitigation:** documented scope (M1 intraprocedural); unresolved call boundaries marked `AMBIGUOUS`/truncated so the agent knows the flow "leaves here"; the `--lsp` tier resolves the member-call subset of those boundaries (`LSP_RESOLVED`), cutting the biggest false-negative class; full interprocedural summaries are an explicit later pass
 - **Risk:** Data-dependence extraction is imprecise (false positives/negatives) — **Mitigation:** Confidence Labels; only resolved data-dependences are `EXTRACTED`; conservative default source/sink sets; findings are advisory, not load-bearing
-- **Risk:** Scope expands into a full data-flow engine (alias analysis, type inference, interprocedural) — **Mitigation:** Hard Non-Goals; M1 = CFG + PDG + intraprocedural taint only
-- **Rollback:** Drop `014_*` migration + `pdg/` package + the `code_taint`/`code_pdg_query` tools + the `--pdg` hook; 005/008/010's graph + hybrid + community + process + routes stay intact
+- **Risk:** Scope expands into a full data-flow engine (alias analysis, type inference, interprocedural) — **Mitigation:** Hard Non-Goals; M1 = CFG + PDG + intraprocedural taint + the opt-in LSP edge tier only
+- **Risk:** LSP server absent or slow (first-run server startup) — **Mitigation:** best-effort with a timeout; a missing/failing server is a no-op (static edges only), never a hard error; `warn+continue` in the error table
+- **Rollback:** Drop `014_*` migration + `pdg/` package + the `code_taint`/`code_pdg_query` tools + the `--pdg`/`--lsp` hooks; `LSP_RESOLVED` edges roll back with the `pdg/` package (they live in `pdg/lsp.go`); 005/008/010's graph + hybrid + community + process + routes stay intact
 
 ## Error handling
 
@@ -97,7 +98,8 @@ This change is done only when **all** of the following are true:
 |---------|----------|-------|
 | Function with a malformed/unparseable CFG | `warn+continue` | Skip that function's PDG; index the rest |
 | PDG construction exceeds depth/step cap on a large function | `warn+continue` | Truncate with a "stops at <block>" note; never abort |
-| Taint path crosses an unresolved call boundary | `warn+continue` | Path marked `AMBIGUOUS` / "stops at <boundary>"; not fabricated |
+| Taint path crosses an unresolved call boundary | `warn+continue` | Path marked `AMBIGUOUS` / "stops at <boundary>"; not fabricated (an `LSP_RESOLVED` edge, when present, resolves the boundary instead) |
+| LSP server absent / fails / times out on `--lsp` | `warn+continue` | Index unchanged (static resolution only); no hard error, no partial LSP edge set |
 | `code_pdg_query` on a statement with no PDG (non-`--pdg` index) | `warn+continue` | Clear "run `--pdg`" message; empty result, not an error |
 | Unknown / missing symbol or statement | `warn+continue` | Not-found; no fabricated blocks or dependences |
 | Bad / missing args on new `code_*` tools | `abort` | Clear validation error; do not invent findings |
@@ -249,20 +251,20 @@ Mark each row `Applicable` or `N/A: reason`. Applicable rows name an owning step
 | Commit state | N/A: `--pdg` indexes, does not commit | — | — |
 | Push state | N/A: no push automation | — | — |
 | PR commands | N/A: taint is advisory, no PR automation (a CI gate is a consumer, not this change) | — | — |
-| **Mnemonic tool surface** | Applicable — new `code_taint`/`code_pdg_query`; 005/008/010 tools unchanged; opt-in gate must not leak | 01, 02 | 01: `code_pdg_query` registered + non-`--pdg` index byte-for-byte unchanged + bad args rejected; 02: `code_taint` registered + no fabricated finding + cross-boundary `AMBIGUOUS` + 005/008/010 tools still stable + bad args rejected |
-| **Opt-in isolation** | Applicable — `--pdg` must not change the common index | 01, 02 | a non-`--pdg` index has empty PDG/taint tables + identical tool output to pre-011; `--pdg` index adds findings without altering 005/008/010 results |
+| **Mnemonic tool surface** | Applicable — new `code_taint`/`code_pdg_query` + `--lsp` edge tier; 005/008/010 tools unchanged; opt-in gate must not leak | 01, 02 | 01: `code_pdg_query` registered + non-`--pdg` index byte-for-byte unchanged + `--lsp` absent-server no-op (index unchanged) + bad args rejected; 02: `code_taint` registered + no fabricated finding + cross-boundary `AMBIGUOUS` (resolved when `LSP_RESOLVED` present) + 005/008/010 tools still stable + bad args rejected |
+| **Opt-in isolation** | Applicable — `--pdg` must not change the common index; `--lsp` must not change it when the server is absent | 01, 02 | a non-`--pdg` index has empty PDG/taint tables + identical tool output to pre-011; `--pdg` index adds findings without altering 005/008/010 results; `--lsp` with no server installed produces a byte-for-byte static index (zero `LSP_RESOLVED` edges) |
 | **Shared-convention drift** | N/A: no `_shared/conventions/*` edits in this Change | — | — |
 
 ## Migration / rollout
 
-- Additive `014_pdg_taint.sql`. PDG + taint run after 005's extraction **only when `--pdg` is set**; a non-`--pdg` index is byte-for-byte the 005/008/010 graph. No CGo (CFG from the existing AST). No LLM.
-- Rollback drops `014_*` + `pdg/` + the new tools + the `--pdg` hook; 005/008/010's graph + hybrid + community + process + routes stay.
-- Source/sink sets + depth caps tuned in steps 01/02; Confidence Label always required on PDG/taint edges.
+- Additive `014_pdg_taint.sql`. PDG + taint run after 005's extraction **only when `--pdg` is set**; a non-`--pdg` index is byte-for-byte the 005/008/010 graph. No CGo (CFG from the existing AST; the LSP tier is an external process). No LLM.
+- Rollback drops `014_*` + `pdg/` + the new tools + the `--pdg`/`--lsp` hooks; 005/008/010's graph + hybrid + community + process + routes stay.
+- Source/sink sets + depth caps tuned in steps 01/02; Confidence Label always required on PDG/taint edges; `LSP_RESOLVED` joins the label set as a fourth value.
 
 ## Open questions
 
 - Which default source/sink sets ship in M1 — **recommend** start with the high-signal ones (sources: HTTP request params/body, env vars, file reads; sinks: SQL exec, shell exec, template render, file write) and make the rest configurable
-- Interprocedural summaries (cross-function taint) — **deferred** to a later pass (M2); M1 is intraprocedural with "stops at <boundary>" notes
+- Interprocedural summaries (cross-function taint) — **deferred** to a later pass (M2); M1 is intraprocedural with "stops at <boundary>" notes, and the `--lsp` tier resolves the member-call subset of those boundaries in M1 (Graft pattern: static pass + opt-in compiler-grade layer, best-effort no-op)
 - Whether `--pdg` should also seed taint sources from 010's route entry points — **recommend** yes when 010 is present, no-op otherwise
 
 ## Glossary
@@ -275,6 +277,8 @@ Mark each row `Applicable` or `N/A: reason`. Applicable rows name an owning step
 | **Taint Source** | A configurable statement kind where untrusted data enters (request params, env, file reads) | technical |
 | **Taint Sink** | A configurable statement kind where data is consumed (SQL/shell/template/file writes) | technical |
 | **--pdg** | The opt-in indexer flag that builds CFG/PDG/taint; a non-`--pdg` index is byte-for-byte unchanged | technical |
+| **LSP Tier** | Opt-in `--lsp` indexer flag that shells out to a language server (gopls/pyright/tsserver/rust-analyzer/clangd) to add `LSP_RESOLVED` member-call edges; best-effort, a missing server leaves the index unchanged (Graft `--lsp`) | technical |
+| **LSP_RESOLVED** | Fourth edge confidence value (joins `EXTRACTED \| INFERRED \| AMBIGUOUS`) marking call edges resolved by a language server; consumed by the PDG/taint passes as resolved call boundaries | technical |
 
 <!-- Fold new terms here; also upsert docs/skillgrid/glossary/{business,technical}.md. No companion *-glossary-reference.md. -->
 
