@@ -70,7 +70,7 @@ For each unblocked assigned step:
 
 | Route | When | Skill |
 |---|---|---|
-| Subagent | tasks mostly independent (2+ steps, no shared files/state) / auto-chain / large context | **`subagent-execution`** (sequential implementers; `dispatching-parallel-agents` only for parallel-safe investigation domains, never parallel implementers) |
+| Subagent | tasks mostly independent (2+ steps, no shared files/state) / auto-chain / large context | **`subagent-execution`** (sequential implementers; its Parallel investigation section only for parallel-safe investigation domains, never parallel implementers) |
 | Inline | small / tightly coupled / single-pr under budget | **`simple-execution`** |
 | TDD | `rules.apply.tdd` / testing-capabilities say so | **`tdd`** (+ strict-tdd module when active) |
 | Bug mid-apply | unexpected failure | **`debugging`** before patching |
@@ -112,7 +112,7 @@ Under assigned `## NN-<name>` → `### Tasks`, flip checkboxes as completed. The
 
 - [`../simple-execution/SKILL.md`](../simple-execution/SKILL.md) · [`../subagent-execution/SKILL.md`](../subagent-execution/SKILL.md)
 - [`../tdd/SKILL.md`](../tdd/SKILL.md) · [`../debugging/SKILL.md`](../debugging/SKILL.md)
-- [`../isolated-workspace/SKILL.md`](../isolated-workspace/SKILL.md) · [`../dispatching-parallel-agents/SKILL.md`](../dispatching-parallel-agents/SKILL.md)
+- [`../isolated-workspace/SKILL.md`](../isolated-workspace/SKILL.md) · [`../subagent-execution/SKILL.md`](../subagent-execution/SKILL.md) (`## Parallel investigation`)
 - [`../_shared/templates/template-tasks.md`](../_shared/templates/template-tasks.md)
 - [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) · [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md)
 - [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) · [`../sdd-verify/SKILL.md`](../sdd-verify/SKILL.md)

@@ -26,11 +26,11 @@ Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-s
 
 ```
 [ ] 1. Classify greenfield vs brownfield
-[ ] 2. (Brownfield) sdd-map-codebase — optional; skip if user declines
+[ ] 2. (Brownfield) map — references/map-codebase.md; optional; skip if user declines
 [ ] 3. sdd-init — detect facts, skeleton, tracker, Mnemonic
-[ ] 4. sdd-agent-context — AGENTS.md sentinel; one-line pointers elsewhere
-[ ] 5. sdd-constraints — quality bar into config.yaml rules.*
-[ ] 6. sdd-domain — glossary stubs under docs/skillgrid/glossary/
+[ ] 4. agent-context — references/agent-context.md; AGENTS.md sentinel
+[ ] 5. constraints — references/constraints.md; quality bar into config.yaml rules.*
+[ ] 6. domain — references/domain.md; glossary stubs under docs/skillgrid/glossary/
 [ ] 7. Summary + next (propose or idle)
 ```
 
@@ -43,16 +43,16 @@ Ask once if unclear. Record the choice in the summary.
 
 ### 2. Map (brownfield only)
 
-Invoke `sdd-map-codebase`. User may skip. Primary navigation remains Mnemonic `code_*` — the map is narrative, not a second index.
+Follow `references/map-codebase.md`. User may skip. Primary navigation remains Mnemonic `code_*` — the map is narrative, not a second index.
 
 ### 3–6. Helpers in safe order
 
-Load and run each skill's checklist in order:
+Run in order — `sdd-init` as a skill, the rest as local references:
 
 1. `sdd-init`
-2. `sdd-agent-context` (refresh even if init already wrote a block — ensure v4 workflow line)
-3. `sdd-constraints`
-4. `sdd-domain`
+2. `references/agent-context.md` (refresh even if init already wrote a block — ensure v4 workflow line)
+3. `references/constraints.md`
+4. `references/domain.md`
 
 If `docs/skillgrid/config.yaml` already exists mid-run, ask before overwriting; prefer refresh of missing pieces only.
 

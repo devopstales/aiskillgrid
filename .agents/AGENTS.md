@@ -94,7 +94,7 @@ The full protocol — save triggers, search ladder, topic-key upserts, session c
 
 ## Mnemonic Code Index
 
-Per-project code search over the same SQLite store as memory (`~/.skillgrid/mnemonic/<project>.sqlite`). The full protocol lives in the `mnemonic-code-index` skill (`.agents/skills/mnemonic-code-index/SKILL.md`) and `.agents/skills/_shared/conventions/mnemonic-code-indexing.md` — do not duplicate it here.
+Per-project code search over the same SQLite store as memory (`~/.skillgrid/mnemonic/<project>.sqlite`). The full protocol lives in the `mnemonic` skill (`.agents/skills/mnemonic/SKILL.md`, Step 5) and `.agents/skills/_shared/conventions/mnemonic-code-indexing.md` — do not duplicate it here.
 
 Orientation ladder (canonical order):
 

@@ -45,7 +45,7 @@ Announce pattern: `Using use-skillgrid to <route>`.
 | Verify | `sdd-verify` | Verdicts, evidence, human QA plan; findings → apply |
 | Archive | `sdd-archive` | Move `changes/` → `archive/` when gates pass |
 
-Onboard helpers (refresh anytime): `sdd-map-codebase`, `sdd-agent-context`, `sdd-constraints`, `sdd-domain`.
+Onboard helpers (references under `sdd-onboard/references/`, refresh anytime): `map-codebase`, `agent-context`, `constraints`, `domain`.
 
 ## Skill triggers (who calls who)
 
@@ -53,18 +53,27 @@ Order: `onboard → propose → spec → apply ⇄ verify → archive` (explore/
 
 ```mermaid
 flowchart TD
-    use["use-skillgrid<br/>router"] --> onboard["sdd-onboard"]
-    use --> propose["sdd-propose"]
-    use --> spec["sdd-spec"]
-    use --> apply["sdd-apply"]
-    use --> verify["sdd-verify"]
-    use --> archive["sdd-archive"]
+    subgraph main["Workflow (top→bottom)"]
+        direction TB
+        onboard["sdd-onboard"] --> propose["sdd-propose"]
+        propose --> spec["sdd-spec"]
+        spec --> apply["sdd-apply"]
+        apply --> verify["sdd-verify"]
+        verify --> archive["sdd-archive"]
+    end
 
-    onboard --> map["sdd-map-codebase"]
+    use["use-skillgrid<br/>router"] --> onboard
+    use -.-> propose
+    use -.-> spec
+    use -.-> apply
+    use -.-> verify
+    use -.-> archive
+
+    onboard --> map["ref map-codebase"]
     onboard --> init["sdd-init"]
-    onboard --> agentctx["sdd-agent-context"]
-    onboard --> constraints["sdd-constraints"]
-    onboard --> domain["sdd-domain"]
+    onboard --> agentctx["ref agent-context"]
+    onboard --> constraints["ref constraints"]
+    onboard --> domain["ref domain"]
     init --> questioning1["questioning"]
 
     propose --> explore["sdd-explore"]
@@ -73,7 +82,7 @@ flowchart TD
     propose --> codesign["codebase-design"]
     propose --> glossary1["glossary"]
     explore --> investigate["investigate"]
-    explore --> dispatch1["dispatching-parallel-agents"]
+    explore --> dispatch1["subagent-execution<br/>Parallel investigation"]
 
     spec --> glossary2["glossary"]
     spec --> issuecreation["issue-creation"]

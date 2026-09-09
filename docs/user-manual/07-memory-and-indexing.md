@@ -72,7 +72,7 @@ Full tool tables and HTTP routes live in the agent conventions:
 
 - `.agents/skills/_shared/conventions/mnemonic-memory.md`
 - `.agents/skills/_shared/conventions/mnemonic-code-indexing.md`
-- Skill: `mnemonic`
+- Skill: `mnemonic` (code index + web cache folded in; former `mnemonic-code-index` skill retired → redirect)
 
 ## Next step
 

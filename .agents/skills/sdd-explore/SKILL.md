@@ -57,7 +57,7 @@ Feature / bug / refactor? Domain? If too vague to investigate, stop and state wh
 
 ### 3. Investigate
 
-Prefer **`investigate`** for high-trust primary sources (external APIs, rare docs). For large surfaces, `dispatching-parallel-agents`. Map: entry points, affected modules, existing tests/gaps, coupling.
+Prefer **`investigate`** for high-trust primary sources (external APIs, rare docs). For large surfaces, `subagent-execution` (`## Parallel investigation`). Map: entry points, affected modules, existing tests/gaps, coupling.
 
 ### 4. Compare approaches
 

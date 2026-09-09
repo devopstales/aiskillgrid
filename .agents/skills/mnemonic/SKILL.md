@@ -133,6 +133,7 @@ skillgrid code index-status
 - **Router**: omit `--corpus` for the daily path (identifier→symbols, `func $NAME`→grep, decision/remember→mem, else code). `--corpus` is the advanced escape hatch, not six equal peers.
 - **Provenance**: mem and code are never silently fused — mem results carry `observations`, code-family results never mix mem observations unlabeled.
 - **Semantic** sets `degraded=true` explicitly when the Local Code Embedder is unavailable (never silent).
+- **Details (folded from mnemonic-code-index):** extractors (Python tree-sitter needs `-tags treesitter`, CGo stays in Extractor Adapters), Matcher dialect v2 (`struct`/`method`/`const`/`enum` + v1; invalid pattern → abort), `code_impact` is additive blast-radius (never replaces `code_get_*`), stable tools (`code_status`, `code_index`, `code_search`, `code_read`, `code_get_*`; lexical baseline `chunks`/`chunks_fts`), export/serve (`skillgrid export --project ID --out DIR` under allowed root; `skillgrid serve` dashboard viz read-only, graph mutate → 405). Full ladder/router/conventions: `.agents/skills/_shared/conventions/mnemonic-code-indexing.md`.
 
 ### Step 6 — Web research cache (before/after every remote lookup)
 
@@ -190,4 +191,4 @@ After compaction / "FIRST ACTION REQUIRED": FIRST call `mem_session_summary` wit
 | `skillgrid trail <recent\|show>` | inspect retrieval trails |
 | `skillgrid export --project ID --out DIR` | Obsidian Markdown + viz JSON (allowed-root enforced) |
 
-Full protocol refs: `.agents/skills/_shared/conventions/mnemonic-memory.md` (SDD artifact naming, two-step recovery, upserts), `.agents/skills/mnemonic-code-index/SKILL.md` (code index + search router), `.agents/skills/_shared/conventions/mnemonic-code-indexing.md`.
+Full protocol refs: `.agents/skills/_shared/conventions/mnemonic-memory.md` (SDD artifact naming, two-step recovery, upserts), `.agents/skills/_shared/conventions/mnemonic-code-indexing.md` (code index + search router — former `mnemonic-code-index` skill, now folded here).

@@ -69,5 +69,5 @@ SDD forbids `*-glossary-reference.md` companions. Terms live in:
 
 - `sdd-propose` — close-term check when writing `change.md`; fill `## Glossary` footer.
 - `sdd-spec` — reuse terms from `change.md`; do not invent companions.
-- `sdd-domain` / onboard — bootstrap vocabulary under `docs/skillgrid/glossary/`.
+- `sdd-onboard` (`references/domain.md`) — bootstrap vocabulary under `docs/skillgrid/glossary/`.
 - `sdd-apply` — update `docs/skillgrid/glossary/technical.md` if a new technical term lands (`mem_save`, topic_key `sdd/<project>/glossary/technical`).

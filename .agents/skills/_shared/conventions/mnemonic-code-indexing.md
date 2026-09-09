@@ -1,6 +1,6 @@
 # Mnemonic Code-Indexing Convention (shared)
 
-NOTE: This is the shared convention for the Mnemonic **code index** and retrieval surface (`code_*` MCP tools, `skillgrid search` / `export` / `serve`). It is supplementary — the full reference lives in the **`mnemonic-code-index` skill** (`.agents/skills/mnemonic-code-index/SKILL.md`). Sub-agents do NOT need to read that whole file to follow the Orientation Ladder; read it when a tool returns an unexpected shape or you need CLI/operator detail.
+NOTE: This is the shared convention for the Mnemonic **code index** and retrieval surface (`code_*` MCP tools, `skillgrid search` / `export` / `serve`). It is supplementary — the entry point is the **`mnemonic` skill** (`.agents/skills/mnemonic/SKILL.md`, Step 5; former `mnemonic-code-index` skill now folded there). Sub-agents do NOT need to read the whole convention to follow the Orientation Ladder; read it when a tool returns an unexpected shape or you need CLI/operator detail.
 
 Applies to every Skillgrid SDD skill that explores, reads, or changes source code. The code index lives in the same per-project SQLite store as the memory layer and web cache (`~/.skillgrid/mnemonic/<project>.sqlite`) — same project scope, same session lifecycle as `mem_*`.
 
@@ -127,4 +127,4 @@ skillgrid serve                          # dashboard: Memory Visualization + Cod
 - Orientation Ladder first → agents stop tree-dumping as primary nav.
 - Search Intent Router → daily path vs advanced corpora, not flat six-peer-only UX.
 - Honest freshness + explicit semantic degrade → agents reindex and trust labels.
-- Pointers, not copies → heavy schemas stay in the `mnemonic-code-index` skill.
+- Pointers, not copies → heavy schemas stay in the `mnemonic` skill + this convention.

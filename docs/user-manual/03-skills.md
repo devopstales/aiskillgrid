@@ -18,10 +18,7 @@ Priority: `use-skillgrid` → `sdd-*` stage → general skills the stage loads.
 | `use-skillgrid` | Detect, classify, route, resume, enforce user gate |
 | `sdd-onboard` | Bootstrap orchestrator (greenfield / brownfield) |
 | `sdd-init` | Detect facts; write skeleton + AGENTS block |
-| `sdd-map-codebase` | Optional brownfield narrative map |
-| `sdd-agent-context` | AGENTS Skillgrid block / harness pointers |
-| `sdd-constraints` | Quality bar into `config.yaml` `rules.*` |
-| `sdd-domain` | Glossary bootstrap |
+| `sdd-onboard` refs (`map-codebase`, `agent-context`, `constraints`, `domain`) | Onboard helpers (references, not invocable skills) |
 | `sdd-propose` | Reserve `NNN`; write `change.md` |
 | `sdd-explore` | Helper: change-scoped `research.md` |
 | `sdd-spec` | `tasks.md` (blocking DAG) + `acceptance.feature` |
@@ -43,11 +40,11 @@ Skills live under `.agents/skills/` (hub copied to `~/.agents/` on install). Pro
 | `tdd` | Apply |
 | `debugging` | Apply, verify FAIL |
 | `isolated-workspace` | Apply start |
-| `subagent-execution` / `dispatching-parallel-agents` / `simple-execution` | Apply |
+| `subagent-execution` (incl. Parallel investigation) / `simple-execution` | Apply |
 | `verification` | Verify, any “done” claim |
 | `requesting-code-review` / `review-reception` / `judgment-day` | Verify |
 | `finishing-a-development-branch` | Archive / ship |
-| `mnemonic` | All stages |
+| `mnemonic` (incl. code index + web cache; former `mnemonic-code-index` retired) | All stages |
 | `handoff` | Peel out-of-scope side work mid-change |
 | `issue-creation` | When tracker tickets are forced |
 | `work-unit-commits` | Apply |

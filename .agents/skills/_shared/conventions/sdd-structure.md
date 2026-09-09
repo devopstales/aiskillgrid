@@ -28,7 +28,7 @@ Optional before locking `change.md`:
 | `sdd-verify` | Verdicts + trace + human QA plan; findings → apply |
 | `sdd-archive` | Pure move `changes/` → `archive/` |
 
-Onboard helpers (not top-level stages): `sdd-map-codebase`, `sdd-agent-context`, `sdd-constraints`, `sdd-domain`.
+Onboard helpers (references under `sdd-onboard/references/`, not top-level stages): `map-codebase`, `agent-context`, `constraints`, `domain`.
 
 Retired: `sdd-design`, `sdd-tasks` (absorbed). Registry file is **optional** — not an init gate.
 
@@ -71,10 +71,10 @@ Scratch (git-ignored, never committed): `.skillgrid/sdd/<NNN-slug>/` — `subage
 | Skill | Creates / updates | Path |
 |---|---|---|
 | sdd-init / sdd-onboard | skeleton | `config.yaml`, `agents/` stubs, `glossary/` stubs, `changes/`, `archive/`, AGENTS block |
-| sdd-map-codebase | optional map | `docs/skillgrid/codebase/` |
-| sdd-agent-context | harness pointer | `AGENTS.md` (+ one-line pointers elsewhere) |
-| sdd-constraints | quality bar | `config.yaml` `rules.*` |
-| sdd-domain | vocabulary | `docs/skillgrid/glossary/{business,technical}.md` |
+| sdd-onboard → references/map-codebase.md | optional map | `docs/skillgrid/codebase/` |
+| sdd-onboard → references/agent-context.md | harness pointer | `AGENTS.md` (+ one-line pointers elsewhere) |
+| sdd-onboard → references/constraints.md | quality bar | `config.yaml` `rules.*` |
+| sdd-onboard → references/domain.md | vocabulary | `docs/skillgrid/glossary/{business,technical}.md` |
 | sdd-explore | research | `changes/<NNN-slug>/research.md` |
 | sdd-propose | change | `changes/<NNN-slug>/change.md` |
 | sdd-spec | tasks + acceptance | `tasks.md`, `acceptance.feature` |

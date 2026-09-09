@@ -22,7 +22,7 @@ Quality drops before the advertised window is full. Prefer more, smaller slices 
 | Skill | When |
 |-------|------|
 | `subagent-execution` | Fresh agent per plan slice during apply |
-| `dispatching-parallel-agents` | 2+ **independent** domains (no shared files / shared `topic_key`) |
+| `subagent-execution` (Parallel investigation) | 2+ **independent** domains (no shared files / shared `topic_key`) |
 | `simple-execution` | Small slice; inline without spawning |
 | `isolated-workspace` | Worktree isolation when branches would collide |
 | `handoff` | Peel an out-of-scope side problem into a brief for another agent |

@@ -1,6 +1,6 @@
 ---
 name: subagent-execution
-description: Use when executing an implementation plan by dispatching a fresh subagent per task, with a spec+quality review after each and a bounded fix loop
+description: Use when executing an implementation plan by dispatching a fresh subagent per task, with a spec+quality review after each and a bounded fix loop. Includes the parallel-investigation dispatch protocol (formerly dispatching-parallel-agents).
 license: MIT
 metadata:
   author: devopstales
@@ -268,6 +268,24 @@ If findings: dispatch **ONE** fix subagent with the complete list (per-finding f
 ## Example workflow
 
 [references/example-workflow.md](references/example-workflow.md) — a full two-task run: clean review, then a Spec ❌ with one fix round, then the final review.
+
+## Parallel investigation (folded from dispatching-parallel-agents)
+
+Investigation-only fan-out. Implementers in the task loop above stay sequential — never parallel implementers.
+
+```
+Multiple unrelated work items?
+├── no  → single agent handles all
+└── yes → Are they independent (root-cause level)?
+         ├── no  (related; fixing one may fix others) → single agent investigates together
+         └── yes → Can they run truly in parallel (no shared state, no shared files)?
+                  ├── no  (shared files, shared resource, single Mnemonic topic_key) → sequential
+                  └── yes → PARALLEL DISPATCH
+```
+
+Use when 2+ independent domains (different test files, subsystems, root causes) with no shared files/state/`topic_key`. Don't use when failures are related, full-system context is needed, agents would edit the same files or write the same `topic_key` (second upsert silently overwrites the first), or debugging is still exploratory.
+
+Each agent gets one domain: specific scope, clear goal, must-not-change constraints, structured return (root cause / changes / blockers), and a unique `topic_key` (`sdd/<NNN-slug>/parallel/<domain>`). **Mechanical rule:** all parallel dispatches in a single response (multiple `task` calls = parallel; one per response = sequential). On return: read summaries, check conflicts, run full suite, spot-check one acceptance scenario per agent.
 
 ## References
 
