@@ -267,8 +267,13 @@ func codeHitDTOs(db *sql.DB, query string, hits []search.CodeHit) []map[string]a
 		conf := hybrid.ConfidenceFromScore(baseScore, factors).
 			WithActionAndFallbacks(query, []string{hit.Path})
 		// Skeletonize the snippet (01.11) and redact it (01.3) so the snippet
-		// stays short and a secret never ships raw.
-		skel := hybrid.Skeletonize(strings.Split(hit.Snippet, "\n"), query, hit.StartLine, hit.EndLine)
+		// stays short and a secret never ships raw. The snippet's own lines are
+		// local 0..N-1 (not the file's absolute hit.StartLine..hit.EndLine), so
+		// the skeletonization window must be 0-based over the snippet's lines —
+		// passing the absolute file range would clamp to the whole snippet and
+		// make the window meaningless.
+		snippetLines := strings.Split(hit.Snippet, "\n")
+		skel := hybrid.Skeletonize(snippetLines, query, 0, len(snippetLines)-1)
 		skelText := strings.Join(skel, "\n")
 		redacted := hybrid.RedactSecrets(skelText)
 		out[i] = map[string]any{

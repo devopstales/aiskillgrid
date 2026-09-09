@@ -288,22 +288,23 @@ func TestOneIndexPerCorpus(t *testing.T) {
 	ctx := context.Background()
 	queries := evalFixtureQueries()
 
-	// A variant that records the index pointer it saw; both variants must have
-	// seen the identical pointer for the corpus.
-	var seen map[string]*CorpusIndex
-	seen = map[string]*CorpusIndex{}
-	rec := func(q *QuerySet, idx *CorpusIndex) []string {
-		return idx.Paths()
+	// Both the baseline and the candidate record the index pointer they saw.
+	// Proving they are the SAME instance (not just IndexInstances == 1) is what
+	// actually establishes "one index per corpus": the only thing that varies
+	// between variants is the ranking, never the retrieved document set.
+	seen := map[string]*CorpusIndex{}
+	record := func(name string) RankFunc {
+		return func(q *QuerySet, idx *CorpusIndex) []string {
+			seen[name] = idx
+			return idx.Paths()
+		}
 	}
 	res, err := Run(ctx, RunConfig{
 		Corpora: map[string]map[string]string{"self": evalFixtureCorpus()},
 		Queries: map[string][]*QuerySet{"self": queries},
 		Variants: []Variant{
-			{Name: "baseline", Rank: lastRanker, Baseline: true},
-			{Name: "candidate", Rank: func(q *QuerySet, idx *CorpusIndex) []string {
-				seen["candidate"] = idx
-				return rec(q, idx)
-			}},
+			{Name: "baseline", Rank: record("baseline"), Baseline: true},
+			{Name: "candidate", Rank: record("candidate")},
 		},
 	})
 	if err != nil {
@@ -312,8 +313,16 @@ func TestOneIndexPerCorpus(t *testing.T) {
 	if res.IndexInstances["self"] != 1 {
 		t.Errorf("corpus 'self' should be indexed exactly once, got %d", res.IndexInstances["self"])
 	}
+	if seen["baseline"] == nil {
+		t.Fatal("baseline variant never received an index pointer")
+	}
 	if seen["candidate"] == nil {
 		t.Fatal("candidate variant never received an index pointer")
+	}
+	// The crux: baseline and candidate must have received the IDENTICAL index
+	// instance (same pointer) for the corpus.
+	if seen["baseline"] != seen["candidate"] {
+		t.Errorf("baseline and candidate must share the SAME CorpusIndex instance; got %p vs %p", seen["baseline"], seen["candidate"])
 	}
 }
 
