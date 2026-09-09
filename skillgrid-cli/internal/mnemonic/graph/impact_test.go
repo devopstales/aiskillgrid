@@ -171,6 +171,80 @@ func TestCodeImpactDisambiguates(t *testing.T) {
 	}
 }
 
+// TestImpactTraversesRouteReferencesEdges covers the step-01 blast-radius
+// reconciliation: a RESOLVED route->handler `references` edge (step-01 kind,
+// to_id set, to_name = handler) is traversed by the reverse impact walk, so a
+// handler's blast radius includes its serving route. A DROPPED (ambiguous)
+// reference has no stored edge, so it must NOT appear (drop-not-guess).
+func TestImpactTraversesRouteReferencesEdges(t *testing.T) {
+	st := impactFixture(t)
+	ctx := context.Background()
+	db := st.DB
+
+	// Add a route node (kind=route) that references the `base-a` handler by a
+	// RESOLVED references edge (to_id set, to_name = 'base', EXTRACTED).
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO files (path, mtime_ns, size, content_hash, indexed_at)
+		VALUES ('/urls.py', 5, 5, 'u', 'now');
+		INSERT INTO symbols (file_id, name, qualified_name, kind, language, signature, start_line, end_line, content_hash, uid)
+		SELECT f.id, 'GET /base/', 'GET /base/', 'route', 'python', 'path("/base/")', 1, 5, 'h', 'uid-route'
+		FROM files f WHERE f.path = '/urls.py';
+		INSERT INTO edges (kind, from_id, file_id, to_id, to_name, confidence, line)
+		SELECT 'references',
+			(SELECT id FROM symbols WHERE uid = 'uid-route'),
+			(SELECT file_id FROM symbols WHERE uid = 'uid-route'),
+			(SELECT id FROM symbols WHERE uid = 'uid-base-a'),
+			'base',
+			'EXTRACTED', 30;
+	`)
+	if err != nil {
+		t.Fatalf("seed route: %v", err)
+	}
+
+	// Blast radius of the handler `base` (uid-base-a) must now include its
+	// serving route (the reverse references edge traversed).
+	target := Symbol{ID: mustID(ctx, db, "uid-base-a"), Name: "base"}
+	res, err := Impact(ctx, db, target, ImpactOptions{})
+	if err != nil {
+		t.Fatalf("impact: %v", err)
+	}
+	var routeIncluded bool
+	for _, e := range append(res.WillBreak, res.Likely...) {
+		if e.Symbol.UID == "uid-route" {
+			routeIncluded = true
+			if e.Kind != "references" {
+				t.Errorf("route hop kind = %q, want references", e.Kind)
+			}
+		}
+	}
+	if !routeIncluded {
+		t.Errorf("expected the serving route to be in the handler's blast radius (references edge traversed), got %+v", res)
+	}
+
+	// A DROPPED reference (unresolvable) is never stored, so it must not
+	// inflate the radius. Seed a second route node with NO references edge to
+	// `base` (it was dropped by drop-not-guess) and assert it is absent.
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO files (path, mtime_ns, size, content_hash, indexed_at)
+		VALUES ('/urls2.py', 6, 6, 'u2', 'now');
+		INSERT INTO symbols (file_id, name, qualified_name, kind, language, signature, start_line, end_line, content_hash, uid)
+		SELECT f.id, 'GET /mystery/', 'GET /mystery/', 'route', 'python', 'path("/mystery/")', 1, 5, 'h', 'uid-route-dropped'
+		FROM files f WHERE f.path = '/urls2.py';
+	`)
+	if err != nil {
+		t.Fatalf("seed dropped route: %v", err)
+	}
+	res2, err := Impact(ctx, db, target, ImpactOptions{})
+	if err != nil {
+		t.Fatalf("impact: %v", err)
+	}
+	for _, e := range append(res2.WillBreak, res2.Likely...) {
+		if e.Symbol.UID == "uid-route-dropped" {
+			t.Errorf("a dropped (unresolvable) reference must not appear in the blast radius, got %+v", e)
+		}
+	}
+}
+
 // mustID resolves a symbol row id by UID (test helper).
 func mustID(ctx context.Context, db *sql.DB, uid string) int64 {
 	var id int64

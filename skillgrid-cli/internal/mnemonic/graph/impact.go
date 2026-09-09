@@ -102,13 +102,28 @@ func Impact(ctx context.Context, db *sql.DB, sym Symbol, opts ImpactOptions) (Im
 		if cur.depth >= maxDepth {
 			continue
 		}
+		// Reverse dependents of cur.id: an edge points AT cur either by a
+		// resolved id (e.to_id = cur.id — the step-01 resolved references
+		// route->handler edges, and 005 calls/imports) or by a name-only
+		// endpoint (e.to_id IS NULL AND e.to_name matches — 005 heritage /
+		// navigates / unresolved). Both are traversed.
+		// 'calls','imports','reference','route','extends','implements' are the
+		// 005 heritage/call kinds (the singular 'reference' is 005's
+		// import/reference kind, distinct from step-01's plural 'references').
+		// 'references','navigates' are the step-01 framework-route edge kinds,
+		// deliberately included for blast radius so a RESOLVED route->handler
+		// references edge is traversed (a handler change's radius then includes
+		// its serving route). Dropped (ambiguous) refs have no stored edge, so
+		// they never appear here (drop-not-guess).
 		rows, err := db.QueryContext(ctx, `
 			SELECT e.from_id, e.kind, e.confidence, e.line
 			FROM edges e
-			WHERE e.to_id IS NULL
-			  AND e.to_name IN (SELECT name FROM symbols WHERE id = ?)
-			  AND e.kind IN ('calls','imports','reference','route','extends','implements')
-			ORDER BY e.id`, cur.id)
+			WHERE (
+				e.to_id = ?
+				OR (e.to_id IS NULL AND e.to_name IN (SELECT name FROM symbols WHERE id = ?))
+			  )
+			  AND e.kind IN ('calls','imports','reference','route','extends','implements','references','navigates')
+			ORDER BY e.id`, cur.id, cur.id)
 		if err != nil {
 			return out, err
 		}
