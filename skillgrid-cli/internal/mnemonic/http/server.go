@@ -907,9 +907,9 @@ func (s *Server) handleCodeIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer cleanup()
-	// Same indexing behavior as service.RunCodeIndex: config for the index run
-	// comes from the directory itself (matches the facade), the store from the
-	// handle, and the embedder from the handle's config root.
+	// Same indexing behavior as service.RunCodeIndex: the config for the index
+	// run comes from the directory itself (matches the facade), and the embedder
+	// is derived from that same single loaded config (no second load).
 	cfg := config.Load(dir)
 	idxCfg := codeindex.Config{
 		Include:      cfg.Include,
@@ -919,7 +919,7 @@ func (s *Server) handleCodeIndex(w http.ResponseWriter, r *http.Request) {
 		MaxFileSize:  cfg.MaxFileSize,
 	}
 	idx := codeindex.New(h.Store())
-	if emb := httpResolveEmbedder(dir); emb != nil {
+	if emb := httpResolveEmbedder(cfg); emb != nil {
 		idx = idx.WithEmbedder(emb)
 	}
 	stats, err := idx.Run(r.Context(), dir, idxCfg)
@@ -1341,11 +1341,10 @@ func httpRowCount(ctx context.Context, db *sql.DB, table string, out *int) {
 	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table).Scan(out)
 }
 
-// httpResolveEmbedder builds the process embedder from config for configRoot,
-// mirroring service.resolveEmbedder (external/onnx/off). A nil return means
-// the embedder is off — indexing degrades to the FTS floor.
-func httpResolveEmbedder(configRoot string) embedder.Embedder {
-	cfg := config.Load(configRoot)
+// httpResolveEmbedder builds the process embedder from an already-loaded
+// config, mirroring service.resolveEmbedder (external/onnx/off). A nil return
+// means the embedder is off — indexing degrades to the FTS floor.
+func httpResolveEmbedder(cfg config.Indexing) embedder.Embedder {
 	switch cfg.Embedder.Provider {
 	case "external":
 		return embedder.NewExternal(embedder.ExternalConfig{
