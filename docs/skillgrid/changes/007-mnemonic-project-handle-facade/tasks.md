@@ -367,6 +367,13 @@ Notes:
 - 43 dead single-project wrappers + 4 orphaned type aliases deleted; `PassiveInput` alias restored (http/server.go:417 refs it). Tests in service/, integration/seed_test.go, mcp/single_open_test.go rewired to the handle (scope normalization preserved).
 - PARKED (follow-up, not a blocker): pre-existing `CodeExplore`→`CodeImpact` double-open (service.go:986 opens, then :1044 calls s.CodeImpact which reopens at :814). Both methods KEPT (CodeImpact has CLI+MCP callers); not introduced by this step. Fix = a non-opening `codeImpactHandle` variant that `CodeExplore` reuses. The facade open-delegate-close surface this change targets is gone.
 
+## Follow-ups (deferred by final broad review — not 007 blockers)
+
+- **Consolidate mcp/http verbatim copies.** Step 02 added `mcp*` copies (mcpOrientSymbol, mcpCodeExplore, mcpMemoryDoctor, mcpCodeEmbeddingStatus, mcpReadIndexedCode) and step 03 added `http*` copies (httpMemoryDoctor, readIndexedCode, httpResolveEmbedder, scopeForSave) of db-backed service logic, because the handle exposes no non-reopening method for graph/orient/doctor/db ops. Track: export the db-backed impls from service/ (or add handle methods), delete the mcp*/http* copies, add an identity test.
+- **CodeExplore→CodeImpact double-open (CLI path).** Fix via a `codeImpactHandle` variant reusing the already-open handle; add a guard for it.
+- **Seam uniformity (optional).** retrieval (semantic_search/load_full_details), teams, and code_grep MCP groups still use the `rootService()`+`projectIDFor`+facade pattern (each opens once; code_grep takes a root, no double-open). Uniform on the handle is a nice-to-have, not a defect.
+- **Minor:** `Service.Open` is a one-line pass-through of `openProject`; `mcpResolveEmbedder`/`httpResolveEmbedder` read config from `"."`/`dir` (≈`h.root` today). Both fold into the consolidation above.
+
 ---
 
 ## Archive gate checklist
