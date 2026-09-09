@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	_ "modernc.org/sqlite"
 )
@@ -22,8 +23,40 @@ type Store struct {
 	path string
 }
 
+// openCount records every call to Open (successful or not). It is a process-
+// global diagnostic that is never read on the production path — the mcp tests
+// use it to prove a single tool call opens its project store exactly once
+// (no double-open). It is safe under concurrent use.
+var (
+	openCountMu sync.Mutex
+	openCount   int
+)
+
+// OpenCount returns the total number of times Open has been called in this
+// process. Test-only helper.
+func OpenCount() int {
+	openCountMu.Lock()
+	defer openCountMu.Unlock()
+	return openCount
+}
+
+// RecordOpen increments the process-global open counter.
+func RecordOpen() {
+	openCountMu.Lock()
+	openCount++
+	openCountMu.Unlock()
+}
+
+// ResetOpenCount clears the counter. Test-only helper.
+func ResetOpenCount() {
+	openCountMu.Lock()
+	openCount = 0
+	openCountMu.Unlock()
+}
+
 // Open opens or creates the SQLite database for projectID under dataDir.
 func Open(dataDir, projectID string) (*Store, error) {
+	RecordOpen()
 	if strings.TrimSpace(projectID) == "" {
 		return nil, fmt.Errorf("project id is required")
 	}

@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"sort"
@@ -10,6 +11,7 @@ import (
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
 
@@ -121,13 +123,13 @@ func handleCodeExplore(ctx context.Context, req mcplib.CallToolRequest) (*mcplib
 	_, _ = req.RequireString("repo") // optional; pool/cwd resolves it
 	maxTokens := int(req.GetFloat("max_tokens", 0))
 
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
 
-	res, err := svc.CodeExplore(ctx, projectID, symbol)
+	res, err := mcpCodeExplore(ctx, h, symbol)
 	if err != nil {
 		return toolError(err)
 	}
@@ -158,6 +160,102 @@ func handleCodeExplore(ctx context.Context, req mcplib.CallToolRequest) (*mcplib
 	text, truncated := formatExplore(out, maxTokens)
 	resText := exploreEnvelope{text, truncated}
 	return JSONResult(resText)
+}
+
+// mcpCodeExplore is the single-open backing for code_explore: resolve the
+// symbol, pull verbatim source for the target + related symbols, derive the
+// call-flow (including INFERRED hops), and attach a blast-radius summary — all
+// on the already-open handle store. Byte-compatible with service.CodeExplore.
+func mcpCodeExplore(ctx context.Context, h *service.ProjectHandle, symbol string) (*service.ExploreResult, error) {
+	db := h.Store().DB
+	res, err := graph.Resolve(ctx, db, symbol, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	out := &service.ExploreResult{Symbol: symbol, Source: map[string][]service.ExploreSourceSpan{}}
+	if res.NotFound {
+		return out, nil
+	}
+	target := res.Target
+	spans, err := mcpReadSymbolSpans(ctx, db, []graph.Symbol{target})
+	if err == nil {
+		for path, ss := range spans {
+			out.Source[path] = ss
+		}
+	}
+	callees, _ := graph.Neighbors(ctx, db, target, graph.ViewCallees)
+	callers, _ := graph.Neighbors(ctx, db, target, graph.ViewCallers)
+	related := []graph.Symbol{}
+	seen := map[int64]bool{target.ID: true}
+	for _, e := range append(append([]graph.Edge{}, callees...), callers...) {
+		other := e.To
+		if e.From.ID == target.ID && e.To.ID != target.ID {
+			other = e.To
+		}
+		if e.From.ID != target.ID && e.To.ID != target.ID {
+			other = e.To
+		}
+		if other.ID == 0 {
+			continue
+		}
+		out.Flow = append(out.Flow, service.ExploreFlowEdge{
+			From:       mcpNameOf(target, other),
+			To:         mcpNameOf(other, target),
+			Kind:       e.Kind,
+			Confidence: e.Confidence,
+			Line:       e.Line,
+		})
+		if !seen[other.ID] {
+			seen[other.ID] = true
+			related = append(related, other)
+		}
+	}
+	if len(related) > 0 {
+		if spans, err := mcpReadSymbolSpans(ctx, db, related); err == nil {
+			for path, ss := range spans {
+				out.Source[path] = append(out.Source[path], ss...)
+			}
+		}
+	}
+	impact, err := mcpCodeImpact(ctx, h, symbol, service.ImpactOptions{})
+	if err != nil {
+		out.Impact = &service.ImpactResultDTO{}
+	} else {
+		out.Impact = impact
+	}
+	return out, nil
+}
+
+// mcpReadSymbolSpans returns each symbol's verbatim source grouped by file.
+func mcpReadSymbolSpans(ctx context.Context, db *sql.DB, syms []graph.Symbol) (map[string][]service.ExploreSourceSpan, error) {
+	out := map[string][]service.ExploreSourceSpan{}
+	for _, sym := range syms {
+		if sym.ID == 0 {
+			continue
+		}
+		res, err := mcpReadIndexedCode(db, sym.Path, sym.StartLine, sym.EndLine)
+		if err != nil {
+			continue
+		}
+		text, _ := res["text"].(string)
+		out[sym.Path] = append(out[sym.Path], service.ExploreSourceSpan{
+			Symbol:    sym.Name,
+			StartLine: sym.StartLine,
+			EndLine:   sym.EndLine,
+			Content:   text,
+		})
+	}
+	return out, nil
+}
+
+func mcpNameOf(a, b graph.Symbol) string {
+	if a.ID != 0 {
+		return a.Name
+	}
+	if b.ID != 0 {
+		return b.Name
+	}
+	return ""
 }
 
 // exploreEnvelope is the response body: the formatted text plus a truncation

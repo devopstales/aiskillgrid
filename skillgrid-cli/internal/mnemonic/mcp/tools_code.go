@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -9,8 +11,9 @@ import (
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
-	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
 
 func registerCodeTools(s *server.MCPServer) {
@@ -61,20 +64,21 @@ func handleCodeStatus(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 	_ = ctx
 	_ = req
 
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
 
-	status, stale, err := svc.CodeStatus(ctx, projectID)
+	status, err := codeindex.GetStatus(h.Store())
 	if err != nil {
 		return toolError(err)
 	}
+	stale := status.FileCount == 0 || status.LastIndexed == ""
 	// Additive: per-language fair coverage (measured from edges). Existing
 	// fields stay unchanged.
-	coverage := map[string]service.FairCoverageDTO{}
-	if cov, covErr := svc.CodeFairCoverage(ctx, projectID); covErr == nil {
+	coverage := map[string]graph.CoverageLang{}
+	if cov, covErr := graph.FairCoverage(ctx, h.Store().DB); covErr == nil {
 		coverage = cov
 	}
 
@@ -119,7 +123,7 @@ func handleCodeIndex(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 }
 
 func handleCodeSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -131,7 +135,7 @@ func handleCodeSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 	}
 
 	limit := int(req.GetFloat("limit", 20))
-	hits, err := svc.CodeSearch(ctx, projectID, query, limit)
+	hits, err := search.CodeSearch(h.Store().DB, query, limit)
 	if err != nil {
 		return toolError(err)
 	}
@@ -140,7 +144,7 @@ func handleCodeSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 }
 
 func handleCodeRead(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -154,11 +158,77 @@ func handleCodeRead(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Ca
 	startLine := int(req.GetFloat("start_line", 0))
 	endLine := int(req.GetFloat("end_line", 0))
 
-	result, err := svc.ReadIndexedCode(ctx, projectID, path, startLine, endLine)
+	result, err := mcpReadIndexedCode(h.Store().DB, path, startLine, endLine)
 	if err != nil {
 		return toolError(err)
 	}
 	return JSONResult(result)
+}
+
+// mcpReadIndexedCode is the single-open backing for code_read: fetch indexed
+// source for path (and optional line range) directly on the already-open
+// handle store, byte-compatible with service.readIndexedCode.
+func mcpReadIndexedCode(db *sql.DB, path string, startLine, endLine int) (map[string]any, error) {
+	var fileID int64
+	err := db.QueryRow(`SELECT id FROM files WHERE path = ?`, path).Scan(&fileID)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("file not indexed: %s", path)
+	}
+	if err != nil {
+		return nil, err
+	}
+	var rows *sql.Rows
+	if startLine > 0 {
+		if endLine <= 0 {
+			endLine = startLine
+		}
+		rows, err = db.Query(`
+			SELECT start_line, end_line, text FROM chunks
+			WHERE file_id = ? AND start_line <= ? AND end_line >= ?
+			ORDER BY start_line`,
+			fileID, endLine, startLine,
+		)
+	} else {
+		rows, err = db.Query(`
+			SELECT start_line, end_line, text FROM chunks
+			WHERE file_id = ?
+			ORDER BY start_line`,
+			fileID,
+		)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var parts []string
+	firstLine := 0
+	lastLine := 0
+	for rows.Next() {
+		var chunkStart, chunkEnd int
+		var text string
+		if err := rows.Scan(&chunkStart, &chunkEnd, &text); err != nil {
+			return nil, err
+		}
+		if firstLine == 0 || chunkStart < firstLine {
+			firstLine = chunkStart
+		}
+		if chunkEnd > lastLine {
+			lastLine = chunkEnd
+		}
+		parts = append(parts, text)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("no indexed chunks for %s", path)
+	}
+	return map[string]any{
+		"path":       path,
+		"start_line": firstLine,
+		"end_line":   lastLine,
+		"text":       strings.Join(parts, "\n"),
+	}, nil
 }
 
 func codeHitDTOs(hits []search.CodeHit) []map[string]any {

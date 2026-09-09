@@ -2,31 +2,39 @@ package mcp
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/config"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/embedder"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/hybrid"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
 
 // openServiceForRepo opens the service + project for a request's optional
 // repo param: an explicit repo wins, otherwise the cwd-resolved project.
-// Returns a cleanup func to close the store handle.
-func openServiceForRepo(repo string) (*service.Service, string, func(), error) {
+// Returns the opened handle (open #1) plus a cleanup func to close it. The
+// handler then performs its search through the handle so the project is not
+// opened a second time inside a service facade method.
+func openServiceForRepo(repo string) (*service.Service, *service.ProjectHandle, func(), error) {
 	svc, err := rootService()
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, nil, err
 	}
-	projectID, err := projectIDForPool(svc, repo)
+	// Resolve the requested project (explicit repo wins, else single-project
+	// or cwd). The handle below opens the same project; projectIDForPool is
+	// kept for its validation/error behavior when the resolution is invalid.
+	if _, err := projectIDForPool(svc, repo); err != nil {
+		return nil, nil, nil, err
+	}
+	h, cleanup, err := svc.OpenForDirectory(".")
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, nil, err
 	}
-	_, cleanup, err := svc.OpenForDirectory(".")
-	if err != nil {
-		return nil, "", nil, err
-	}
-	return svc, projectID, cleanup, nil
+	return svc, h, cleanup, nil
 }
 
 // registerHybridTools registers the offline hybrid search surface:
@@ -83,13 +91,16 @@ func handleCodeHybridSearch(ctx context.Context, req mcplib.CallToolRequest) (*m
 	}
 	limit := int(req.GetFloat("limit", 20))
 
-	svc, projectID, cleanup, err := openServiceForRepo(req.GetString("repo", ""))
+	_, h, cleanup, err := openServiceForRepo(req.GetString("repo", ""))
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
 
-	out, err := svc.CodeHybridSearch(ctx, projectID, query, limit)
+	out, err := hybrid.Search(ctx, h.Store().DB, query, hybrid.Options{
+		Limit:    limit,
+		Embedder: mcpResolveEmbedder(h),
+	})
 	if err != nil {
 		return toolError(err)
 	}
@@ -106,13 +117,17 @@ func handleCodeSemanticSearch(ctx context.Context, req mcplib.CallToolRequest) (
 	}
 	limit := int(req.GetFloat("limit", 20))
 
-	svc, projectID, cleanup, err := openServiceForRepo(req.GetString("repo", ""))
+	_, h, cleanup, err := openServiceForRepo(req.GetString("repo", ""))
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
 
-	out, err := svc.CodeSemanticSearch(ctx, projectID, query, limit)
+	out, err := hybrid.Search(ctx, h.Store().DB, query, hybrid.Options{
+		Limit:    limit,
+		Semantic: true,
+		Embedder: mcpResolveEmbedder(h),
+	})
 	if err != nil {
 		return toolError(err)
 	}
@@ -120,15 +135,84 @@ func handleCodeSemanticSearch(ctx context.Context, req mcplib.CallToolRequest) (
 }
 
 func handleCodeEmbeddingStatus(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openServiceForRepo(req.GetString("repo", ""))
+	_, h, cleanup, err := openServiceForRepo(req.GetString("repo", ""))
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
 
-	out, err := svc.CodeEmbeddingStatus(ctx, projectID)
+	out, err := mcpCodeEmbeddingStatus(ctx, h)
 	if err != nil {
 		return toolError(err)
 	}
 	return JSONResult(out)
+}
+
+// mcpCodeEmbeddingStatus is the single-open backing for code_embedding_status:
+// provider/model, vector dimension, embedded count, and the model-swap guard
+// read straight from the already-open handle store. Byte-compatible with
+// service.CodeEmbeddingStatus.
+func mcpCodeEmbeddingStatus(ctx context.Context, h *service.ProjectHandle) (map[string]any, error) {
+	cfg := config.Load(".")
+	emb := mcpResolveEmbedder(h)
+	status := map[string]any{
+		"provider": cfg.Embedder.Provider,
+	}
+	if emb == nil {
+		status["active"] = false
+		status["model"] = ""
+		status["dimension"] = 0
+		status["reason"] = "embedder off"
+	} else {
+		status["active"] = true
+		status["model"] = emb.Model()
+		status["dimension"] = emb.Dimension()
+	}
+	db := h.Store().DB
+	var symCount int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM embeddings`).Scan(&symCount)
+	status["embedded_symbols"] = symCount
+	var model sql.NullString
+	_ = db.QueryRow(`SELECT value FROM embed_meta WHERE key = 'embedding_model'`).Scan(&model)
+	status["indexed_model"] = model.String
+	return status, nil
+}
+
+// mcpResolveEmbedder builds the process embedder from the workspace config,
+// mirroring service.resolveEmbedder. The handle's ContentPlane root is not
+// exposed (it is the cwd for OpenForCWD / OpenForDirectory), so config is read
+// from "." — the same source the handle used to construct its web cache.
+func mcpResolveEmbedder(h *service.ProjectHandle) embedder.Embedder {
+	return mcpBuildEmbedder(config.Load("."))
+}
+
+func mcpBuildEmbedder(cfg config.Indexing) embedder.Embedder {
+	switch cfg.Embedder.Provider {
+	case "external":
+		return embedder.NewExternal(embedder.ExternalConfig{
+			BaseURL:   cfg.Embedder.BaseURL,
+			Model:     cfg.Embedder.Model,
+			APIKey:    cfg.Embedder.APIKey,
+			Dimension: cfg.Embedder.Dimension,
+			Indexing:  mcpToAsym(cfg.Embedder.Indexing),
+			Query:     mcpToAsym(cfg.Embedder.Query),
+		})
+	case "off", "":
+		return nil
+	default: // "onnx" is the default
+		return embedder.NewOnnx(embedder.OnnxConfig{
+			Model:     cfg.Embedder.Model,
+			Dimension: cfg.Embedder.Dimension,
+			Indexing:  mcpToAsym(cfg.Embedder.Indexing),
+			Query:     mcpToAsym(cfg.Embedder.Query),
+		})
+	}
+}
+
+func mcpToAsym(p config.EmbedderParams) embedder.AsymParams {
+	return embedder.AsymParams{
+		Instructions: p.Instructions,
+		InputType:    p.InputType,
+		MaxTokens:    p.MaxTokens,
+	}
 }

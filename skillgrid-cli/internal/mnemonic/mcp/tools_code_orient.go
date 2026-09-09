@@ -2,9 +2,13 @@ package mcp
 
 import (
 	"context"
+	"database/sql"
 
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
 
 // registerOrientTools registers the Tier-1 orientation MCP tools. They resolve
@@ -54,7 +58,7 @@ func codeRationaleTool() mcplib.Tool {
 }
 
 func handleCodeOrient(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -63,7 +67,7 @@ func handleCodeOrient(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 	if err != nil {
 		return toolError(err)
 	}
-	out, err := svc.OrientSymbol(ctx, projectID, symbol)
+	out, err := mcpOrientSymbol(h.Store().DB, symbol)
 	if err != nil {
 		return toolError(err)
 	}
@@ -71,7 +75,7 @@ func handleCodeOrient(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 }
 
 func handleCodeSignature(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -80,7 +84,7 @@ func handleCodeSignature(ctx context.Context, req mcplib.CallToolRequest) (*mcpl
 	if err != nil {
 		return toolError(err)
 	}
-	out, err := svc.OrientSymbol(ctx, projectID, symbol)
+	out, err := mcpOrientSymbol(h.Store().DB, symbol)
 	if err != nil {
 		return toolError(err)
 	}
@@ -93,7 +97,7 @@ func handleCodeSignature(ctx context.Context, req mcplib.CallToolRequest) (*mcpl
 }
 
 func handleCodeFileTOC(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -102,7 +106,7 @@ func handleCodeFileTOC(ctx context.Context, req mcplib.CallToolRequest) (*mcplib
 	if err != nil {
 		return toolError(err)
 	}
-	out, err := svc.OrientSymbol(ctx, projectID, symbol)
+	out, err := mcpOrientSymbol(h.Store().DB, symbol)
 	if err != nil {
 		return toolError(err)
 	}
@@ -114,7 +118,7 @@ func handleCodeFileTOC(ctx context.Context, req mcplib.CallToolRequest) (*mcplib
 }
 
 func handleCodeRationale(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -123,7 +127,7 @@ func handleCodeRationale(ctx context.Context, req mcplib.CallToolRequest) (*mcpl
 	if err != nil {
 		return toolError(err)
 	}
-	out, err := svc.OrientSymbol(ctx, projectID, symbol)
+	out, err := mcpOrientSymbol(h.Store().DB, symbol)
 	if err != nil {
 		return toolError(err)
 	}
@@ -132,4 +136,105 @@ func handleCodeRationale(ctx context.Context, req mcplib.CallToolRequest) (*mcpl
 		"rationale": out.Rationale,
 		"reason":    out.Reason,
 	})
+}
+
+// mcpOrientSymbol is the single-open backing for the Tier-1 orientation tools:
+// resolve symbol (exact, then identifier-FTS) and return its signature, file
+// TOC, list, metadata, and linked rationale, straight from the already-open
+// handle store. Byte-compatible with service.orientSymbol.
+func mcpOrientSymbol(db *sql.DB, symbol string) (*service.OrientResult, error) {
+	row := db.QueryRow(`
+		SELECT s.id, s.name, s.qualified_name, s.kind, s.language, s.signature,
+		       s.start_line, s.end_line, f.path, s.file_id
+		FROM symbols s INNER JOIN files f ON f.id = s.file_id
+		WHERE s.name = ?
+		ORDER BY s.id LIMIT 1`, symbol)
+	var id, fileID int64
+	var name, qualified, kind, lang, sig string
+	var startLine, endLine int
+	var path string
+	err := row.Scan(&id, &name, &qualified, &kind, &lang, &sig, &startLine, &endLine, &path, &fileID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Fallback: identifier-FTS.
+			hits, e2 := search.SymbolFTS(db, symbol, 1)
+			if e2 != nil {
+				return nil, e2
+			}
+			if len(hits) == 0 {
+				return &service.OrientResult{Found: false, Reason: "symbol not found: " + symbol}, nil
+			}
+			hit := hits[0]
+			row2 := db.QueryRow(`
+				SELECT s.id, s.name, s.qualified_name, s.kind, s.language, s.signature,
+				       s.start_line, s.end_line, f.path, s.file_id
+				FROM symbols s INNER JOIN files f ON f.id = s.file_id
+				WHERE s.id = ?`, hit.ID)
+			if err := row2.Scan(&id, &name, &qualified, &kind, &lang, &sig, &startLine, &endLine, &path, &fileID); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	out := &service.OrientResult{
+		Found: true,
+		Symbol: map[string]any{
+			"id":             id,
+			"name":           name,
+			"qualified_name": qualified,
+			"kind":           kind,
+			"language":       lang,
+			"path":           path,
+			"start_line":     startLine,
+			"end_line":       endLine,
+		},
+		Signature: sig,
+	}
+
+	// File TOC + list: every symbol in the file, ordered by start line.
+	tocRows, err := db.Query(`
+		SELECT id, name, qualified_name, kind, start_line, end_line
+		FROM symbols WHERE file_id = ? ORDER BY start_line, id`, fileID)
+	if err != nil {
+		return out, nil
+	}
+	for tocRows.Next() {
+		var tID int64
+		var tName, tQualified, tKind string
+		var tStart, tEnd int
+		if err := tocRows.Scan(&tID, &tName, &tQualified, &tKind, &tStart, &tEnd); err != nil {
+			tocRows.Close()
+			return out, nil
+		}
+		entry := map[string]any{
+			"id":         tID,
+			"name":       tName,
+			"kind":       tKind,
+			"start_line": tStart,
+			"end_line":   tEnd,
+		}
+		out.FileTOC = append(out.FileTOC, entry)
+	}
+	tocRows.Close()
+	out.List = out.FileTOC
+
+	// Rationale linked to this symbol.
+	rationaleRows, err := db.Query(`SELECT text, kind, line FROM rationale WHERE symbol_id = ? ORDER BY line`, id)
+	if err == nil {
+		for rationaleRows.Next() {
+			var text, kind string
+			var line int
+			if rationaleRows.Scan(&text, &kind, &line) == nil {
+				out.Rationale = append(out.Rationale, map[string]any{
+					"text": text,
+					"kind": kind,
+					"line": line,
+				})
+			}
+		}
+		rationaleRows.Close()
+	}
+	return out, nil
 }

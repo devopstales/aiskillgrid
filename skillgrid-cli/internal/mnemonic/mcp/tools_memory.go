@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
@@ -136,7 +137,7 @@ func memCapturePassiveTool() mcplib.Tool {
 }
 
 func handleMemCapturePassive(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -152,7 +153,7 @@ func handleMemCapturePassive(ctx context.Context, req mcplib.CallToolRequest) (*
 	}
 	source := req.GetString("source", "passive")
 
-	res, err := svc.CapturePassive(ctx, projectID, service.PassiveInput{
+	res, err := h.Memory().CapturePassive(ctx, memory.PassiveInput{
 		Content:   content,
 		SessionID: sessionID,
 		Source:    source,
@@ -173,7 +174,7 @@ func memSuggestTopicKeyTool() mcplib.Tool {
 }
 
 func handleMemSave(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, defaultProjectID, cleanup, err := openService()
+	svc, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -198,7 +199,7 @@ func handleMemSave(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Cal
 
 	explicitProject := strings.TrimSpace(req.GetString("project", ""))
 	projectName := explicitProject
-	projectID := defaultProjectID
+	projectID := h.ProjectID()
 	var drift *service.ProjectDrift
 	if explicitProject != "" {
 		projectID = project.NormalizeID(explicitProject)
@@ -216,11 +217,20 @@ func handleMemSave(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Cal
 	// link-on-save is the safer fidelity choice; automated saves opt out).
 	capturePrompt := req.GetBool("capture_prompt", true)
 
-	id, err := svc.SaveObservation(ctx, projectID, service.SaveObservationInput{
+	// Reproduce service.SaveObservation's scope normalization ("" → project,
+	// "personal" → user) through the handle — the second-open the rewire removes.
+	scope := req.GetString("scope", "project")
+	if scope == "" {
+		scope = "project"
+	}
+	if scope == "personal" {
+		scope = "user"
+	}
+	id, err := h.Memory().Save(ctx, memory.SaveInput{
 		Title:         title,
 		Type:          typ,
 		Content:       content,
-		Scope:         req.GetString("scope", "project"),
+		Scope:         scope,
 		TopicKey:      req.GetString("topic_key", ""),
 		SessionID:     sessionID,
 		CapturePrompt: capturePrompt,
@@ -239,7 +249,7 @@ func handleMemSave(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Cal
 }
 
 func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, defaultProjectID, cleanup, err := openService()
+	svc, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -269,7 +279,7 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 	}
 
 	explicitProject := strings.TrimSpace(req.GetString("project", ""))
-	projectID := defaultProjectID
+	projectID := h.ProjectID()
 	var drift *service.ProjectDrift
 	if explicitProject != "" {
 		projectID = project.NormalizeID(explicitProject)
@@ -281,7 +291,9 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 		}
 	}
 
-	hits, err := svc.SearchObservationsScoped(ctx, projectID, query, matchMode, scope, limit)
+	// Scoped search through the handle (no second open). SearchObservationsScoped
+	// is a thin open+delegate wrapper over Memory().SearchWithScope.
+	hits, err := h.Memory().SearchWithScope(ctx, query, matchMode, scope, limit)
 	if err != nil {
 		return toolError(err)
 	}
@@ -294,14 +306,14 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 }
 
 func handleMemContext(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
 
 	limit := int(req.GetFloat("limit", 5))
-	sessions, err := svc.RecentContext(ctx, projectID, limit)
+	sessions, err := h.Memory().RecentContext(ctx, limit)
 	if err != nil {
 		return toolError(err)
 	}
@@ -309,7 +321,7 @@ func handleMemContext(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 }
 
 func handleMemGetObservation(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -320,7 +332,7 @@ func handleMemGetObservation(ctx context.Context, req mcplib.CallToolRequest) (*
 		return toolError(err)
 	}
 
-	obs, err := svc.GetObservation(ctx, projectID, int64(id))
+	obs, err := h.Memory().Get(ctx, int64(id))
 	if err != nil {
 		return toolError(err)
 	}
@@ -328,7 +340,7 @@ func handleMemGetObservation(ctx context.Context, req mcplib.CallToolRequest) (*
 }
 
 func handleMemSessionSetTitle(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -342,7 +354,7 @@ func handleMemSessionSetTitle(ctx context.Context, req mcplib.CallToolRequest) (
 	if err != nil {
 		return toolError(err)
 	}
-	if err := svc.SessionSetTitle(ctx, projectID, sessionID, title); err != nil {
+	if err := h.Memory().SessionSetTitle(ctx, sessionID, title); err != nil {
 		return toolError(err)
 	}
 	return JSONResult(map[string]any{"session_id": sessionID, "title": title, "title_set": true})
@@ -376,7 +388,7 @@ func handleMemSessionStart(ctx context.Context, req mcplib.CallToolRequest) (*mc
 }
 
 func handleMemSessionEnd(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -387,14 +399,14 @@ func handleMemSessionEnd(ctx context.Context, req mcplib.CallToolRequest) (*mcpl
 		return toolError(err)
 	}
 
-	if err := svc.SessionEnd(ctx, projectID, sessionID, req.GetString("summary", "")); err != nil {
+	if err := h.Memory().SessionEnd(ctx, sessionID, req.GetString("summary", "")); err != nil {
 		return toolError(err)
 	}
 	return JSONResult(map[string]any{"session_id": sessionID, "status": "ended"})
 }
 
 func handleMemSessionSummary(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -409,7 +421,7 @@ func handleMemSessionSummary(ctx context.Context, req mcplib.CallToolRequest) (*
 		return toolError(err)
 	}
 
-	if err := svc.SessionSummary(ctx, projectID, sessionID, summary); err != nil {
+	if err := h.Memory().SessionSummary(ctx, sessionID, summary); err != nil {
 		return toolError(err)
 	}
 	return JSONResult(map[string]any{"session_id": sessionID, "saved": true})
@@ -459,7 +471,7 @@ func parseTimelineWindow(s string) time.Duration {
 }
 
 func handleMemTimeline(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -471,7 +483,7 @@ func handleMemTimeline(ctx context.Context, req mcplib.CallToolRequest) (*mcplib
 	window := parseTimelineWindow(req.GetString("window", ""))
 	limit := int(req.GetFloat("limit", 5))
 
-	tl, err := svc.ObservationTimeline(ctx, projectID, int64(id), window, limit)
+	tl, err := h.Memory().Timeline(ctx, int64(id), window, limit)
 	if err != nil {
 		return toolError(err)
 	}
@@ -497,7 +509,7 @@ func memUpdateTool() mcplib.Tool {
 }
 
 func handleMemUpdate(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -513,7 +525,7 @@ func handleMemUpdate(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 		Scope:    req.GetString("scope", ""),
 		TopicKey: req.GetString("topic_key", ""),
 	}
-	if err := svc.UpdateObservation(ctx, projectID, int64(id), in); err != nil {
+	if err := h.Memory().Update(ctx, int64(id), in); err != nil {
 		return toolError(err)
 	}
 	return JSONResult(map[string]any{"id": int64(id), "updated": true})
@@ -528,7 +540,7 @@ func memDeleteTool() mcplib.Tool {
 }
 
 func handleMemDelete(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -538,7 +550,7 @@ func handleMemDelete(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 		return toolError(err)
 	}
 	hard := req.GetBool("hard", false)
-	if err := svc.DeleteObservation(ctx, projectID, int64(id), hard); err != nil {
+	if err := h.Memory().Delete(ctx, int64(id), hard); err != nil {
 		return toolError(err)
 	}
 	return JSONResult(map[string]any{"id": int64(id), "deleted": true, "hard": hard})
@@ -553,12 +565,12 @@ func memStatsTool() mcplib.Tool {
 }
 
 func handleMemStats(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
-	st, err := svc.MemoryStatus(ctx, projectID)
+	st, err := h.Memory().Status(ctx)
 	if err != nil {
 		return toolError(err)
 	}
@@ -574,7 +586,7 @@ func memSavePromptTool() mcplib.Tool {
 }
 
 func handleMemSavePrompt(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -587,7 +599,7 @@ func handleMemSavePrompt(ctx context.Context, req mcplib.CallToolRequest) (*mcpl
 	if err != nil {
 		return toolError(err)
 	}
-	id, err := svc.SavePrompt(ctx, projectID, service.PromptInput{
+	id, err := h.Memory().SavePrompt(ctx, memory.PromptInput{
 		SessionID: sessionID,
 		Content:   content,
 	})
@@ -626,16 +638,73 @@ func memDoctorTool() mcplib.Tool {
 }
 
 func handleMemDoctor(ctx context.Context, _ mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
-	out, err := svc.MemoryDoctor(ctx, projectID)
+	out, err := mcpMemoryDoctor(ctx, h)
 	if err != nil {
 		return toolError(err)
 	}
 	return JSONResult(out)
+}
+
+// mcpMemoryDoctor is the single-open backing for mem_doctor: read-only store
+// diagnostics (schema version, WAL, FTS counts/drift, by-type, disk size) run
+// directly on the already-open handle store instead of re-opening the project
+// inside service.MemoryDoctor.
+func mcpMemoryDoctor(ctx context.Context, h *service.ProjectHandle) (service.MemoryDoctor, error) {
+	out := service.MemoryDoctor{}
+	db := h.Store().DB
+	if err := db.QueryRowContext(ctx, `SELECT schema_version FROM index_meta WHERE key='schema_version'`).Scan(&out.SchemaVersion); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return out, fmt.Errorf("schema_version: %w", err)
+		}
+	}
+	if err := db.QueryRowContext(ctx, `PRAGMA journal_mode`).Scan(&out.WALMode); err != nil {
+		return out, fmt.Errorf("journal_mode: %w", err)
+	}
+	mcpRowCount(ctx, db, "observations", &out.Observations)
+	mcpRowCount(ctx, db, "files", &out.Files)
+	mcpRowCount(ctx, db, "chunks", &out.Chunks)
+	mcpRowCount(ctx, db, "web_cache", &out.WebCache)
+	mcpRowCount(ctx, db, "prompts", &out.Prompts)
+
+	ftsObs, ftsChunks, ftsWeb := int64(0), int64(0), int64(0)
+	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM observations_fts`).Scan(&ftsObs)
+	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM chunks_fts`).Scan(&ftsChunks)
+	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM web_cache_fts`).Scan(&ftsWeb)
+	out.ObservationsFTS = int(ftsObs)
+	out.ChunksFTS = int(ftsChunks)
+	out.WebCacheFTS = int(ftsWeb)
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT type, COUNT(*) FROM observations
+		WHERE project = ? AND deleted_at IS NULL GROUP BY type`, h.ProjectID())
+	if err == nil {
+		byType := map[string]int{}
+		for rows.Next() {
+			var t string
+			var c int
+			if rows.Scan(&t, &c) == nil {
+				byType[t] = c
+			}
+		}
+		rows.Close()
+		out.ByType = byType
+	}
+
+	if info, err := os.Stat(h.Store().Path()); err == nil {
+		out.DiskSizeBytes = info.Size()
+	}
+	out.FTSDrift = int(ftsObs) - out.Observations
+	out.FTSIntegrityOK = out.FTSDrift >= 0
+	return out, nil
+}
+
+func mcpRowCount(ctx context.Context, db *sql.DB, table string, out *int) {
+	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table).Scan(out)
 }
 
 // ────────────────────────────── Mem: review cycle ──────────────────────────
@@ -650,7 +719,7 @@ func memReviewTool() mcplib.Tool {
 }
 
 func handleMemReview(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -659,7 +728,7 @@ func handleMemReview(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 	switch action {
 	case "list":
 		limit := int(req.GetFloat("limit", 20))
-		due, err := svc.ListReviews(ctx, projectID, limit)
+		due, err := h.Memory().ListReviews(ctx, limit)
 		if err != nil {
 			return toolError(err)
 		}
@@ -669,7 +738,7 @@ func handleMemReview(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 		if err != nil {
 			return toolError(err)
 		}
-		reviewAfter, err := svc.MarkReviewReviewed(ctx, projectID, int64(id))
+		reviewAfter, err := h.Memory().MarkReviewed(ctx, int64(id))
 		if err != nil {
 			return toolError(err)
 		}
@@ -717,16 +786,16 @@ func memCompareTool() mcplib.Tool {
 }
 
 func handleMemJudge(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
-	return recordRelation(ctx, svc, projectID, req, "verdict")
+	return recordRelation(ctx, h, req, "verdict")
 }
 
 func handleMemCompare(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -742,7 +811,7 @@ func handleMemCompare(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 		if err != nil {
 			return toolError(err)
 		}
-		rels, err := svc.RelationsBetween(ctx, projectID, int64(srcID), int64(dstID))
+		rels, err := h.Memory().RelationsBetween(ctx, int64(srcID), int64(dstID))
 		if err != nil {
 			return toolError(err)
 		}
@@ -753,12 +822,12 @@ func handleMemCompare(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 			"count":     len(rels),
 		})
 	}
-	return recordRelation(ctx, svc, projectID, req, "relation")
+	return recordRelation(ctx, h, req, "relation")
 }
 
 // recordRelation is the shared implementation for mem_judge and mem_compare.
 // The only difference is the name of the verdict parameter.
-func recordRelation(ctx context.Context, svc *service.Service, projectID string, req mcplib.CallToolRequest, verdictParam string) (*mcplib.CallToolResult, error) {
+func recordRelation(ctx context.Context, h *service.ProjectHandle, req mcplib.CallToolRequest, verdictParam string) (*mcplib.CallToolResult, error) {
 	srcID, err := req.RequireFloat("src_id")
 	if err != nil {
 		return toolError(err)
@@ -780,7 +849,7 @@ func recordRelation(ctx context.Context, svc *service.Service, projectID string,
 	}
 
 	if strings.EqualFold(verdict, "not_conflict") {
-		removed, err := svc.RemoveRelation(ctx, projectID, int64(srcID), int64(dstID), "conflicts_with")
+		removed, err := h.Memory().RemoveRelation(ctx, int64(srcID), int64(dstID), "conflicts_with")
 		if err != nil {
 			return toolError(err)
 		}
@@ -792,7 +861,7 @@ func recordRelation(ctx context.Context, svc *service.Service, projectID string,
 		})
 	}
 
-	rel, err := svc.RecordRelation(ctx, projectID, int64(srcID), int64(dstID), verdict, reason, confPtr)
+	rel, err := h.Memory().RecordRelation(ctx, int64(srcID), int64(dstID), verdict, reason, confPtr)
 	if err != nil {
 		return toolError(err)
 	}
@@ -842,7 +911,7 @@ func memPinTool() mcplib.Tool {
 }
 
 func handleMemPin(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -851,7 +920,7 @@ func handleMemPin(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Call
 	if err != nil {
 		return toolError(err)
 	}
-	if err := svc.PinObservation(ctx, projectID, int64(id)); err != nil {
+	if err := h.Memory().Pin(ctx, int64(id)); err != nil {
 		return toolError(err)
 	}
 	return JSONResult(map[string]any{"id": int64(id), "pinned": true})
@@ -865,7 +934,7 @@ func memUnpinTool() mcplib.Tool {
 }
 
 func handleMemUnpin(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -874,7 +943,7 @@ func handleMemUnpin(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Ca
 	if err != nil {
 		return toolError(err)
 	}
-	if err := svc.UnpinObservation(ctx, projectID, int64(id)); err != nil {
+	if err := h.Memory().Unpin(ctx, int64(id)); err != nil {
 		return toolError(err)
 	}
 	return JSONResult(map[string]any{"id": int64(id), "unpinned": true})
@@ -931,16 +1000,21 @@ func projectIDFor(svc *service.Service, name string) (string, error) {
 	return svc.ResolveProject(cwd)
 }
 
-func openService() (*service.Service, string, func(), error) {
+// openService resolves the CWD project and opens its store exactly once,
+// returning the handle plus the root service. Handlers perform their domain
+// ops through the handle (h.Memory()/h.Web()/h.Store()) so the project is not
+// opened a second time inside a service facade method. svc is kept for
+// cross-store ops (drift, all-projects search) and ops with no handle method.
+func openService() (*service.Service, *service.ProjectHandle, func(), error) {
 	svc, err := rootService()
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, nil, err
 	}
 	h, cleanup, err := svc.OpenForCWD()
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, nil, err
 	}
-	return svc, h.ProjectID(), cleanup, nil
+	return svc, h, cleanup, nil
 }
 
 func rootService() (*service.Service, error) {

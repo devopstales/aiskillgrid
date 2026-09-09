@@ -24,12 +24,17 @@ func TestMemSaveRemainsRegisteredAdditive(t *testing.T) {
 
 	dataDir := t.TempDir()
 	project := "reg"
+	// Pin the project so the CWD-resolved handle in openService() targets the
+	// "reg" store (where the seeded session lives) regardless of the machine's
+	// CWD resolution — the single-open rewire saves through the CWD store.
+	t.Setenv("MNEMONIC_PROJECT", project)
 	st, err := store.Open(dataDir, project)
 	if err != nil {
 		t.Fatal(err)
 	}
 	st.Close()
 	SetService(service.New(dataDir))
+	t.Cleanup(func() { SetService(nil) })
 
 	// Start a session so mem_save can write.
 	start := mcplib.CallToolRequest{}

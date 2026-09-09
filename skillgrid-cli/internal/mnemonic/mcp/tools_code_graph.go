@@ -7,6 +7,7 @@ import (
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
 
@@ -94,7 +95,7 @@ func handleCodeNeighbors(ctx context.Context, req mcplib.CallToolRequest) (*mcpl
 	if err != nil {
 		return toolError(err)
 	}
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -109,7 +110,7 @@ func handleCodeNeighbors(ctx context.Context, req mcplib.CallToolRequest) (*mcpl
 	if !ok {
 		return toolError(fmt.Errorf("unknown neighbor view for %s", toolName))
 	}
-	out, err := svc.GrabNeighbors(ctx, projectID, view, symbol)
+	out, err := mcpGrabNeighbors(ctx, h, view, symbol)
 	_ = name
 	if err != nil {
 		return toolError(err)
@@ -126,12 +127,12 @@ func handleCodePath(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Ca
 	if err != nil {
 		return toolError(err)
 	}
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
-	out, err := svc.CodePath(ctx, projectID, from, to)
+	out, err := mcpCodePath(ctx, h, from, to)
 	if err != nil {
 		return toolError(err)
 	}
@@ -143,12 +144,12 @@ func handleCodeExplain(ctx context.Context, req mcplib.CallToolRequest) (*mcplib
 	if err != nil {
 		return toolError(err)
 	}
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
 	defer cleanup()
-	out, err := svc.CodeExplain(ctx, projectID, symbol)
+	out, err := mcpCodeExplain(ctx, h, symbol)
 	if err != nil {
 		return toolError(err)
 	}
@@ -166,7 +167,7 @@ func handleCodeImpact(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 	minConf, _ := req.RequireString("min_confidence")
 	maxDepth := int(req.GetFloat("max_depth", 0))
 
-	svc, projectID, cleanup, err := openService()
+	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
 	}
@@ -178,9 +179,114 @@ func handleCodeImpact(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 		MinConfidence: minConf,
 		MaxDepth:      maxDepth,
 	}
-	out, err := svc.CodeImpact(ctx, projectID, symbol, opts)
+	out, err := mcpCodeImpact(ctx, h, symbol, opts)
 	if err != nil {
 		return toolError(err)
 	}
 	return JSONResult(out)
+}
+
+// mcpGrabNeighbors is the single-open backing for the neighbor graph tools:
+// resolve symbol and return its confidence-labeled edges straight from the
+// already-open handle store. Byte-compatible with service.GrabNeighbors.
+func mcpGrabNeighbors(ctx context.Context, h *service.ProjectHandle, view, symbol string) (*service.NeighborsDTO, error) {
+	db := h.Store().DB
+	res, err := graph.Resolve(ctx, db, symbol, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	if res.NotFound {
+		return &service.NeighborsDTO{Edges: []graph.Edge{}, Reason: "symbol not found: " + symbol}, nil
+	}
+	if res.Ambiguous {
+		return &service.NeighborsDTO{Edges: []graph.Edge{}, Reason: fmt.Sprintf("ambiguous symbol %q: %d candidates (narrow with file/uid/kind)", symbol, len(res.Matches))}, nil
+	}
+	v := graph.View(view)
+	edges, err := graph.Neighbors(ctx, db, res.Target, v)
+	if err != nil {
+		return nil, err
+	}
+	sym := res.Target
+	return &service.NeighborsDTO{Symbol: &sym, Edges: edges}, nil
+}
+
+// mcpCodePath is the single-open backing for code_path.
+func mcpCodePath(ctx context.Context, h *service.ProjectHandle, from, to string) (*service.PathDTO, error) {
+	db := h.Store().DB
+	resFrom, err := graph.Resolve(ctx, db, from, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	resTo, err := graph.Resolve(ctx, db, to, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	if resFrom.NotFound || resTo.NotFound {
+		missing := from
+		if !resFrom.NotFound {
+			missing = to
+		}
+		return &service.PathDTO{Found: false, Reason: "symbol not found: " + missing}, nil
+	}
+	res, err := graph.Path(ctx, db, resFrom.Target, resTo.Target)
+	if err != nil {
+		return nil, err
+	}
+	return &service.PathDTO{Found: res.Found, Path: res.Path, GraphStops: res.GraphStops}, nil
+}
+
+// mcpCodeExplain is the single-open backing for code_explain.
+func mcpCodeExplain(ctx context.Context, h *service.ProjectHandle, symbol string) (*service.ExplainDTO, error) {
+	db := h.Store().DB
+	res, err := graph.Resolve(ctx, db, symbol, graph.ResolveFilter{})
+	if err != nil {
+		return nil, err
+	}
+	if res.NotFound {
+		return &service.ExplainDTO{Found: false, Connections: []graph.Conn{}, Reason: "symbol not found: " + symbol}, nil
+	}
+	out, err := graph.Explain(ctx, db, res.Target)
+	if err != nil {
+		return nil, err
+	}
+	sym := res.Target
+	return &service.ExplainDTO{Found: true, Symbol: &sym, Degree: out.Degree, Connections: out.Connections}, nil
+}
+
+// mcpCodeImpact is the single-open backing for code_impact: risk-tiered blast
+// radius with narrowing + confidence options. Byte-compatible with
+// service.CodeImpact.
+func mcpCodeImpact(ctx context.Context, h *service.ProjectHandle, symbol string, opts service.ImpactOptions) (*service.ImpactResultDTO, error) {
+	db := h.Store().DB
+	res, err := graph.Resolve(ctx, db, symbol, graph.ResolveFilter{
+		File: opts.File, UID: opts.UID, Kind: opts.Kind,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if res.NotFound {
+		return &service.ImpactResultDTO{Found: false, Reason: "symbol not found: " + symbol}, nil
+	}
+	if res.Ambiguous {
+		ranked, err := graph.RankCandidates(ctx, db, res.Matches)
+		if err != nil {
+			return nil, err
+		}
+		return &service.ImpactResultDTO{Found: true, Ambiguous: true, Candidates: ranked}, nil
+	}
+	impact, err := graph.Impact(ctx, db, res.Target, graph.ImpactOptions{
+		MinConfidence: opts.MinConfidence,
+		MaxDepth:      opts.MaxDepth,
+	})
+	if err != nil {
+		return nil, err
+	}
+	target := res.Target
+	return &service.ImpactResultDTO{
+		Found:     true,
+		Target:    &target,
+		WillBreak: impact.WillBreak,
+		Likely:    impact.Likely,
+		Excluded:  impact.Excluded,
+	}, nil
 }
