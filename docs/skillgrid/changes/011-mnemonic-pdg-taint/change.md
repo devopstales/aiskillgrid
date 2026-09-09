@@ -12,7 +12,7 @@
 
 **Tech stack:** Go (`skillgrid-cli`), SQLite (`modernc.org/sqlite`, CGo-free), existing gotreesitter AST from 005 (CFG from AST, no new grammar), MCP (`mcp-go`), CLI.
 
-**Research:** GitNexus `--pdg` / `explain` / `pdg_query` tools (TypeScript & JavaScript M1) — see 005 gitnexus-takeaways observation.
+**Research:** GitNexus `--pdg` / `explain` / `pdg_query` tools (TypeScript & JavaScript M1) — see 005 gitnexus-takeaways observation. Graft (`trailhq/Graft`) `--lsp` opt-in compiler-grade edges — see 005 graft-takeaways observation.
 
 **Prototype:** none
 
@@ -29,7 +29,7 @@ An agent gets statement-level data-flow answers on demand — "does this user in
 ## Out of scope / Non-Goals
 
 - Re-implementing 005's symbols/edges/extractors, 008's communities/processes/knowledge, or 010's routes/affected/rename/watcher
-- Whole-program interprocedural taint (M1 is **intraprocedural** per-function; a call-boundary summary is a later pass)
+- Whole-program interprocedural taint (M1 is **intraprocedural** per-function; a call-boundary summary is a later pass — the **LSP tier is its feeder**, below)
 - A full data-flow engine beyond CFG→PDG→taint (no type inference beyond what 005 already resolves, no alias analysis beyond 005's receiver resolution)
 - Default-on indexing (PDG is a separate, opt-in pass — it must not slow the common path)
 - New languages beyond what 005's gotreesitter already parses (the PDG pass reuses 005's AST; M1 ships the same language set as 005)
@@ -65,9 +65,11 @@ This change is done only when **all** of the following are true:
 
 - Additive + **opt-in** — `--pdg` is the only trigger; a non-`--pdg` index never populates PDG/taint tables and is byte-for-byte the 005/008/010 graph
 - CGo-free: CFG is built from the existing gotreesitter AST (no new grammar, no C); the PDG + taint solver are pure Go
+- **LSP tier is opt-in and external-process:** `--lsp` shells out to a language server on `PATH` (`gopls`, `pyright`, `typescript-language-server`, `rust-analyzer`, `clangd` — whichever 005 already parses) for precise member-call resolution. It adds a fourth edge confidence, `LSP_RESOLVED`, to the existing `EXTRACTED | INFERRED | AMBIGUOUS` set. A missing/failing server is best-effort: the index is unchanged (static resolution only), never a hard error. No new in-process CGo boundary
 - Intraprocedural (M1): CFG/PDG/taint are per-function; crossing a call boundary without a resolved callee is `AMBIGUOUS`/truncated, not a fabricated intraprocedural hop. Interprocedural summaries are a later pass
 - Every PDG/taint edge carries a Confidence Label: `EXTRACTED | INFERRED | AMBIGUOUS`; a taint path is only `EXTRACTED` where every hop is a resolved data-dependence, else `INFERRED`/`AMBIGUOUS`
 - Taint **sources** and **sinks** are a configurable, deterministic set (e.g. sources: request params / env / file reads; sinks: SQL exec / shell exec / template render / file write); a finding is source→sink, not a guess
+- **LSP-resolved call edges feed taint:** the PDG pass consumes `LSP_RESOLVED` edges (005 + `--lsp`) as resolved call boundaries instead of marking them `AMBIGUOUS`/"stops at boundary" — the primary M1 false-negative reducer for method-heavy code. The LSP layer is a **feeder**, not a dependency: without `--lsp`, taint behaves exactly as specified (intraprocedural, `AMBIGUOUS` at unresolved boundaries)
 - A taint finding with no source→sink path is **not reported** (never fabricated); a path that ends at an unresolved boundary is reported with a "stops at <boundary>" note (reuses 005's graph-stops philosophy)
 - Existing 005/008/010 `code_*` tools keep name + required params; all new tools use distinct `code_*` names
 - Migration id `014_pdg_taint.sql` — leave `011` (005), `012` (008), `013` (010) as-is
@@ -75,6 +77,7 @@ This change is done only when **all** of the following are true:
 ## In scope
 
 - Schema: `cfg_blocks`, `cfg_edges`, `pdg_edges` (control + data dependence), `taint_findings` (additive `014_*`)
+- **LSP edge tier (opt-in `--lsp`):** external language-server member-call resolution producing `LSP_RESOLVED` edges into 005's edges table (best-effort, missing server = unchanged index)
 - PDG pass (opt-in `--pdg`): per-function CFG from the gotreesitter AST → control-dependence + data-dependence edges
 - Taint solver: configurable source/sink sets + a source→sink solver over the PDG (intraprocedural)
 - `code_taint` (list findings, `--symbol`/`--file`/`--json`) + `code_pdg_query` (statement-level dependence) MCP/CLI tools
@@ -83,7 +86,7 @@ This change is done only when **all** of the following are true:
 ## Risks & rollback
 
 - **Risk:** CFG/PDG construction is slow or memory-heavy on large functions — **Mitigation:** opt-in (off by default); per-function scope (bounded by function size); depth/step caps; a pathological function degrades to a truncated PDG + warning, never aborts the index
-- **Risk:** Intraprocedural taint misses cross-function flows (false negatives) — **Mitigation:** documented scope (M1 intraprocedural); unresolved call boundaries marked `AMBIGUOUS`/truncated so the agent knows the flow "leaves here"; interprocedural summaries are an explicit later pass
+- **Risk:** Intraprocedural taint misses cross-function flows (false negatives) — **Mitigation:** documented scope (M1 intraprocedural); unresolved call boundaries marked `AMBIGUOUS`/truncated so the agent knows the flow "leaves here"; the `--lsp` tier resolves the member-call subset of those boundaries (`LSP_RESOLVED`), cutting the biggest false-negative class; full interprocedural summaries are an explicit later pass
 - **Risk:** Data-dependence extraction is imprecise (false positives/negatives) — **Mitigation:** Confidence Labels; only resolved data-dependences are `EXTRACTED`; conservative default source/sink sets; findings are advisory, not load-bearing
 - **Risk:** Scope expands into a full data-flow engine (alias analysis, type inference, interprocedural) — **Mitigation:** Hard Non-Goals; M1 = CFG + PDG + intraprocedural taint only
 - **Rollback:** Drop `014_*` migration + `pdg/` package + the `code_taint`/`code_pdg_query` tools + the `--pdg` hook; 005/008/010's graph + hybrid + community + process + routes stay intact
@@ -115,14 +118,14 @@ Contract for `sdd-spec`. Do not renumber after `tasks.md` exists. Per-step Out o
 
 | NN | Step slug | Goal (one line) | Primary package / entry | Depends on |
 |----|-----------|-----------------|-------------------------|------------|
-| 01 | `cfg-pdg` | Additive `014_*` schema + per-function CFG + control/data-dependence PDG (opt-in `--pdg`) | `skillgrid-cli/internal/mnemonic/pdg` | — (005 done) |
-| 02 | `taint-solver` | Configurable source/sink sets + intraprocedural source→sink taint solver + `code_taint` / `code_pdg_query` | `skillgrid-cli/internal/mnemonic/pdg` | 01 |
+| 01 | `cfg-pdg` | Additive `014_*` schema + per-function CFG + control/data-dependence PDG (opt-in `--pdg`) + **LSP edge tier (opt-in `--lsp`)** | `skillgrid-cli/internal/mnemonic/pdg` | — (005 done) |
+| 02 | `taint-solver` | Configurable source/sink sets + intraprocedural source→sink taint solver (consumes `LSP_RESOLVED` edges as resolved boundaries) + `code_taint` / `code_pdg_query` | `skillgrid-cli/internal/mnemonic/pdg` | 01 |
 
 ---
 
 ## Technical approach
 
-Two additive, **opt-in** passes on top of 005's graph, both gated behind `--pdg`. Step 01 builds a per-function **CFG** (basic-block nodes + `CFG` edges) directly from 005's gotreesitter AST (no new grammar), then derives a **PDG** — control-dependence edges (which statement dominates/gates which) and data-dependence edges (which statement's value reaches which) — persisted as `cfg_blocks`/`cfg_edges`/`pdg_edges`. Step 02 layers a **taint solver** over the PDG: a configurable, deterministic set of sources (request params, env, file reads) and sinks (SQL/shell/template/file writes), a source→sink reachability solver, and persisted `taint_findings`. Both expose `code_taint` (list findings, `--symbol`/`--file`/`--json`) and `code_pdg_query` (statement-level dependence) MCP/CLI tools. The PDG + taint pass runs after 005's extraction in the same incremental transaction, **only when `--pdg` is set**; without it the index is byte-for-byte the 005/008/010 graph. Preserve all 005/008/010 `code_*` contracts.
+Two additive, **opt-in** passes on top of 005's graph, gated behind `--pdg` (with an independent `--lsp` edge-resolution tier). Step 01 builds a per-function **CFG** (basic-block nodes + `CFG` edges) directly from 005's gotreesitter AST (no new grammar), then derives a **PDG** — control-dependence edges (which statement dominates/gates which) and data-dependence edges (which statement's value reaches which) — persisted as `cfg_blocks`/`cfg_edges`/`pdg_edges`. Step 02 layers a **taint solver** over the PDG: a configurable, deterministic set of sources (request params, env, file reads) and sinks (SQL/shell/template/file writes), a source→sink reachability solver, and persisted `taint_findings`. An independent **`--lsp` tier** shells out to a language server (best-effort) to add `LSP_RESOLVED` member-call edges into 005's edges table, which the PDG/taint passes then consume as *resolved* call boundaries — the primary M1 false-negative reducer for method-heavy code. Both expose `code_taint` (list findings, `--symbol`/`--file`/`--json`) and `code_pdg_query` (statement-level dependence) MCP/CLI tools. The PDG + taint pass runs after 005's extraction in the same incremental transaction, **only when `--pdg` is set**; without it the index is byte-for-byte the 005/008/010 graph. Preserve all 005/008/010 `code_*` contracts.
 
 ## Architecture decisions
 
@@ -139,6 +142,13 @@ Two additive, **opt-in** passes on top of 005's graph, both gated behind `--pdg`
 **Choice:** Build the per-function CFG from 005's gotreesitter AST (basic blocks from branch/loop/return structure); PDG control/data dependences are per-function. Crossing an unresolved call boundary is `AMBIGUOUS`/truncated.
 **Alternatives considered:** A dedicated CFG grammar (new dep, CGo risk); interprocedural taint in M1 (call-boundary summaries — much harder, needs inlining/summaries)
 **Rationale:** 005 already parses every supported language with gotreesitter; the CFG is a re-read of the same AST (control flow is in the tree), so no new grammar and no CGo. Intraprocedural-first matches GitNexus's M1 (they're also TS/JS M1) and bounds the correctness surface; interprocedural summaries are an explicit later pass, and the "stops at <boundary>" note tells the agent exactly where the flow leaves.
+
+### Decision: LSP as an opt-in, external-process edge tier (Graft `--lsp`)
+
+**Module / Interface / Seam / Adapter / Depth:** Adapter (language-server JSON-RPC) at the extraction seam; pure-Go in-process, the server is a separate binary
+**Choice:** `skillgrid index --lsp` shells out to a language server on `PATH` for languages 005 already parses (`gopls`, `pyright`, `typescript-language-server`, `rust-analyzer`, `clangd`). Resolved member calls become `LSP_RESOLVED` edges in 005's edges table — the precision tier for member calls the static tree-sitter pass can't type (receiver-bound methods, interface→impl). Best-effort: missing/failing server → index unchanged, `warn+continue`. A fourth confidence value, `LSP_RESOLVED`, joins `EXTRACTED | INFERRED | AMBIGUOUS`.
+**Alternatives considered:** In-process LSP client via CGo (breaks the CGo-free invariant); LSP only inside the PDG pass (edges stay invisible to 005/010 tools — `code_affected`/`code_impact` can't use them either)
+**Rationale:** Graft proves the pattern: the static pass + an opt-in compiler-grade layer that degrades to no-op. For 011 it's a force multiplier — taint's "stops at boundary" truncations are exactly the edges LSP resolves, so `--lsp --pdg` cuts M1's biggest false-negative class without changing the taint solver's contract. Putting the edges in 005's table (not a PDG-private structure) means 010's `code_affected`/`code_rename` inherit the precision for free.
 
 ### Decision: Deterministic source/sink sets + confidence-labeled findings
 
@@ -158,7 +168,9 @@ Two additive, **opt-in** passes on top of 005's graph, both gated behind `--pdg`
 
 ```mermaid
 flowchart TD
-  indexRun["Indexer.Run (005 hook, --pdg)"] --> ast["gotreesitter AST (005)"]
+  indexRun["Indexer.Run (005 hook, --lsp/--pdg)"] --> ast["gotreesitter AST (005)"]
+  indexRun -. "opt-in, best-effort" .-> lsp["LSP tier: LSP_RESOLVED edges (005 edges table)"]
+  lsp -. "resolved call boundaries" .-> pdg
   indexRun --> cfg["CFG pass: basic blocks + CFG edges"]
   cfg --> pdg["PDG: control + data dependence edges"]
   pdg --> taint["taint solver: source -> sink over PDG"]
@@ -177,6 +189,7 @@ skillgrid-cli/internal/mnemonic/
 ├── pdg/cfg.go                                  # per-function CFG from gotreesitter AST
 ├── pdg/pdg.go                                  # control + data dependence edges
 ├── pdg/taint.go                                # source/sink sets + source->sink solver
+├── pdg/lsp.go                                  # opt-in LSP edge tier (external server, LSP_RESOLVED edges)
 └── mcp/tools_code_pdg.go                       # code_taint + code_pdg_query
 ```
 
@@ -186,11 +199,12 @@ skillgrid-cli/internal/mnemonic/
 |------|--------|------|-------------|
 | `skillgrid-cli/internal/mnemonic/store/migrations/014_pdg_taint.sql` | Create | 01 | `cfg_blocks`, `cfg_edges`, `pdg_edges`, `taint_findings` |
 | `skillgrid-cli/internal/mnemonic/pdg/cfg.go` | Create | 01 | Per-function CFG from gotreesitter AST (basic blocks + `CFG` edges) |
+| `skillgrid-cli/internal/mnemonic/pdg/lsp.go` | Create | 01 | Opt-in LSP edge tier (external language server on PATH, `LSP_RESOLVED` edges into 005's table, best-effort no-op on missing server) |
 | `skillgrid-cli/internal/mnemonic/pdg/pdg.go` | Create | 01 | Control-dependence + data-dependence edges |
 | `skillgrid-cli/internal/mnemonic/codeindex/indexer.go` | Modify | 01 | Hook PDG pass after 005 extraction (same tx), gated on `--pdg` |
 | `skillgrid-cli/internal/mnemonic/pdg/taint.go` | Create | 02 | Configurable source/sink sets + intraprocedural source→sink solver |
 | `skillgrid-cli/internal/mnemonic/mcp/tools_code_pdg.go` | Create | 02 | `code_taint` + `code_pdg_query` MCP tools |
-| `skillgrid-cli/cmd/skillgrid/code_intel.go` | Modify | 02 | `skillgrid search taint` + `skillgrid search pdg` CLI; `skillgrid index --pdg` flag |
+| `skillgrid-cli/cmd/skillgrid/code_intel.go` | Modify | 02 | `skillgrid search taint` + `skillgrid search pdg` CLI; `skillgrid index --pdg` + `--lsp` flags |
 | `skillgrid-cli/internal/mnemonic/mcp/server.go` | Modify | 02 | Register new tool sets |
 | `skillgrid-cli/cmd/skillgrid/main.go` | Modify | 02 | CLI dispatch for `--pdg` + taint/pdg search |
 
@@ -205,8 +219,9 @@ Observable behavior each step must deliver (feeds Gherkin). Not implementation H
 **Definition of Done:** `--pdg` builds per-function CFGs (basic blocks + `CFG` edges) and a PDG (control + data dependence) for 005-supported languages; a non-`--pdg` index is byte-for-byte unchanged; malformed function → fallback + continue; a function that exceeds the cap truncates with a note, never aborts; 005/008/010 tools unchanged
 
 - `skillgrid index --pdg` populates `cfg_blocks`/`cfg_edges`/`pdg_edges` for each function (basic blocks from branch/loop/return structure)
+- `skillgrid index --lsp` adds `LSP_RESOLVED` edges for member calls the static pass couldn't type (resolved via the language server); a missing/failing server leaves the index unchanged (warn+continue); `--lsp` works standalone (no `--pdg` needed) and composes with `--pdg`
 - `code_pdg_query <symbol> <statement>` returns the statements that control-depend on, data-depend on, and are depended on by the given statement
-- Every PDG edge carries a Confidence Label; a data-dependence that can't be resolved is `AMBIGUOUS`/`INFERRED`, not fabricated
+- Every PDG edge carries a Confidence Label; a data-dependence that can't be resolved is `AMBIGUOUS`/`INFERRED`, not fabricated; call boundaries resolved by the LSP tier are `LSP_RESOLVED`, not `AMBIGUOUS`
 - A function with a malformed CFG is skipped (index the rest); a function over the depth/step cap truncates with a "stops at <block>" note
 - A **non-`--pdg`** index has no PDG/taint tables populated and every 005/008/010 `code_*` tool is byte-for-byte unchanged
 - Existing 005/008/010 `code_*` tools are unchanged; bad PDG args are rejected clearly
@@ -218,7 +233,7 @@ Observable behavior each step must deliver (feeds Gherkin). Not implementation H
 **Definition of Done:** `code_taint` returns source→sink findings (source kind, sink kind, the path, per-hop Confidence Label); a finding with no path is not fabricated; a path crossing an unresolved boundary is `AMBIGUOUS`/truncated with a "stops at" note; sources/sinks are a deterministic configurable set; 005/008/010 tools unchanged
 
 - `code_taint` returns source→sink taint findings: source kind (request param / env / file read), sink kind (SQL exec / shell / template / file write), the hop-by-hop path, each hop confidence-labeled
-- A source with no path to a sink produces **no finding** (never fabricated); a path that ends at an unresolved call boundary is reported with "stops at <boundary>", not dropped silently
+- A source with no path to a sink produces **no finding** (never fabricated); a path that ends at an unresolved call boundary is reported with "stops at <boundary>", not dropped silently — unless the boundary has an `LSP_RESOLVED` edge, in which case the path continues through it
 - `--symbol` / `--file` filter findings; `--json` for CI; a non-`--pdg` index returns a clear "run `--pdg`" message, not an error
 - The default source/sink sets are deterministic + configurable; a finding is advisory (the agent decides), not a prover's verdict
 - Existing 005/008/010 `code_*` tools are unchanged; bad taint args are rejected clearly

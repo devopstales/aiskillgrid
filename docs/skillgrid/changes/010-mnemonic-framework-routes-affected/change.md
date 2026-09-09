@@ -177,6 +177,13 @@ Three additive layers on top of 005's graph. Layer 1 (step 01) adds a framework-
 **Alternatives considered:** No watcher (manual `skillgrid index` — index goes stale mid-session); poll-based watcher (CPU + latency); full re-index per change (slow, cost grows with repo not the change)
 **Rationale:** The staleness banner is the specific trick that removes the "silent wrong answer between an edit and the next sync" class of bugs — the agent gets an explicit signal and falls back to `Read`. Incremental sync (cost grows with the change, not the repo) matches 005's single-transaction hash+mtime guard. CGo-free via fsnotify. The fingerprint gate makes freshness *structural* rather than *coincidental*: a query can no longer answer from an index the tree has moved past, even in manual/watcher-off mode — Graft's whole "no stale index to babysit" claim comes from exactly this pull-at-query design.
 
+### Decision: Drop rather than guess — ambiguous references leave the graph
+
+**Module / Interface / Seam / Adapter / Depth:** Edge-resolution policy in the route extractor (step 01), inherited by `code_affected` (step 02)
+**Choice:** A reference that cannot be resolved — no same-file match, no explicit specifier, no unique global or owner-qualified (receiver-type) match — is **dropped** at extraction, not stored as `AMBIGUOUS`. Dropped edges are reported as a warning (count + sample), never a silent discard. `AMBIGUOUS` is reserved for edges that *were* resolved via a heuristic (e.g. a markup-written `navigates` link). Downstream, `code_affected` / blast-radius math traverses only resolved edges, so a false positive can never inflate the radius.
+**Alternatives considered:** Keep ambiguous edges in the graph and let queries filter them (they still pollute fan-out math and need per-query filtering discipline); guess the most-likely target (the exact failure Graft calls out — inflated blast radius)
+**Rationale:** Graft's "drop rather than guess" is the single cheapest correctness lever on the whole graph: one policy at extraction time prevents a whole class of false-positive impact results at query time. It also keeps the Confidence Label honest — `EXTRACTED`/`INFERRED` mean *resolved*, `AMBIGUOUS` means *resolved heuristically*, and a missing edge means *we didn't pretend*.
+
 ### Decision: Migration number
 
 **Module / Interface / Seam / Adapter / Depth:** Store migration Seam
@@ -325,6 +332,8 @@ Mark each row `Applicable` or `N/A: reason`. Applicable rows name an owning step
 | **code_affected** | Query that returns the test files affected by changed source, via transitive import + `tests-for` traversal | technical |
 | **code_rename** | Graph-grounded write tool — splits a rename into high-confidence graph edits + lower-confidence text-search edits, `dry_run` by default | technical |
 | **Auto-Sync Watcher** | fsnotify-driven debounced incremental re-index that keeps the graph fresh while the agent edits | technical |
+| **Fingerprint Gate** | Pull-at-query stat-walk of the working tree against the last index's fingerprint; on drift, a structural-only incremental re-index runs before the query answers — freshness is structural, not coincidental (Graft `ensureFreshGraph`) | technical |
+| **Blast --base** | `code_affected --base <ref>` — changed set from the merge-base diff, affected-area grouping, git-history owner attribution ("who to tag") for PR review (Graft `blast --base`) | technical |
 | **Copy-and-Swap Publication** | Re-index is built into a sidecar then published atomically, so a reader sees old-or-new, never a torn index | technical |
 | **Reader Auto-Open** | Running MCP/serve processes reopen a newly-published index on the next tool call (~5s) without restart | technical |
 | **Staleness Banner** | `⚠️` prefix on an MCP response that references a still-pending file, telling the agent to `Read` it directly | technical |

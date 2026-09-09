@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -66,7 +67,11 @@ func handleCodeCommunities(ctx context.Context, req mcplib.CallToolRequest) (*mc
 
 func handleCodeGodNodes(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
 	excludeHubs := req.GetBool("exclude_hubs", false)
-	limit := int(req.GetFloat("limit", 20))
+	limit, err := numericArg(req, "limit", 20)
+	if err != nil {
+		return toolError(err)
+	}
+	limitInt := int(limit)
 	_, h, cleanup, err := openService()
 	if err != nil {
 		return toolError(err)
@@ -76,8 +81,8 @@ func handleCodeGodNodes(ctx context.Context, req mcplib.CallToolRequest) (*mcpli
 	if err != nil {
 		return toolError(err)
 	}
-	if limit > 0 && len(gods) > limit {
-		gods = gods[:limit]
+	if limitInt > 0 && len(gods) > limitInt {
+		gods = gods[:limitInt]
 	}
 	return JSONResult(map[string]any{
 		"god_nodes":      gods,
@@ -87,7 +92,10 @@ func handleCodeGodNodes(ctx context.Context, req mcplib.CallToolRequest) (*mcpli
 }
 
 func handleCodeExplainCommunity(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	id := req.GetFloat("id", -1)
+	id, err := numericArg(req, "id", -1)
+	if err != nil {
+		return toolError(err)
+	}
 	if id < 0 {
 		return toolError(fmt.Errorf("code_explain_community: 'id' is required and must be a non-negative community id"))
 	}
@@ -104,6 +112,28 @@ func handleCodeExplainCommunity(ctx context.Context, req mcplib.CallToolRequest)
 		return toolError(fmt.Errorf("code_explain_community: %s", out.Reason))
 	}
 	return JSONResult(out)
+}
+
+// numericArg returns a numeric argument or a clear validation error when the
+// provided value is present but not a number (no silent default-inventing).
+func numericArg(req mcplib.CallToolRequest, key string, def float64) (float64, error) {
+	args := req.GetArguments()
+	if raw, ok := args[key]; ok {
+		switch v := raw.(type) {
+		case float64:
+			return v, nil
+		case int:
+			return float64(v), nil
+		case int64:
+			return float64(v), nil
+		case string:
+			if f, err := strconv.ParseFloat(v, 64); err == nil {
+				return f, nil
+			}
+		}
+		return def, fmt.Errorf("code_*: %q must be a number (got %v)", key, raw)
+	}
+	return def, nil
 }
 
 // allSymbolIDs returns every symbol id in the store (for god-node ranking).

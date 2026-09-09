@@ -148,4 +148,26 @@ func TestCommunityToolsArgs(t *testing.T) {
 	if res3.IsError {
 		t.Errorf("code_god_nodes with exclude_hubs should not error, got: %s", callResultText(t, res3))
 	}
+	if text := callResultText(t, res3); !strings.Contains(text, "god_nodes") {
+		t.Errorf("code_god_nodes should return a god_nodes list, got: %s", text)
+	}
+
+	// code_god_nodes with a non-numeric limit is rejected clearly (no silent
+	// default inventing a different view).
+	res4, err := handleCodeGodNodes(context.Background(), newCallTool("code_god_nodes", map[string]any{"limit": "notanumber"}))
+	if err != nil {
+		t.Fatalf("handleCodeGodNodes dispatch: %v", err)
+	}
+	if !res4.IsError {
+		t.Errorf("code_god_nodes with a non-numeric limit should be a validation error, got: %s", callResultText(t, res4))
+	}
+
+	// code_communities takes no required args and returns the partition.
+	res5, err := handleCodeCommunities(context.Background(), newCallTool("code_communities", map[string]any{}))
+	if err != nil {
+		t.Fatalf("handleCodeCommunities dispatch: %v", err)
+	}
+	if res5.IsError {
+		t.Errorf("code_communities with no args should not error, got: %s", callResultText(t, res5))
+	}
 }
