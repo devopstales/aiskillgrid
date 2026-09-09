@@ -355,7 +355,7 @@ Evidence:
 |-------|-----|----------|--------|-------|
 | Focused test | `go test ./skillgrid-cli/internal/mnemonic/process/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` | PASS | | |
 | Acceptance `@step-02` / `@p0` | BDD / mapped unit scenarios (incl. `ProcessTrace`, `ExplainSymbolProcess`, `ProcessLabels`) | PASS | | |
-| Runtime harness | `code_processes` / `code_process` on a fixture with 010 entry points | PASS | | |
+| Runtime harness | `code_processes` / `code_process` on a fixture with 010 entry points | PASS | | Step-02 note: the process pass is **QUERY-TIME** in this step — no indexer hook and no non-test `LLM` impl, so `code_processes` is CWD-scoped and returns empty in production until step 03 wires `Indexer.Run` (task 03.8) to run the pass with a real `LLM` impl. Deferral, not a step-02 defect. |
 | Rollback boundary | Drop `process/` + process tools + `code_explain_symbol` participation | PASS | | |
 | Global Constraints | — | held | | |
 

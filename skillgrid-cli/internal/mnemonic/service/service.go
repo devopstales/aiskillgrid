@@ -1392,7 +1392,9 @@ type ProcessLLM = process.LLM
 // CodeProcessTrace runs the precomputed process pass over projectID's
 // entries, persisting processes/process_steps (cross-community flag +
 // content-hash cache + LLM labels). The pass is advisory, never
-// load-bearing.
+// load-bearing. Index-time wiring (Indexer.Run calling this pass with a real
+// LLM impl) is step 03 scope (03.8); step 02 runs it query-time, so
+// code_processes is CWD-scoped until that hook lands.
 func (s *Service) CodeProcessTrace(ctx context.Context, projectID string, entries []ProcessEntry, llm ProcessLLM, opts ProcessOptions) (*ProcessResult, error) {
 	h, cleanup, err := s.openProject(projectID, ".")
 	if err != nil {
