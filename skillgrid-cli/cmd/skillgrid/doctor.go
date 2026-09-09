@@ -111,8 +111,10 @@ func runDoctor(version string, args []string) {
 	_ = version
 	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
+	var strict bool
+	fs.BoolVar(&strict, "strict", false, "exit non-zero on a redaction or freshness violation (CI-usable)")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "usage: skillgrid doctor")
+		fmt.Fprintln(fs.Output(), "usage: skillgrid doctor [--strict]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -168,12 +170,28 @@ func runDoctor(version string, args []string) {
 	fmt.Printf("    onnx model: %s (%s)\n", onnxState, model)
 
 	walMode := "unavailable"
-	if st, stErr := store.Open(dataDirForDoctor(dataDir), projectID); stErr == nil {
+	st, stErr := store.Open(dataDirForDoctor(dataDir), projectID)
+	if stErr == nil {
 		walMode = doctorWALMode(st)
-		_ = st.Close()
 	}
 	fmt.Printf("    wal: %s\n", walMode)
 	fmt.Println("    cgo: free (modernc.org/sqlite + gotreesitter)")
+
+	// doctor --strict (01.4): report the redaction + freshness state and exit
+	// non-zero when a redaction or freshness violation exists (CI-usable).
+	if strict && st != nil {
+		defer st.Close()
+		rep := runDoctorStrictChecks(st.DB, defaultStrictMaxAge)
+		fmt.Println()
+		printStrictReport(rep)
+		if !rep.Clean() {
+			os.Exit(1)
+		}
+		return
+	}
+	if st != nil {
+		_ = st.Close()
+	}
 }
 
 func dataDirForDoctor(dataDir string) string {
