@@ -285,3 +285,150 @@ func TestAmbiguousConfigRef(t *testing.T) {
 		t.Errorf("expected 1 AMBIGUOUS configures edge for the unresolvable ref (not dropped), got %d", ambiguous)
 	}
 }
+
+// TestSqlSchema covers @step-03 (Scenario: SQL DDL becomes table and column
+// nodes with reads and writes): .sql DDL produces sql_schema_nodes (tables +
+// columns) and code that references them gets reads/writes edges,
+// confidence-labeled.
+func TestSqlSchema(t *testing.T) {
+	db := openKnowledgeStore(t)
+	ctx := context.Background()
+	store := &Store{db: db}
+
+	// A SQL schema file with DDL for `users` and `orders` tables.
+	seedFile(t, db, "db/schema.sql")
+	schema := `
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY,
+  name TEXT,
+  email TEXT UNIQUE
+);
+CREATE TABLE orders (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER,
+  total REAL
+);
+`
+	schemaRes := ExtractSQL("db/schema.sql", []byte(schema))
+	if n, err := store.SaveSchema(ctx, "db/schema.sql", schemaRes); err != nil || n != 8 {
+		t.Fatalf("SaveSchema = (%d, %v), want (8, nil) [2 tables + 6 columns]", n, err)
+	}
+
+	// sql_schema_nodes: 2 tables + 6 columns = 8 nodes.
+	if n := countTable(t, db, "sql_schema_nodes"); n != 8 {
+		t.Errorf("expected 8 sql_schema_nodes, got %d", n)
+	}
+	var tables, cols int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sql_schema_nodes WHERE kind = 'table'`).Scan(&tables); err != nil {
+		t.Fatalf("count tables: %v", err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sql_schema_nodes WHERE kind = 'column'`).Scan(&cols); err != nil {
+		t.Fatalf("count columns: %v", err)
+	}
+	if tables != 2 || cols != 6 {
+		t.Errorf("expected 2 tables + 6 columns, got %d tables + %d columns", tables, cols)
+	}
+
+	// Code that reads/writes the tables gets reads/writes edges (EXTRACTED).
+	// Two separate code files: one that reads `users`, one that writes
+	// `orders`. Each file's first symbol is the edge source.
+	fRead := seedFile(t, db, "app/users.go")
+	seedSymbol(t, db, fRead, "loadUsers", "function", 10)
+	fWrite := seedFile(t, db, "app/orders.go")
+	seedSymbol(t, db, fWrite, "createOrder", "function", 5)
+
+	readRes := ExtractSQL("app/users.go", []byte("SELECT id, name FROM users;\n"))
+	if n, err := store.SaveSchema(ctx, "app/users.go", readRes); err != nil || n != 1 {
+		t.Fatalf("SaveSchema read = (%d, %v), want (1, nil)", n, err)
+	}
+	writeRes := ExtractSQL("app/orders.go", []byte("INSERT INTO orders (id, user_id, total) VALUES (1, 2, 3.5);\n"))
+	if n, err := store.SaveSchema(ctx, "app/orders.go", writeRes); err != nil || n != 1 {
+		t.Fatalf("SaveSchema write = (%d, %v), want (1, nil)", n, err)
+	}
+	var reads, writes int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'reads'`).Scan(&reads); err != nil {
+		t.Fatalf("count reads: %v", err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'writes'`).Scan(&writes); err != nil {
+		t.Fatalf("count writes: %v", err)
+	}
+	if reads != 1 || writes != 1 {
+		t.Errorf("expected 1 reads + 1 writes, got %d reads + %d writes", reads, writes)
+	}
+	// The reads edge is from loadUsers to the users table; writes from
+	// createOrder to orders.
+	var readFrom, writeTo string
+	if err := db.QueryRow(`
+		SELECT s.name FROM edges e
+		JOIN symbols s ON s.id = e.from_id
+		JOIN sql_schema_nodes tn ON tn.id = e.to_id
+		WHERE e.kind = 'reads' AND tn.table_name = 'users'`).Scan(&readFrom); err != nil {
+		t.Fatalf("read source: %v", err)
+	}
+	if err := db.QueryRow(`
+		SELECT s.name FROM edges e
+		JOIN symbols s ON s.id = e.from_id
+		JOIN sql_schema_nodes tn ON tn.id = e.to_id
+		WHERE e.kind = 'writes' AND tn.table_name = 'orders'`).Scan(&writeTo); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	if readFrom != "loadUsers" || writeTo != "createOrder" {
+		t.Errorf("reads from %q (want loadUsers), writes from %q (want createOrder)", readFrom, writeTo)
+	}
+	// Every reads/writes edge is confidence-labeled EXTRACTED.
+	var nonExtracted int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind IN ('reads','writes') AND confidence != 'EXTRACTED'`).Scan(&nonExtracted); err != nil {
+		t.Fatalf("count non-extracted: %v", err)
+	}
+	if nonExtracted != 0 {
+		t.Errorf("expected all reads/writes edges EXTRACTED, got %d non-EXTRACTED", nonExtracted)
+	}
+}
+
+// TestMalformedSQL covers @step-03 (Scenario: Malformed SQL statement is
+// skipped and the rest is indexed): a SQL file with a statement that fails to
+// parse among valid DDL skips that statement and indexes the rest; the index
+// does not abort.
+func TestMalformedSQL(t *testing.T) {
+	db := openKnowledgeStore(t)
+	ctx := context.Background()
+	store := &Store{db: db}
+
+	fid := seedFile(t, db, "db/schema.sql")
+	seedSymbol(t, db, fid, "sym", "function", 1)
+	// A valid CREATE TABLE, a malformed CREATE TABLE (unbalanced parens), and
+	// a valid DML statement (an INSERT that names a table). The malformed DDL
+	// is skipped; the rest (the valid DDL table + the DML access) is indexed.
+	sql := `
+CREATE TABLE good1 (id INTEGER PRIMARY KEY);
+CREATE TABLE broken (id INTEGER PRIMARY KEY
+INSERT INTO good1 (id) VALUES (1);
+`
+	res := ExtractSQL("db/schema.sql", []byte(sql))
+	if _, err := store.SaveSchema(ctx, "db/schema.sql", res); err != nil {
+		t.Fatalf("SaveSchema: %v", err)
+	}
+	// The valid table is indexed; the broken one is skipped.
+	var good1, broken int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sql_schema_nodes WHERE table_name = 'good1' AND kind = 'table'`).Scan(&good1); err != nil {
+		t.Fatalf("count good1: %v", err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sql_schema_nodes WHERE table_name = 'broken' AND kind = 'table'`).Scan(&broken); err != nil {
+		t.Fatalf("count broken: %v", err)
+	}
+	if good1 != 1 {
+		t.Errorf("expected the valid 'good1' table to be indexed, got %d", good1)
+	}
+	if broken != 0 {
+		t.Errorf("expected the malformed 'broken' table to be skipped, got %d", broken)
+	}
+	// The valid DML (the INSERT) is still indexed as a writes edge — the
+	// malformed statement did not abort the rest.
+	var writes int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'writes'`).Scan(&writes); err != nil {
+		t.Fatalf("count writes: %v", err)
+	}
+	if writes != 1 {
+		t.Errorf("expected the valid INSERT to be indexed as a writes edge (the index did not abort), got %d", writes)
+	}
+}

@@ -188,6 +188,119 @@ func (s *Store) SaveConfig(ctx context.Context, path string, cfg *ConfigResult) 
 	return stored, nil
 }
 
+// SaveSchema upserts one file's SQL schema (tables + columns) and its
+// read/write edges (target-state: the file's prior sql nodes and reads/writes
+// edges are pruned first, then the freshly extracted set is written).
+//
+// DDL: each CREATE TABLE becomes a table node + a column node per column.
+// DML: each SELECT/INSERT/UPDATE/DELETE becomes a reads/writes edge from the
+// enclosing code symbol (the file's first symbol, or the file itself when no
+// symbol is indexed) to the table node. Every reads/writes edge is
+// confidence-labeled EXTRACTED (the SQL statement explicitly names the table).
+func (s *Store) SaveSchema(ctx context.Context, path string, res *SQLResult) (int, error) {
+	if res == nil || !res.IsSQL {
+		return 0, nil
+	}
+	fileID := fileIDFor(s.db, path)
+	// Target-state: prune this file's prior sql_schema_nodes and reads/writes
+	// edges (the re-extracted set is the full target).
+	if fileID != 0 {
+		if _, err := s.db.Exec(`DELETE FROM sql_schema_nodes WHERE file_id = ?`, fileID); err != nil {
+			return 0, err
+		}
+		if _, err := s.db.Exec(`
+			DELETE FROM edges
+			WHERE kind IN ('reads','writes') AND file_id = ?`, fileID); err != nil {
+			return 0, err
+		}
+	}
+	stored := 0
+	// DDL: table + column nodes.
+	for _, t := range res.Tables {
+		tn, err := s.upsertSQLNode(fileID, t.Name, "", KindTable, path)
+		if err != nil {
+			return stored, err
+		}
+		stored++
+		for _, col := range t.Columns {
+			if _, err := s.upsertSQLNode(fileID, t.Name, col, KindColumn, path); err != nil {
+				return stored, err
+			}
+			stored++
+		}
+		_ = tn
+	}
+	// DML: reads/writes edges from the file's code symbol to the table node.
+	if len(res.Access) > 0 {
+		fromID := s.firstSymbolID(fileID)
+		if fromID == 0 {
+			return stored, nil // no code symbol to attribute the access to
+		}
+		for _, a := range res.Access {
+			tn, err := s.tableNodeID(a.Table)
+			if err != nil {
+				// The accessed table is not in the schema (defined elsewhere or
+				// not indexed) — the access is still recorded as a name-only
+				// edge (to_name the table, to_id null), EXTRACTED.
+				if _, err := s.db.Exec(`
+					INSERT INTO edges (kind, from_id, file_id, to_id, to_name, target_path, confidence, line)
+					VALUES (?, ?, ?, NULL, ?, ?, ?, ?)
+					ON CONFLICT(kind, from_id, file_id, to_id, to_name, target_path, line) DO UPDATE SET
+					  confidence = excluded.confidence`,
+					a.Op, fromID, fileID, a.Table, "", a.Confidence, a.Line); err != nil {
+					return stored, err
+				}
+				stored++
+				continue
+			}
+			if _, err := s.db.Exec(`
+				INSERT INTO edges (kind, from_id, file_id, to_id, to_name, target_path, confidence, line)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+				ON CONFLICT(kind, from_id, file_id, to_id, to_name, target_path, line) DO UPDATE SET
+				  confidence = excluded.confidence`,
+				a.Op, fromID, fileID, tn, a.Table, "", a.Confidence, a.Line); err != nil {
+				return stored, err
+			}
+			stored++
+		}
+	}
+	return stored, nil
+}
+
+// upsertSQLNode inserts a sql_schema_node (table or column) and returns its id.
+func (s *Store) upsertSQLNode(fileID int64, table, column, kind, path string) (int64, error) {
+	res, err := s.db.Exec(`INSERT INTO sql_schema_nodes (file_id, table_name, column_name, kind, path) VALUES (?, ?, ?, ?, ?)`,
+		fileID, table, column, kind, path)
+	if err != nil {
+		return 0, fmt.Errorf("insert sql node %s.%s: %w", table, column, err)
+	}
+	return res.LastInsertId()
+}
+
+// tableNodeID resolves a table name to its sql_schema_node id (kind=table).
+func (s *Store) tableNodeID(table string) (int64, error) {
+	var id int64
+	err := s.db.QueryRow(`SELECT id FROM sql_schema_nodes WHERE table_name = ? AND kind = 'table' ORDER BY id LIMIT 1`, table).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, err
+	}
+	return id, err
+}
+
+// firstSymbolID returns the file's first (lowest id) 005 symbol id, or 0 when
+// the file has no indexed symbol (the access edge is then not fabricated).
+func (s *Store) firstSymbolID(fileID int64) int64 {
+	if fileID == 0 {
+		return 0
+	}
+	var id int64
+	err := s.db.QueryRow(`SELECT id FROM symbols WHERE file_id = ? ORDER BY start_line, id LIMIT 1`, fileID).Scan(&id)
+	if err != nil {
+		return 0
+	}
+	return id
+}
+
 // resolveDocTarget normalizes a markdown link target relative to the source
 // doc's directory into an index-relative path (slash-separated).
 func resolveDocTarget(from, target string) string {
