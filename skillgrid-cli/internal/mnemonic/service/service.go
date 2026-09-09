@@ -21,6 +21,7 @@ import (
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/hybrid"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/process"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/project"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/store"
@@ -647,6 +648,11 @@ type OrientResult struct {
 	List      []map[string]any `json:"list,omitempty"`
 	Rationale []map[string]any `json:"rationale,omitempty"`
 	Reason    string           `json:"reason,omitempty"` // not-found note
+	// Processes is the additive process-participation field (008 step 02):
+	// the processes this symbol takes part in, each with its step position
+	// (step N/M). Empty (not an error) when the symbol is in no process. It
+	// never changes the fields above (005's contract is preserved).
+	Processes []process.Participation `json:"processes,omitempty"`
 }
 
 // OrientSymbol returns Tier-1 orientation for a resolved symbol: signature,
@@ -1368,6 +1374,65 @@ func (s *Service) CodeExplainCommunity(ctx context.Context, projectID string, id
 		out.EntryPts = gods
 	}
 	return out, nil
+}
+
+// ProcessResult is the code_processes answer (the precomputed flows).
+type ProcessResult = process.Result
+
+// ProcessOptions tunes the process pass.
+type ProcessOptions = process.RunOptions
+
+// ProcessEntry is one seed for the process pass.
+type ProcessEntry = process.Entry
+
+// ProcessLLM is the pluggable labeler for the process pass (nil = no LLM →
+// flows cached unlabeled). Tests inject a stub; there is no CGo LLM client.
+type ProcessLLM = process.LLM
+
+// CodeProcessTrace runs the precomputed process pass over projectID's
+// entries, persisting processes/process_steps (cross-community flag +
+// content-hash cache + LLM labels). The pass is advisory, never
+// load-bearing.
+func (s *Service) CodeProcessTrace(ctx context.Context, projectID string, entries []ProcessEntry, llm ProcessLLM, opts ProcessOptions) (*ProcessResult, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return process.Run(ctx, h.store.DB, entries, llm, opts)
+}
+
+// CodeProcesses returns the stored precomputed flows for projectID (one call,
+// no per-query traversal) — the backing for code_processes.
+func (s *Service) CodeProcesses(ctx context.Context, projectID string) ([]process.Process, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return process.List(h.store.DB)
+}
+
+// CodeProcess returns one stored process by name with its full step-by-step
+// trace — the backing for code_process <name>. Unknown name → sql.ErrNoRows.
+func (s *Service) CodeProcess(ctx context.Context, projectID, name string) (*process.Process, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return process.Get(h.store.DB, name)
+}
+
+// CodeProcessParticipations returns the processes symbolID participates in,
+// each with its step position (step N/M). Empty when the symbol is in none.
+func (s *Service) CodeProcessParticipations(ctx context.Context, projectID string, symbolID int64) ([]process.Participation, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return process.Participations(h.store.DB, symbolID)
 }
 
 func readIndexedCode(db *sql.DB, path string, startLine, endLine int) (map[string]any, error) {

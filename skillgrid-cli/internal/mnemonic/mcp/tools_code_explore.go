@@ -29,6 +29,7 @@ var menuCodeTools = []string{
 	"code_get_implementors", "code_get_hierarchy", "code_get_tests_for",
 	"code_path", "code_explain",
 	"code_communities", "code_god_nodes", "code_explain_community",
+	"code_processes", "code_process",
 }
 
 // exploreInitializeGuidance is injected at MCP initialize (server

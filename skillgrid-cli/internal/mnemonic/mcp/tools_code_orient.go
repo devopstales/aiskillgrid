@@ -7,6 +7,7 @@ import (
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/process"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
@@ -70,6 +71,15 @@ func handleCodeOrient(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 	out, err := mcpOrientSymbol(h.Store().DB, symbol)
 	if err != nil {
 		return toolError(err)
+	}
+	// Additive (008 step 02): surface which processes the symbol participates
+	// in (step N/M). The 005 fields above are unchanged.
+	if out.Found && out.Symbol != nil {
+		if id, ok := out.Symbol["id"].(int64); ok {
+			if parts, perr := process.Participations(h.Store().DB, id); perr == nil && len(parts) > 0 {
+				out.Processes = parts
+			}
+		}
 	}
 	return JSONResult(out)
 }
