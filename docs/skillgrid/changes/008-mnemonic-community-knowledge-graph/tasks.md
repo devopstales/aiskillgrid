@@ -93,10 +93,9 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 
 ```yaml
 phase: apply         # spec | apply | verify | archive
-current_step: 02-process-flows
-status: blocked      # in_progress | blocked | done
-blocked_by: 010-mnemonic-framework-routes-affected  # 010 entry points not applied
-next_action: apply change 010 (entry points), then 008 step 02
+current_step: 03-knowledge-graph-nodes
+status: in_progress  # in_progress | blocked | done
+next_action: apply 008 step 03 (knowledge nodes + indexer hook 03.8)
 updated: 2026-09-09
 ```
 
@@ -315,49 +314,51 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 02.1 `[RED]` Mnemonic tool surface — `code_explain_symbol` surfaces process participation + 005 tools stable (Scenario: Symbol explanation surfaces process participation and existing search tools stay stable) — threat: Mnemonic tool surface
+- [x] 02.1 `[RED]` Mnemonic tool surface — `code_explain_symbol` surfaces process participation + 005 tools stable (Scenario: Symbol explanation surfaces process participation and existing search tools stay stable) — threat: Mnemonic tool surface
   - [ ] 02.1.a Write failing test — after process pass, `code_explain_symbol <sym>` (005) includes which processes the symbol participates in (step N/M); 005 tool names + required params unchanged; process tools registered with distinct names
   - [ ] 02.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -run ExplainSymbolProcess -count=1` — Expected: FAIL
   - [ ] 02.1.c Minimal implementation — wire process participation into `code_explain_symbol` + register `code_processes` / `code_process`
   - [ ] 02.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -run ExplainSymbolProcess -count=1` — Expected: PASS
   - [ ] 02.1.e Commit — `feat(mnemonic): surface process participation in code_explain_symbol`
-- [ ] 02.2 `[RED]` Entry-point → call-chain trace builds precomputed flows (Scenario: Process list returns precomputed flows from entry points)
+- [x] 02.2 `[RED]` Entry-point → call-chain trace builds precomputed flows (Scenario: Process list returns precomputed flows from entry points)
   - [ ] 02.2.a Write failing test — seeded from 010 entry points (routes/handlers/CLI mains), trace through 005 call edges into `processes` + `process_steps`; `code_processes` returns complete flows in one call (no per-query traversal); each process has named steps + a cross-community flag + an LLM label
   - [ ] 02.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... ./skillgrid-cli/internal/mnemonic/mcp/... -run ProcessTrace -count=1` — Expected: FAIL
   - [ ] 02.2.c Minimal implementation — `process/trace.go` (entry-point seeding, depth-capped BFS over call edges, cross-community flag from 01, persist `processes`/`process_steps`) + `tools_code_process.go` `code_processes` + service facade
   - [ ] 02.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... ./skillgrid-cli/internal/mnemonic/mcp/... -run ProcessTrace -count=1` — Expected: PASS
   - [ ] 02.2.e Commit — `feat(mnemonic): precomputed process flow tracing`
-- [ ] 02.3 `[RED]` LLM labels cached by content-hash (Scenario: Process labels are cached by content-hash and re-labeled only on change)
+- [x] 02.3 `[RED]` LLM labels cached by content-hash (Scenario: Process labels are cached by content-hash and re-labeled only on change)
   - [ ] 02.3.a Write failing test — a flow is LLM-labeled once and the label is cached keyed to the process content-hash; an unchanged re-index does NOT re-call the LLM (label reused); a changed flow (new content-hash) re-labels
   - [ ] 02.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run ProcessLabels -count=1` — Expected: FAIL
   - [ ] 02.3.c Minimal implementation — `process/labels.go` (content-hash key, LLM call, cache store)
   - [ ] 02.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run ProcessLabels -count=1` — Expected: PASS
   - [ ] 02.3.e Commit — `feat(mnemonic): llm process labels cached by content-hash`
-- [ ] 02.4 `[RED]` Dispatch-boundary truncation with "stops at" note + per-hop confidence (Scenario: Trace stops at a dispatch boundary with a note)
+- [x] 02.4 `[RED]` Dispatch-boundary truncation with "stops at" note + per-hop confidence (Scenario: Trace stops at a dispatch boundary with a note)
   - [ ] 02.4.a Write failing test — a trace that hits a dispatch boundary (interface→impl, message bus, callback) is truncated with a "stops at <symbol> (<reason>)" note (reusing 005 graph-stops), not silently cut; `code_process <name>` shows each hop's Confidence Label + the stop note
   - [ ] 02.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run DispatchStop -count=1` — Expected: FAIL
   - [ ] 02.4.c Minimal implementation — depth/step cap + dispatch-boundary detection + per-hop confidence in `process/trace.go`
   - [ ] 02.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run DispatchStop -count=1` — Expected: PASS
   - [ ] 02.4.e Commit — `feat(mnemonic): dispatch-boundary truncation in process trace`
-- [ ] 02.5 `[AFK]` Process detail returns the full trace with confidence (Scenario: Process detail returns the full step-by-step trace) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/process/... -run ProcessDetail -count=1` — Expected: PASS
-- [ ] 02.6 `[AFK]` LLM down → flow cached unlabeled, never fabricated (Scenario: LLM down caches the flow unlabeled) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run LLMDownUnlabeled -count=1` — Expected: PASS
-- [ ] 02.7 `[AFK]` Entry point with no traceable chain → single-step or skipped (Scenario: Untraceable entry point yields single-step or is skipped) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run UntraceableEntry -count=1` — Expected: PASS
-- [ ] 02.8 `[AFK]` Cross-community process is flagged (Scenario: Cross-community process is flagged) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run CrossCommunityFlag -count=1` — Expected: PASS
-- [ ] 02.9 `[AFK]` Process tools reject bad args clearly (Scenario: Process tools reject bad args clearly) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ProcessArgs -count=1` — Expected: PASS
+- [x] 02.5 `[AFK]` Process detail returns the full trace with confidence (Scenario: Process detail returns the full step-by-step trace) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/process/... -run ProcessDetail -count=1` — Expected: PASS
+- [x] 02.6 `[AFK]` LLM down → flow cached unlabeled, never fabricated (Scenario: LLM down caches the flow unlabeled) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run LLMDownUnlabeled -count=1` — Expected: PASS
+- [x] 02.7 `[AFK]` Entry point with no traceable chain → single-step or skipped (Scenario: Untraceable entry point yields single-step or is skipped) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run UntraceableEntry -count=1` — Expected: PASS
+- [x] 02.8 `[AFK]` Cross-community process is flagged (Scenario: Cross-community process is flagged) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run CrossCommunityFlag -count=1` — Expected: PASS
+- [x] 02.9 `[AFK]` Process tools reject bad args clearly (Scenario: Process tools reject bad args clearly) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ProcessArgs -count=1` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/process/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` | PASS | | |
-| Acceptance `@step-02` / `@p0` | BDD / mapped unit scenarios (incl. `ProcessTrace`, `ExplainSymbolProcess`, `ProcessLabels`) | PASS | | |
-| Runtime harness | `code_processes` / `code_process` on a fixture with 010 entry points | PASS | | Step-02 note: the process pass is **QUERY-TIME** in this step — no indexer hook and no non-test `LLM` impl, so `code_processes` is CWD-scoped and returns empty in production until step 03 wires `Indexer.Run` (task 03.8) to run the pass with a real `LLM` impl. Deferral, not a step-02 defect. |
-| Rollback boundary | Drop `process/` + process tools + `code_explain_symbol` participation | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/process/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` | PASS | PASS | `process`/`mcp`/`service`/`store` `ok`; 005/008/010 baseline (`community`/`route`/`graph`) `ok` |
+| Acceptance `@step-02` / `@p0` | mapped unit scenarios (`ProcessTrace`, `ExplainSymbolProcess`, `ProcessLabels`, `DispatchStop`, `ProcessDetail`, `LLMDownUnlabeled`, `UntraceableEntry`, `CrossCommunityFlag`, `ProcessArgs`) | PASS | PASS | LLM-call counter asserts 0 on unchanged re-run; cross-community negative control |
+| Runtime harness | `code_processes` / `code_process` on a fixture with 010 entry points | PASS | PASS | Step-02 note: the process pass is **QUERY-TIME** in this step — no indexer hook and no non-test `LLM` impl, so `code_processes` is CWD-scoped and returns empty in production until step 03 wires `Indexer.Run` (task 03.8) to run the pass with a real `LLM` impl. Deferral, not a step-02 defect. |
+| Rollback boundary | Drop `process/` + process tools + `code_orient` participation + `014_*` migration | PASS | PASS | 005/012/013 tables intact; tool surface 65→67 additive |
+| Global Constraints | — | held | held | CGo-free (pure-Go `LLM` iface + fnv); additive; deterministic trace; labels cached by content-hash; advisory |
+
+Sub-agent review: approved with fixes — the only substantive caveat (query-time pass, no indexer hook / non-test LLM impl) is a defensible step-03 deferral, now tracked in the report + service.go comment + this row, closed by task 03.8 `IndexerHook`. Non-vacuous: genuine LLM-call counter (0 on unchanged re-run), real Express-indexing fixture, cross-community + participation negative controls.
 
 ### Commit
 
