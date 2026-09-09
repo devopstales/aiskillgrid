@@ -8,6 +8,8 @@ github.com/aymanbagabas/go-udiff v0.3.1 h1:LV+qyBQ2pqe0u42ZsUEtPiCaUoqgA9gYRDs3v
 github.com/aymanbagabas/go-udiff v0.3.1/go.mod h1:G0fsKmG+P6ylD0r6N/KgQD/nWzgfnl8ZBcNLgcbrw8E=
 github.com/benedoc-inc/onnxer v0.7.0 h1:rjsnJy70QRkpDakh0G0iOZLH/vhExzllybYr69cWPWc=
 github.com/benedoc-inc/onnxer v0.7.0/go.mod h1:wALlP3CtDgGF1KMaqxuVCw8XOK8G2T95xg3ZW4f87Vw=
+github.com/bluuewhale/loom v0.0.0-20260402142357-ae7e94ccfead h1:SoAE1OoWruNM7YhRb7tyX/maQGNGla1K+HYauibE4gE=
+github.com/bluuewhale/loom v0.0.0-20260402142357-ae7e94ccfead/go.mod h1:wLHYC1OMQFyimnUGHsWNKYKFPC98xYkIvOPca0OUyOI=
 github.com/catppuccin/go v0.3.0 h1:d+0/YicIq+hSTo5oPuRi5kOpqkVA5tAsU6dNhvRu+aY=
 github.com/catppuccin/go v0.3.0/go.mod h1:8IHJuMGaUUjQM82qBrGNBv7LFq6JI3NnQCF6MOlZjpc=
 github.com/charmbracelet/bubbles v0.21.1-0.20250623103423-23b8fd6302d7 h1:JFgG/xnwFfbezlUnFMJy0nusZvytYysV4SCS2cYbvws=

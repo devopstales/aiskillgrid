@@ -1,6 +1,6 @@
 module github.com/devopstales/skillgrid/skillgrid-cli
 
-go 1.25.5
+go 1.26
 
 require (
 	github.com/charmbracelet/huh v1.0.0
@@ -17,6 +17,7 @@ require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/benedoc-inc/onnxer v0.7.0 // indirect
+	github.com/bluuewhale/loom v0.0.0-20260402142357-ae7e94ccfead // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
 	github.com/charmbracelet/bubbles v0.21.1-0.20250623103423-23b8fd6302d7 // indirect
 	github.com/charmbracelet/bubbletea v1.3.6 // indirect
