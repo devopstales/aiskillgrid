@@ -5,10 +5,13 @@ package community
 
 import (
 	"context"
+	"crypto/sha1"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bluuewhale/loom/graph"
@@ -126,23 +129,54 @@ func loadGraph(db *sql.DB) (*graph.NodeRegistry, *graph.Graph, []nodeRef, error)
 	return reg, g, nodes, nil
 }
 
-// contentKey summarizes the edge set so the cache key is stable across index
-// runs with the same graph and changes when the graph changes.
+// contentKey computes a genuine content hash over the deterministic graph row
+// set (the sorted edge set AND the symbol id set) so the cache key is stable
+// across index runs with the same graph and changes whenever the graph
+// changes — including a changed intermediate edge (same min/max/count) or a
+// symbol delete/rename that preserves the edge count. The hash is computed in
+// Go (modernc.org/sqlite has no sha1() SQL function), not a min/max/count summary.
 func contentKey(db *sql.DB) (string, error) {
-	var a, b string
-	err := db.QueryRow(`
-		SELECT COALESCE(MIN(from_id),0) || '-' || COALESCE(MIN(to_id),0) || '-' ||
-		       COALESCE(MAX(from_id),0) || '-' || COALESCE(MAX(to_id),0) || '-' ||
-		       COUNT(*),
-		       COUNT(DISTINCT from_id || '-' || COALESCE(to_id, 0))
-		FROM edges WHERE to_id IS NOT NULL`).Scan(&a, &b)
-	if err == sql.ErrNoRows {
-		return "empty", nil
-	}
+	h := sha1.New()
+
+	rows, err := db.Query(`SELECT from_id, to_id FROM edges WHERE to_id IS NOT NULL ORDER BY from_id, to_id`)
 	if err != nil {
 		return "", err
 	}
-	return a + "|" + b, nil
+	for rows.Next() {
+		var from, to int64
+		if err := rows.Scan(&from, &to); err != nil {
+			rows.Close()
+			return "", err
+		}
+		_, _ = h.Write([]byte(strconv.FormatInt(from, 10) + ":" + strconv.FormatInt(to, 10) + ";"))
+	}
+	serr := rows.Err()
+	rows.Close()
+	if serr != nil {
+		return "", serr
+	}
+	// NUL separator so a trailing-edge ambiguity can't collide with the symbol set.
+	_, _ = h.Write([]byte{0})
+
+	symRows, err := db.Query(`SELECT id FROM symbols ORDER BY id`)
+	if err != nil {
+		return "", err
+	}
+	for symRows.Next() {
+		var id int64
+		if err := symRows.Scan(&id); err != nil {
+			symRows.Close()
+			return "", err
+		}
+		_, _ = h.Write([]byte(strconv.FormatInt(id, 10) + ","))
+	}
+	symErr := symRows.Err()
+	symRows.Close()
+	if symErr != nil {
+		return "", symErr
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 // Detect runs the community pass, consulting the community_meta cache first.
@@ -357,7 +391,8 @@ func communityLabel(db *sql.DB, id int) string {
 }
 
 // writeMeta caches the detected partition: one community_meta row per
-// community (label + symbol count) and the content-hash cache key.
+// community (label + symbol count + god-node names) and the content-hash cache
+// key.
 func writeMeta(db *sql.DB, res *Result) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -368,8 +403,8 @@ func writeMeta(db *sql.DB, res *Result) error {
 		return err
 	}
 	for _, c := range res.Communities {
-		if _, err := tx.Exec(`INSERT INTO community_meta (id, label, symbol_count, cache_key) VALUES (?, ?, ?, ?)`,
-			c.ID, c.Label, len(c.Members), res.CacheKey); err != nil {
+		if _, err := tx.Exec(`INSERT INTO community_meta (id, label, symbol_count, god_nodes, cache_key) VALUES (?, ?, ?, ?, ?)`,
+			c.ID, c.Label, len(c.Members), strings.Join(c.GodNodes, ","), res.CacheKey); err != nil {
 			return err
 		}
 	}

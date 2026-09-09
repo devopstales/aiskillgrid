@@ -214,3 +214,102 @@ func partitionKey(r *Result) string {
 	}
 	return b.String()
 }
+
+// TestCacheInvalidatesOnChangedGraph covers the review finding: the cache key
+// is a real content hash over the edge + symbol sets, so a changed graph
+// (even one that preserves min/max/count, or a symbol delete that preserves
+// the edge count) yields a NEW key and forces re-detection, while an unchanged
+// graph is a cache hit.
+func TestCacheInvalidatesOnChangedGraph(t *testing.T) {
+	db := communityFixture(t)
+	base, err := Detect(context.Background(), db, Options{})
+	if err != nil {
+		t.Fatalf("Detect base: %v", err)
+	}
+
+	// (a) Changing an intermediate edge (a2->a3 becomes a2->b3) preserves the
+	// edge count but changes the set → new key → re-detect (not a cache hit).
+	if _, err := db.Exec(`UPDATE edges SET to_id = (SELECT id FROM symbols WHERE name='bThree') WHERE from_id = (SELECT id FROM symbols WHERE name='aTwo') AND to_id = (SELECT id FROM symbols WHERE name='aThree')`); err != nil {
+		t.Fatalf("mutate edge: %v", err)
+	}
+	changed, err := Detect(context.Background(), db, Options{})
+	if err != nil {
+		t.Fatalf("Detect changed: %v", err)
+	}
+	if changed.CacheKey == base.CacheKey {
+		t.Errorf("changed intermediate edge must change the cache key (content hash, not min/max/count)")
+	}
+	if changed.FromCache {
+		t.Errorf("changed graph must NOT be served from cache")
+	}
+
+	// (b) Deleting a symbol (which cascades its edges) changes the symbol set
+	// → new key → re-detect.
+	db2 := communityFixture(t)
+	base2, err := Detect(context.Background(), db2, Options{})
+	if err != nil {
+		t.Fatalf("Detect base2: %v", err)
+	}
+	if _, err := db2.Exec(`DELETE FROM symbols WHERE name = 'aThree'`); err != nil {
+		t.Fatalf("delete symbol: %v", err)
+	}
+	deleted, err := Detect(context.Background(), db2, Options{})
+	if err != nil {
+		t.Fatalf("Detect deleted: %v", err)
+	}
+	if deleted.CacheKey == base2.CacheKey {
+		t.Errorf("deleting a symbol must change the cache key (symbol set is hashed)")
+	}
+	if deleted.FromCache {
+		t.Errorf("symbol-deleted graph must NOT be served from cache")
+	}
+}
+
+// TestCacheHitOnUnchangedGraph covers the positive side: two Detect calls on a
+// byte-identical graph yield the same key and the second is a cache hit.
+func TestCacheHitOnUnchangedGraph(t *testing.T) {
+	db := communityFixture(t)
+	first, err := Detect(context.Background(), db, Options{})
+	if err != nil {
+		t.Fatalf("Detect 1: %v", err)
+	}
+	second, err := Detect(context.Background(), db, Options{})
+	if err != nil {
+		t.Fatalf("Detect 2: %v", err)
+	}
+	if second.CacheKey != first.CacheKey {
+		t.Errorf("unchanged graph must keep the same cache key: %q vs %q", second.CacheKey, first.CacheKey)
+	}
+	if !second.FromCache {
+		t.Errorf("unchanged graph should be served from cache")
+	}
+}
+
+// TestGodNodesColumnPopulated covers the review finding: writeMeta stores the
+// community's top god-node names in community_meta.god_nodes (no dead column).
+func TestGodNodesColumnPopulated(t *testing.T) {
+	db := communityFixture(t)
+	res, err := Detect(context.Background(), db, Options{})
+	if err != nil {
+		t.Fatalf("Detect: %v", err)
+	}
+	// At least one community in the fixture has god nodes (the clusters have
+	// edges). Its community_meta.god_nodes must be populated, not empty.
+	var populated int
+	for _, c := range res.Communities {
+		var stored string
+		if err := db.QueryRow(`SELECT god_nodes FROM community_meta WHERE id = ?`, c.ID).Scan(&stored); err != nil {
+			t.Fatalf("read god_nodes for community %d: %v", c.ID, err)
+		}
+		if stored != "" {
+			populated++
+		}
+		// The stored value must match the community's GodNodes list.
+		if len(c.GodNodes) > 0 && stored != strings.Join(c.GodNodes, ",") {
+			t.Errorf("community %d god_nodes column %q != GodNodes %q", c.ID, stored, strings.Join(c.GodNodes, ","))
+		}
+	}
+	if populated == 0 {
+		t.Errorf("expected at least one community_meta.god_nodes populated, all empty")
+	}
+}
