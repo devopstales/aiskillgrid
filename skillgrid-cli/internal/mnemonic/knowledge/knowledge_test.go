@@ -185,3 +185,103 @@ func TestMalformedDoc(t *testing.T) {
 		t.Errorf("expected 1 references edge (the valid b.md link; the malformed c.md link skipped), got %d", refs)
 	}
 }
+
+// TestConfigRefs covers @step-03 (Scenario: Config references become
+// configures edges): .yaml/.toml/.json files produce config_nodes +
+// configures edges to the code they configure; explicit syntax is EXTRACTED,
+// resolved-but-inferred refs are INFERRED.
+func TestConfigRefs(t *testing.T) {
+	db := openKnowledgeStore(t)
+	ctx := context.Background()
+	store := &Store{db: db}
+
+	// A Go file with an explicit struct tag referencing a config key.
+	fGo := seedFile(t, db, "app/server.go")
+	sym := seedSymbol(t, db, fGo, "serverConfig", "struct", 5)
+
+	// A YAML config whose value explicitly names the code symbol (EXTRACTED).
+	fYaml := seedFile(t, db, "config/app.yaml")
+	yamlRes := ExtractConfig("config/app.yaml", []byte("server:\n  handler: serverConfig\n"))
+	if !yamlRes.IsConfig {
+		t.Fatalf("app.yaml should be recognized as a config")
+	}
+	if len(yamlRes.Refs) != 1 {
+		t.Fatalf("expected 1 config ref, got %d: %+v", len(yamlRes.Refs), yamlRes.Refs)
+	}
+	if yamlRes.Refs[0].Confidence != ConfidenceExtracted {
+		t.Errorf("explicit yaml ref confidence = %q, want EXTRACTED", yamlRes.Refs[0].Confidence)
+	}
+	if n, err := store.SaveConfig(ctx, "config/app.yaml", yamlRes); err != nil || n != 1 {
+		t.Fatalf("SaveConfig yaml = (%d, %v), want (1, nil)", n, err)
+	}
+
+	// A JSON config whose value names the symbol (EXTRACTED).
+	fJSON := seedFile(t, db, "config/app.json")
+	jsonRes := ExtractConfig("config/app.json", []byte("{\n  \"service\": \"serverConfig\"\n}"))
+	if len(jsonRes.Refs) != 1 || jsonRes.Refs[0].Value != "serverConfig" {
+		t.Fatalf("json refs = %+v, want 1 ref to serverConfig", jsonRes.Refs)
+	}
+	if _, err := store.SaveConfig(ctx, "config/app.json", jsonRes); err != nil {
+		t.Fatalf("SaveConfig json: %v", err)
+	}
+
+	// A TOML config (INFERRED: the key->symbol link is a convention).
+	fToml := seedFile(t, db, "config/app.toml")
+	tomlRes := ExtractConfig("config/app.toml", []byte("name = \"serverConfig\"\n"))
+	if len(tomlRes.Refs) != 1 || tomlRes.Refs[0].Value != "serverConfig" {
+		t.Fatalf("toml refs = %+v, want 1 ref to serverConfig", tomlRes.Refs)
+	}
+	if _, err := store.SaveConfig(ctx, "config/app.toml", tomlRes); err != nil {
+		t.Fatalf("SaveConfig toml: %v", err)
+	}
+
+	// config_nodes exist for the three configs.
+	if n := countTable(t, db, "config_nodes"); n != 3 {
+		t.Errorf("expected 3 config_nodes, got %d", n)
+	}
+
+	// configures edges resolve to the code symbol (by id), labeled.
+	var cfg int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'configures' AND to_id = ?`, sym).Scan(&cfg); err != nil {
+		t.Fatalf("count configures: %v", err)
+	}
+	if cfg != 3 {
+		t.Errorf("expected 3 configures edges to serverConfig, got %d", cfg)
+	}
+	// The explicit yaml/json refs are EXTRACTED.
+	var extracted int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'configures' AND confidence = 'EXTRACTED'`).Scan(&extracted); err != nil {
+		t.Fatalf("count extracted: %v", err)
+	}
+	if extracted < 2 {
+		t.Errorf("expected >=2 EXTRACTED configures edges (yaml + json), got %d", extracted)
+	}
+	_ = fYaml
+	_ = fJSON
+	_ = fToml
+}
+
+// TestAmbiguousConfigRef covers @step-03 (Scenario: Unresolvable config ref is
+// ambiguous not dropped): a config reference that resolves to no known symbol
+// is kept and marked AMBIGUOUS, not silently dropped.
+func TestAmbiguousConfigRef(t *testing.T) {
+	db := openKnowledgeStore(t)
+	ctx := context.Background()
+	store := &Store{db: db}
+
+	seedFile(t, db, "config/app.yaml")
+	res := ExtractConfig("config/app.yaml", []byte("service:\n  handler: ghostHandler\n"))
+	if _, err := store.SaveConfig(ctx, "config/app.yaml", res); err != nil {
+		t.Fatalf("SaveConfig: %v", err)
+	}
+
+	// The unresolvable ref is KEPT as an AMBIGUOUS edge (to_id null, to_name
+	// the literal ref), not dropped.
+	var ambiguous int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'configures' AND confidence = 'AMBIGUOUS' AND to_id IS NULL AND to_name = 'ghostHandler'`).Scan(&ambiguous); err != nil {
+		t.Fatalf("count ambiguous: %v", err)
+	}
+	if ambiguous != 1 {
+		t.Errorf("expected 1 AMBIGUOUS configures edge for the unresolvable ref (not dropped), got %d", ambiguous)
+	}
+}

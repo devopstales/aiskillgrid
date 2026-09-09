@@ -110,6 +110,84 @@ func (s *Store) resolveDocNode(target string) (int64, bool) {
 	return id, true
 }
 
+// configNodeID resolves (or lazily creates) the config node id for a file
+// path. It is idempotent: a config node is one-per-file (015
+// idx_config_nodes_file unique).
+func (s *Store) configNodeID(path string) (int64, error) {
+	var id int64
+	err := s.db.QueryRow(`SELECT id FROM config_nodes WHERE path = ?`, path).Scan(&id)
+	if err == nil {
+		return id, nil
+	}
+	if err != sql.ErrNoRows {
+		return 0, err
+	}
+	var fileID int64
+	if ferr := s.db.QueryRow(`SELECT id FROM files WHERE path = ?`, path).Scan(&fileID); ferr != nil {
+		return 0, ferr
+	}
+	res, err := s.db.Exec(`INSERT INTO config_nodes (file_id, title, path) VALUES (?, ?, ?)`,
+		fileID, filepath.Base(path), path)
+	if err != nil {
+		return 0, fmt.Errorf("insert config node %s: %w", path, err)
+	}
+	return res.LastInsertId()
+}
+
+// SaveConfig upserts one config node and its configures edges (target-state:
+// the config's prior configures edges are pruned first, then the freshly
+// extracted set is written). Each reference is resolved against the indexed
+// symbols:
+//
+//	EXTRACTED — the value names a symbol by explicit syntax and resolves to a
+//	            live symbol (to_id set).
+//	INFERRED  — the value names a symbol by convention and resolves to a live
+//	            symbol (to_id set).
+//	AMBIGUOUS — the value resolves to NO known symbol. It is KEPT (to_id null,
+//	            to_name the literal ref), not dropped, per 03.5: an
+//	            unresolvable config reference is surfaced as low-confidence,
+//	            never silently discarded.
+func (s *Store) SaveConfig(ctx context.Context, path string, cfg *ConfigResult) (int, error) {
+	if cfg == nil || !cfg.IsConfig {
+		return 0, nil
+	}
+	nodeID, err := s.configNodeID(path)
+	if err != nil {
+		return 0, err
+	}
+	if _, err := s.db.Exec(`
+		DELETE FROM edges
+		WHERE kind = 'configures' AND from_id = ?`, nodeID); err != nil {
+		return 0, err
+	}
+	stored := 0
+	for _, ref := range cfg.Refs {
+		var toID sql.NullInt64
+		var toUID string
+		var matches int
+		_ = s.db.QueryRow(`SELECT COUNT(*) FROM symbols WHERE name = ?`, ref.Value).Scan(&matches)
+		if matches == 1 {
+			_ = s.db.QueryRow(`SELECT id, uid FROM symbols WHERE name = ?`, ref.Value).Scan(&toID.Int64, &toUID)
+			toID.Valid = true
+		}
+		conf := ref.Confidence
+		if !toID.Valid {
+			// Unresolvable config ref → AMBIGUOUS (kept, not dropped, 03.5).
+			conf = ConfidenceAmbiguous
+		}
+		if _, err := s.db.Exec(`
+			INSERT INTO edges (kind, from_id, file_id, to_id, to_name, target_path, confidence, line)
+			VALUES ('configures', ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(kind, from_id, file_id, to_id, to_name, target_path, line) DO UPDATE SET
+			  confidence = excluded.confidence`,
+			nodeID, fileIDFor(s.db, path), toID, ref.Value, "", conf, ref.Line); err != nil {
+			return stored, fmt.Errorf("upsert config reference %s: %w", ref.Value, err)
+		}
+		stored++
+	}
+	return stored, nil
+}
+
 // resolveDocTarget normalizes a markdown link target relative to the source
 // doc's directory into an index-relative path (slash-separated).
 func resolveDocTarget(from, target string) string {
