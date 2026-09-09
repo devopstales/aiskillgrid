@@ -32,6 +32,8 @@ func TestAllToolsRegistered(t *testing.T) {
 		"code_explore", "code_impact", "code_path", "code_explain",
 		"code_get_callers", "code_get_callees", "code_get_dependents",
 		"code_get_implementors", "code_get_hierarchy", "code_get_tests_for",
+		// Step 04 hybrid search tools.
+		"code_hybrid_search", "code_semantic_search", "code_embedding_status",
 		"web_cache_lookup", "web_cache_save", "web_cache_search",
 		"web_cache_get", "web_cache_status",
 		"team_spawn_task", "agent_pull_next_task", "agent_read_task",

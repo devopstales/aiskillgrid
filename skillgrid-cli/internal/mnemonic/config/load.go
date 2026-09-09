@@ -22,6 +22,27 @@ type WebCache struct {
 // stats), not an error, not a fallback.
 const MaxFileSizeDefault = 500 * 1024
 
+// EmbedderConfig is the mnemonic.embedder.* section of indexing.yaml. The
+// provider selects the embedder (onnx default | external | off); indexing and
+// query params are asymmetric (separate treatment of corpus vs. query).
+type EmbedderConfig struct {
+	Provider   string
+	Dimension  int
+	Indexing   EmbedderParams
+	Query      EmbedderParams
+	// External-only.
+	BaseURL string
+	Model   string
+	APIKey  string
+}
+
+// EmbedderParams is one side (corpus or query) of the asymmetric embedder.
+type EmbedderParams struct {
+	Instructions string
+	InputType    string
+	MaxTokens    int
+}
+
 // Indexing holds code index settings from indexing.yaml mnemonic section.
 type Indexing struct {
 	Include      []string
@@ -30,6 +51,7 @@ type Indexing struct {
 	ChunkOverlap int
 	MaxFileSize  int
 	WebCache     WebCache
+	Embedder     EmbedderConfig
 }
 
 type indexingFile struct {
@@ -44,6 +66,23 @@ type mnemonicSection struct {
 	ChunkOverlap int             `yaml:"chunk_overlap"`
 	MaxFileSize  int             `yaml:"max_file_size"`
 	WebCache     webCacheSection `yaml:"web_cache"`
+	Embedder     embedderSection `yaml:"embedder"`
+}
+
+type embedderSection struct {
+	Provider   string           `yaml:"provider"`
+	Dimension  int              `yaml:"dimension"`
+	Indexing   embedderParams   `yaml:"indexing_params"`
+	Query      embedderParams   `yaml:"query_params"`
+	BaseURL    string           `yaml:"base_url"`
+	Model      string           `yaml:"model"`
+	APIKey     string           `yaml:"api_key"`
+}
+
+type embedderParams struct {
+	Instructions string `yaml:"instructions"`
+	InputType    string `yaml:"input_type"`
+	MaxTokens    int    `yaml:"max_tokens"`
 }
 
 type webCacheSection struct {
@@ -69,6 +108,12 @@ func DefaultWebCache() WebCache {
 	}
 }
 
+// DefaultOnnxModel is the default ONNX embedder (nomic-embed-code, 768-dim).
+const DefaultOnnxModel = "nomic-embed-code"
+
+// DefaultOnnxDim is the default output dimension for the ONNX provider.
+const DefaultOnnxDim = 768
+
 // DefaultIndexing returns defaults matching config.d/indexing.yaml.
 func DefaultIndexing() Indexing {
 	return Indexing{
@@ -88,6 +133,19 @@ func DefaultIndexing() Indexing {
 		ChunkOverlap: 10,
 		MaxFileSize:  MaxFileSizeDefault,
 		WebCache:     DefaultWebCache(),
+		Embedder:     DefaultEmbedder(),
+	}
+}
+
+// DefaultEmbedder returns the default embedder config: ONNX nomic-embed-code
+// (768-dim), with separate indexing (corpus) and query param sets.
+func DefaultEmbedder() EmbedderConfig {
+	return EmbedderConfig{
+		Provider:  "onnx",
+		Dimension: DefaultOnnxDim,
+		Indexing:  EmbedderParams{InputType: "passage"},
+		Query:     EmbedderParams{InputType: "query"},
+		Model:     DefaultOnnxModel,
 	}
 }
 
@@ -146,6 +204,41 @@ func mergeIndexing(defaults Indexing, section mnemonicSection) Indexing {
 		out.MaxFileSize = section.MaxFileSize
 	}
 	out.WebCache = mergeWebCache(defaults.WebCache, section.WebCache)
+	out.Embedder = mergeEmbedder(defaults.Embedder, section.Embedder)
+	return out
+}
+
+func mergeEmbedder(defaults EmbedderConfig, section embedderSection) EmbedderConfig {
+	out := defaults
+	if section.Provider != "" {
+		out.Provider = section.Provider
+	}
+	if section.Dimension > 0 {
+		out.Dimension = section.Dimension
+	}
+	if section.BaseURL != "" {
+		out.BaseURL = section.BaseURL
+	}
+	if section.Model != "" {
+		out.Model = section.Model
+	}
+	if section.APIKey != "" {
+		out.APIKey = section.APIKey
+	}
+	if section.Indexing.Instructions != "" || section.Indexing.InputType != "" || section.Indexing.MaxTokens > 0 {
+		out.Indexing = EmbedderParams{
+			Instructions: section.Indexing.Instructions,
+			InputType:    section.Indexing.InputType,
+			MaxTokens:    section.Indexing.MaxTokens,
+		}
+	}
+	if section.Query.Instructions != "" || section.Query.InputType != "" || section.Query.MaxTokens > 0 {
+		out.Query = EmbedderParams{
+			Instructions: section.Query.Instructions,
+			InputType:    section.Query.InputType,
+			MaxTokens:    section.Query.MaxTokens,
+		}
+	}
 	return out
 }
 

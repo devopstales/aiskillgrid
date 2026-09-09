@@ -15,8 +15,10 @@ import (
 
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/config"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/embedder"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/files"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/hybrid"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/project"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
@@ -1585,6 +1587,111 @@ func (s *Service) RunCodeIndex(ctx context.Context, directory string) (codeindex
 		MaxFileSize:  cfg.MaxFileSize,
 	}
 	return codeindex.New(h.store).Run(ctx, directory, idxCfg)
+}
+
+// CodeHybridResult is the hybrid code search answer (per-signal provenance on
+// every hit).
+type CodeHybridResult = hybrid.Result
+
+// CodeHybridSearch runs the offline hybrid code search (FTS + deterministic
+// signals + optional embeddings) for projectID. The embedder is resolved from
+// config; a down/missing embedder degrades to FTS + signals (the floor).
+func (s *Service) CodeHybridSearch(ctx context.Context, projectID, query string, limit int) (*hybrid.Result, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	emb := resolveEmbedder(h.root)
+	return hybrid.Search(ctx, h.store.DB, query, hybrid.Options{
+		Limit:    limit,
+		Embedder: emb,
+	})
+}
+
+// CodeSemanticSearch runs the vector leg only: symbol-level hits return the
+// named symbol + file + line; chunk-level hits return the line range. With no
+// active embedder it returns an empty result (the hybrid tool keeps the
+// FTS+signals floor).
+func (s *Service) CodeSemanticSearch(ctx context.Context, projectID, query string, limit int) (*hybrid.Result, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	emb := resolveEmbedder(h.root)
+	return hybrid.Search(ctx, h.store.DB, query, hybrid.Options{
+		Limit:    limit,
+		Semantic: true,
+		Embedder: emb,
+	})
+}
+
+// CodeEmbeddingStatus reports the active provider/model, vector dimension,
+// embedded counts, and model-swap guard state (read-only).
+func (s *Service) CodeEmbeddingStatus(ctx context.Context, projectID string) (map[string]any, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	cfg := config.Load(h.root)
+	emb := resolveEmbedder(h.root)
+	status := map[string]any{
+		"provider": cfg.Embedder.Provider,
+	}
+	if emb == nil {
+		status["active"] = false
+		status["model"] = ""
+		status["dimension"] = 0
+		status["reason"] = "embedder off"
+	} else {
+		status["active"] = true
+		status["model"] = emb.Model()
+		status["dimension"] = emb.Dimension()
+	}
+	var symCount int
+	_ = h.store.DB.QueryRow(`SELECT COUNT(*) FROM embeddings`).Scan(&symCount)
+	status["embedded_symbols"] = symCount
+	var model sql.NullString
+	_ = h.store.DB.QueryRow(`SELECT value FROM embed_meta WHERE key = 'embedding_model'`).Scan(&model)
+	status["indexed_model"] = model.String
+	return status, nil
+}
+
+// toAsym converts config params to embedder params.
+func toAsym(p config.EmbedderParams) embedder.AsymParams {
+	return embedder.AsymParams{
+		Instructions: p.Instructions,
+		InputType:    p.InputType,
+		MaxTokens:    p.MaxTokens,
+	}
+}
+
+// resolveEmbedder builds the process embedder from config. An empty/nil
+// embedder means "off" — the FTS+signals floor applies.
+func resolveEmbedder(configRoot string) embedder.Embedder {
+	cfg := config.Load(configRoot)
+	switch cfg.Embedder.Provider {
+	case "external":
+		return embedder.NewExternal(embedder.ExternalConfig{
+			BaseURL:   cfg.Embedder.BaseURL,
+			Model:     cfg.Embedder.Model,
+			APIKey:    cfg.Embedder.APIKey,
+			Dimension: cfg.Embedder.Dimension,
+			Indexing:  toAsym(cfg.Embedder.Indexing),
+			Query:     toAsym(cfg.Embedder.Query),
+		})
+	case "off", "":
+		return nil
+	default: // "onnx" is the default
+		return embedder.NewOnnx(embedder.OnnxConfig{
+			Model:     cfg.Embedder.Model,
+			Dimension: cfg.Embedder.Dimension,
+			Indexing:  toAsym(cfg.Embedder.Indexing),
+			Query:     toAsym(cfg.Embedder.Query),
+		})
+	}
 }
 
 // WebLookup checks the web cache for a matching entry.
