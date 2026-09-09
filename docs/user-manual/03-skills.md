@@ -17,7 +17,6 @@ Priority: `use-skillgrid` → `sdd-*` stage → general skills the stage loads.
 |-------|------|
 | `use-skillgrid` | Detect, classify, route, resume, enforce user gate |
 | `sdd-onboard` | Bootstrap orchestrator (greenfield / brownfield); Step 3 = init: detect facts, write skeleton + AGENTS block |
-| `sdd-init` | **Retired** → sdd-onboard Step 3 |
 | `sdd-onboard` refs (`init-details`, `map-codebase`, `agent-context`, `constraints`, `domain`) | Onboard helpers (references, not invocable skills) |
 | `sdd-propose` | Reserve `NNN`; write `change.md` |
 | `sdd-explore` | Helper: change-scoped `research.md` |

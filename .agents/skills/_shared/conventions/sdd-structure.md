@@ -70,7 +70,7 @@ Scratch (git-ignored, never committed): `.skillgrid/sdd/<NNN-slug>/` — `subage
 
 | Skill | Creates / updates | Path |
 |---|---|---|
-| sdd-init / sdd-onboard | skeleton | `config.yaml`, `agents/` stubs, `glossary/` stubs, `changes/`, `archive/`, AGENTS block |
+| sdd-onboard | skeleton | `config.yaml`, `agents/` stubs, `glossary/` stubs, `changes/`, `archive/`, AGENTS block |
 | sdd-onboard → references/map-codebase.md | optional map | `docs/skillgrid/codebase/` |
 | sdd-onboard → references/agent-context.md | harness pointer | `AGENTS.md` (+ one-line pointers elsewhere) |
 | sdd-onboard → references/constraints.md | quality bar | `config.yaml` `rules.*` |

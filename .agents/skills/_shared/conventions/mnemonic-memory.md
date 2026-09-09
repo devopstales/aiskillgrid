@@ -55,10 +55,10 @@ title/topic_key: sdd-init/{project}     (init-time full project context)
 | `archive-report` (lineage: all obs IDs) | sdd-archive | architecture |
 | `state` | orchestrator (DAG state for recovery) | architecture |
 | `changelog` (NNN reservations + archives) | sdd-propose / sdd-archive | config |
-| `tech_stack` | sdd-init | config |
-| `issue_tracker` | sdd-init | config |
-| `testing-capabilities` | sdd-init | config |
-| `skill-registry` | sdd-init (topic `skill-registry`, global project scope) | config |
+| `tech_stack` | sdd-onboard | config |
+| `issue_tracker` | sdd-onboard | config |
+| `testing-capabilities` | sdd-onboard | config |
+| `skill-registry` | sdd-onboard (topic `skill-registry`, global project scope) | config |
 
 ### State Artifact
 

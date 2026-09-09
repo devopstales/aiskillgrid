@@ -15,7 +15,7 @@ Interview style: load `questioning` when answers branch or conflict.
 ## Workflow
 
 ```
-[ ] 1. Read docs/skillgrid/config.yaml (create via sdd-init if missing)
+[ ] 1. Read docs/skillgrid/config.yaml (create via sdd-onboard if missing)
 [ ] 2. Interview the quality bar
 [ ] 3. Patch rules.* only
 [ ] 4. Confirm with user; summarize

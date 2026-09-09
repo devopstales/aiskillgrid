@@ -12,6 +12,6 @@ The five canonical triage roles. Each role maps to a label string in the active 
 
 Rules:
 
-- Keep labels in sync across `backlog.config.yml`, GitHub/GitLab issue labels, and any override mapping recorded during sdd-init.
+- Keep labels in sync across `backlog.config.yml`, GitHub/GitLab issue labels, and any override mapping recorded during sdd-onboard.
 - If the user's tracker already uses different label names (e.g. `bug:triage`), record the override per-role in the tracker doc — do not rename the roles.
 - Triage state for local trackers (Backlog.md) is a `Status:` line near the top of each ticket file.

@@ -15,7 +15,7 @@ Ongoing term discipline: load `glossary` when authoring specs later.
 ## Workflow
 
 ```
-[ ] 1. Ensure docs/skillgrid/ exists (else sdd-init first)
+[ ] 1. Ensure docs/skillgrid/ exists (else run sdd-onboard first)
 [ ] 2. Create glossary/ stubs if missing
 [ ] 3. Seed known terms (optional short interview)
 [ ] 4. Optional Mnemonic upsert

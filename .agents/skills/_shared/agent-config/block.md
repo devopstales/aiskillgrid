@@ -1,6 +1,6 @@
 # Agent config block (shared payload)
 
-Single source of truth for the `## Agent skills` block that `sdd-init` writes into a project's agent config file (`AGENTS.md`, `CLAUDE.md`, or `GEMINI.md`). The per-target files ([agents.md](agents.md), [claude.md](claude.md), [gemini.md](gemini.md)) only decide *which file* and *what platform note* to use — they must not drift in content. Keep this file the one place the payload lives; change wording here, not in the target wrappers.
+Single source of truth for the `## Agent skills` block that `sdd-onboard` writes into a project's agent config file (`AGENTS.md`, `CLAUDE.md`, or `GEMINI.md`). The per-target files ([agents.md](agents.md), [claude.md](claude.md), [gemini.md](gemini.md)) only decide *which file* and *what platform note* to use — they must not drift in content. Keep this file the one place the payload lives; change wording here, not in the target wrappers.
 
 The block already lives in the target file in most projects. The sentinels make the write idempotent: update in place, never duplicate.
 
@@ -34,8 +34,8 @@ Entry: invoke **`use-skillgrid`** for change work (uninitialized → `sdd-onboar
 | placeholder | default | fill from |
 |---|---|---|
 | `{project}` | — | detected `project_name` (Mnemonic `sdd/{project}/project_name`) |
-| `{registry}` | `docs/skillgrid/agents/skill-registry.md` | sdd-init step 5.1 — fixed |
-| `{tracker-doc}` | `docs/skillgrid/agents/issue-tracker.md` | sdd-init step 5.3 — fixed |
+| `{registry}` | `docs/skillgrid/agents/skill-registry.md` | sdd-onboard step 3e.4 — fixed |
+| `{tracker-doc}` | `docs/skillgrid/agents/issue-tracker.md` | sdd-onboard step 3e.3 — fixed |
 | `{tracker-line}` | — | one-line tracker summary, chosen per active tracker |
 
 `{tracker-line}` — pick the active tracker (identifiers from `init → tracker`):
