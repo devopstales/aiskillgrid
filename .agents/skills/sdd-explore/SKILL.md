@@ -59,6 +59,10 @@ Feature / bug / refactor? Domain? If too vague to investigate, stop and state wh
 
 Prefer **`investigate`** for high-trust primary sources (external APIs, rare docs). For large surfaces, `subagent-execution` (`## Parallel investigation`). Map: entry points, affected modules, existing tests/gaps, coupling.
 
+Dispatch `investigate` as a **background** subagent (`task(...)` with the runtime's background/async flag) so the main thread stays free to continue the explore workflow (approach comparison, drafting the research.md skeleton) while the research reads. Wait for the result only before writing the final `### Current State` section. If the runtime has no background primitive, run inline and note it in the envelope's `Risks`.
+
+If the question splits into two independent sub-questions (e.g. "which library" AND "how to configure it"), run two `investigate` calls — one per sub-question — and write the findings into two `###` sections of research.md, each with its own `Date:` and `Unresolved` block. Never merge two topics into one undifferentiated findings list.
+
 ### 4. Compare approaches
 
 | Approach | Pros | Cons | Effort |
@@ -84,15 +88,18 @@ Then:
 ```markdown
 ## Research: {topic}
 
+Date: {ISO}
+
 ### Current State
 ### Affected Areas
 ### Approaches
 ### Recommendation
 ### Risks
+### Unresolved
 ### Ready for Proposal
 ```
 
-Mnemonic upsert `sdd/<NNN-slug>/research` (full markdown). Apply `rules.explore` from config if present.
+`Date:` is the rot-detection timestamp `sdd-propose` checks before trusting the cache. `Unresolved` holds disagreements (primary vs secondary source), unconfirmed facts, and stale citations — not the body. Mnemonic upsert `sdd/<NNN-slug>/research` (full markdown). Apply `rules.explore` from config if present.
 
 ### 6. Return envelope
 
@@ -110,6 +117,7 @@ Mnemonic upsert `sdd/<NNN-slug>/research` (full markdown). Apply `rules.explore`
 - `mem_search` returns previews — always `mem_get_observation(id)`.
 - You do not own NNN; do not invent a parallel numbering scheme.
 - Recommendation is analysis, not a locked Architecture decision — that lives in `change.md`.
+- Two topics in one research.md section = the agent can't tell which finding belongs to which question. Split the `###` sections, not the file.
 
 ## References
 
