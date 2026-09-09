@@ -48,7 +48,11 @@ func DefaultDataDir() (string, error) {
 	return filepath.Join(home, ".skillgrid", "mnemonic"), nil
 }
 
-type projectHandle struct {
+// ProjectHandle is the deep single-project seam: one opened project with
+// direct access to its memory, webcache, and store. Callers outside the
+// service package (MCP, HTTP) open a handle once and work through it instead
+// of the wide open-delegate-close facade.
+type ProjectHandle struct {
 	store     *store.Store
 	projectID string
 	root      string // workspace directory for ContentPlane (.skillgrid/files)
@@ -57,9 +61,12 @@ type projectHandle struct {
 	content   *files.ContentPlane
 }
 
-func (s *Service) openProject(projectID, configRoot string) (*projectHandle, func(), error) {
+func (s *Service) openProject(projectID, configRoot string) (*ProjectHandle, func(), error) {
 	if s == nil {
 		return nil, nil, fmt.Errorf("service not initialized")
+	}
+	if strings.TrimSpace(projectID) == "" {
+		return nil, nil, fmt.Errorf("project id is required")
 	}
 	st, err := store.Open(s.dataDir, projectID)
 	if err != nil {
@@ -70,7 +77,7 @@ func (s *Service) openProject(projectID, configRoot string) (*projectHandle, fun
 		root = abs
 	}
 	cfg := config.Load(root)
-	h := &projectHandle{
+	h := &ProjectHandle{
 		store:     st,
 		projectID: projectID,
 		root:      root,
@@ -81,7 +88,7 @@ func (s *Service) openProject(projectID, configRoot string) (*projectHandle, fun
 	return h, func() { st.Close() }, nil
 }
 
-func (s *Service) openProjectForDirectory(directory string) (*projectHandle, func(), error) {
+func (s *Service) openProjectForDirectory(directory string) (*ProjectHandle, func(), error) {
 	absDir, err := filepath.Abs(directory)
 	if err != nil {
 		return nil, nil, fmt.Errorf("resolve directory: %w", err)
@@ -104,7 +111,7 @@ func (s *Service) openProjectForDirectory(directory string) (*projectHandle, fun
 	return s.openProject(res.ID, absDir)
 }
 
-func (s *Service) openProjectFromCWD() (*projectHandle, func(), error) {
+func (s *Service) openProjectFromCWD() (*ProjectHandle, func(), error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, nil, err
@@ -1035,7 +1042,7 @@ func (s *Service) MemoryDoctor(ctx context.Context, projectID string) (MemoryDoc
 }
 
 // rowCount helper (keeps MemoryDoctor readable).
-func (h *projectHandle) rowCount(ctx context.Context, table string, out *int) {
+func (h *ProjectHandle) rowCount(ctx context.Context, table string, out *int) {
 	_ = h.store.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table).Scan(out)
 }
 
@@ -1758,27 +1765,34 @@ func (s *Service) WebCacheStatus(ctx context.Context, projectID string) (webcach
 	return h.web.CacheStatus(ctx)
 }
 
+// Open opens a ProjectHandle for an explicit project id (config root ".").
+// It aborts with an error on empty or invalid ids — store.Open rejects blank
+// and ".."-containing ids — and never returns a partial handle.
+func (s *Service) Open(projectID string) (*ProjectHandle, func(), error) {
+	return s.openProject(projectID, ".")
+}
+
 // OpenForCWD opens project-scoped services from the current working directory.
-func (s *Service) OpenForCWD() (*projectHandle, func(), error) {
+func (s *Service) OpenForCWD() (*ProjectHandle, func(), error) {
 	return s.openProjectFromCWD()
 }
 
 // OpenForDirectory opens project-scoped services for directory.
-func (s *Service) OpenForDirectory(directory string) (*projectHandle, func(), error) {
+func (s *Service) OpenForDirectory(directory string) (*ProjectHandle, func(), error) {
 	return s.openProjectForDirectory(directory)
 }
 
 // ProjectID returns the project ID for an open handle.
-func (h *projectHandle) ProjectID() string { return h.projectID }
+func (h *ProjectHandle) ProjectID() string { return h.projectID }
 
 // Memory returns the memory service for an open handle.
-func (h *projectHandle) Memory() *memory.Service { return h.memory }
+func (h *ProjectHandle) Memory() *memory.Service { return h.memory }
 
 // Web returns the webcache service for an open handle.
-func (h *projectHandle) Web() *webcache.Service { return h.web }
+func (h *ProjectHandle) Web() *webcache.Service { return h.web }
 
 // Store returns the underlying store for an open handle.
-func (h *projectHandle) Store() *store.Store { return h.store }
+func (h *ProjectHandle) Store() *store.Store { return h.store }
 
 func readIndexedCode(db *sql.DB, path string, startLine, endLine int) (map[string]any, error) {
 	var fileID int64

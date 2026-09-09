@@ -295,7 +295,7 @@ func (s *Service) MarkDone(ctx context.Context, directory, taskID string) error 
 	return nil
 }
 
-func (s *Service) openTeamsHandle(directory string) (*projectHandle, func(), error) {
+func (s *Service) openTeamsHandle(directory string) (*ProjectHandle, func(), error) {
 	dir := strings.TrimSpace(directory)
 	if dir == "" {
 		return s.openProjectFromCWD()
@@ -303,14 +303,14 @@ func (s *Service) openTeamsHandle(directory string) (*projectHandle, func(), err
 	return s.openProjectForDirectory(dir)
 }
 
-func (h *projectHandle) ensureTeam(id, name string) error {
+func (h *ProjectHandle) ensureTeam(id, name string) error {
 	_, err := h.store.DB.Exec(`
 		INSERT INTO teams (id, name) VALUES (?, ?)
 		ON CONFLICT(id) DO NOTHING`, id, name)
 	return err
 }
 
-func (h *projectHandle) ensureMember(teamID, memberID, role string) error {
+func (h *ProjectHandle) ensureMember(teamID, memberID, role string) error {
 	if err := h.ensureTeam(teamID, defaultTeamName); err != nil {
 		return err
 	}
@@ -320,7 +320,7 @@ func (h *projectHandle) ensureMember(teamID, memberID, role string) error {
 	return err
 }
 
-func (h *projectHandle) loadTask(taskID string) (*TaskView, error) {
+func (h *ProjectHandle) loadTask(taskID string) (*TaskView, error) {
 	if strings.TrimSpace(taskID) == "" {
 		return nil, ErrUnknownTask
 	}
