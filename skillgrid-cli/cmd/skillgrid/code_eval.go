@@ -28,7 +28,7 @@ type evalCorpus struct {
 // os/exec; the eval package stays pure-Go and just consumes these rows).
 func readGitHistory(root string) ([]eval.Commit, error) {
 	cmd := exec.Command("git", "-C", root,
-		"log", "--pretty=format:%H%x1f%s", "--name-only")
+		"log", "--no-color", "--pretty=format:%H%x1f%s", "--name-only")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("git log in %s: %w", root, err)
@@ -199,8 +199,32 @@ Examples:
 			fmt.Fprintf(os.Stderr, "error: corpus %q: %v\n", c.Name, herr)
 			os.Exit(1)
 		}
-		fileSets[c.Name] = loadCorpusFiles(c.Root)
-		querySets[c.Name] = eval.DeriveQuerySet(commits)
+		files := loadCorpusFiles(c.Root)
+		fileSets[c.Name] = files
+		// Restrict each query to the gradeable (code-only) corpus: a commit
+		// that touches both code and docs/config files grades only the code
+		// files, and a docs/config-only commit is not a retrieval signal.
+		// Restricting the expected files to the corpus keeps validate_queries
+		// honest (it should only flag a genuinely stale CODE expectation, not
+		// a docs commit's .md path that was never in the code corpus).
+		present := make(map[string]bool, len(files))
+		for p := range files {
+			present[p] = true
+		}
+		var kept []*eval.QuerySet
+		for _, q := range eval.DeriveQuerySet(commits) {
+			var inCorpus []string
+			for _, f := range q.ExpectedFiles {
+				if present[f] {
+					inCorpus = append(inCorpus, f)
+				}
+			}
+			if len(inCorpus) == 0 {
+				continue // docs/config-only commit — not a retrieval signal
+			}
+			kept = append(kept, &eval.QuerySet{Subject: q.Subject, ExpectedFiles: inCorpus})
+		}
+		querySets[c.Name] = kept
 	}
 
 	res, err := eval.Run(ctx, eval.RunConfig{
