@@ -67,8 +67,8 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: spec          # spec | apply | verify | archive
-current_step: 01-framework-routes
+phase: apply         # spec | apply | verify | archive
+current_step: 02-code-affected
 status: in_progress  # in_progress | blocked | done
 updated: 2026-09-09
 ```
@@ -134,28 +134,28 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 01.1 `[RED]` Framework routing files produce route nodes with references edges (Scenario: Web-framework routing files produce route nodes)
+- [x] 01.1 `[RED]` Framework routing files produce route nodes with references edges (Scenario: Web-framework routing files produce route nodes)
   - [ ] 01.1.a Write failing test — fixture routing files (Django `urls.py`, FastAPI `@app.get`, Express `app.get`, Gin `r.GET`, Rails `get '/x'`, Spring `@GetMapping`); after index, assert `route` nodes exist, each linked by a `references` edge to its handler, every edge EXTRACTED (explicit syntax), and a query for callers of a handler surfaces the URL pattern
   - [ ] 01.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/store/... -count=1` — Expected: FAIL
   - [ ] 01.1.c Minimal implementation — `013_framework_routes.sql` + `route/extract.go` dispatch + `route/frameworks.go` per-framework node maps + `Indexer.Run` hook (same tx as 005 extraction)
   - [ ] 01.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/store/... -count=1` — Expected: PASS
   - [ ] 01.1.e Commit — `feat(mnemonic): framework route nodes and references edges`
-- [ ] 01.2 `[RED]` Routers produce navigates edges to named screens (Scenario: Router navigations produce navigates edges)
+- [x] 01.2 `[RED]` Routers produce navigates edges to named screens (Scenario: Router navigations produce navigates edges)
   - [ ] 01.2.a Write failing test — fixture routers (Next.js `router.push`/`<Link href>`, React Router `<Route path>`, SvelteKit `goto`, Vue Router `push({name})`); after index, assert `navigates` edge from the sending function to the named screen; literal destinations EXTRACTED; markup-written links INFERRED
   - [ ] 01.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... -run Navigates -count=1` — Expected: FAIL
   - [ ] 01.2.c Minimal implementation — router node maps in `route/frameworks.go` + navigates emission in `route/extract.go`
   - [ ] 01.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... -run Navigates -count=1` — Expected: PASS
   - [ ] 01.2.e Commit — `feat(mnemonic): navigates edges from framework routers`
-- [ ] 01.3 `[AFK]` Computed or unserved destinations stay unresolved (Scenario: Computed or unserved destination stays unresolved) — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... -run Unresolved -count=1` — Expected: PASS
-- [ ] 01.4 `[RED]` Drop rather than guess — ambiguous references dropped, not AMBIGUOUS-kept (Scenario: Ambiguous references are dropped not guessed) — Business rule "Drop rather than guess"; edge policy inherited by step 02
+- [x] 01.3 `[AFK]` Computed or unserved destinations stay unresolved (Scenario: Computed or unserved destination stays unresolved) — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... -run Unresolved -count=1` — Expected: PASS
+- [x] 01.4 `[RED]` Drop rather than guess — ambiguous references dropped, not AMBIGUOUS-kept (Scenario: Ambiguous references are dropped not guessed) — Business rule "Drop rather than guess"; edge policy inherited by step 02
   - [ ] 01.4.a Write failing test — a reference with no same-file match, no explicit specifier, and no unique global/owner-qualified match is **dropped at extraction**: no edge stored, and a warning (count + sample) is reported, not a silent discard; assert `AMBIGUOUS` is reserved for edges that *were* resolved via a heuristic (e.g. a markup-written `navigates` link) — a heuristic-resolved edge is stored `AMBIGUOUS`, an ambiguous-but-unresolvable one is absent
   - [ ] 01.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... -run DropNotGuess -count=1` — Expected: FAIL
   - [ ] 01.4.c Minimal implementation — drop-not-guess resolution policy in `route/extract.go` (drop + warn on ambiguity; keep `AMBIGUOUS` for heuristic-resolved only)
   - [ ] 01.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... -run DropNotGuess -count=1` — Expected: PASS
   - [ ] 01.4.e Commit — `feat(mnemonic): drop-not-guess edge resolution policy`
-- [ ] 01.5 `[AFK]` Malformed routing file falls back and index continues (Scenario: Malformed routing file falls back and index continues) — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... ./skillgrid-cli/internal/mnemonic/codeindex/... -count=1` — Expected: PASS
-- [ ] 01.6 `[AFK]` Framework with no routes reports none (Scenario: Framework with no routes reports none) — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... -count=1` — Expected: PASS
-- [ ] 01.7 `[RED]` Mnemonic tool surface — route tools register, `code_search` stable, bad args rejected (Scenario: Route tools register and code_search stays stable) — threat: Mnemonic tool surface
+- [x] 01.5 `[AFK]` Malformed routing file falls back and index continues (Scenario: Malformed routing file falls back and index continues) — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... ./skillgrid-cli/internal/mnemonic/codeindex/... -count=1` — Expected: PASS
+- [x] 01.6 `[AFK]` Framework with no routes reports none (Scenario: Framework with no routes reports none) — `Run: go test ./skillgrid-cli/internal/mnemonic/route/... -count=1` — Expected: PASS
+- [x] 01.7 `[RED]` Mnemonic tool surface — route tools register, `code_search` stable, bad args rejected (Scenario: Route tools register and code_search stays stable) — threat: Mnemonic tool surface
   - [ ] 01.7.a Write failing test — assert route/navigates query tools register with distinct `code_*` names; `code_search` name + required `query` param schema unchanged; 005/008 tools intact; bad route args rejected with a clear validation error
   - [ ] 01.7.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run RouteTools -count=1` — Expected: FAIL
   - [ ] 01.7.c Minimal implementation — `tools_code_route.go` + server registration without dropping existing `code_*`
@@ -164,17 +164,19 @@ This step is done only when:
 
 ### Verification
 
-Verdict: `PENDING`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/route/... ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/store/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` | PASS | | |
-| Acceptance `@step-01` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `skillgrid index` on a fixture web app; query route→handler→screen via SQL / MCP; confirm an ambiguous ref is dropped + warned | PASS | | |
-| Rollback boundary | Drop `013_*` + `route/` + `tools_code_route.go`; revert indexer hook | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/route/... ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/store/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/graph/... -count=1` | PASS | PASS | 5/5 packages `ok`; 005/008 baseline (`community`/`hybrid`) `ok` |
+| Acceptance `@step-01` / `@p0` | mapped unit scenarios (`TestIndexProducesRouteNodesAndReferences`, `TestRouteNodesForWebFrameworks`, `TestNavigatesForRouters`, `TestDropNotGuess`, `TestHeuristicResolvedIsAmbiguous`, `TestUnresolved*`, `TestMalformed*`, `TestNoRoutes*`, `TestRouteTools*`) | PASS | PASS | 6 web frameworks + 4 routers fixtures |
+| Runtime harness | `skillgrid index` on fixture web app; `code_route` / `code_navigates` via MCP; ambiguous ref dropped + warned (`route_drops`) | PASS | PASS | Express + Next.js end-to-end; others unit at `Build` |
+| Rollback boundary | Drop `013_*` + `route/` + `tools_code_route.go`; revert indexer hook + impact kind-list | PASS | PASS | 005/012 tables untouched; tool surface 63→65 additive |
+| Global Constraints | — | held | held | CGo-free; additive; same-tx hook; EXTRACTED/INFERRED/AMBIGUOUS + drop-not-guess |
+
+Sub-agent review: round 1 needs fixes (blast-radius kind list not reconciled for step-01 `references`/`navigates`; AMBIGUOUS-reserved-for-heuristic-resolved contract unemitted/untested) → fixed (ac92533 three-way edge policy, 8c099a5 blast-radius traversal). Re-review: both ADDRESSED, no new breakage, non-vacuous tests.
 
 ### Commit
 
