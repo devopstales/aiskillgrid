@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
 )
 
 // indexOrientFixture writes the fixture, indexes it through the resolved
@@ -35,7 +37,12 @@ func indexOrientFixture(t *testing.T) (string, string, *Service) {
 // finds camelCase/snake_case symbols that were indexed.
 func TestSymbolSearchFindsIndexedSymbols(t *testing.T) {
 	_, projectID, svc := indexOrientFixture(t)
-	hits, err := svc.SymbolSearch(context.Background(), projectID, "parseConfig", 10)
+	h, cleanup, err := svc.Open(projectID)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer cleanup()
+	hits, err := search.SymbolFTS(h.Store().DB, "parseConfig", 10)
 	if err != nil {
 		t.Fatalf("symbol search: %v", err)
 	}

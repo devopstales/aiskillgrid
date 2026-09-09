@@ -84,14 +84,19 @@ func TestNoAutoCommitSessionEnd(t *testing.T) {
 	st.Close()
 
 	svc := service.New(dataDir)
-	before, err := svc.CountLongTermMemories(context.Background(), project)
+	before, err := countLongTermMemories(t, svc, project)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.SessionEnd(context.Background(), project, "s1", "unsaved lessons"); err != nil {
+	h, cleanup, err := svc.Open(project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := h.Memory().SessionEnd(context.Background(), "s1", "unsaved lessons"); err != nil {
 		t.Fatalf("session end: %v", err)
 	}
-	after, err := svc.CountLongTermMemories(context.Background(), project)
+	cleanup()
+	after, err := countLongTermMemories(t, svc, project)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +118,7 @@ func TestMissingSourcesPartial(t *testing.T) {
 	if err == nil || !errors.Is(err, service.ErrMissingCommitSources) {
 		t.Fatalf("want missing sources, got %v", err)
 	}
-	n, err := svc.CountLongTermMemories(context.Background(), project)
+	n, err := countLongTermMemories(t, svc, project)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,4 +179,20 @@ func mustOpenDB(t *testing.T, dataDir, project string) *store.Store {
 	}
 	t.Cleanup(func() { st.Close() })
 	return st
+}
+
+// countLongTermMemories counts rows for project via the handle (the
+// CountLongTermMemories facade was collapsed into the handle seam).
+func countLongTermMemories(t *testing.T, svc *service.Service, project string) (int, error) {
+	t.Helper()
+	h, cleanup, err := svc.Open(project)
+	if err != nil {
+		return 0, err
+	}
+	defer cleanup()
+	var n int
+	err = h.Store().DB.QueryRow(
+		`SELECT COUNT(*) FROM long_term_memories WHERE project = ?`, project,
+	).Scan(&n)
+	return n, err
 }

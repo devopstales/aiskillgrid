@@ -8,9 +8,31 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/store"
 )
+
+// seedObservation opens the project handle once and saves an observation,
+// mirroring the scope normalization the old SaveObservation facade applied
+// (blank scope -> project, personal -> user). Test-only seed helper.
+func seedObservation(t *testing.T, dataDir, projectID string, in memory.SaveInput) {
+	t.Helper()
+	h, cleanup, err := service.New(dataDir).Open(projectID)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer cleanup()
+	if in.Scope == "" {
+		in.Scope = "project"
+	}
+	if in.Scope == "personal" {
+		in.Scope = "user"
+	}
+	if _, err := h.Memory().Save(context.Background(), in); err != nil {
+		t.Fatalf("save observation: %v", err)
+	}
+}
 
 // pinProjectCwd pins the project via MNEMONIC_PROJECT, chdirs into dir, and
 // injects a service rooted at dataDir. Returns the pinned project id. Every
@@ -118,15 +140,13 @@ func TestMemSearchContractShape(t *testing.T) {
 		t.Fatalf("seed session: %v", err)
 	}
 	// Seed an observation under the pinned project so search has a hit.
-	if _, err := (service.New(dataDir)).SaveObservation(context.Background(), "shape-probe", service.SaveObservationInput{
+	seedObservation(t, dataDir, "shape-probe", memory.SaveInput{
 		Title:     "shape probe note",
 		Type:      "learning",
 		Content:   "contract shape check for mem_search after single-open rewire",
 		Scope:     "project",
 		SessionID: sid,
-	}); err != nil {
-		t.Fatalf("seed observation: %v", err)
-	}
+	})
 
 	req := newCallTool("mem_search", map[string]any{"query": "contract shape check"})
 	res, err := handleMemSearch(context.Background(), req)
@@ -172,15 +192,13 @@ func TestMemSearchSingleOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed session: %v", err)
 	}
-	if _, err := (service.New(dataDir)).SaveObservation(context.Background(), "shape-search", service.SaveObservationInput{
+	seedObservation(t, dataDir, "shape-search", memory.SaveInput{
 		Title:     "search open once",
 		Type:      "learning",
 		Content:   "scoped search must open the store exactly once",
 		Scope:     "project",
 		SessionID: sid,
-	}); err != nil {
-		t.Fatalf("seed observation: %v", err)
-	}
+	})
 
 	store.ResetOpenCount()
 	req := newCallTool("mem_search", map[string]any{"query": "scoped search once"})

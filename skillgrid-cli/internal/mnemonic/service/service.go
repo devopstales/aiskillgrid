@@ -142,16 +142,6 @@ func (s *Service) ListProjects() ([]string, error) {
 	return ids, nil
 }
 
-// ObservationsRecent returns stored observations, newest first.
-func (s *Service) ObservationsRecent(ctx context.Context, projectID string, limit int) ([]memory.Observation, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return h.memory.Recent(ctx, limit)
-}
-
 // ResolveProject returns the project ID for directory.
 func (s *Service) ResolveProject(directory string) (string, error) {
 	absDir, err := filepath.Abs(directory)
@@ -176,36 +166,6 @@ func (s *Service) SessionStart(ctx context.Context, directory, title string) (se
 	return sessionID, h.projectID, nil
 }
 
-// SessionSetTitle renames a session so the dashboard session list shows it.
-func (s *Service) SessionSetTitle(ctx context.Context, projectID, sessionID, title string) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.SessionSetTitle(ctx, sessionID, title)
-}
-
-// SessionEnd ends a session with optional summary.
-func (s *Service) SessionEnd(ctx context.Context, projectID, sessionID, summary string) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.SessionEnd(ctx, sessionID, summary)
-}
-
-// SessionSummary stores an end-of-session summary.
-func (s *Service) SessionSummary(ctx context.Context, projectID, sessionID, summary string) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.SessionSummary(ctx, sessionID, summary)
-}
-
 // SessionStartByClientID registers a session under the caller's ID (idempotent).
 func (s *Service) SessionStartByClientID(ctx context.Context, sessionID, directory, title string) (id, projectID string, existed bool, err error) {
 	h, cleanup, err := s.openProjectForDirectory(directory)
@@ -223,44 +183,8 @@ func (s *Service) SessionStartByClientID(ctx context.Context, sessionID, directo
 // PromptInput is a captured user prompt.
 type PromptInput = memory.PromptInput
 
-// SavePrompt stores a captured user prompt.
-func (s *Service) SavePrompt(ctx context.Context, projectID string, in PromptInput) (int64, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return 0, err
-	}
-	defer cleanup()
-	return h.memory.SavePrompt(ctx, in)
-}
-
 // PassiveInput is free text for server-side learnings extraction.
 type PassiveInput = memory.PassiveInput
-
-// PassiveResult reports what the passive extractor found.
-type PassiveResult = memory.CapturePassiveResult
-
-// CapturePassive extracts learnings from raw text and persists them.
-func (s *Service) CapturePassive(ctx context.Context, projectID string, in PassiveInput) (PassiveResult, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return PassiveResult{}, err
-	}
-	defer cleanup()
-	return h.memory.CapturePassive(ctx, in)
-}
-
-// CompactionContext assembles session-scoped context for the compaction prompt.
-type CompactionContext = memory.CompactionContext
-
-// ContextForCompaction returns the compaction context.
-func (s *Service) ContextForCompaction(ctx context.Context, projectID, sessionID string, limit int) (CompactionContext, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return CompactionContext{}, err
-	}
-	defer cleanup()
-	return h.memory.CompactionContext(ctx, sessionID, limit)
-}
 
 // MigrateProjects rolls data recorded under oldProject into the newProject
 // store. In Mnemonic each project has its own SQLite file, so the data lives
@@ -370,58 +294,6 @@ func (s *Service) MigrateProjects(ctx context.Context, oldProject, newProject st
 	}
 
 	return total, nil
-}
-
-// LastObservationAt returns the newest observation time for the project, if any.
-func (s *Service) LastObservationAt(ctx context.Context, projectID string) (time.Time, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return time.Time{}, err
-	}
-	defer cleanup()
-	return h.memory.LastObservationAt(ctx)
-}
-
-// RecordRelation stores a semantic link between two observations in the
-// given project (mem_judge / mem_compare).
-func (s *Service) RecordRelation(ctx context.Context, projectID string, srcID, dstID int64, relation, reason string, confidence *float64) (memory.Relation, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return memory.Relation{}, err
-	}
-	defer cleanup()
-	return h.memory.RecordRelation(ctx, srcID, dstID, relation, reason, confidence)
-}
-
-// RemoveRelation clears a live link between two observations (mem_judge
-// not_conflict verdict).
-func (s *Service) RemoveRelation(ctx context.Context, projectID string, srcID, dstID int64, relation string) (bool, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return false, err
-	}
-	defer cleanup()
-	return h.memory.RemoveRelation(ctx, srcID, dstID, relation)
-}
-
-// RelationsOf returns every live relation touching observation id.
-func (s *Service) RelationsOf(ctx context.Context, projectID string, id int64) ([]memory.Relation, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return h.memory.RelationsOf(ctx, id)
-}
-
-// RelationsBetween returns the live links between two specific observations.
-func (s *Service) RelationsBetween(ctx context.Context, projectID string, srcID, dstID int64) ([]memory.Relation, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return h.memory.RelationsBetween(ctx, srcID, dstID)
 }
 
 // ProjectDrift mirrors the memory package's drift report, for API consumers.
@@ -573,21 +445,6 @@ func (s *Service) recordProjectAlias(ctx context.Context, canonical, source stri
 	return err
 }
 
-// SessionStartedAt returns the started_at of a session (zero if missing).
-func (s *Service) SessionStartedAt(ctx context.Context, projectID, sessionID string) (time.Time, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return time.Time{}, err
-	}
-	defer cleanup()
-	return h.memory.SessionStartedAt(ctx, sessionID)
-}
-
-// ListProjectsForMigration returns all project ids with a store file.
-func (s *Service) ListProjectsForMigration() ([]string, error) {
-	return s.ListProjects()
-}
-
 // SaveObservationInput holds fields for saving an observation (HTTP + MCP).
 type SaveObservationInput struct {
 	Title     string `json:"title"`
@@ -605,38 +462,6 @@ type SaveObservationInput struct {
 	ProjectName string `json:"project_name"`
 	// ToolName is optional provenance for which tool produced the save.
 	ToolName string `json:"tool_name"`
-}
-
-// SaveObservation stores an observation with scope normalization matching MCP mem_save.
-func (s *Service) SaveObservation(ctx context.Context, projectID string, in SaveObservationInput) (int64, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return 0, err
-	}
-	defer cleanup()
-	scope := in.Scope
-	if scope == "" {
-		scope = "project"
-	}
-	if scope == "personal" {
-		scope = "user"
-	}
-	return h.memory.Save(ctx, memory.SaveInput{
-		Title:         in.Title,
-		Type:          in.Type,
-		Content:       in.Content,
-		Scope:         scope,
-		TopicKey:      in.TopicKey,
-		SessionID:     in.SessionID,
-		CapturePrompt: in.CapturePrompt,
-		ProjectName:   in.ProjectName,
-		ToolName:      in.ToolName,
-	})
-}
-
-// SearchObservations runs FTS over observations (scope = any).
-func (s *Service) SearchObservations(ctx context.Context, projectID, query, matchMode string, limit int) ([]memory.Observation, error) {
-	return s.SearchObservationsScoped(ctx, projectID, query, matchMode, "", limit)
 }
 
 // SearchObservationsAll runs the same FTS query across every store in dataDir
@@ -700,133 +525,12 @@ func (s *Service) SearchObservationsScoped(ctx context.Context, projectID, query
 	return h.memory.SearchWithScope(ctx, query, matchMode, scope, limit)
 }
 
-// GetObservation returns a single observation by ID.
-func (s *Service) GetObservation(ctx context.Context, projectID string, id int64) (memory.Observation, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return memory.Observation{}, err
-	}
-	defer cleanup()
-	return h.memory.Get(ctx, id)
-}
-
-// RecentContext returns recent session summaries.
-func (s *Service) RecentContext(ctx context.Context, projectID string, limit int) ([]memory.Session, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return h.memory.RecentContext(ctx, limit)
-}
-
 // SearchAllProjects runs the FTS query across every store in the data dir and
 // returns the unified, rank-merged result set. This is the backing for
 // mem_search(all_projects=true) and rescues memories stranded under a
 // directory-hash store for the same logical project.
 func (s *Service) SearchAllProjects(ctx context.Context, query, matchMode, scope string, limit int) ([]memory.Observation, error) {
 	return s.SearchObservationsAll(ctx, query, matchMode, scope, limit)
-}
-
-// BlendedSearch runs the FTS leg and, when a non-empty query vector is
-// supplied and embedding recall is enabled, the vector leg, merging the two
-// ranked lists with reciprocal rank fusion (P4). Passing an empty vector
-// returns the plain FTS result unchanged — FTS5 is the floor.
-func (s *Service) BlendedSearch(ctx context.Context, projectID, query, matchMode, scope string, queryVec []float32, limit int) ([]memory.Observation, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	vec := memory.Vector{Data: queryVec}
-	return h.memory.BlendedSearch(ctx, query, matchMode, scope, vec, limit)
-}
-
-// SetObservationEmbedding stores a precomputed embedding vector for an
-// observation (P4). blob is the little-endian float32 encoding.
-func (s *Service) SetObservationEmbedding(ctx context.Context, projectID string, id int64, blob []byte, model string) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.SetEmbedding(ctx, id, blob, model)
-}
-
-// SearchAllProjectsInProjects runs the FTS query over a fixed set of project
-// store ids (the caller's explicit list) and merges results by rank. This is
-// used when the caller names specific stores to span rather than "all".
-func (s *Service) SearchAllProjectsInProjects(ctx context.Context, projectIDs []string, query, matchMode, scope string, limit int) ([]memory.Observation, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-	var collected []memory.Observation
-	for _, pid := range projectIDs {
-		res, err := s.SearchObservationsScoped(ctx, pid, query, matchMode, scope, limit)
-		if err != nil {
-			continue
-		}
-		collected = append(collected, res...)
-	}
-	// de-dup by (project, id)
-	seen := map[string]bool{}
-	out := make([]memory.Observation, 0, len(collected))
-	for _, o := range collected {
-		k := o.Project + "|" + strconv.FormatInt(o.ID, 10)
-		if seen[k] {
-			continue
-		}
-		seen[k] = true
-		out = append(out, o)
-	}
-	sort.SliceStable(out, func(i, j int) bool { return out[i].UpdatedAt > out[j].UpdatedAt })
-	if len(out) > limit {
-		out = out[:limit]
-	}
-	return out, nil
-}
-
-// PinObservation marks an observation as pinned (mem_pin).
-func (s *Service) PinObservation(ctx context.Context, projectID string, id int64) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.Pin(ctx, id)
-}
-
-// UnpinObservation clears the pinned flag (mem_unpin).
-func (s *Service) UnpinObservation(ctx context.Context, projectID string, id int64) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.Unpin(ctx, id)
-}
-
-// TTLRetire soft-deletes expired observations for the project and returns how
-// many were retired. Backs mem_review(action=retire_expired) and any
-// maintenance path that wants a single sweep.
-func (s *Service) TTLRetire(ctx context.Context, projectID string) (int, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return 0, err
-	}
-	defer cleanup()
-	return h.memory.TTLRetire(ctx)
-}
-
-// TTLPending returns the count of observations that are past their expires_at
-// timestamp and have not been soft-deleted (diagnostic; feeds mem_doctor).
-func (s *Service) TTLPending(ctx context.Context, projectID string) (int, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return 0, err
-	}
-	defer cleanup()
-	return h.memory.TTLSoftExpiry(ctx)
 }
 
 // Unify consolidates one or more source project stores into a single canonical
@@ -855,39 +559,6 @@ func (s *Service) Unify(ctx context.Context, canonical string, sources ...string
 	return total, nil
 }
 
-// UpdateObservation modifies an existing observation by ID. Only non-empty
-// fields in in are applied. Bumps updated_at; FTS trigger keeps the index
-// in sync.
-func (s *Service) UpdateObservation(ctx context.Context, projectID string, id int64, in memory.UpdateInput) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.Update(ctx, id, in)
-}
-
-// DeleteObservation removes an observation. Soft-delete by default; hard
-// when hardDelete is true.
-func (s *Service) DeleteObservation(ctx context.Context, projectID string, id int64, hardDelete bool) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.Delete(ctx, id, hardDelete)
-}
-
-// Timeline returns the progressive-disclosure window around an observation.
-func (s *Service) ObservationTimeline(ctx context.Context, projectID string, anchorID int64, window time.Duration, limit int) (memory.Timeline, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return memory.Timeline{}, err
-	}
-	defer cleanup()
-	return h.memory.Timeline(ctx, anchorID, window, limit)
-}
-
 // ListReviews returns observations due for review, oldest review_after first.
 func (s *Service) ListReviews(ctx context.Context, projectID string, limit int) ([]memory.ReviewDue, error) {
 	h, cleanup, err := s.openProject(projectID, ".")
@@ -896,26 +567,6 @@ func (s *Service) ListReviews(ctx context.Context, projectID string, limit int) 
 	}
 	defer cleanup()
 	return h.memory.ListReviews(ctx, limit)
-}
-
-// MarkReviewed advances an observation's review cycle.
-func (s *Service) MarkReviewReviewed(ctx context.Context, projectID string, id int64) (string, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return "", err
-	}
-	defer cleanup()
-	return h.memory.MarkReviewed(ctx, id)
-}
-
-// SetReviewAfter sets the review_after for an observation.
-func (s *Service) SetObservationReviewAfter(ctx context.Context, projectID string, id int64, reviewAfter string) error {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return h.memory.SetReviewAfter(ctx, id, reviewAfter)
 }
 
 // ProjectInfo describes the resolved project for cwd: id, source, all known
@@ -983,80 +634,6 @@ type MemoryDoctor struct {
 	DiskSizeBytes   int64          `json:"disk_size_bytes"`
 	FTSIntegrityOK  bool           `json:"fts_integrity_ok"`
 	FTSDrift        int            `json:"fts_drift"`
-}
-
-// MemoryDoctor runs read-only diagnostics: schema count, FTS row counts
-// and drift, WAL state, and on-disk size.
-func (s *Service) MemoryDoctor(ctx context.Context, projectID string) (MemoryDoctor, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return MemoryDoctor{}, err
-	}
-	defer cleanup()
-
-	out := MemoryDoctor{}
-	if err := h.store.DB.QueryRowContext(ctx, `SELECT schema_version FROM index_meta WHERE key='schema_version'`).Scan(&out.SchemaVersion); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return out, fmt.Errorf("schema_version: %w", err)
-		}
-	}
-	if err := h.store.DB.QueryRowContext(ctx, `PRAGMA journal_mode`).Scan(&out.WALMode); err != nil {
-		return out, fmt.Errorf("journal_mode: %w", err)
-	}
-	byType := map[string]int{}
-	h.rowCount(ctx, "observations", &out.Observations)
-	h.rowCount(ctx, "files", &out.Files)
-	h.rowCount(ctx, "chunks", &out.Chunks)
-	h.rowCount(ctx, "web_cache", &out.WebCache)
-	h.rowCount(ctx, "prompts", &out.Prompts)
-
-	ftsObs, ftsChunks, ftsWeb := int64(0), int64(0), int64(0)
-	_ = h.store.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM observations_fts`).Scan(&ftsObs)
-	_ = h.store.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM chunks_fts`).Scan(&ftsChunks)
-	_ = h.store.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM web_cache_fts`).Scan(&ftsWeb)
-	out.ObservationsFTS = int(ftsObs)
-	out.ChunksFTS = int(ftsChunks)
-	out.WebCacheFTS = int(ftsWeb)
-
-	rows, err := h.store.DB.QueryContext(ctx, `
-		SELECT type, COUNT(*) FROM observations
-		WHERE project = ? AND deleted_at IS NULL GROUP BY type`, projectID)
-	if err == nil {
-		for rows.Next() {
-			var t string
-			var c int
-			if rows.Scan(&t, &c) == nil {
-				byType[t] = c
-			}
-		}
-		rows.Close()
-	}
-	out.ByType = byType
-
-	if info, err := os.Stat(h.store.Path()); err == nil {
-		out.DiskSizeBytes = info.Size()
-	}
-	out.FTSDrift = int(ftsObs) - out.Observations
-	out.FTSIntegrityOK = out.FTSDrift >= 0
-	return out, nil
-}
-
-// rowCount helper (keeps MemoryDoctor readable).
-func (h *ProjectHandle) rowCount(ctx context.Context, table string, out *int) {
-	_ = h.store.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table).Scan(out)
-}
-
-// SymbolHitDTO is a public identifier-FTS hit.
-type SymbolHitDTO = search.SymbolHit
-
-// SymbolSearch runs identifier-aware FTS over indexed symbols.
-func (s *Service) SymbolSearch(ctx context.Context, projectID, query string, limit int) ([]search.SymbolHit, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return search.SymbolFTS(h.store.DB, query, limit)
 }
 
 // OrientResult is the Tier-1 orientation answer for one symbol: its metadata,
@@ -1191,67 +768,6 @@ func orientSymbol(db *sql.DB, symbol string) (*OrientResult, error) {
 		rationaleRows.Close()
 	}
 	return out, nil
-}
-
-// CodeStatus returns index stats and whether the index is stale.
-func (s *Service) CodeStatus(ctx context.Context, projectID string) (codeindex.Status, bool, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return codeindex.Status{}, false, err
-	}
-	defer cleanup()
-	status, err := codeindex.GetStatus(h.store)
-	if err != nil {
-		return codeindex.Status{}, false, err
-	}
-	stale := status.FileCount == 0 || status.LastIndexed == ""
-	return status, stale, nil
-}
-
-// CodeSearch runs BM25 FTS over indexed code chunks.
-func (s *Service) CodeSearch(ctx context.Context, projectID, query string, limit int) ([]search.CodeHit, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return search.CodeSearch(h.store.DB, query, limit)
-}
-
-// CodeFiles returns all indexed file paths, sorted.
-func (s *Service) CodeFiles(ctx context.Context, projectID string) ([]string, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	rows, err := h.store.DB.QueryContext(ctx, `SELECT path FROM files ORDER BY path`)
-	if err != nil {
-		return nil, fmt.Errorf("list files: %w", err)
-	}
-	defer rows.Close()
-	var paths []string
-	for rows.Next() {
-		var p string
-		if err := rows.Scan(&p); err != nil {
-			return nil, err
-		}
-		paths = append(paths, p)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return paths, nil
-}
-
-// ReadIndexedCode returns indexed source for path and optional line range.
-func (s *Service) ReadIndexedCode(ctx context.Context, projectID, path string, startLine, endLine int) (map[string]any, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return readIndexedCode(h.store.DB, path, startLine, endLine)
 }
 
 // ImpactOptions tunes a blast-radius traversal (narrowing + confidence).
@@ -1437,19 +953,6 @@ func (s *Service) CodeExplain(ctx context.Context, projectID, symbol string) (*E
 	}
 	sym := res.Target
 	return &ExplainDTO{Found: true, Symbol: &sym, Degree: out.Degree, Connections: out.Connections}, nil
-}
-
-// FairCoverageDTO is the per-language fair-coverage field for code_status.
-type FairCoverageDTO = graph.CoverageLang
-
-// CodeFairCoverage returns measured per-language fair coverage from edges.
-func (s *Service) CodeFairCoverage(ctx context.Context, projectID string) (map[string]FairCoverageDTO, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return graph.FairCoverage(ctx, h.store.DB)
 }
 
 // ExploreSourceSpan is one symbol's verbatim source slice.
@@ -1703,66 +1206,6 @@ func resolveEmbedder(configRoot string) embedder.Embedder {
 			Query:     toAsym(cfg.Embedder.Query),
 		})
 	}
-}
-
-// WebLookup checks the web cache for a matching entry.
-func (s *Service) WebLookup(ctx context.Context, projectID string, in webcache.LookupInput) (webcache.LookupResult, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return webcache.LookupResult{}, err
-	}
-	defer cleanup()
-	return h.web.Lookup(ctx, in)
-}
-
-// WebSave persists a web research snapshot.
-func (s *Service) WebSave(ctx context.Context, projectID string, in webcache.SaveWebInput) (int64, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return 0, err
-	}
-	defer cleanup()
-	return h.web.Save(ctx, in)
-}
-
-// WebSearch runs FTS over cached web snapshots.
-func (s *Service) WebSearch(ctx context.Context, projectID, query, source string, freshOnly bool, limit int) ([]webcache.WebHit, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
-	return h.web.Search(ctx, query, source, freshOnly, limit)
-}
-
-// WebGet returns a full cached snapshot by ID.
-func (s *Service) WebGet(ctx context.Context, projectID string, id int64) (webcache.WebEntry, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return webcache.WebEntry{}, err
-	}
-	defer cleanup()
-	return h.web.Get(ctx, id)
-}
-
-// MemoryStatus returns memory store health stats.
-func (s *Service) MemoryStatus(ctx context.Context, projectID string) (memory.Status, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return memory.Status{}, err
-	}
-	defer cleanup()
-	return h.memory.Status(ctx)
-}
-
-// WebCacheStatus returns web cache health stats.
-func (s *Service) WebCacheStatus(ctx context.Context, projectID string) (webcache.Status, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
-	if err != nil {
-		return webcache.Status{}, err
-	}
-	defer cleanup()
-	return h.web.CacheStatus(ctx)
 }
 
 // Open opens a ProjectHandle for an explicit project id (config root ".").

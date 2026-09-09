@@ -8,11 +8,41 @@ import (
 	"testing"
 
 	mnemonichttp "github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/http"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/webcache"
 )
 
 const seedProject = "seed-test"
+
+// handleFor opens the project handle for projectID once (test-only).
+func handleFor(t *testing.T, svc *service.Service, projectID string) *service.ProjectHandle {
+	t.Helper()
+	h, cleanup, err := svc.Open(projectID)
+	if err != nil {
+		t.Fatalf("open %s: %v", projectID, err)
+	}
+	t.Cleanup(cleanup)
+	return h
+}
+
+// saveObservation saves through the handle, mirroring the scope
+// normalization the old SaveObservation facade applied (blank scope ->
+// project, personal -> user).
+func saveObservation(t *testing.T, ctx context.Context, svc *service.Service, projectID string, in memory.SaveInput) {
+	t.Helper()
+	if in.Scope == "" {
+		in.Scope = "project"
+	}
+	if in.Scope == "personal" {
+		in.Scope = "user"
+	}
+	if _, err := handleFor(t, svc, projectID).Memory().Save(ctx, in); err != nil {
+		t.Fatalf("save observation: %v", err)
+	}
+}
 
 // seedWorkspace creates a temp workspace with a pinned project id and a few
 // source files for the code indexer. It returns the workspace path.
@@ -69,19 +99,18 @@ func TestSeedMemory(t *testing.T) {
 		t.Fatalf("expected project %s, got %q", seedProject, projectID)
 	}
 
-	seeded := []service.SaveObservationInput{
+	seeded := []memory.SaveInput{
 		{Type: "decision", Title: "Chose SQLite for the local store", Content: "single binary, per-project file", TopicKey: "architecture/store"},
 		{Type: "bugfix", Title: "Fixed N+1 query in UserList", Content: "batched the user lookups"},
 		{Type: "discovery", Title: "embed resolves relative to package dir", Content: "asset dir moved, silently dropped"},
 		{Type: "preference", Title: "Prefer compact table output", Content: "CLI tables, no prose", Scope: "user"},
 	}
-	for i, in := range seeded {
-		if _, err := svc.SaveObservation(ctx, projectID, service.SaveObservationInput{SessionID: sessID, Type: in.Type, Title: in.Title, Content: in.Content, Scope: in.Scope, TopicKey: in.TopicKey}); err != nil {
-			t.Fatalf("save %d: %v", i, err)
-		}
+	for i := range seeded {
+		seeded[i].SessionID = sessID
+		saveObservation(t, ctx, svc, projectID, seeded[i])
 	}
 
-	st, err := svc.MemoryStatus(ctx, projectID)
+	st, err := handleFor(t, svc, projectID).Memory().Status(ctx)
 	if err != nil {
 		t.Fatalf("memory status: %v", err)
 	}
@@ -100,7 +129,7 @@ func TestSeedMemory(t *testing.T) {
 		t.Errorf("expected newest_created to be set")
 	}
 
-	hits, err := svc.SearchObservations(ctx, projectID, "sqlite batched embed", "any", 10)
+	hits, err := handleFor(t, svc, projectID).Memory().SearchWithScope(ctx, "sqlite batched embed", "any", "", 10)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
@@ -134,10 +163,12 @@ func TestSeedCodeIndex(t *testing.T) {
 		t.Errorf("expected >=3 files indexed, got %d", stats.FilesIndexed)
 	}
 
-	status, stale, err := svc.CodeStatus(ctx, projectID)
+	h := handleFor(t, svc, projectID)
+	status, err := codeindex.GetStatus(h.Store())
 	if err != nil {
 		t.Fatalf("code status: %v", err)
 	}
+	stale := status.FileCount == 0 || status.LastIndexed == ""
 	if stale {
 		t.Errorf("expected index fresh, got stale")
 	}
@@ -145,15 +176,25 @@ func TestSeedCodeIndex(t *testing.T) {
 		t.Errorf("expected >=3 files, got %d", status.FileCount)
 	}
 
-	files, err := svc.CodeFiles(ctx, projectID)
+	var files []string
+	rows, err := h.Store().DB.Query(`SELECT path FROM files ORDER BY path`)
 	if err != nil {
 		t.Fatalf("code files: %v", err)
 	}
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			rows.Close()
+			t.Fatalf("scan path: %v", err)
+		}
+		files = append(files, p)
+	}
+	rows.Close()
 	if len(files) < 3 {
 		t.Errorf("expected >=3 indexed paths, got %d", len(files))
 	}
 
-	hits, err := svc.CodeSearch(ctx, projectID, "Greet", 5)
+	hits, err := search.CodeSearch(h.Store().DB, "Greet", 5)
 	if err != nil {
 		t.Fatalf("code search: %v", err)
 	}
@@ -178,12 +219,12 @@ func TestSeedWebCache(t *testing.T) {
 		{Source: "manual", Title: "bcrypt notes", Content: "cost 12 balances perf"},
 	}
 	for i, in := range entries {
-		if _, err := svc.WebSave(ctx, seedProject, in); err != nil {
+		if _, err := handleFor(t, svc, seedProject).Web().Save(ctx, in); err != nil {
 			t.Fatalf("web save %d (%s): %v", i, in.Source, err)
 		}
 	}
 
-	st, err := svc.WebCacheStatus(ctx, seedProject)
+	st, err := handleFor(t, svc, seedProject).Web().CacheStatus(ctx)
 	if err != nil {
 		t.Fatalf("web status: %v", err)
 	}
@@ -199,7 +240,7 @@ func TestSeedWebCache(t *testing.T) {
 		}
 	}
 
-	lr, err := svc.WebLookup(ctx, seedProject, webcache.LookupInput{
+	lr, err := handleFor(t, svc, seedProject).Web().Lookup(ctx, webcache.LookupInput{
 		Source: "context7", LibraryID: "/vercel/next.js", Query: "route handlers",
 	})
 	if err != nil {
@@ -209,7 +250,7 @@ func TestSeedWebCache(t *testing.T) {
 		t.Errorf("expected fresh hit, got status=%q fresh=%v", lr.Status, lr.Fresh)
 	}
 
-	hits, err := svc.WebSearch(ctx, seedProject, "route handlers rate limiting", "", true, 10)
+	hits, err := handleFor(t, svc, seedProject).Web().Search(ctx, "route handlers rate limiting", "", true, 10)
 	if err != nil {
 		t.Fatalf("web search: %v", err)
 	}
@@ -237,11 +278,9 @@ func TestSeedAllStoresVisibleOverHTTP(t *testing.T) {
 	if projectID != seedProject {
 		t.Fatalf("expected project %s, got %q", seedProject, projectID)
 	}
-	if _, err := svc.SaveObservation(ctx, projectID, service.SaveObservationInput{
+	saveObservation(t, ctx, svc, projectID, memory.SaveInput{
 		SessionID: sessID, Type: "decision", Title: "visible over http", Content: "seeded across all three stores",
-	}); err != nil {
-		t.Fatalf("save observation: %v", err)
-	}
+	})
 
 	// Code index store.
 	if _, err := svc.RunCodeIndex(ctx, workspace); err != nil {
@@ -249,7 +288,7 @@ func TestSeedAllStoresVisibleOverHTTP(t *testing.T) {
 	}
 
 	// Web cache store.
-	if _, err := svc.WebSave(ctx, projectID, webcache.SaveWebInput{
+	if _, err := handleFor(t, svc, projectID).Web().Save(ctx, webcache.SaveWebInput{
 		Source: "context7", LibraryID: "/lib/x", Query: "visible", Content: "seeded web entry",
 	}); err != nil {
 		t.Fatalf("web save: %v", err)
