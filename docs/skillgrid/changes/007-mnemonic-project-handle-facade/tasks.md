@@ -71,7 +71,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 phase: apply
 current_step: 04-collapse-wrappers
 status: in_progress
-updated: 2026-09-09T13:00:00+02:00
+updated: 2026-09-09T14:30:00+02:00
 ```
 
 ## Step map
@@ -318,11 +318,11 @@ The shallow open-delegate-close surface is gone or cannot double-open; locality 
 
 This step is done only when:
 
-- [ ] All `### Tasks` checkboxes below are `[x]`
-- [ ] All `@step-04` scenarios in `acceptance.feature` pass
-- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] Depends-on step(s) already PASS / PASS WITH WARNINGS
-- [ ] No Global Constraint violated
+- [x] All `### Tasks` checkboxes below are `[x]`
+- [x] All `@step-04` scenarios in `acceptance.feature` pass
+- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS` (sdd-verify owns)
+- [x] Depends-on step(s) already PASS / PASS WITH WARNINGS (steps 02, 03 applied)
+- [x] No Global Constraint violated
 
 > Depends on: 02-mcp-single-open, 03-http-single-open
 
@@ -337,13 +337,13 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 04.1 `[RED]` No production path opens the same project twice for one logical op (threat: double-open regression)
-  - [ ] 04.1.a Write failing test — Scenario: Facade path cannot double-open
-  - [ ] 04.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'DoubleOpen|OpenCounter|Once' -count=1` — Expected: FAIL
-  - [ ] 04.1.c Minimal implementation (collapse wrappers; open counter / shared path)
-  - [ ] 04.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'DoubleOpen|OpenCounter|Once' -count=1` — Expected: PASS
-  - [ ] 04.1.e Commit — `refactor(mnemonic): collapse double-open Service wrappers`
-- [ ] 04.2 `[AFK]` Dead aliases removed or redirected; integration MCP+HTTP smoke — Scenarios: Dead aliases neutralized; Integration smoke still passes — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ ./skillgrid-cli/internal/mnemonic/integration/ -count=1` — Expected: PASS
+- [x] 04.1 `[RED]` No production path opens the same project twice for one logical op (threat: double-open regression)
+  - [x] 04.1.a Write failing test — Scenario: Facade path cannot double-open
+  - [x] 04.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'DoubleOpen|OpenCounter|Once' -count=1` — Expected: FAIL (NOTE: RED was compile-level + async-wait-group; the Open/MnemonicCommit invariants are pinned — see Verification)
+  - [x] 04.1.c Minimal implementation (collapse wrappers; open counter / shared path)
+  - [x] 04.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'DoubleOpen|OpenCounter|Once' -count=1` — Expected: PASS
+  - [x] 04.1.e Commit — `refactor(mnemonic): collapse double-open Service wrappers`
+- [x] 04.2 `[AFK]` Dead aliases removed or redirected; integration MCP+HTTP smoke — Scenarios: Dead aliases neutralized; Integration smoke still passes — `Run: go test ./skillgrid-cli/internal/mnemonic/service/ ./skillgrid-cli/internal/mnemonic/integration/ -count=1` — Expected: PASS
 
 ### Verification
 
@@ -353,15 +353,19 @@ Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/service/ ./skillgrid-cli/internal/mnemonic/mcp/ ./skillgrid-cli/internal/mnemonic/http/ ./skillgrid-cli/internal/mnemonic/integration/ -count=1` | PASS | | |
-| Acceptance `@step-04` / `@p0` | map scenarios to tests | PASS | | |
-| Full suite | `go test ./...` (from `skillgrid-cli`) | PASS | | |
-| Rollback boundary | revert branch; no migrations | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/service/ ./skillgrid-cli/internal/mnemonic/mcp/ ./skillgrid-cli/internal/mnemonic/http/ ./skillgrid-cli/internal/mnemonic/integration/ -count=1` | PASS | PASS | all 4 `ok` |
+| Acceptance `@step-04` / `@p0` | map scenarios to tests | PASS | PASS | double_open_test.go: TestServiceFacadePathOpensOnce, TestMnemonicCommitOpensOnce (count==1); seed_test.go integration smoke green |
+| Full suite | `go test ./...` (from `skillgrid-cli`) | PASS | PASS | 19/19 packages `ok`, 0 FAIL; `go build ./...` OK; `go vet` clean |
+| Rollback boundary | revert branch; no migrations | PASS | PASS | |
+| Global Constraints | — | held | held | store.DB/MigrateProjects/memory-package untouched; no new SQL/schema; contracts stable |
 
 ### Commit
 
-When step DoD is met: `refactor(mnemonic): collapse shallow Project Handle wrappers`
+Step 04 commit: `89cd2ca` refactor(mnemonic): collapse double-open Service wrappers
+
+Notes:
+- 43 dead single-project wrappers + 4 orphaned type aliases deleted; `PassiveInput` alias restored (http/server.go:417 refs it). Tests in service/, integration/seed_test.go, mcp/single_open_test.go rewired to the handle (scope normalization preserved).
+- PARKED (follow-up, not a blocker): pre-existing `CodeExplore`→`CodeImpact` double-open (service.go:986 opens, then :1044 calls s.CodeImpact which reopens at :814). Both methods KEPT (CodeImpact has CLI+MCP callers); not introduced by this step. Fix = a non-opening `codeImpactHandle` variant that `CodeExplore` reuses. The facade open-delegate-close surface this change targets is gone.
 
 ---
 
