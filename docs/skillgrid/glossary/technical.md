@@ -4,11 +4,11 @@ Architecture, implementation, platform, and protocol terms used across skillgrid
 
 | Term | Definition | Use When | Avoid |
 | --- | --- | --- | --- |
-| Module | Anything with an interface and an implementation; deliberately scale-agnostic (function, class, package, slice). | `sdd-design` Architecture Decisions. | "unit", "component", "service". See `codebase-design` skill. |
-| Interface | Everything a caller must know to use a module correctly: type signature, invariants, ordering constraints, error modes, configuration, performance. | `sdd-design` Architecture Decisions. | "API", "signature" (too narrow). See `codebase-design` skill. |
-| Seam | The location at which a module's interface lives; a place where you can alter behaviour without editing in that place. | `sdd-design` Architecture Decisions, `sdd-apply` testability checks. | "boundary" (overloaded with DDD). See `codebase-design` skill. |
-| Adapter | A concrete thing that satisfies an interface at a seam; describes role, not substance. | `sdd-design` Architecture Decisions. | "implementation" (overlap; use adapter only when seam is the topic). |
-| Depth | Leverage at the interface: the amount of behaviour a caller exercises per unit of interface they have to learn. | `sdd-design` Architecture Decisions (the "deep vs shallow" check). | "complexity" (depth is leverage, not bulk). |
+| Module | Anything with an interface and an implementation; deliberately scale-agnostic (function, class, package, slice). | `change.md` Architecture Decisions. | "unit", "component", "service". See `codebase-design` skill. |
+| Interface | Everything a caller must know to use a module correctly: type signature, invariants, ordering constraints, error modes, configuration, performance. | `change.md` Architecture Decisions. | "API", "signature" (too narrow). See `codebase-design` skill. |
+| Seam | The location at which a module's interface lives; a place where you can alter behaviour without editing in that place. | `change.md` Architecture Decisions, `sdd-apply` testability checks. | "boundary" (overloaded with DDD). See `codebase-design` skill. |
+| Adapter | A concrete thing that satisfies an interface at a seam; describes role, not substance. | `change.md` Architecture Decisions. | "implementation" (overlap; use adapter only when seam is the topic). |
+| Depth | Leverage at the interface: the amount of behaviour a caller exercises per unit of interface they have to learn. | `change.md` Architecture Decisions (the "deep vs shallow" check). | "complexity" (depth is leverage, not bulk). |
 | Artifact Store Mode | The persistence contract for SDD artifacts: `hybrid` (filesystem + Mnemonic) is the only mode for every phase. | Referencing the persistence layer in any SDD skill. | "store", "DB" (too generic). |
 | Project Handle | Opened single-project Mnemonic seam: one SQLite store plus accessors to memory/web (and related) for that project id; callers open once per request. | Deepening the mnemonic facade (`007`); MCP/HTTP single-project paths. | "connection", "session" (overloaded); the wide `service.Service` open-delegate wrappers. |
 | Topic Key | A stable string used to upsert Mnemonic observations (`mem_save` with same key updates the same row). | Persisting evolving decisions, conventions, or bugfix lineage. | "key" (ambiguous). |

@@ -1,6 +1,6 @@
 ---
 name: use-skillgrid
-description: "Use when starting a conversation or beginning feature/change/bug/refactor work — routes Skillgrid SDD v4 (uninitialized → sdd-onboard/sdd-init; else optional explore/design-spike → propose → spec → user gate → apply ⇄ verify → archive). Triggers: skillgrid, SDD, start change, new feature, empty repo."
+description: "Use when starting a conversation or beginning feature/change/bug/refactor work — routes Skillgrid SDD v4 (uninitialized → sdd-onboard; else optional explore/design-spike → propose → spec → user gate → apply ⇄ verify → archive). Triggers: skillgrid, SDD, start change, new feature, empty repo."
 license: MIT
 metadata:
   author: devopstales
@@ -39,7 +39,7 @@ User instructions (`AGENTS.md`, “skip SDD”) override.
 ```
 [ ] 1. Classify: change (feature|bug|refactor|app) | Q&A/lookup | spike-only
 [ ] 2. Detect initialized? (config.yaml + AGENTS skillgrid sentinel)
-[ ] 3. If NO  → sdd-onboard / sdd-init; stop until user validates
+[ ] 3. If NO  → sdd-onboard; stop until user validates
 [ ] 4. If YES + change → optional explore / design-spike → sdd-propose (unless Resume)
 [ ] 5. After sdd-spec → user gate (Implement | Revise) — never auto-apply
 [ ] 6. Apply ⇄ verify (human QA findings re-enter apply) → sdd-archive
@@ -60,7 +60,7 @@ Skill-registry / CONTEXT / CONSTRAINTS / `docs/adr/` are **not** init signals.
 
 | Condition | First skill | Then |
 |---|---|---|
-| Uninitialized | `sdd-onboard` → `sdd-init` | After validate, if change stated → propose path |
+| Uninitialized | `sdd-onboard` → `sdd-onboard` (init) | After validate, if change stated → propose path |
 | Initialized + change | optional `sdd-explore` / `design-spike` → `sdd-propose` | `sdd-spec` → gate → `sdd-apply` ⇄ `sdd-verify` → `sdd-archive` |
 | Q&A / lookup | *(no pipeline)* | `mnemonic` / code-index / `investigate` |
 | Spike-only | `design-spike` | Promote to propose if user keeps findings |
@@ -71,7 +71,7 @@ use-skillgrid
     │
     ├─ Q&A → mem/code/investigate
     ├─ spike-only → design-spike
-    ├─ uninitialized? → sdd-onboard → sdd-init → stop for validation
+    ├─ uninitialized? → sdd-onboard → stop for validation
     ├─ change → [explore?] [design-spike?] → sdd-propose → sdd-spec → GATE
     │              ├─ Implement → apply ⇄ verify → archive
     │              └─ Revise → questioning / sdd-propose
@@ -93,7 +93,7 @@ Do not auto-apply.
 
 | `## State.phase` | Action |
 |---|---|
-| missing / onboard incomplete | `sdd-onboard` / `sdd-init` |
+| missing / onboard incomplete | `sdd-onboard` / `sdd-onboard` (init) |
 | propose / explore | `sdd-propose` (explore/spike first if still required) |
 | spec | finish `sdd-spec` |
 | apply | `sdd-apply` for unblocked work |

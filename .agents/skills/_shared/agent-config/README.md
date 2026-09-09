@@ -17,7 +17,7 @@ Pick exactly one **primary** target (the one that receives the full block from [
 1. `AGENTS.md` exists → **AGENTS.md**.
 2. else `CLAUDE.md` exists → **CLAUDE.md**.
 3. else `GEMINI.md` exists → **GEMINI.md**.
-4. else none exist → **ask the user** which to create (sdd-init Hard Rule: never silently pick a platform). Default suggestion to the user: `AGENTS.md` (cross-agent).
+4. else none exist → **ask the user** which to create (sdd-onboard Hard rule: never silently pick a platform). Default suggestion to the user: `AGENTS.md` (cross-agent).
 
 ## Multi-platform repos
 
@@ -32,6 +32,6 @@ SDD config lives here: `AGENTS.md` → `## Agent skills`. Do not duplicate that 
 ## Shared rules (all targets)
 
 - Idempotent upsert with `<!-- skillgrid-sdd:start/end -->` sentinels — defined in [block.md](block.md#idempotent-upsert-required). Never append a second block.
-- Never create a second root config file when one already exists (sdd-init Hard Rule).
+- Never create a second root config file when one already exists (sdd-onboard Hard rule).
 - Keep the block tight — it loads in context in Claude Code / Gemini CLI on every run. No prose beyond [block.md](block.md).
 - The block is plain markdown; identical across AGENTS.md / CLAUDE.md / GEMINI.md. Only the file name and the optional one-line platform note differ.

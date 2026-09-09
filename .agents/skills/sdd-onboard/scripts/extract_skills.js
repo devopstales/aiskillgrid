@@ -7,7 +7,7 @@
  * a markdown table suitable for `docs/skillgrid/agents/skill-registry.md`.
  *
  * Called by the sdd-init skill as:
- *   node .agents/skills/sdd-init/scripts/extract_skills.js [--root <project-root>]
+ *   node .agents/skills/sdd-onboard/scripts/extract_skills.js [--root <project-root>]
  *
  * Scan rules (from references/init-details.md):
  * - Project skills: <root>/.agents/skills/, <root>/.claude/skills/, <root>/.github/skills/, <root>/skills/

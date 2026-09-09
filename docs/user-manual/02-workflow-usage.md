@@ -24,7 +24,7 @@ The orchestrator only **routes**. It does not write `change.md` / `tasks.md` / p
 
 | Your request | Route |
 |--------------|--------|
-| Uninitialized repo | `sdd-onboard` → `sdd-init` → stop for validation |
+| Uninitialized repo | `sdd-onboard` (Step 3 = init) → stop for validation |
 | Feature / bug / refactor / greenfield app | optional explore / spike → `sdd-propose` → `sdd-spec` → **user gate** |
 | Q&A / lookup | Mnemonic / code-index / `investigate` (no pipeline) |
 | Spike only | `design-spike` (promote to propose if you keep findings) |
@@ -36,7 +36,7 @@ Announce pattern: `Using use-skillgrid to <route>`.
 
 | Phase | Skill | You get |
 |-------|--------|---------|
-| Onboard | `sdd-onboard` / `sdd-init` (+ helpers) | `config.yaml`, glossary stubs, AGENTS block |
+| Onboard | `sdd-onboard` (+ helpers) | `config.yaml`, glossary stubs, AGENTS block |
 | Propose | `sdd-propose` | `changes/<NNN-slug>/change.md` (WHY + HOW) |
 | Explore (helper) | `sdd-explore` | Change-scoped `research.md` (may rot) |
 | Spec | `sdd-spec` | `tasks.md` (blocking DAG) + `acceptance.feature` |
@@ -45,7 +45,7 @@ Announce pattern: `Using use-skillgrid to <route>`.
 | Verify | `sdd-verify` | Verdicts, evidence, human QA plan; findings → apply |
 | Archive | `sdd-archive` | Move `changes/` → `archive/` when gates pass |
 
-Onboard helpers (references under `sdd-onboard/references/`, refresh anytime): `map-codebase`, `agent-context`, `constraints`, `domain`.
+Onboard helpers (references under `sdd-onboard/references/`, refresh anytime): `init-details`, `map-codebase`, `agent-context`, `constraints`, `domain`.
 
 ## Skill triggers (who calls who)
 
@@ -70,7 +70,7 @@ flowchart TD
     use -.-> archive
 
     onboard --> map["ref map-codebase"]
-    onboard --> init["sdd-init"]
+    onboard --> init["step 3: init"]
     onboard --> agentctx["ref agent-context"]
     onboard --> constraints["ref constraints"]
     onboard --> domain["ref domain"]

@@ -66,7 +66,7 @@ Machine install ≠ project init. In each application repo, ask the agent:
 
 > Run Skillgrid onboard / `use-skillgrid` — initialize SDD.
 
-That routes to **`sdd-onboard` → `sdd-init`**, which:
+That routes to **`sdd-onboard`** (Step 3 = init), which:
 
 1. Detects project name, stack, testing, and issue tracker
 2. Confirms facts with you (blocking)

@@ -23,7 +23,7 @@ Interview style: load `questioning` when answers branch or conflict.
 
 ### 1. Read config
 
-If `config.yaml` missing → stop and run/ask for `sdd-init` first.
+If `config.yaml` missing → stop and run/ask for `sdd-onboard` (init) first.
 
 ### 2. Interview (short confirmations)
 
@@ -35,7 +35,7 @@ Ask one cluster at a time:
 4. **Verify** — `test_command`, `build_command`, `coverage_threshold`?
 5. **Archive** — require PASS / PASS WITH WARNINGS on every step?
 
-Reuse detected testing commands from config/`sdd-init` as defaults.
+Reuse detected testing commands from config/`sdd-onboard` (init) as defaults.
 
 ### 3. Write `rules.*`
 

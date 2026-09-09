@@ -65,7 +65,7 @@ Registry at `docs/skillgrid/agents/skill-registry.md` is an **optional** index (
 **Use the helper script** `scripts/extract_skills.js` for scanning:
 
 ```bash
-node .agents/skills/sdd-init/scripts/extract_skills.js --root "$(git rev-parse --show-toplevel)"
+node .agents/skills/sdd-onboard/scripts/extract_skills.js --root "$(git rev-parse --show-toplevel)"
 ```
 
 The script scans automatically:

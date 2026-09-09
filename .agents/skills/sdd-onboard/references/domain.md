@@ -24,7 +24,7 @@ Ongoing term discipline: load `glossary` when authoring specs later.
 
 ### 1. Preconditions
 
-Need `docs/skillgrid/config.yaml` (or skeleton). If uninitialized → hand off to `sdd-init` / `sdd-onboard`.
+Need `docs/skillgrid/config.yaml` (or skeleton). If uninitialized → hand off to `sdd-onboard` (init) / `sdd-onboard`.
 
 ### 2. Stub files
 

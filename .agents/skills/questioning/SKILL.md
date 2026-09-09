@@ -21,7 +21,7 @@ It merges two proven techniques:
 
 It is cross-cutting, not a pipeline phase. Typical callers:
 
-- onboard / `sdd-init` — project facts, tracker choice, ambiguous init
+- onboard / `sdd-onboard` (init) — project facts, tracker choice, ambiguous init
 - `sdd-propose` — grill **after** concrete research (`research.md`) / `design-spike` when those ran
 - user-gate **Revise** — reopen intent after spec without jumping to apply
 - `use-skillgrid` — classify change vs Q&A vs spike-only

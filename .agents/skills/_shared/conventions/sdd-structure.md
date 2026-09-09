@@ -20,7 +20,7 @@ Optional before locking `change.md`:
 |---|---|
 | `use-skillgrid` | Orchestrator — detect, classify, route, resume, user gate |
 | `sdd-onboard` | Bootstrap orchestrator (greenfield/brownfield) |
-| `sdd-init` | Detect facts; write `config.yaml` + skeleton + AGENTS block |
+| `sdd-onboard` (init) | Detect facts; write `config.yaml` + skeleton + AGENTS block |
 | `sdd-explore` | **Helper** — optional change-scoped `research.md` (rots) |
 | `sdd-propose` | Reserve NNN; write `change.md` (WHY+HOW) |
 | `sdd-spec` | Own NN; write `tasks.md` (blocking DAG) + `acceptance.feature` |

@@ -10,7 +10,7 @@ Skillgrid SDD is active in this repo. The workflow and tracker below are the sou
 ### Workflow
 `onboard → propose → spec → apply ⇄ verify → archive`
 
-Entry: invoke **`use-skillgrid`** for change work (uninitialized → `sdd-onboard` / `sdd-init`; else optional explore/`design-spike` → `sdd-propose` → `sdd-spec` → user gate → apply ⇄ verify → archive). No platform hook required.
+Entry: invoke **`use-skillgrid`** for change work (uninitialized → `sdd-onboard` — Step 3 = init; else optional explore/`design-spike` → `sdd-propose` → `sdd-spec` → user gate → apply ⇄ verify → archive). No platform hook required.
 
 - Project facts (stack, testing, tracker, conventions): `docs/skillgrid/config.yaml` and Mnemonic (`sdd/skillgrid/…`)
 - Glossary: `docs/skillgrid/glossary/`

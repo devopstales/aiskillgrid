@@ -17,7 +17,7 @@ Create and triage issues across **Jira, GitHub, GitLab, or Backlog.md**. Which o
 
 ## Tracker Resolution
 
-Read the project's `docs/skillgrid/agents/issue-tracker.md` (written by `sdd-init`). It names one of:
+Read the project's `docs/skillgrid/agents/issue-tracker.md` (written by `sdd-onboard` (init)). It names one of:
 
 | Tracker | Reference | CLI |
 |---|---|---|
@@ -28,7 +28,7 @@ Read the project's `docs/skillgrid/agents/issue-tracker.md` (written by `sdd-ini
 
 Read the referenced file before publishing. It carries the tracker-specific CLI syntax, conventions, label vocabulary, and SDD→tracker mapping.
 
-If `docs/skillgrid/agents/issue-tracker.md` doesn't exist, ask which tracker the project uses (never guess), and run `sdd-init` to bootstrap the conventions.
+If `docs/skillgrid/agents/issue-tracker.md` doesn't exist, ask which tracker the project uses (never guess), and run `sdd-onboard` (init) to bootstrap the conventions.
 
 ## Core Rule
 

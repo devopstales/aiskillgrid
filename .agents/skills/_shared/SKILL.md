@@ -14,7 +14,7 @@ metadata:
 
 This directory stores shared reference documents consumed by real SDD skills. Do not invoke it as a skill.
 
-- `issue-tracker/` — per-tracker CLI convention templates written to `docs/skillgrid/agents/issue-tracker.md` by `sdd-init` and consumed by `issue-creation`:
+- `issue-tracker/` — per-tracker CLI convention templates written to `docs/skillgrid/agents/issue-tracker.md` by `sdd-onboard` (init) and consumed by `issue-creation`:
   - [issue-tracker/backlogmd.md](issue-tracker/backlogmd.md) — Backlog.md (default tracker)
   - [issue-tracker/backlogmd-formatting.md](issue-tracker/backlogmd-formatting.md) — Backlog.md project + task file templates, frontmatter schema, blocking arrays
   - [issue-tracker/github.md](issue-tracker/github.md) — GitHub (`gh`)
@@ -23,7 +23,7 @@ This directory stores shared reference documents consumed by real SDD skills. Do
   - [issue-tracker/gitlab-formatting.md](issue-tracker/gitlab-formatting.md) — GitLab epic / issue templates, labels, `blocked_by` links
   - [issue-tracker/jira.md](issue-tracker/jira.md) — Jira (jira-cli)
   - [issue-tracker/jira-formatting.md](issue-tracker/jira-formatting.md) — Jira epic + task templates, title conventions, priority, split-by-component
-- `agent-config/` — agent config block family written to `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` by `sdd-init`:
+- `agent-config/` — agent config block family written to `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` by `sdd-onboard` (init):
   - [agent-config/README.md](agent-config/README.md) — target decision matrix + multi-platform rules (which file gets the full block)
   - [agent-config/block.md](agent-config/block.md) — the canonical `## Agent skills` payload + idempotent upsert sentinels (single source of truth)
   - [agent-config/agents.md](agent-config/agents.md) / [agent-config/claude.md](agent-config/claude.md) / [agent-config/gemini.md](agent-config/gemini.md) — per-target placement rules

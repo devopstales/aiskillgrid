@@ -40,9 +40,9 @@ Phase order (v4): `onboard → propose → spec → apply ⇄ verify → archive
 
 | name | path | scope | notes |
 |---|---|---|---|
-| sdd-onboard | `.agents/skills/sdd-onboard/SKILL.md` | project | orchestrator; helpers are `references/` (see below) |
-| sdd-onboard refs | `.agents/skills/sdd-onboard/references/{map-codebase,agent-context,constraints,domain}.md` | project | **references, not invocable skills** (former `sdd-map-codebase`, `sdd-agent-context`, `sdd-constraints`, `sdd-domain` — retired stubs redirect here) |
-| sdd-init | `.agents/skills/sdd-init/SKILL.md` | project | |
+| sdd-onboard | `.agents/skills/sdd-onboard/SKILL.md` | project | bootstrap orchestrator; Step 3 = init (absorbed `sdd-init`) |
+| sdd-onboard refs | `.agents/skills/sdd-onboard/references/{init-details,map-codebase,agent-context,constraints,domain}.md` | project | **references, not invocable skills** (onboard helpers; former stub skills were retired and deleted) |
+| sdd-init | `.agents/skills/sdd-init/SKILL.md` | project | **retired** → redirect to sdd-onboard Step 3 |
 | sdd-explore | `.agents/skills/sdd-explore/SKILL.md` | project | |
 | sdd-propose | `.agents/skills/sdd-propose/SKILL.md` | project | writes `change.md` (absorbs design) |
 | sdd-spec | `.agents/skills/sdd-spec/SKILL.md` | project | writes `tasks.md` + `acceptance.feature` (absorbs tasks) |
@@ -50,12 +50,6 @@ Phase order (v4): `onboard → propose → spec → apply ⇄ verify → archive
 | sdd-verify | `.agents/skills/sdd-verify/SKILL.md` | project | verdicts in `tasks.md` |
 | sdd-archive | `.agents/skills/sdd-archive/SKILL.md` | project | |
 | use-skillgrid | `.agents/skills/use-skillgrid/SKILL.md` | project | **entry router** (not a phase) |
-| sdd-design | `.agents/skills/sdd-design/SKILL.md` | project | **retired** → redirect to sdd-propose |
-| sdd-tasks | `.agents/skills/sdd-tasks/SKILL.md` | project | **retired** → redirect to sdd-spec |
-| sdd-map-codebase | `.agents/skills/sdd-map-codebase/SKILL.md` | project | **retired** → redirect to sdd-onboard `references/map-codebase.md` |
-| sdd-agent-context | `.agents/skills/sdd-agent-context/SKILL.md` | project | **retired** → redirect to sdd-onboard `references/agent-context.md` |
-| sdd-constraints | `.agents/skills/sdd-constraints/SKILL.md` | project | **retired** → redirect to sdd-onboard `references/constraints.md` |
-| sdd-domain | `.agents/skills/sdd-domain/SKILL.md` | project | **retired** → redirect to sdd-onboard `references/domain.md` |
 
 ## Convention files
 
