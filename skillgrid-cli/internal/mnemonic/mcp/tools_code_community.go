@@ -115,25 +115,28 @@ func handleCodeExplainCommunity(ctx context.Context, req mcplib.CallToolRequest)
 }
 
 // numericArg returns a numeric argument or a clear validation error when the
-// provided value is present but not a number (no silent default-inventing).
+// argument is present but not a number (no silent default-inventing).
 func numericArg(req mcplib.CallToolRequest, key string, def float64) (float64, error) {
 	args := req.GetArguments()
-	if raw, ok := args[key]; ok {
-		switch v := raw.(type) {
-		case float64:
-			return v, nil
-		case int:
-			return float64(v), nil
-		case int64:
-			return float64(v), nil
-		case string:
-			if f, err := strconv.ParseFloat(v, 64); err == nil {
-				return f, nil
-			}
-		}
-		return def, fmt.Errorf("code_*: %q must be a number (got %v)", key, raw)
+	raw, ok := args[key]
+	if !ok {
+		return def, nil
 	}
-	return def, nil
+	switch v := raw.(type) {
+	case float64:
+		return v, nil
+	case int:
+		return float64(v), nil
+	case int64:
+		return float64(v), nil
+	case string:
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f, nil
+		}
+	case bool, nil:
+		// present but not numeric (bool / null) → validation error.
+	}
+	return def, fmt.Errorf("%q must be a number (got %v)", key, raw)
 }
 
 // allSymbolIDs returns every symbol id in the store (for god-node ranking).

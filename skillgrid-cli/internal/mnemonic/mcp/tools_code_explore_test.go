@@ -9,6 +9,7 @@ import (
 
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
 
@@ -42,6 +43,7 @@ func exploreFixture(t *testing.T) (dataDir, root string) {
 	svc := service.New(dataDir)
 	SetService(svc)
 	t.Cleanup(func() { SetService(nil) })
+	codeindex.ResetFileFirstSymbol()
 	if _, err := svc.RunCodeIndex(context.Background(), root); err != nil {
 		t.Fatalf("index: %v", err)
 	}

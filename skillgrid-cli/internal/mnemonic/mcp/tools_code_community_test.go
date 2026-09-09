@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
 
@@ -39,6 +40,7 @@ func communityMCPFixture(t *testing.T) string {
 	svc := service.New(dataDir)
 	SetService(svc)
 	t.Cleanup(func() { SetService(nil) })
+	codeindex.ResetFileFirstSymbol()
 	if _, err := svc.RunCodeIndex(context.Background(), abs); err != nil {
 		t.Fatalf("index: %v", err)
 	}
@@ -152,9 +154,9 @@ func TestCommunityToolsArgs(t *testing.T) {
 		t.Errorf("code_god_nodes should return a god_nodes list, got: %s", text)
 	}
 
-	// code_god_nodes with a non-numeric limit is rejected clearly (no silent
-	// default inventing a different view).
-	res4, err := handleCodeGodNodes(context.Background(), newCallTool("code_god_nodes", map[string]any{"limit": "notanumber"}))
+	// code_god_nodes with a non-numeric limit (sent as a JSON object) is
+	// rejected clearly (no silent default inventing a different view).
+	res4, err := handleCodeGodNodes(context.Background(), newCallTool("code_god_nodes", map[string]any{"limit": map[string]any{"n": 1}}))
 	if err != nil {
 		t.Fatalf("handleCodeGodNodes dispatch: %v", err)
 	}

@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/community"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
@@ -35,6 +37,12 @@ func runCodeIntel(version string, args []string) {
 		runImpact(version, args[1:])
 	case "explore":
 		runExplore(version, args[1:])
+	case "communities":
+		runCommunities(version, args[1:])
+	case "god-nodes":
+		runGodNodes(version, args[1:])
+	case "explain-community":
+		runExplainCommunity(version, args[1:])
 	case "help", "-h", "--help":
 		printCodeIntelUsage()
 	default:
@@ -55,8 +63,11 @@ func printCodeIntelUsage() {
                            Graph neighbors (every edge confidence-labeled)
   path FROM TO            Shortest edge path, or where the graph stops
   explain SYMBOL          Symbol node + degree + connections ranked by degree
-  impact SYMBOL           Risk-tiered blast radius (WILL BREAK / LIKELY AFFECTED)
-  explore SYMBOL          Composite: source + call-flow + blast radius in one call
+   impact SYMBOL           Risk-tiered blast radius (WILL BREAK / LIKELY AFFECTED)
+   explore SYMBOL          Composite: source + call-flow + blast radius in one call
+   communities             Leiden-clustered subsystems (LLM-free labels)
+   god-nodes [--exclude-hubs] [--limit N]  Most-connected symbols by degree
+   explain-community ID    A community's members + key entry points
 
   graph flags:
     --json    Emit machine-readable JSON (default: human table)
@@ -521,5 +532,148 @@ func runExplore(version string, args []string) {
 	if out.Impact != nil {
 		fmt.Println("blast radius:")
 		printImpact(out.Impact)
+	}
+}
+
+// runCommunities implements `skillgrid communities` (CLI parity for the
+// code_communities MCP tool).
+func runCommunities(version string, args []string) {
+	fs := flag.NewFlagSet("communities", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	var jsonOut bool
+	fs.BoolVar(&jsonOut, "json", false, "emit machine-readable JSON")
+	fs.Usage = func() {
+		fmt.Fprintln(fs.Output(), "usage: skillgrid communities [--json]")
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+	svc, projectID, err := openGraphService()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	_ = version
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	out, err := svc.CodeCommunities(ctx, projectID, community.Options{})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	if jsonOut {
+		b, _ := json.MarshalIndent(out, "", "  ")
+		fmt.Fprintln(os.Stdout, string(b))
+		return
+	}
+	if out.Warning != "" {
+		fmt.Fprintf(os.Stderr, "note: %s\n", out.Warning)
+	}
+	for _, c := range out.Communities {
+		fmt.Printf("community %d: %s (%d symbols)\n", c.ID, c.Label, len(c.Members))
+		for _, g := range c.GodNodes {
+			fmt.Printf("  god node: %s\n", g)
+		}
+	}
+}
+
+// runGodNodes implements `skillgrid god-nodes` (CLI parity for code_god_nodes).
+func runGodNodes(version string, args []string) {
+	fs := flag.NewFlagSet("god-nodes", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	var jsonOut, excludeHubs bool
+	var limit int
+	fs.BoolVar(&jsonOut, "json", false, "emit machine-readable JSON")
+	fs.BoolVar(&excludeHubs, "exclude-hubs", false, "suppress utility super-hubs")
+	fs.IntVar(&limit, "limit", 20, "maximum god nodes to return")
+	fs.Usage = func() {
+		fmt.Fprintln(fs.Output(), "usage: skillgrid god-nodes [--exclude-hubs] [--limit N] [--json]")
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+	svc, projectID, err := openGraphService()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	_ = version
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	out, err := svc.CodeGodNodes(ctx, projectID, excludeHubs, limit)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	if jsonOut {
+		b, _ := json.MarshalIndent(map[string]any{"god_nodes": out, "exclude_hubs": excludeHubs}, "", "  ")
+		fmt.Fprintln(os.Stdout, string(b))
+		return
+	}
+	if len(out) == 0 {
+		fmt.Fprintln(os.Stderr, "no god nodes")
+		return
+	}
+	for _, g := range out {
+		fmt.Printf("%s  degree %d  %s:%d\n", g.Name, g.Degree, g.Path, g.SymbolID)
+	}
+}
+
+// runExplainCommunity implements `skillgrid explain-community ID` (CLI parity
+// for code_explain_community).
+func runExplainCommunity(version string, args []string) {
+	fs := flag.NewFlagSet("explain-community", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	var jsonOut bool
+	fs.BoolVar(&jsonOut, "json", false, "emit machine-readable JSON")
+	fs.Usage = func() {
+		fmt.Fprintln(fs.Output(), "usage: skillgrid explain-community ID [--json]")
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+	if fs.NArg() != 1 {
+		fmt.Fprintln(os.Stderr, "error: explain-community requires exactly one ID argument")
+		os.Exit(2)
+	}
+	id, err := strconv.Atoi(fs.Arg(0))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: explain-community id must be an integer, got %q\n", fs.Arg(0))
+		os.Exit(2)
+	}
+	svc, projectID, err := openGraphService()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	_ = version
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	out, err := svc.CodeExplainCommunity(ctx, projectID, id)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	if !out.Found {
+		fmt.Fprintf(os.Stderr, "not found: %s\n", out.Reason)
+		os.Exit(1)
+	}
+	if jsonOut {
+		b, _ := json.MarshalIndent(out, "", "  ")
+		fmt.Fprintln(os.Stdout, string(b))
+		return
+	}
+	fmt.Printf("community %d: %s (%d symbols)\n", out.ID, out.Label, len(out.Members))
+	for _, m := range out.Members {
+		fmt.Printf("  %v (%v) %v:%v\n", m["name"], m["kind"], m["path"], m["start_line"])
+	}
+	if len(out.EntryPts) > 0 {
+		fmt.Println("entry points:")
+		for _, e := range out.EntryPts {
+			fmt.Printf("  %s degree %d\n", e.Name, e.Degree)
+		}
 	}
 }

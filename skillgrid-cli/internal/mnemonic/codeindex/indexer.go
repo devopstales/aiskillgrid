@@ -552,8 +552,19 @@ func (idx *Indexer) extractFile(file ScannedFile) ([]extract.Symbol, []extract.E
 }
 
 // fileFirstSymbol caches the first (lowest id) symbol of a file for the
-// duration of a writeFileGraph call, used as a default edge source.
+// duration of a writeFileGraph call, used as a default edge source. It is a
+// process-global keyed by file id (not by store), so a prior test in the same
+// process can leave stale entries that collide with a later test's ids.
 var fileFirstSymbol = map[int64]int64{}
+
+// ResetFileFirstSymbol clears the fileFirstSymbol cache. Tests that open a
+// fresh store must call this (via TestMain or a fixture) to avoid stale id
+// collisions with a prior test's store.
+func ResetFileFirstSymbol() {
+	for k := range fileFirstSymbol {
+		delete(fileFirstSymbol, k)
+	}
+}
 
 // writeFileGraph upserts a file's target-state symbols, edges, and rationale.
 // It declares the target rows (the file's extracted symbols), upserts them,
