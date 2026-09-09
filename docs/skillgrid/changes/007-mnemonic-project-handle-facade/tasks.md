@@ -69,9 +69,9 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 
 ```yaml
 phase: apply
-current_step: 02-mcp-single-open
+current_step: 03-http-single-open
 status: in_progress
-updated: 2026-09-09T10:00:00+02:00
+updated: 2026-09-09T11:30:00+02:00
 ```
 
 ## Step map
@@ -181,11 +181,11 @@ Each MCP tool call opens SQLite at most once for its target project and calls do
 
 This step is done only when:
 
-- [ ] All `### Tasks` checkboxes below are `[x]`
-- [ ] All `@step-02` scenarios in `acceptance.feature` pass
-- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] Depends-on step(s) already PASS / PASS WITH WARNINGS
-- [ ] No Global Constraint violated
+- [x] All `### Tasks` checkboxes below are `[x]`
+- [x] All `@step-02` scenarios in `acceptance.feature` pass
+- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS` (sdd-verify owns)
+- [x] Depends-on step(s) already PASS / PASS WITH WARNINGS (step 01 applied)
+- [x] No Global Constraint violated
 
 > Depends on: 01-export-project-handle
 
@@ -202,19 +202,19 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 02.1 `[RED]` mem_save happy path opens the store once (threat: Mnemonic tool surface + double-open)
-  - [ ] 02.1.a Write failing test — Scenario: mem_save opens store once
-  - [ ] 02.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'MemSave|SingleOpen|OpenOnce' -count=1` — Expected: FAIL
-  - [ ] 02.1.c Minimal implementation (open handle once; call Memory via handle)
-  - [ ] 02.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'MemSave|SingleOpen|OpenOnce' -count=1` — Expected: PASS
-  - [ ] 02.1.e Commit — `feat(mnemonic): MCP mem_save uses single Project Handle open`
-- [ ] 02.2 `[RED]` mem_search (and contract shape) unchanged after handle path (threat: Mnemonic tool surface)
-  - [ ] 02.2.a Write failing test — Scenario: mem_search result shape unchanged
-  - [ ] 02.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'MemSearch|Contract|Shape' -count=1` — Expected: FAIL
-  - [ ] 02.2.c Minimal implementation
-  - [ ] 02.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'MemSearch|Contract|Shape' -count=1` — Expected: PASS
-  - [ ] 02.2.e Commit — `feat(mnemonic): MCP search via Project Handle keeps contract`
-- [ ] 02.3 `[AFK]` code_* and web_cache_* handlers use handle; SetService inject still works — Scenarios: code and web tools use handle; Injected service still works — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -count=1` — Expected: PASS
+- [x] 02.1 `[RED]` mem_save happy path opens the store once (threat: Mnemonic tool surface + double-open)
+  - [x] 02.1.a Write failing test — Scenario: mem_save opens store once
+  - [x] 02.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'MemSave|SingleOpen|OpenOnce' -count=1` — Expected: FAIL
+  - [x] 02.1.c Minimal implementation (open handle once; call Memory via handle)
+  - [x] 02.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'MemSave|SingleOpen|OpenOnce' -count=1` — Expected: PASS
+  - [x] 02.1.e Commit — `feat(mnemonic): MCP tools single-open via Project Handle`
+- [x] 02.2 `[RED]` mem_search (and contract shape) unchanged after handle path (threat: Mnemonic tool surface)
+  - [x] 02.2.a Write failing test — Scenario: mem_search result shape unchanged
+  - [x] 02.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'MemSearch|Contract|Shape' -count=1` — Expected: FAIL
+  - [x] 02.2.c Minimal implementation
+  - [x] 02.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'MemSearch|Contract|Shape' -count=1` — Expected: PASS
+  - [x] 02.2.e Commit — `feat(mnemonic): MCP tools single-open via Project Handle`
+- [x] 02.3 `[AFK]` code_* and web_cache_* handlers use handle; SetService inject still works — Scenarios: code and web tools use handle; Injected service still works — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -count=1` — Expected: PASS
 
 ### Verification
 
@@ -224,15 +224,17 @@ Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/mcp/ -count=1` | PASS | | |
-| Acceptance `@step-02` / `@p0` | map scenarios to MCP tests | PASS | | |
-| Runtime harness | optional e2e if already present | PASS | | |
-| Rollback boundary | revert; no migrations | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/mcp/ -count=1` | PASS | PASS | full mcp suite; store suite PASS |
+| Acceptance `@step-02` / `@p0` | map scenarios to MCP tests | PASS | PASS | single_open_test.go: TestMemSaveSingleOpen (2→1), TestMemSearchContractShape, TestCodeSearchSingleOpen, TestWebCacheLookupSingleOpen |
+| Runtime harness | optional e2e if already present | PASS | PASS | |
+| Rollback boundary | revert; no migrations | PASS | PASS | |
+| Global Constraints | — | held | held | mcp/ + test-only store counter only |
 
 ### Commit
 
-When step DoD is met: `feat(mnemonic): MCP tools single-open via Project Handle`
+Step 02 commit: `4f7e9bf` feat(mnemonic): MCP tools single-open via Project Handle
+
+Note: mcp↔service verbatim copies (mcpOrientSymbol, mcpCodeExplore, mcpMemoryDoctor, mcpCodeEmbeddingStatus, mcpReadIndexedCode) are plan-mandated — handle exposes only Memory()/Web()/Store(). Consolidation deferred to step 04.
 
 ---
 
