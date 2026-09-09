@@ -336,6 +336,12 @@ func extractExpress(path string, src []byte) *FileRoutes {
 			Handler: handler, Line: lineOf(src, m[0]), Explicit: true,
 		})
 	}
+	// A .js file that is Vue Router (router.push) but not Express (no
+	// app.get) still yields its navigations — union them in so the first
+	// .js handler does not silently drop the others.
+	if len(fr.Routes) == 0 && len(fr.Navigates) == 0 {
+		fr.Navigates = vueRouterNavigates(src)
+	}
 	return fr
 }
 
@@ -358,6 +364,37 @@ func routeHandler(arg string) string {
 		return arg
 	}
 	return ""
+}
+
+var vuePushNameRe = regexp.MustCompile(`\brouter\.(?:push|replace)\(\s*\{[^}]*\bname\s*:\s*['\"]([^'\"]*)['\"]`)
+var vuePushPathRe = regexp.MustCompile(`\brouter\.(?:push|replace)\(\s*['\"]([^'\"]*)['\"]`)
+
+// vueRouterNavigates returns the navigations for a Vue Router module
+// (router.push({name}) / router.push('/x')).
+func vueRouterNavigates(src []byte) []Navigation {
+	var navs []Navigation
+	text := string(src)
+	for _, m := range vuePushNameRe.FindAllStringSubmatchIndex(text, -1) {
+		if m == nil || len(m) < 3 {
+			continue
+		}
+		dest := text[m[2]:m[3]]
+		navs = append(navs, Navigation{
+			Framework: "vue-router", Screen: screenPath(dest), Dest: dest,
+			Line: lineOf(src, m[0]),
+		})
+	}
+	for _, m := range vuePushPathRe.FindAllStringSubmatchIndex(text, -1) {
+		if m == nil || len(m) < 3 {
+			continue
+		}
+		dest := text[m[2]:m[3]]
+		navs = append(navs, Navigation{
+			Framework: "vue-router", Screen: screenPath(dest), Dest: dest,
+			Line: lineOf(src, m[0]),
+		})
+	}
+	return navs
 }
 
 var ginRouteRe = regexp.MustCompile(`(?m)^\s*\b[rw]\.(GET|POST|PUT|DELETE|PATCH|Any|HEAD|OPTIONS)\s*\(\s*["\x27]([^"\x27]*)["\x27]\s*,\s*([^)]+?)\s*\)\s*[,;]?\s*$`)
@@ -503,21 +540,26 @@ func extractNextJS(path string, src []byte) *FileRoutes {
 			Markup: true, Line: lineOf(src, m[0]),
 		})
 	}
+	// A .tsx file that is React Router (useNavigate / <Route>) but not Next
+	// (no router.push / <Link>) still yields its navigations — union them in
+	// so the first .tsx/.jsx handler does not silently drop the others.
+	if len(fr.Navigates) == 0 {
+		fr.Navigates = reactRouterNavigates(src)
+	}
 	return fr
 }
 
-var routePathRe = regexp.MustCompile(`<Route[^>]*\bpath\s*=\s*['\"]([^'\"]*)['\"]`)
-var reactNavRe = regexp.MustCompile(`\bnavigate\(\s*['\"]([^'\"]*)['\"]`)
-
-func extractReactRouter(path string, src []byte) *FileRoutes {
-	fr := &FileRoutes{Framework: "react-router"}
+// reactRouterNavigates returns the navigations for a React Router module
+// (<Route path> definitions + navigate('/x') calls).
+func reactRouterNavigates(src []byte) []Navigation {
+	var navs []Navigation
 	text := string(src)
 	for _, m := range routePathRe.FindAllStringSubmatchIndex(text, -1) {
 		if m == nil || len(m) < 3 {
 			continue
 		}
 		dest := text[m[2]:m[3]]
-		fr.Navigates = append(fr.Navigates, Navigation{
+		navs = append(navs, Navigation{
 			Framework: "react-router", Screen: screenPath(dest), Dest: dest,
 			Markup: true, Line: lineOf(src, m[0]),
 		})
@@ -527,11 +569,20 @@ func extractReactRouter(path string, src []byte) *FileRoutes {
 			continue
 		}
 		dest := text[m[2]:m[3]]
-		fr.Navigates = append(fr.Navigates, Navigation{
+		navs = append(navs, Navigation{
 			Framework: "react-router", Screen: screenPath(dest), Dest: dest,
 			Line: lineOf(src, m[0]),
 		})
 	}
+	return navs
+}
+
+var routePathRe = regexp.MustCompile(`<Route[^>]*\bpath\s*=\s*['\"]([^'\"]*)['\"]`)
+var reactNavRe = regexp.MustCompile(`\bnavigate\(\s*['\"]([^'\"]*)['\"]`)
+
+func extractReactRouter(path string, src []byte) *FileRoutes {
+	fr := &FileRoutes{Framework: "react-router"}
+	fr.Navigates = reactRouterNavigates(src)
 	return fr
 }
 
@@ -553,32 +604,9 @@ func extractSvelteKit(path string, src []byte) *FileRoutes {
 	return fr
 }
 
-var vuePushNameRe = regexp.MustCompile(`\.(?:push|replace)\(\s*\{[^}]*\bname\s*:\s*['\"]([^'\"]*)['\"]`)
-var vuePushPathRe = regexp.MustCompile(`\.(?:push|replace)\(\s*['\"]([^'\"]*)['\"]`)
-
 func extractVueRouter(path string, src []byte) *FileRoutes {
 	fr := &FileRoutes{Framework: "vue-router"}
-	text := string(src)
-	for _, m := range vuePushNameRe.FindAllStringSubmatchIndex(text, -1) {
-		if m == nil || len(m) < 3 {
-			continue
-		}
-		dest := text[m[2]:m[3]]
-		fr.Navigates = append(fr.Navigates, Navigation{
-			Framework: "vue-router", Screen: screenPath(dest), Dest: dest,
-			Line: lineOf(src, m[0]),
-		})
-	}
-	for _, m := range vuePushPathRe.FindAllStringSubmatchIndex(text, -1) {
-		if m == nil || len(m) < 3 {
-			continue
-		}
-		dest := text[m[2]:m[3]]
-		fr.Navigates = append(fr.Navigates, Navigation{
-			Framework: "vue-router", Screen: screenPath(dest), Dest: dest,
-			Line: lineOf(src, m[0]),
-		})
-	}
+	fr.Navigates = vueRouterNavigates(src)
 	return fr
 }
 
