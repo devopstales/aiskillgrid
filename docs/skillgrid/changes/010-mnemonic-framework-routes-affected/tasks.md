@@ -2,7 +2,7 @@
 
 > **STATUS:** `in-progress` — 0/3 steps PASS
 >
-> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** Close the highest-value gaps CodeGraph + GitNexus expose over 005/008: (1) **framework-aware routes** — emit `route` + `navigates` edges so "which URL serves this handler" and "where does tapping this go" are one graph hop; (2) **`code_affected`** — trace import deps transitively from changed files to the test files that must run; (3) **`code_rename`** — a graph-grounded write tool that splits renames into confidence buckets; (4) **auto-sync watcher** — keep the graph fresh as the agent edits via **copy-and-swap** publication + auto-reopen, with a staleness banner so the agent never gets a silent wrong answer or reads a torn index.
 

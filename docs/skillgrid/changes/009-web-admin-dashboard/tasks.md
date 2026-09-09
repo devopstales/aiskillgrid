@@ -2,7 +2,7 @@
 
 > **STATUS:** `in-progress` (2026-09-08) — 0/5 steps PASS
 >
-> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** Replace the minimal embedded data viewer with a full admin dashboard served by `skillgrid serve` at `/` — memory browser, backlog browser, code-index status, and sessions view — backed by new HTTP endpoints where the service already has the method.
 

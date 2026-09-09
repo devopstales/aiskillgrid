@@ -2,7 +2,7 @@
 
 > **STATUS:** `in-progress` (2026-09-08) — 0/2 steps PASS
 >
-> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** Add an opt-in statement-level analysis tier to Mnemonic's code graph: per-function control-flow graphs → program-dependence graphs → taint findings (source→sink data-flow).
 

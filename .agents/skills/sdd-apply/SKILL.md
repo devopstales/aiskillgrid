@@ -56,7 +56,7 @@ For each unblocked assigned step:
 
 | Route | When | Skill |
 |---|---|---|
-| Subagent | auto-chain / ≥4 independent tasks / large context | **`subagent-execution`** (+ `dispatching-parallel-agents` when 2+ independent) |
+| Subagent | tasks mostly independent (2+ steps, no shared files/state) / auto-chain / large context | **`subagent-execution`** (sequential implementers; `dispatching-parallel-agents` only for parallel-safe investigation domains, never parallel implementers) |
 | Inline | small / tightly coupled / single-pr under budget | **`simple-execution`** |
 | TDD | `rules.apply.tdd` / testing-capabilities say so | **`tdd`** (+ strict-tdd module when active) |
 | Bug mid-apply | unexpected failure | **`debugging`** before patching |

@@ -2,7 +2,7 @@
 
 > **STATUS:** `in-progress` | `complete` (<YYYY-MM-DD>) — <N>/<M> steps PASS
 >
-> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** <one sentence — must match `## Goal` and `change.md`>
 

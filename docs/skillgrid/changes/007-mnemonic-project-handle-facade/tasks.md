@@ -2,7 +2,7 @@
 
 > **STATUS:** `in-progress` (2026-09-05) — 0/4 steps PASS
 >
-> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** Make Mnemonic callers exercise one deep Project Handle seam (one SQLite open per request) instead of a shallow open-delegate-close facade.
 

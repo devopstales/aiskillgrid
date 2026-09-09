@@ -140,7 +140,7 @@ Summary of what you found and what you fixed. Cite file:line for every change.
 
 This skill is the **decision protocol** the orchestrator uses to decide whether to fan out:
 
-- **`sdd-apply`** already has a similar split (`simple-execution` vs `subagent-execution`). Use the rule above to pick: 2+ independent work items with no shared state → fan out (one `subagent-execution` slot per domain). Otherwise → single inline route.
+- **`sdd-apply`** already has a similar split (`simple-execution` vs `subagent-execution`). Use the rule above to pick: 2+ independent work items with no shared state → fan out for investigation. For implementation, `subagent-execution` still dispatches implementers sequentially (never parallel implementers) — one slot per domain, in order. Otherwise → single inline route.
 - **`sdd-explore`** can use this for parallel investigation of multiple subsystems in a large codebase.
 - **Debugging parallel failures** (e.g. flaky tests across N files): dispatch one agent per file with a shared "no cross-file edits" constraint.
 

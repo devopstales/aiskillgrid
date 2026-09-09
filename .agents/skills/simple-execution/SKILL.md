@@ -31,7 +31,7 @@ Inline per-task execution. One task at a time, in THIS context. Not delegation.
 
 **Do NOT use when:**
 - The workload decision is `auto-chain`, `chained-PR`, or any shape that needs a work-unit slice per review gate → use `../subagent-execution/SKILL.md` instead.
-- The step has ≥ 4 independent tasks → delegate.
+- The steps are mostly independent (2+ steps, no shared files/state) → delegate.
 - Your context is already 40k+ tokens and each new task will bloat it further.
 
 ## The inline task loop

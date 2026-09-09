@@ -41,7 +41,7 @@ digraph when_to_use {
   planfirst [label="Plan first", shape=box];
   inline [label="Do it inline", shape=box];
   this [label="subagent-execution", shape=box, style=filled, fillcolor="#ccffcc"];
-  parallel [label="executing-plans\n(parallel session)", shape=box];
+  parallel [label="separate session\n(parallel)", shape=box];
   plan -> indep [label="yes"];
   plan -> planfirst [label="no"];
   indep -> session [label="yes"];
@@ -51,7 +51,7 @@ digraph when_to_use {
 }
 ```
 
-Delegate when the plan has multiple independent tasks that touch code, or the change is large enough that a fresh, narrow context helps each implementer. For a single small task where delegation overhead exceeds the work, do it inline. For a plan you want to execute in a *parallel* session (not this one), use `executing-plans` instead — same session stays with this skill.
+Delegate when the plan has multiple independent tasks that touch code, or the change is large enough that a fresh, narrow context helps each implementer. For a single small task where delegation overhead exceeds the work, do it inline. For a plan you want to execute in a *parallel* session (not this one), dispatch a separate session instead — same session stays with this skill.
 
 ## When to stop (asking)
 
@@ -100,9 +100,13 @@ Every plan gets its own work directory of short-lived, git-ignored artifacts:
 scripts/sdd-workspace <PLAN_FILE>   # prints absolute $WORKSPACE
 ```
 
+For SDD, `PLAN_FILE` is the change's `docs/skillgrid/changes/<NNN-slug>/tasks.md`
+(`task-brief` extracts `## NN-<name>` step sections from it). SDD artifact
+basenames (`tasks.md`, `change.md`, …) resolve to the parent `<NNN-slug>` dir.
+
 Artifacts live in `$WORKSPACE`, never in your context:
 
-- Briefs: `$WORKSPACE/task-<N>-brief.md`
+- Briefs: `$WORKSPACE/task-<N>-brief.md` (SDD steps zero-padded: step 1 → `task-01-brief.md`; always use the path `task-brief` prints, never construct it by hand)
 - Reports: `$WORKSPACE/task-<N>-report.md`
 - Review packages: `$WORKSPACE/review-<base7>..<head7>.diff`
 - Ledger: `$WORKSPACE/progress.md` ← the single source of truth

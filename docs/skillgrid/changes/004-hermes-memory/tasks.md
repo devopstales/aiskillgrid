@@ -2,7 +2,7 @@
 
 > **STATUS:** `in-progress` (2026-09-04) — 0/5 steps PASS
 >
-> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** Agents get importance-ranked Fact Memory with forgetting and a path to write, find, and sandboxed-execute Agent Skills beside `mem_*` observations.
 

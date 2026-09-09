@@ -2,7 +2,7 @@
 
 > **STATUS:** `in-progress` (2026-09-09) — 4/4 steps PASS (01+02+03+04 done); verify in progress
 >
-> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** Turn Mnemonic's chunk-FTS code index into a foundation hybrid/graph code-intelligence slice (symbols, edges, identifier FTS, a composite `code_explore` + Tier-1/2 tools, measured coverage, offline RRF) so agents navigate and blast-radius without burning tokens on grep/read loops.
 

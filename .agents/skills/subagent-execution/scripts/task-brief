@@ -4,6 +4,11 @@
 # through the controller's context.
 #
 # Usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
+#   Generic plan: TASK_NUMBER matches a `Task N` heading.
+#   SDD tasks.md: TASK_NUMBER matches a `## NN-<name>` step section
+#                 (accepts `1` or `01` for step 01). The whole step section
+#                 (Goal, Tasks, Verification, Commit) is extracted so the
+#                 implementer gets the full step context.
 # Default OUTFILE: <repo-root>/.skillgrid/sdd/<NNN-slug>/task-<N>-brief.md
 # (per plan and per worktree; concurrent runs of the SAME plan in the same
 # working tree share it).
@@ -22,19 +27,43 @@ if [ $# -eq 3 ]; then
   out=$3
 else
   dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
-  out="$dir/task-${n}-brief.md"
+  # Normalize SDD step numbers to two digits for stable artifact names.
+  case "$n" in
+    [0-9]) out="$dir/task-0${n}-brief.md" ;;
+    *)     out="$dir/task-${n}-brief.md" ;;
+  esac
 fi
 
-awk -v n="$n" '
-  /^```/ { infence = !infence }
-  !infence && /^#+[ \t]+Task[ \t]+[0-9]+/ {
-    intask = ($0 ~ ("^#+[ \t]+Task[ \t]+" n "([^0-9]|$)"))
+# Normalize to two digits for `## NN-<name>` matching (1 → 01).
+case "$n" in
+  [0-9]) nn="0$n" ;;
+  *)     nn="$n" ;;
+esac
+
+# 1st pass: SDD step section `## NN-<name>` … up to the next `## ` heading.
+awk -v nn="$nn" '
+  /^```/ { infence = !infence; if (intask) print; next }
+  infence { if (intask) print; next }
+  /^## / {
+    if ($0 ~ ("^## " nn "(-| |$)")) { intask = 1; print; next }
+    else if (intask) { exit }
   }
   intask { print }
 ' "$plan" > "$out"
 
+# 2nd pass (fallback): legacy generic `Task N` heading.
 if [ ! -s "$out" ]; then
-  echo "task ${n} not found in ${plan} (no heading matching 'Task ${n}')" >&2
+  awk -v n="$n" '
+    /^```/ { infence = !infence }
+    !infence && /^#+[ \t]+Task[ \t]+[0-9]+/ {
+      intask = ($0 ~ ("^#+[ \t]+Task[ \t]+" n "([^0-9]|$)"))
+    }
+    intask { print }
+  ' "$plan" > "$out"
+fi
+
+if [ ! -s "$out" ]; then
+  echo "task ${n} not found in ${plan} (no '## ${nn}-<name>' step or 'Task ${n}' heading)" >&2
   exit 3
 fi
 
