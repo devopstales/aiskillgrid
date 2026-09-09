@@ -98,6 +98,112 @@ func lastRanker(q *QuerySet, idx *CorpusIndex) []string {
 	return append(rest, q.ExpectedFiles...)
 }
 
+// factorRanker is a lexical projection of the step-01 retrieval-quality
+// factors (mirroring cmd/skillgrid's shippedRank): it reorders the corpus by
+// path-match / documentation / generated-vendor / test signals, NOT by the
+// expected files. It is a faithful lexical analogue of hybrid's rerank table —
+// the key property for TestShippedConfigSignificance is that it DIFFERS from
+// the lastRanker baseline (so the measured delta is non-vacuous, not
+// identity==baseline). Deterministic.
+func factorRanker(q *QuerySet, idx *CorpusIndex) []string {
+	paths := idx.Paths()
+	qLower := strings.ToLower(q.Subject)
+	qTerms := strings.Fields(qLower)
+	isTestQuery := strings.Contains(qLower, "test")
+	type scored struct {
+		path  string
+		delta float64
+	}
+	var out []scored
+	for _, p := range paths {
+		out = append(out, scored{path: p, delta: testFactorDelta(p, qLower, qTerms, isTestQuery)})
+	}
+	for i := 1; i < len(out); i++ {
+		for j := i; j > 0 && (out[j].delta > out[j-1].delta || (out[j].delta == out[j-1].delta && out[j].path < out[j-1].path)); j-- {
+			out[j], out[j-1] = out[j-1], out[j]
+		}
+	}
+	res := make([]string, len(out))
+	for i, s := range out {
+		res[i] = s.path
+	}
+	return res
+}
+
+// testFactorDelta scores one path for a query using the same named, bounded
+// factors as hybrid.RerankTable, projected onto the path only (no symbol/
+// degree, which the corpus index does not carry).
+func testFactorDelta(path, qLower string, qTerms []string, isTestQuery bool) float64 {
+	delta := 0.0
+	lower := strings.ToLower(path)
+	leaf := lower
+	if i := strings.LastIndex(leaf, "/"); i >= 0 {
+		leaf = leaf[i+1:]
+	}
+	stem := leaf
+	if i := strings.LastIndex(leaf, "."); i >= 0 {
+		stem = leaf[:i]
+	}
+	// exact-symbol (proxy): the full query or a long term appears in the stem.
+	if len(qLower) >= 3 && strings.Contains(stem, qLower) {
+		delta += 0.30
+	} else {
+		for _, t := range qTerms {
+			if len(t) >= 4 && t != "test" && strings.Contains(stem, t) {
+				delta += 0.30
+				break
+			}
+		}
+	}
+	// path-match: a term >=3 chars appears in the full path.
+	for _, t := range qTerms {
+		if len(t) >= 3 && strings.Contains(lower, t) {
+			delta += 0.10
+			break
+		}
+	}
+	// source-over-prose / documentation.
+	if isTestFactorProse(lower) {
+		delta += -0.10
+	} else {
+		delta += 0.05
+	}
+	// generated/vendor.
+	if isTestFactorVendor(lower) {
+		delta += -0.15
+	}
+	// test-on-non-test.
+	if isTestFactorTest(lower) && !isTestQuery {
+		delta += -0.10
+	}
+	return delta
+}
+
+func isTestFactorProse(lower string) bool {
+	for _, m := range []string{"/docs/", "/doc/", "readme", "changelog", ".md", ".rst", ".txt", ".yaml", ".yml", ".json", ".toml"} {
+		if strings.Contains(lower, m) {
+			return true
+		}
+	}
+	return false
+}
+
+func isTestFactorVendor(lower string) bool {
+	if strings.Contains(lower, "vendor/") || strings.Contains(lower, "/vendor/") {
+		return true
+	}
+	for _, m := range []string{"_generated.", ".pb.", ".gen.", "generated.go", "zz_"} {
+		if strings.Contains(lower, m) {
+			return true
+		}
+	}
+	return false
+}
+
+func isTestFactorTest(lower string) bool {
+	return strings.Contains(lower, "_test.go") || strings.HasSuffix(lower, ".test.js") || strings.Contains(lower, "test_")
+}
+
 // TestEvalHarnessSignificance covers @step-01 (Scenario: Evaluation harness
 // derives a leak-free query set and reports significance): the ablation runner
 // builds ONE shared index per corpus, runs baseline + candidate variants, and
@@ -242,8 +348,12 @@ func TestShippedConfigSignificance(t *testing.T) {
 		Queries: map[string][]*QuerySet{"self": qA, "second": qB},
 		Variants: []Variant{
 			{Name: "baseline", Rank: lastRanker, Baseline: true},
-			// Shipped signal: strictly better on both corpora → ships.
-			{Name: "shipped-signal", Rank: firstRanker},
+			// Shipped signal: the real step-01 factor-based ranker (a lexical
+			// projection of hybrid's rerank table) — NOT the identity/baseline,
+			// so the measured delta is non-vacuous. On the fixture it ranks the
+			// expected internal-source files ahead of the vendor distractors →
+			// non-negative vs the lastRanker baseline → ships.
+			{Name: "shipped-signal", Rank: factorRanker},
 			// A candidate that is worse → must be kept-off (decision recorded).
 			{Name: "worse-signal", Rank: lastRanker},
 		},
@@ -254,11 +364,20 @@ func TestShippedConfigSignificance(t *testing.T) {
 	if len(res.Corpora) != 2 {
 		t.Fatalf("expected 2 pooled corpora, got %d", len(res.Corpora))
 	}
+	// The shipped (factor-based) ranker must produce a NON-IDENTICAL order vs
+	// the baseline (proof the gate is measuring a real ranker, not identity).
+	shipRow := rowByName(res, "shipped-signal")
+	if shipRow == nil {
+		t.Fatal("missing shipped-signal row")
+	}
+	if shipRow.DeltaRecall5 == 0 && shipRow.DeltaMRR == 0 && shipRow.DeltaNDGC10 == 0 {
+		t.Errorf("shipped-signal (factor-based ranker) must not be vacuously 0 vs baseline: %+v", shipRow)
+	}
 	// The shipped signal is non-negative vs baseline on every corpus and
 	// survived significance → decision is "ship".
 	ship := shippedDecision(res, "shipped-signal")
 	if !ship.Ships {
-		t.Errorf("strictly-better shipped signal should ship, got %+v", ship)
+		t.Errorf("factor-based shipped signal should ship (non-negative vs baseline), got %+v", ship)
 	}
 	// The worse signal is negative somewhere → kept off, with a decision + CI/p.
 	off := shippedDecision(res, "worse-signal")

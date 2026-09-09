@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 
@@ -232,7 +233,11 @@ Examples:
 		Queries: querySets,
 		Variants: []eval.Variant{
 			{Name: "baseline", Rank: identityRank, Baseline: true},
-			{Name: "shipped", Rank: identityRank},
+			// The shipped variant applies the step-01 retrieval-quality factors
+			// (a lexical projection of hybrid/rerank.go's ApplyRerankTable) so
+			// the harness measures a REAL candidate vs the 005 baseline — not a
+			// vacuous identity==baseline delta.
+			{Name: "shipped", Rank: shippedRank},
 		},
 	})
 	if err != nil {
@@ -247,12 +252,161 @@ Examples:
 	printEvalReport(res, querySets)
 }
 
-// identityRank is the shipped ranker config for the CLI: an identity ranking
-// over the corpus (the 005 baseline behavior). The CLI's purpose is to RUN the
-// harness and report significance; the shipped config and its decision are
-// produced by the eval package's significance gate.
+// identityRank is the 005 baseline behavior for the CLI: a plain lexical/path
+// ordering of the corpus (no rerank factors). This is the reference the
+// shipped variant is measured against.
 func identityRank(q *eval.QuerySet, idx *eval.CorpusIndex) []string {
 	return idx.Paths()
+}
+
+// shippedRank is the lexical PROJECTION of the step-01 retrieval-quality
+// factors onto the corpus's file paths. It is a faithful lexical analogue of
+// hybrid/rerank.go's ApplyRerankTable (exact-symbol, path-match,
+// documentation/generated/test penalties, source-over-prose), reordering the
+// corpus paths for the query by the same named factors the production rerank
+// table uses — but operating purely on paths, because the eval CorpusIndex only
+// carries paths (it has no sqlite store, symbol table, or graph degree).
+//
+// This is NOT a call into hybrid.Search (which is retriever-driven and needs the
+// store). The full retriever-driven ranker lives in hybrid/rank.go and is
+// exercised separately by the mcp/service tests; the eval's "shipped" row is
+// the lexical projection of its factors, not a claim that the full hybrid
+// ranker is measured here.
+//
+// The key property: shippedRank DIFFERS from identityRank on realistic queries
+// (it reorders by the named factors), so the harness measures a genuine,
+// non-trivial delta. Deterministic (no randomness).
+func shippedRank(q *eval.QuerySet, idx *eval.CorpusIndex) []string {
+	paths := idx.Paths()
+	qLower := strings.ToLower(q.Subject)
+	qTerms := strings.Fields(qLower)
+	isTestQuery := strings.Contains(qLower, "test")
+
+	type scored struct {
+		path  string
+		delta float64
+	}
+	var out []scored
+	for _, p := range paths {
+		out = append(out, scored{path: p, delta: lexicalProjectionDelta(p, qLower, qTerms, isTestQuery)})
+	}
+	// Score descending, path ascending for ties (deterministic, matches
+	// hybrid.RerankTable's bounded additive model).
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].delta != out[j].delta {
+			return out[i].delta > out[j].delta
+		}
+		return out[i].path < out[j].path
+	})
+	res := make([]string, len(out))
+	for i, s := range out {
+		res[i] = s.path
+	}
+	return res
+}
+
+// lexicalProjectionDelta scores one corpus path for a query using the same
+// named, bounded factors as hybrid.RerankTable, projected onto the path only
+// (no symbol/degree, which the corpus index does not carry). The factor names
+// and signs mirror hybrid/rerank.go:
+//
+//	exact-symbol + (the filename stem contains the full query, or a long query
+//	term — a lexical proxy for the symbol the query names)
+//	path-match +  (a query term >=3 chars appears in the path)
+//	source-over-prose + (code, not prose/config)
+//	documentation − (a docs/config path)
+//	generated-vendor − (a vendor/generated path)
+//	test-on-non-test − (a test path for a non-test query)
+func lexicalProjectionDelta(path, qLower string, qTerms []string, isTestQuery bool) float64 {
+	delta := 0.0
+	lower := strings.ToLower(path)
+	// The filename stem (no extension) as a lexical proxy for the symbol.
+	leaf := lower
+	if i := strings.LastIndex(leaf, "/"); i >= 0 {
+		leaf = leaf[i+1:]
+	}
+	stem := leaf
+	if i := strings.LastIndex(leaf, "."); i >= 0 {
+		stem = leaf[:i]
+	}
+
+	// exact-symbol (proxy): the full query (>=3 chars) appears in the stem, or
+	// any long query term (>=4 chars) does. Bounded at 0.30 like the table.
+	exact := 0.0
+	if len(qLower) >= 3 && strings.Contains(stem, qLower) {
+		exact = 0.30
+	} else {
+		for _, t := range qTerms {
+			if len(t) >= 4 && strings.Contains(stem, t) {
+				if t != "test" {
+					exact = 0.30
+					break
+				}
+			}
+		}
+	}
+	delta += exact
+
+	// path-match: a query term >=3 chars appears in the full path (not the
+	// stem, so directory locality counts). Bounded at 0.10.
+	for _, t := range qTerms {
+		if len(t) >= 3 && strings.Contains(lower, t) {
+			delta += 0.10
+			break
+		}
+	}
+
+	// source-over-prose: code beats prose/config.
+	if isProsePath(path) {
+		delta += -0.10 // documentation
+	} else {
+		delta += 0.05 // source-over-prose
+	}
+
+	// generated/vendor.
+	if isVendorOrGeneratedPath(path) {
+		delta += -0.15
+	}
+
+	// test-on-non-test.
+	if isTestFilePath(path) && !isTestQuery {
+		delta += -0.10
+	}
+
+	return delta
+}
+
+// isProsePath / isVendorOrGeneratedPath / isTestFilePath are path-only
+// projections of the hybrid package's private classifiers, so the cmd layer
+// (which cannot call unexported hybrid helpers) applies the same signals.
+// They mirror hybrid.isProsePath / isVendorOrGenerated and the isTestPath used
+// in mcp/tools_code.go.
+func isProsePath(path string) bool {
+	lower := strings.ToLower(path)
+	for _, m := range []string{"/docs/", "/doc/", "readme", "changelog", ".md", ".rst", ".txt", ".yaml", ".yml", ".json", ".toml"} {
+		if strings.Contains(lower, m) {
+			return true
+		}
+	}
+	return false
+}
+
+func isVendorOrGeneratedPath(path string) bool {
+	lower := strings.ToLower(path)
+	if strings.Contains(lower, "vendor/") || strings.Contains(lower, "/vendor/") {
+		return true
+	}
+	for _, m := range []string{"_generated.", ".pb.", ".gen.", "generated.go", "zz_"} {
+		if strings.Contains(lower, m) {
+			return true
+		}
+	}
+	return false
+}
+
+func isTestFilePath(path string) bool {
+	lower := strings.ToLower(path)
+	return strings.Contains(lower, "_test.go") || strings.HasSuffix(lower, ".test.js") || strings.Contains(lower, "test_")
 }
 
 // stringSliceFlag is a repeatable string flag for --corpus.

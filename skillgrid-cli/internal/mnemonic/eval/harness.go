@@ -56,6 +56,13 @@ func buildIndex(files map[string]string) *CorpusIndex {
 	return &CorpusIndex{paths: paths}
 }
 
+// NewCorpusIndex constructs a CorpusIndex from a file map (path → content).
+// Exported so callers (e.g. the CLI's ranker tests) can build an index without
+// going through Run.
+func NewCorpusIndex(files map[string]string) *CorpusIndex {
+	return buildIndex(files)
+}
+
 // RankFunc is one ranking variant: it orders the corpus's files for a query.
 type RankFunc func(q *QuerySet, idx *CorpusIndex) []string
 
@@ -328,14 +335,19 @@ func shippedDecision(res *Result, name string) ShipDecision {
 	return res.Decisions[name]
 }
 
-// rowByName returns the Row for a non-baseline variant by name (nil if absent).
-func rowByName(res *Result, name string) *Row {
+// RowByName returns the Row for a non-baseline variant by name (nil if absent).
+func RowByName(res *Result, name string) *Row {
 	for i := range res.Rows {
 		if res.Rows[i].Name == name {
 			return &res.Rows[i]
 		}
 	}
 	return nil
+}
+
+// rowByName is the unexported alias used internally by the harness.
+func rowByName(res *Result, name string) *Row {
+	return RowByName(res, name)
 }
 
 // aggregateRow pools per-query metrics into one Row (mean over queries for
