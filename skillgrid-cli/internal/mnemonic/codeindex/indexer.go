@@ -14,9 +14,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/community"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/embedder"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/extract"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/knowledge"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/process"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/route"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/store"
 )
@@ -240,11 +243,24 @@ func ChunkLines(content []byte, chunkLines, chunkOverlap int) []Chunk {
 type Indexer struct {
 	store *store.Store
 	emb   embedder.Embedder
+	// processLLM is the LLM labeler for the process pass (03.8 indexer hook).
+	// A nil value uses the deterministic labeler stub (a clearly-marked stub,
+	// not a live LLM); the key is that the process pass RUNS at index time so
+	// code_processes is populated, not just in tests.
+	processLLM process.LLM
 }
 
 // New creates an Indexer backed by st.
 func New(st *store.Store) *Indexer {
 	return &Indexer{store: st}
+}
+
+// WithProcessLLM sets the LLM labeler for the process pass (03.8). A nil LLM
+// (or an unset one) falls back to the deterministic labeler stub so the
+// process pass still runs and labels at index time.
+func (idx *Indexer) WithProcessLLM(llm process.LLM) *Indexer {
+	idx.processLLM = llm
+	return idx
 }
 
 // WithEmbedder sets the optional embedder used by the eager dual-granularity
@@ -413,7 +429,164 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 	if err := tx.Commit(); err != nil {
 		return stats, err
 	}
+	// The store's single-connection *sql.DB (MaxOpenConns=1) holds the WAL
+	// write lock even after the tx commits (modernc.org/sqlite keeps the
+	// connection open). Close it so a fresh *sql.DB can acquire the lock
+	// for the passes. The store's DB is replaced with the pass DB so the
+	// indexer (and any caller using idx.store.DB) keeps working.
+	dbPath := idx.store.Path()
+	if err := idx.store.DB.Close(); err != nil {
+		return stats, fmt.Errorf("close store db: %w", err)
+	}
+	// Re-apply per-connection pragmas via DSN (foreign_keys is not
+	// persistent; journal_mode and busy_timeout ARE persistent in the WAL
+	// file). No SetMaxOpenConns(1) — the modernc.org/sqlite driver deadlocks
+	// a single-connection pool after a committed tx.
+	passDB, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		return stats, fmt.Errorf("open pass db: %w", err)
+	}
+	idx.store.DB = passDB
+	// Knowledge-graph passes (03.8): run the community + process + knowledge
+	// passes at index time so code_processes / code_communities / code_docs /
+	// code_configs / code_sql_* are populated. Each pass is advisory and
+	// never load-bearing: a pass failure warns and continues.
+	if err := idx.communityPass(ctx, passDB); err != nil {
+		fmt.Fprintf(os.Stderr, "warn: community pass: %v\n", err)
+	}
+	if err := idx.processPass(ctx, passDB); err != nil {
+		fmt.Fprintf(os.Stderr, "warn: process pass: %v\n", err)
+	}
+	if err := idx.knowledgePass(ctx, passDB, scanned); err != nil {
+		fmt.Fprintf(os.Stderr, "warn: knowledge pass: %v\n", err)
+	}
 	return stats, nil
+}
+
+// communityPass runs the 01 community-detection pass over the indexed graph,
+// on the pass DB (opened before the main tx, so its sub-txs do not deadlock
+// the store's single-connection pool). The community rows land in the same
+// WAL database as the 005 extraction; the main tx's Commit finalizes the
+// incremental index. Advisory, never load-bearing.
+func (idx *Indexer) communityPass(ctx context.Context, passDB *sql.DB) error {
+	if tableMissing(passDB, "communities") {
+		return nil // table absent (pre-012 store) — nothing to do
+	}
+	_, err := community.Detect(ctx, passDB, community.Options{})
+	return err
+}
+
+// processPass runs the 02 process-flow pass over the indexed graph, on the
+// pass DB. Entry points are 010's: the resolved handlers of kind='route'
+// symbols, plus the package main functions. It uses idx.processLLM (falling
+// back to the deterministic labeler stub) so the flows are labeled at index
+// time. Advisory, never load-bearing.
+func (idx *Indexer) processPass(ctx context.Context, passDB *sql.DB) error {
+	if tableMissing(passDB, "processes") {
+		return nil // table absent (pre-014 store) — nothing to do
+	}
+	entries, err := idx.processEntries(passDB)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return nil
+	}
+	llm := idx.processLLM
+	if llm == nil {
+		llm = processLLMStub{}
+	}
+	_, err = process.Run(ctx, passDB, entries, llm, process.RunOptions{})
+	return err
+}
+
+// processEntries resolves 010's entry points: the handlers served by
+// kind='route' symbols (the traceable call-chain starts) and the package main
+// functions. Deterministic by symbol id.
+func (idx *Indexer) processEntries(db *sql.DB) ([]process.Entry, error) {
+	var entries []process.Entry
+	seen := map[int64]bool{}
+	// 010 route handlers.
+	rows, err := db.Query(`
+		SELECT e.to_id FROM edges e
+		JOIN symbols r ON r.id = e.from_id
+		WHERE r.kind = 'route' AND e.kind = 'references' AND e.to_id IS NOT NULL
+		ORDER BY e.to_id`)
+	if err == nil {
+		for rows.Next() {
+			var id int64
+			if err := rows.Scan(&id); err == nil && !seen[id] {
+				seen[id] = true
+				entries = append(entries, process.Entry{SymbolID: id, Kind: "handler"})
+			}
+		}
+		rows.Close()
+	}
+	// Package main functions.
+	mrows, err := db.Query(`
+		SELECT s.id FROM symbols s
+		JOIN files f ON f.id = s.file_id
+		WHERE s.name = 'main' AND s.kind IN ('function','method')
+		ORDER BY s.id`)
+	if err == nil {
+		for mrows.Next() {
+			var id int64
+			if err := mrows.Scan(&id); err == nil && !seen[id] {
+				seen[id] = true
+				entries = append(entries, process.Entry{SymbolID: id, Kind: "cli-main"})
+			}
+		}
+		mrows.Close()
+	}
+	return entries, nil
+}
+
+// knowledgePass runs the knowledge extractors (doc + config + SQL) over the
+// scanned files, on the pass DB, persisting doc_nodes / config_nodes /
+// sql_schema_nodes and their edges. The knowledge store operates directly on
+// the *sql.DB (no sub-tx), so it does not deadlock the store's
+// single-connection pool. Non-fatal per file (a malformed file yields zero
+// rows, the index continues).
+func (idx *Indexer) knowledgePass(ctx context.Context, passDB *sql.DB, scanned []ScannedFile) error {
+	if tableMissing(passDB, "doc_nodes") {
+		return nil // table absent (pre-015 store) — nothing to do
+	}
+	st := knowledge.NewStore(passDB)
+	files := make([]knowledge.FileInput, 0, len(scanned))
+	for _, f := range scanned {
+		files = append(files, knowledge.FileInput{Path: f.Path, Contents: f.Contents})
+	}
+	_, err := knowledge.RunPasses(ctx, st, files)
+	return err
+}
+
+// tableMissing reports whether a query error is "no such table" (the table
+// predates the relevant migration) — the pass is then a no-op.
+func tableMissing(db *sql.DB, table string) bool {
+	err := db.QueryRow(`SELECT 1 FROM ` + table + ` LIMIT 0`).Err()
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "no such table")
+}
+
+// processLLMStub is the deterministic LLM labeler used by the 03.8 indexer
+// hook when no live LLM is configured. It is a clearly-marked stub (not a live
+// LLM): it returns a label derived from the flow's entry name, so the process
+// pass RUNS and labels at index time (code_processes is populated) without a
+// live LLM call. The label is deterministic (a pure function of the flow), so
+// an unchanged re-index is a cache hit.
+type processLLMStub struct{}
+
+func (processLLMStub) Label(ctx context.Context, summary string) (string, error) {
+	// Derive a deterministic label from the flow's entry name (the first
+	// "Entry: <name>" line of the summary).
+	for _, line := range strings.Split(summary, "\n") {
+		if strings.HasPrefix(line, "Entry: ") {
+			return "flow: " + strings.TrimSpace(strings.TrimPrefix(line, "Entry: ")), nil
+		}
+	}
+	return "flow", nil
 }
 
 // pruneOrphanSymbols deletes symbols whose uid is not in the declared target
