@@ -1,6 +1,8 @@
 package route
 
 import (
+	"context"
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -54,11 +56,39 @@ func Build(path string, src []byte, fileSyms []FileSymbol, index SymbolIndex) *B
 // Built is the output of Build: the route nodes and navigates edges to store,
 // plus the drop-not-guess warnings.
 type Built struct {
-	Framework string
-	Nodes     []RouteNode
-	Navs      []NavigationNode
-	Dropped   int
+	Framework  string
+	Nodes      []RouteNode
+	Navs       []NavigationNode
+	Dropped    int
 	DropSample string
+}
+
+// Store is the narrow persistence surface the indexer uses to persist route
+// nodes + references/navigates edges in the SAME transaction as the 005
+// symbol/edge extraction. The indexer implements it over *sql.Tx.
+type Store interface {
+	// StoreRouteNode upserts a route node into the 005 symbols table
+	// (kind=route) and returns its resolved symbol id. The 005 upsert is
+	// byte-identical to the one the indexer already performs for 005 symbols.
+	StoreRouteNode(node RouteNode) (int64, error)
+	// StoreReferencesEdges upserts the references (route -> handler) edges
+	// for a file's route nodes. It prunes the file's prior route-originated
+	// references/navigates edges first (target-state), then upserts.
+	StoreReferencesEdges(fileID int64, nodes []RouteNode, fileSymbolID int64) (int, error)
+	// StoreNavigatesEdges upserts the navigates (function -> screen) edges.
+	StoreNavigatesEdges(fileID int64, navs []NavigationNode) (int, error)
+	// StoreRouteDrops records the per-file drop-not-guess count.
+	StoreRouteDrops(fileID int64, dropped int) error
+	// StoreRouteMeta records the framework-specific route metadata.
+	StoreRouteMeta(fileID int64, symbolID int64, node RouteNode) error
+	// FirstSymbolID returns the file's first 005 symbol id (the default
+	// source for top-level navigates edges), or 0 when the file has none.
+	FirstSymbolID(fileID int64) (int64, error)
+	// ResolveHandler resolves a handler name to its symbol id + uid, applying
+	// the drop-not-guess policy: same-file first, then a unique global
+	// owner-qualified / bare-name match. Multiple matches are ambiguous →
+	// (0, "", false) so the caller drops the reference.
+	ResolveHandler(fileID int64, name string) (int64, string, bool)
 }
 
 // FileSymbol is a minimal view of one 005-extracted symbol in the file, used
@@ -68,6 +98,59 @@ type FileSymbol struct {
 	Name string
 	UID  string
 	ID   int64
+}
+
+// Run extracts routes/navigations for one file and persists them through st in
+// the SAME transaction the indexer already holds. It never errors on a
+// malformed file: an empty extraction is persisted as zero rows and the
+// indexer continues. It returns the number of route nodes + navigates edges
+// stored (for stats). fileSyms may be nil (the Store resolves them lazily).
+func Run(ctx context.Context, st Store, fileID int64, path string, src []byte, fileSyms []FileSymbol) (int, error) {
+	_ = ctx
+	if fileSyms == nil {
+		fileSyms = []FileSymbol{}
+	}
+	b := Build(path, src, fileSyms, resolver{st, fileID})
+	if b == nil {
+		return 0, nil
+	}
+	_ = b
+	stored := 0
+	for _, n := range b.Nodes {
+		symID, err := st.StoreRouteNode(n)
+		if err != nil {
+			return stored, fmt.Errorf("store route node %s: %w", n.Name, err)
+		}
+		if err := st.StoreRouteMeta(fileID, symID, n); err != nil {
+			return stored, fmt.Errorf("store route meta %s: %w", n.Name, err)
+		}
+		stored++
+	}
+	if n, err := st.StoreReferencesEdges(fileID, b.Nodes, 0); err != nil {
+		return stored, err
+	} else {
+		stored += n
+	}
+	if n, err := st.StoreNavigatesEdges(fileID, b.Navs); err != nil {
+		return stored, err
+	} else {
+		stored += n
+	}
+	if err := st.StoreRouteDrops(fileID, b.Dropped); err != nil {
+		return stored, err
+	}
+	return stored, nil
+}
+
+// resolver adapts a Store into the SymbolIndex that Build uses, binding the
+// per-file handler resolution to the file's own symbols first.
+type resolver struct {
+	st     Store
+	fileID int64
+}
+
+func (r resolver) ResolveHandler(name string) (int64, string, bool) {
+	return r.st.ResolveHandler(r.fileID, name)
 }
 
 // SymbolIndex resolves handler names to their symbol IDs. It is backed by the

@@ -17,6 +17,7 @@ import (
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/embedder"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/extract"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/route"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/store"
 )
 
@@ -340,9 +341,23 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 			stats.SymbolsAdded += n
 			stats.EdgesAdded += len(edges)
 		}
-		// Record the file's target UIDs for the end-of-tx global prune.
+		// Route pass: framework routing (route nodes + references/navigates
+		// edges) is extracted AFTER the 005 symbol/edge extraction, in the
+		// SAME transaction, so a route node is always resolvable to the 005
+		// symbols it references and a single rollback undoes both. Per-file
+		// route failures are non-fatal (a malformed routing file falls back
+		// to zero route rows and the index continues).
+		routeUIDs, rerr := idx.extractRoutes(ctx, tx, fileID, file)
+		if rerr != nil {
+			fmt.Fprintf(os.Stderr, "warn: route extract %s: %v\n", file.Path, rerr)
+		}
+		// Record the file's target UIDs (005 + route nodes) for the end-of-tx
+		// global prune so the orphan prune does not delete the route nodes.
 		for _, s := range syms {
 			targetUIDs[s.UID] = struct{}{}
+		}
+		for _, uid := range routeUIDs {
+			targetUIDs[uid] = struct{}{}
 		}
 		stats.FilesIndexed++
 	}
@@ -384,10 +399,13 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 	}
 	// Stale edges: an edge whose to_name no longer matches any live symbol and
 	// whose to_id is null is a dangling name-only edge; drop it. (Name-only
-	// edges to live symbols are kept so step 03 can resolve them.)
+	// edges to live symbols are kept so step 03 can resolve them.) Navigates
+	// edges are excluded: their to_name is a route path (not a symbol name),
+	// so the symbol-existence check does not apply.
 	if _, err := tx.Exec(`
 		DELETE FROM edges
 		WHERE to_id IS NULL
+		  AND kind != 'navigates'
 		  AND NOT EXISTS (SELECT 1 FROM symbols s WHERE s.name = edges.to_name)
 	`); err != nil {
 		return stats, fmt.Errorf("prune dangling edges: %w", err)
@@ -549,6 +567,224 @@ func (idx *Indexer) extractFile(file ScannedFile) ([]extract.Symbol, []extract.E
 		return nil, nil, nil, err
 	}
 	return g.Symbols, g.Edges, g.Rationales, nil
+}
+
+// extractRoutes runs the route extractor for one scanned file and persists
+// route nodes + references/navigates edges in the SAME transaction as the 005
+// extraction. It is non-fatal: a malformed routing file yields zero route rows
+// (the index continues). The per-file 005 symbols (just upserted above) are
+// the source of truth for handler resolution (same-file first).
+func (idx *Indexer) extractRoutes(ctx context.Context, tx *sql.Tx, fileID int64, file ScannedFile) ([]string, error) {
+	// Only attempt route extraction for file types a framework recognizes.
+	if route.ExtractFile(file.Path, nil).Framework == "" {
+		return nil, nil
+	}
+	st := &txRouteStore{tx: tx, fileID: fileID}
+	_, err := route.Run(ctx, st, fileID, file.Path, file.Contents, nil)
+	if err != nil {
+		return st.routeUIDs(), err
+	}
+	return st.routeUIDs(), nil
+}
+
+// txRouteStore implements route.Store over the indexer's open transaction. It
+// persists route nodes (kind=route symbols) and references/navigates edges in
+// the SAME tx as the 005 extraction, and applies the drop-not-guess policy in
+// ResolveHandler (same-file first, then a unique global match). fileSyms is
+// loaded lazily on first use (the 005 symbols are already upserted in the tx).
+type txRouteStore struct {
+	tx        *sql.Tx
+	fileID    int64
+	fileSyms  []route.FileSymbol
+	loaded    bool
+	uuids     []string
+}
+
+// routeUIDs returns the UIDs of route nodes stored by this store (for the
+// indexer's orphan-prune target set).
+func (s *txRouteStore) routeUIDs() []string {
+	return s.uuids
+}
+
+// loadFileSyms loads the file's 005 symbols once (name/uid/id), cached.
+func (s *txRouteStore) loadFileSyms() error {
+	if s.loaded {
+		return nil
+	}
+	s.loaded = true
+	rows, err := s.tx.Query(`SELECT name, uid, id FROM symbols WHERE file_id = ? ORDER BY start_line, id`, s.fileID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var sym route.FileSymbol
+		if err := rows.Scan(&sym.Name, &sym.UID, &sym.ID); err != nil {
+			return err
+		}
+		s.fileSyms = append(s.fileSyms, sym)
+	}
+	return rows.Err()
+}
+
+func (s *txRouteStore) FirstSymbolID(fileID int64) (int64, error) {
+	var id int64
+	err := s.tx.QueryRow(`SELECT id FROM symbols WHERE file_id = ? ORDER BY start_line, id LIMIT 1`, fileID).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return id, err
+}
+
+func (s *txRouteStore) StoreRouteNode(node route.RouteNode) (int64, error) {
+	// Upsert the route node into the 005 symbols table, byte-identical to the
+	// 005 symbol upsert (route nodes are kind=route symbols).
+	if _, err := s.tx.Exec(`
+		INSERT INTO symbols (file_id, name, qualified_name, kind, language, signature, start_line, end_line, content_hash, uid)
+		VALUES (?, ?, ?, 'route', ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(uid) DO UPDATE SET
+		  file_id = excluded.file_id,
+		  name = excluded.name,
+		  qualified_name = excluded.qualified_name,
+		  kind = excluded.kind,
+		  language = excluded.language,
+		  signature = excluded.signature,
+		  start_line = excluded.start_line,
+		  end_line = excluded.end_line,
+		  content_hash = excluded.content_hash`,
+		s.fileID, node.Name, node.Name, node.Language, node.PathPattern,
+		node.Line, node.Line, node.ContentHash, node.UID,
+	); err != nil {
+		return 0, fmt.Errorf("upsert route node %s: %w", node.Name, err)
+	}
+	var id int64
+	if err := s.tx.QueryRow(`SELECT id FROM symbols WHERE uid = ?`, node.UID).Scan(&id); err != nil {
+		return 0, err
+	}
+	s.uuids = append(s.uuids, node.UID)
+	return id, nil
+}
+
+func (s *txRouteStore) StoreRouteMeta(fileID, symbolID int64, node route.RouteNode) error {
+	// Remove this route's prior meta (target-state) then insert.
+	if _, err := s.tx.Exec(`DELETE FROM route_meta WHERE symbol_id = ?`, symbolID); err != nil {
+		return err
+	}
+	_, err := s.tx.Exec(`INSERT INTO route_meta (symbol_id, file_id, framework, method, path_pattern, screen)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		symbolID, fileID, node.Framework, node.Method, node.PathPattern, "")
+	return err
+}
+
+func (s *txRouteStore) ResolveHandler(fileID int64, name string) (int64, string, bool) {
+	// 1) Same-file match: a handler defined in the same file wins.
+	if err := s.loadFileSyms(); err != nil {
+		return 0, "", false
+	}
+	for _, fs := range s.fileSyms {
+		if fs.Name == name {
+			return fs.ID, fs.UID, true
+		}
+	}
+	// 2) Unique global match (owner-qualified or bare-name). Multiple matches
+	// are ambiguous → dropped (drop-not-guess).
+	var id int64
+	var uid string
+	var matches int
+	err := s.tx.QueryRow(`SELECT COUNT(*) FROM symbols WHERE name = ?`, name).Scan(&matches)
+	if err != nil {
+		return 0, "", false
+	}
+	if matches != 1 {
+		return 0, "", false
+	}
+	if err := s.tx.QueryRow(`SELECT id, uid FROM symbols WHERE name = ? LIMIT 1`, name).Scan(&id, &uid); err != nil {
+		return 0, "", false
+	}
+	return id, uid, true
+}
+
+func (s *txRouteStore) StoreReferencesEdges(fileID int64, nodes []route.RouteNode, _ int64) (int, error) {
+	// Target-state: prune this file's prior route-originated references edges
+	// (kind=references whose from is a route node in this file), then upsert.
+	if _, err := s.tx.Exec(`
+		DELETE FROM edges
+		WHERE kind = 'references' AND file_id = ?
+		  AND from_id IN (SELECT id FROM symbols WHERE file_id = ? AND kind = 'route')`,
+		fileID, fileID); err != nil {
+		return 0, err
+	}
+	stored := 0
+	for _, n := range nodes {
+		if n.HandlerSymbol == 0 {
+			continue // dropped (drop-not-guess) — no references edge fabricated
+		}
+		var routeID int64
+		if err := s.tx.QueryRow(`SELECT id FROM symbols WHERE uid = ?`, n.UID).Scan(&routeID); err != nil {
+			return stored, err
+		}
+		conf := route.ConfidenceExtracted
+		if !n.HandlerExplicit {
+			conf = route.ConfidenceInferred
+		}
+		if _, err := s.tx.Exec(`
+			INSERT INTO edges (kind, from_id, file_id, to_id, to_name, target_path, confidence, line)
+			VALUES ('references', ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(kind, from_id, file_id, to_id, to_name, target_path, line) DO UPDATE SET
+			  confidence = excluded.confidence`,
+			routeID, fileID, n.HandlerSymbol, n.HandlerName, n.PathPattern, conf, n.Line,
+		); err != nil {
+			return stored, fmt.Errorf("upsert references edge %s: %w", n.HandlerName, err)
+		}
+		stored++
+	}
+	return stored, nil
+}
+
+func (s *txRouteStore) StoreNavigatesEdges(fileID int64, navs []route.NavigationNode) (int, error) {
+	// Target-state: prune this file's prior navigates edges, then upsert.
+	if _, err := s.tx.Exec(`
+		DELETE FROM edges
+		WHERE kind = 'navigates' AND file_id = ?
+		  AND from_id IN (SELECT id FROM symbols WHERE file_id = ?)`,
+		fileID, fileID); err != nil {
+		return 0, err
+	}
+	// The sending function is the file's first 005 symbol (top-level
+	// navigation); a file with no symbols has no resolvable source.
+	fromID, fromErr := s.FirstSymbolID(fileID)
+	if fromErr != nil {
+		fromID = 0
+	}
+	stored := 0
+	for _, n := range navs {
+		src := n.FromSymbol
+		if src == 0 {
+			src = fromID
+		}
+		if src == 0 {
+			continue // no sending function → unresolved, not fabricated
+		}
+		if _, err := s.tx.Exec(`
+			INSERT INTO edges (kind, from_id, file_id, to_id, to_name, target_path, confidence, line)
+			VALUES ('navigates', ?, ?, NULL, ?, ?, ?, ?)
+			ON CONFLICT(kind, from_id, file_id, to_id, to_name, target_path, line) DO UPDATE SET
+			  confidence = excluded.confidence`,
+			src, fileID, n.ToName, n.ToName, n.Confidence, n.Line,
+		); err != nil {
+			return stored, fmt.Errorf("upsert navigates edge %s (from_id=%d file_id=%d): %w", n.ToName, src, fileID, err)
+		}
+		stored++
+	}
+	return stored, nil
+}
+
+func (s *txRouteStore) StoreRouteDrops(fileID int64, dropped int) error {
+	_, err := s.tx.Exec(`
+		INSERT INTO route_drops (file_id, dropped) VALUES (?, ?)
+		ON CONFLICT(file_id) DO UPDATE SET dropped = excluded.dropped`,
+		fileID, dropped)
+	return err
 }
 
 // fileFirstSymbol caches the first (lowest id) symbol of a file for the
