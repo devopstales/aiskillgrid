@@ -3,6 +3,10 @@
 # Trace: change.md ## Goal + ## Definition of Done; tasks.md @step-NN verify lines.
 # Mapping: @p0 scenarios ↔ change.md DoD / Testing strategy; @p1 = important failure paths.
 # One Feature per step; tag each Feature with @step-NN matching tasks.md.
+# Note: @step-04b renders 013's governance/layer data (asset library, layer drill-down,
+# share, in-place edit, status, loadout) as a forward-compat placeholder (a labeled
+# collapsed panel + the flat pre-013 view) when 013 is absent. 013 is a SOFT dependency —
+# the Memory tab stays fully interactive with or without 013 (per-widget error isolation).
 
 @step-01
 Feature: HTTP API exposes memory + session read surfaces for the dashboard
@@ -324,6 +328,101 @@ Feature: Backlog and Sessions tabs are fully functional on the dashboard
     And  GET /sessions/{id}/summary returns 404
     When  I click a session with an unknown id
     Then  I see an error message in the summary pane (not a blank pane)
+
+@step-04b
+Feature: Memory governance control-panel views render 013 data with forward-compat placeholders
+  As an operator of a skillgrid-installed machine
+  I want the Memory tab to be a control panel (asset library, layer drill-down, explicit share, in-place edit, review/status)
+  So that I can govern and correct memory — not just browse it — and 009 stays fully usable even before 013 lands
+
+  # --- 013-present (happy path) ---
+
+  @happy @p0
+  Scenario: Asset library shows owner, version, status, usage, and visibility
+    Given I am on the Memory tab against a 013-provisioned store
+    And  there is an observation with owner "op-1", 3 versions, status "active", retrieval usage 12, visibility "team"
+    When  I view the Memory list
+    Then  each row shows owner, version count, status, retrieval usage, and a visibility badge
+    And  toggling "show numbers" on the asset list shows the raw JSON/table
+
+  @happy @p0
+  Scenario: Layer drill-down renders the L0 to L3 chain lazy-loaded per layer
+    Given I am viewing an observation that has a distilled L1 atom
+    When  I expand the layer drill-down
+    Then  I see the L0 -> L1 -> L2 -> L3 chain, loaded one layer at a time on expand
+    And  each layer shows its provenance link
+    And  the distilled L1 atom links back to its L0 source
+
+  @happy @p0
+  Scenario: Explicit share widens visibility by an explicit click
+    Given I am viewing an observation with visibility "private"
+    When  I select visibility "team" and confirm the share
+    Then  the observation is now shared to "team" (an explicit action, never a default)
+    And  a confirmation dialog is shown before the visibility change
+
+  @happy @p0
+  Scenario: In-place edit corrects an atom and appends a version
+    Given I am viewing an L1 atom
+    When  I edit it in place and save
+    Then  the new content is current
+    And  the prior content is recoverable in the version history view
+
+  @happy @p0
+  Scenario: Review status is visible and changeable
+    Given I am viewing an observation with status "active"
+    When  I change the status to "superseded"
+    Then  the status is now "superseded" (the personal -> shared gate is a UI action)
+
+  @happy @p0
+  Scenario: Read-only agent loadout shows equipped assets
+    Given I am on the Memory tab
+    And  agent "alpha" is equipped with 2 assets (visibility "agent")
+    When  I open the agent loadout panel for "alpha"
+    Then  I see the 2 assets equipped to "alpha" (read-only)
+
+  # --- forward-compat (013 absent — soft dependency) ---
+
+  @edge
+  Scenario: With 013 absent every governance and layer view renders a forward-compat placeholder
+    Given I am on the Memory tab against a pre-013 store (no owner/version/status/usage/visibility or layer data)
+    When  I view the asset library, layer drill-down, share, in-place edit, review/status, and loadout
+    Then  each renders a labeled collapsed placeholder plus the flat pre-013 view
+    And  the Memory tab's search, detail, and actions stay fully interactive
+
+  # --- threat: Governance mutation / soft-dep (write-gated + per-widget isolation) ---
+
+  @failure @p1
+  Scenario: Governance mutations (edit, share, status) are write-gated
+    Given SKILLGRID_HTTP_TOKEN is set to "secret"
+    And  I am viewing an observation in the Memory tab
+    When  I edit it in place, share it, or change its status without a bearer token
+    Then  each governance mutation returns 401
+    And  with the bearer token "secret", the same mutations return 200
+
+  @failure @p1
+  Scenario: In-place edit appends a 013 version rather than overwriting
+    Given SKILLGRID_HTTP_TOKEN is set to "secret"
+    And  I am viewing an L1 atom with prior content "v1"
+    When  I edit it in place to "v2" with the bearer token
+    Then  the current content is "v2"
+    And  the prior content "v1" is still re-readable in the version history view
+
+  @failure @p1
+  Scenario: Share is idempotent and returns 400 on an unknown target
+    Given SKILLGRID_HTTP_TOKEN is set to "secret"
+    And  I am viewing an observation
+    When  I share it to "team" with the token, then share to "team" again
+    Then  both return 200 and the visibility stays "team" (idempotent)
+    And  when I share it to an unknown target
+    Then  I receive 400 and the visibility is unchanged
+
+  @failure @p1
+  Scenario: A failed or absent 013 field kills that widget only (per-widget isolation)
+    Given I am on the Memory tab against a 013-provisioned store
+    And  the layer-drill-down field for one observation is missing or returns 500
+    When  I view that observation
+    Then  the layer drill-down widget shows an error or placeholder
+    And  the asset library, share, in-place edit, review/status, and loadout widgets remain fully interactive
 
 @step-05
 Feature: OpenAPI spec and polish match the shipped surface

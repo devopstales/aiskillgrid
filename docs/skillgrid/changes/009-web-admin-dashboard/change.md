@@ -12,7 +12,7 @@
 
 **Tech stack:** Go 1.22+ (`skillgrid-cli`), existing SQLite/MCP service layer (untouched), embedded static SPA (vanilla HTML/JS/CSS, `embed.FS`), `backlog` CLI (Bun, shell-out, `--json` output).
 
-**Research:** `docs/skillgrid/changes/009-web-admin-dashboard/research.md` (UI pattern survey: Graphify-Labs/graphify, colbymchenry/codegraph, abhigyanpatwari/GitNexus — see "Adopted UI patterns" below)
+**Research:** `docs/skillgrid/changes/009-web-admin-dashboard/research.md` (UI pattern survey: Graphify-Labs/graphify, colbymchenry/codegraph, abhigyanpatwari/GitNexus — see "Adopted UI patterns" below) | `TencentCloud/TencentDB-Agent-Memory` (26.2k★) — control-panel model: asset library, agent loadout, layer drill-down, review workflow, RPC envelope (see 013 tencentdb-takeaways observation); the memory-governance/layer data these views render is provided by `013-mnemonic-layered-memory-governance`
 
 **Prototype:** none
 
@@ -38,6 +38,8 @@ Operators can open `http://127.0.0.1:7438/` from a running `skillgrid serve` and
 - Redoing Swagger UI — `/swagger-ui` stays as-is
 - Graph canvas visualization (vis.js/Sigma.js) — deferred to a follow-up change that depends on 005/008 edges; 009 ships a forward-compat placeholder in the Code tab only
 - AI chat panel in the dashboard — the agent lives in the terminal; the dashboard is operator-facing, not an agent client
+- **Multi-tenant teams / role layers / LLM proxy** — TencentDB's product-scale layer; 009 renders the single-operator governance (owner/visibility/usage) that 013 provides, not the multi-tenant machinery
+- **Memory layering + governance data model** (L0–L3, owner, version, status, usage, visibility) — owned by `013-mnemonic-layered-memory-governance`; 009 **renders** those fields (asset library + layer drill-down + review + explicit share) and shows forward-compat placeholders where 013 has not landed yet
 
 ## Definition of Done
 
@@ -45,6 +47,9 @@ This change is done only when **all** of the following are true:
 
 - [ ] `GET /` serves the new dashboard; all four tabs (Memory, Backlog, Code, Sessions) render with live data from a real `skillgrid serve`
 - [ ] Memory tab: search, observation detail view (full content via new endpoint), pin/unpin, soft-delete all work in-browser
+- [ ] **Asset governance view** (renders 013 data; forward-compat placeholder if 013 not landed): owner / version history / status / retrieval usage / visibility on the observation detail; an **explicit share** action (`private`/`team`/`restricted`/`agent`); **editable in place** (correct an atom, not just delete-and-rebuild)
+- [ ] **Layer drill-down** (renders 013 data; placeholder if not landed): the observation/session detail shows the L0→L1→L2→L3 chain with provenance links, lazy-loaded per layer
+- [ ] **Review/approve affordance**: a memory's status (`active`/`superseded`/`archived`) is visible and changeable — the personal→shared gate is a UI action, not just a store field
 - [ ] Backlog tab: grouped task board with status columns from `backlog config.yml`, task detail view, and status-change action that mutates the `.backlog` files via the CLI
 - [ ] Code tab: index status (file/chunk counts, last indexed, stale flag), re-index action, BM25 search with expandable source view
 - [ ] Sessions tab: session list with titles/started-at, recent context, session summaries
@@ -72,7 +77,8 @@ This change is done only when **all** of the following are true:
 
 ## Business rules
 
-- The dashboard is read-mostly: mutations are limited to memory edits already available via API (pin/unpin/soft-delete/update), plus backlog **status change** — nothing else mutates
+- The dashboard is read-mostly: mutations are limited to memory edits already available via API (pin/unpin/soft-delete/update) plus the **013 governance mutations** (in-place edit of an atom, explicit `mem_share` visibility change, status change) — gated on 013 landing; plus backlog **status change** — nothing else mutates
+- **013 is a soft dependency:** the governance + layer views render 013's fields when present and show a forward-compat placeholder (a labeled collapsed panel + the flat pre-013 view) when 013 has not landed — 009 must not block on 013, exactly like the graph-canvas placeholder blocks on 005/008
 - Backlog mutations go through the `backlog` CLI, never direct `.backlog/*.md` file writes (metadata/history consistency rule from `AGENTS.md`)
 - The dashboard must degrade gracefully when the `backlog` CLI is absent (Backlog tab shows a disabled state with reason; other tabs unaffected)
 - Server stays bound to `127.0.0.1` by default; no new env vars for serving
@@ -83,6 +89,7 @@ This change is done only when **all** of the following are true:
 - **New HTTP read endpoints** (service methods already exist): `GET /observations/{id}`, `GET /sessions`, `GET /sessions/{id}/summary`, `POST /memory/observations/{id}/pin`, `POST /memory/observations/{id}/unpin`
 - **New backlog bridge**: `internal/mnemonic/http/backlog` package — shells out to `backlog` CLI: `GET /backlog/config`, `GET /backlog/tasks`, `GET /backlog/tasks/{id}`, `POST /backlog/tasks/{id}/status` (write-gated)
 - **Dashboard SPA rewrite** at `internal/mnemonic/http/ui/`: four tabs (Memory, Backlog, Code, Sessions), observation detail, pin/unpin/delete, backlog board grouped by status, code search with source view, session list + summaries; project selector persists to localStorage (kept from current UI)
+- **Control-panel views** (TencentDB model, rendering 013 data with forward-compat placeholders): a Memory **asset library** (browse/search with owner/version/status/usage/visibility metadata), an observation **layer drill-down** (L0→L3 chain, lazy-loaded), an **explicit share** action, **in-place edit** (correct, not delete+rebuild), and a **review/status** affordance. A read-only **agent loadout** view (which assets a named agent is equipped with) — the binding engine is a later change; 009 shows the equipping
 - **OpenAPI spec** (`ui/openapi.yaml`) updated for every new route
 - **Tests**: HTTP integration tests per new route (happy/edge/failure), backlog bridge tests (CLI present/missing/bad JSON), existing suite stays green
 
@@ -91,7 +98,9 @@ This change is done only when **all** of the following are true:
 - **Risk:** `backlog` CLI is a separate Bun binary — version drift or absence breaks the Backlog tab — **Mitigation:** bridge treats the CLI as an external dependency: missing binary → 503 with JSON reason, tab renders disabled state; output pinned to `--json` `schemaVersion` field with a validation test
 - **Risk:** SPA rewrite regresses the current viewer (mem/code/web tabs) — **Mitigation:** step 01 ships the SPA skeleton with Memory+Code tabs working before Backlog/Sessions land (vertical slices, each step independently shippable)
 - **Risk:** shell-out from a long-running HTTP server accumulates subprocess state — **Mitigation:** each call is a fresh `exec.CommandContext` with a 10s timeout; no shared CLI session
-- **Rollback:** the change is additive to routes + in-place UI rewrite; revert the commit and `skillgrid serve` returns to the previous viewer. No schema or config migration, so rollback is a plain git revert.
+- **Risk:** 013 (memory governance/layer data) lands after 009 — the control-panel views would have nothing to render — **Mitigation:** 013 is a **soft** dependency; every 013-backed view (asset library metadata, layer drill-down, share, in-place edit, status) renders a forward-compat placeholder (labeled collapsed panel + the flat pre-013 view) when 013 is absent, exactly like the graph-canvas placeholder blocks on 005/008. 009 ships and is fully usable without 013
+- **Risk:** the in-place edit / share mutations (step 04b) write memory — a mis-click could corrupt a governed asset — **Mitigation:** write-gated (existing bearer token); the edit appends a 013 version (recoverable), not an overwrite; share is idempotent; a confirmation dialog on visibility change
+- **Rollback:** the change is additive to routes + in-place UI rewrite; revert the commit and `skillgrid serve` returns to the previous viewer. No schema or config migration, so rollback is a plain git revert. (Step 04b's governance views are pure UI over 013's API — reverting them leaves the flat Memory tab intact.)
 
 ## Error handling
 
@@ -126,7 +135,8 @@ Contract for `sdd-spec`. Do not renumber after `tasks.md` exists. Per-step Out o
 | 02 | `backlog-bridge` | Shell-out bridge to `backlog` CLI behind `/backlog/*` routes with graceful degradation | `skillgrid-cli/internal/mnemonic/http/backlog` | — |
 | 03 | `dashboard-shell` | SPA rewrite skeleton: layout, routing, project selector, Memory tab (search + detail + pin/unpin/delete), Code tab (status + search + source view) | `skillgrid-cli/internal/mnemonic/http/ui` | 01 |
 | 04 | `dashboard-backlog-sessions` | Backlog tab (board by status, detail, status change) + Sessions tab (list, context, summaries) | `skillgrid-cli/internal/mnemonic/http/ui` | 03 |
-| 05 | `openapi-and-polish` | OpenAPI spec updated for all new routes; swagger-ui re-verified; DoD smoke pass | `skillgrid-cli/internal/mnemonic/http/ui` | 04 |
+| 04b | `memory-governance-view` | Memory control-panel views: asset library (owner/version/status/usage/visibility), L0→L3 layer drill-down, explicit share, in-place edit, review/status — rendering 013 data with forward-compat placeholders | `skillgrid-cli/internal/mnemonic/http/ui` | 03, (soft: 013) |
+| 05 | `openapi-and-polish` | OpenAPI spec updated for all new routes; swagger-ui re-verified; DoD smoke pass | `skillgrid-cli/internal/mnemonic/http/ui` | 04, 04b |
 
 ---
 
@@ -210,6 +220,8 @@ skillgrid-cli/internal/mnemonic/http/
 | `skillgrid-cli/internal/mnemonic/http/ui/app.css` | Create | 03 | extracted styles |
 | `skillgrid-cli/internal/mnemonic/http/ui/index.html` | Modify | 04 | Backlog + Sessions tab markup |
 | `skillgrid-cli/internal/mnemonic/http/ui/app.js` | Modify | 04 | Backlog board/detail/status-change + Sessions list/summaries |
+| `skillgrid-cli/internal/mnemonic/http/ui/index.html` | Modify | 04b | Memory control-panel markup: asset library metadata columns, layer drill-down pane, share/edit/status controls, loadout panel |
+| `skillgrid-cli/internal/mnemonic/http/ui/app.js` | Modify | 04b | Asset library (owner/version/status/usage/visibility), lazy L0→L3 layer drill-down (`mem_layers`), explicit share + in-place edit + status (013 API, write-gated), read-only loadout; forward-compat placeholder when 013 absent |
 | `skillgrid-cli/internal/mnemonic/http/ui/openapi.yaml` | Modify | 05 | all new routes + examples |
 | `docs/skillgrid/user-manual/` (serve page) | Modify | 05 | dashboard documentation |
 
@@ -261,7 +273,7 @@ skillgrid-cli/internal/mnemonic/http/
 ### Step 04 — `dashboard-backlog-sessions`
 
 **Goal:** Backlog and Sessions tabs are fully functional.
-**Out of scope:** backlog mutations other than status; relay/cleave surfaces (006)
+**Out of scope:** memory governance/layer views (step 04b); backlog mutations other than status; relay/cleave surfaces (006)
 **Definition of Done:** manual smoke — board renders from live CLI data; status change round-trips; sessions list + summaries render
 
 - Backlog tab: tasks grouped into columns by status (columns from `GET /backlog/config`), card shows id/title/priority/AC-progress; click → detail pane (references, assignees, dates); "Move to…" status action calls the step-02 endpoint and re-renders
@@ -269,6 +281,21 @@ skillgrid-cli/internal/mnemonic/http/
 - Backlog tab degraded state: on 503 shows "backlog CLI not found — install with `skillgrid install`" and disables interactions
 - Sessions tab: session list (title, started_at, status) via step-01 `GET /sessions`, recent context section via `GET /context`, click session → summary pane via `GET /sessions/{id}/summary`
 - **Per-widget error isolation** (promoted to first-class pattern): each widget owns its own fetch + error render; a failed endpoint kills that widget only, never the tab or page; a 500 on `/backlog/tasks` leaves Memory, Code, Sessions fully interactive
+
+### Step 04b — `memory-governance-view`
+
+**Goal:** The Memory tab becomes a control panel (not just a browser) — asset library + layer drill-down + explicit share + in-place edit + review/status — rendering 013's governance/layer data with forward-compat placeholders where 013 has not landed.
+**Out of scope:** the agent-loadout *binding engine* (a later change; 04b shows a read-only equipping view); multi-tenant teams/roles/proxy; any change to 013's data model
+**Definition of Done:** against a 013-provisioned store, the asset library shows owner/version/status/usage/visibility, the layer drill-down renders the L0→L3 chain (lazy-loaded), explicit share + in-place edit + status change round-trip via the 013 API; against a pre-013 store, every one of those shows a forward-compat placeholder (labeled collapsed panel + the flat view) and the tab stays fully interactive
+
+- **Asset library** — the Memory list is an asset registry: each row carries owner, version count, status, retrieval usage, and a visibility badge (`private`/`team`/`restricted`/`agent`); search + the show-numbers table twin apply
+- **Layer drill-down** — the observation/session detail pane shows the L0→L1→L2→L3 chain with each layer's provenance link, **lazy-loaded per layer** (a `mem_layers` call on expand); a distilled atom links back to its L0 source so an operator can verify the extraction
+- **Explicit share** — a visibility control on the detail pane (`private`→`team`/`restricted`/`agent` + an ACL editor for `restricted`) calls the 013 `mem_share` mutation (write-gated); sharing is an explicit click, never a default
+- **In-place edit** — an L1–L3 atom is **editable in place** (correct the value, not delete-and-rebuild); the edit appends a 013 version and the prior content is recoverable in the version history view
+- **Review/status** — a memory's status (`active`/`superseded`/`archived`) is visible and changeable; the personal→shared gate is a UI action
+- **Read-only agent loadout** — a panel shows which assets a named agent is equipped with (visibility=`agent` bindings); the binding engine is out of scope, the equipping is shown
+- **Forward-compat** — every 013-backed view degrades to a labeled collapsed placeholder + the flat pre-013 view when 013 is absent; a failed/absent 013 field kills that widget only (per-widget error isolation), never the tab
+- All data from same-origin JSON; no external CDN assets (binary must work offline)
 
 ### Step 05 — `openapi-and-polish`
 
@@ -290,6 +317,7 @@ Mark each row `Applicable` or `N/A: reason`. Applicable rows name an owning step
 | **Subprocess execution** — shell-out to `backlog` CLI: missing binary, non-zero exit, timeout, stdout not JSON, huge output | Applicable | 02 | `bridge_test.go`: missing-binary → 503; fixture CLI exiting 1 → 502 with stderr excerpt; fixture CLI sleeping 11s → 502 timeout; fixture CLI printing garbage → 502; status-change writes verified by re-reading file via fixture |
 | **Mnemonic tool surface** (`mem_*` / `code_*` / `web_cache_*`) | N/A: no MCP tool, param, return shape, or error code changes — this change adds HTTP routes only; MCP tools are frozen (non-goal) | — | inventory verification (grep) that no `tools_*.go` file is touched |
 | **Authz / data leak** — new read routes expose full observation content and session summaries to same-origin callers; write routes must stay token-gated | Applicable | 01 | integration test: with `SKILLGRID_HTTP_TOKEN` set, `POST .../pin` without token → 401, with token → 200; `GET /observations/{id}` open (matches read-route policy); `POST /backlog/tasks/{id}/status` without token → 401 |
+| **Governance mutation / soft-dep** — step 04b writes memory (edit/share/status) and renders 013 data that may be absent | Applicable | 04b | the edit/share/status calls are write-gated (401 without token); an in-place edit appends a 013 version (re-readable, not overwritten); share is idempotent + 400 on unknown target; **with 013 absent**, every governance/layer view renders a forward-compat placeholder and the Memory tab stays fully interactive (per-widget isolation — a missing 013 field kills that widget only) |
 | **Shared-convention drift** — no `_shared/conventions/*.md` edits in this change | N/A: impacted files map contains no `.agents/skills/_shared` paths | — | — |
 | **Git repository selection / commit / push / PR commands** | N/A: no git or PR automation — the backlog CLI manages its own git behavior internally; the bridge only invokes task-scoped commands | — | — |
 | **Documentation-like paths / executable-file classification** | N/A: no file classification or execution of repo files — the only executable is the `backlog` binary on PATH | — | — |
@@ -313,7 +341,12 @@ Mark each row `Applicable` or `N/A: reason`. Applicable rows name an owning step
 | **Write-gated route** | An HTTP route protected by the existing `SKILLGRID_HTTP_TOKEN` bearer check (`requireWriteAuth`) | technical |
 | **Show-numbers table twin** | Every dashboard data widget has a toggle that renders the raw JSON/table behind the visual; the table is the source of truth, the visual is a convenience view (pattern from codegraph telemetry) | technical |
 | **Per-widget error isolation** | Each dashboard widget owns its own fetch + error render; a failed endpoint kills that widget only, never the tab or page (pattern from codegraph telemetry) | technical |
-| **Forward-compat placeholder** | A UI panel that renders a fallback today and is the designated mount point for a capability that depends on a future change (009's graph panel awaits 010) | technical |
+| **Forward-compat placeholder** | A UI panel that renders a fallback today and is the designated mount point for a capability that depends on a future change (009's graph panel awaits 010; the memory governance/layer views await 013) | technical |
+| **Asset library** | The Memory list as an asset registry — each row carries owner, version count, status, retrieval usage, and a visibility badge; browse/search with the show-numbers table twin (TencentDB Memory Hub asset library) | technical |
+| **Layer drill-down** | The observation/session detail shows the L0→L1→L2→L3 chain with per-layer provenance, lazy-loaded on expand (TencentDB `chat-memory/layer` lazy load) | technical |
+| **Explicit share** | A visibility control that widens a `private` asset to `team`/`restricted`/`agent` by an explicit action (never a default) via the 013 `mem_share` mutation | technical |
+| **Agent loadout (view)** | A read-only panel showing which assets a named agent is equipped with (visibility=`agent` bindings); the binding engine is a later change (TencentDB Agent Loadout) | technical |
+| **RPC response envelope** | A uniform `{code, message, request_id, data}` envelope on the 013-backed governance endpoints, `code`→HTTP-status mapping, idempotent create (409 on dup) — the API convention 04b consumes (TencentDB MemoryPanel) | technical |
 
 ## Author self-review
 

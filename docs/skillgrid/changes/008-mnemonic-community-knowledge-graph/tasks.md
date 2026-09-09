@@ -1,12 +1,12 @@
 # Tasks: 008-mnemonic-community-knowledge-graph
 
-> **STATUS:** `in-progress` (2026-09-08) — 0/3 steps PASS
+> **STATUS:** `in-progress` — 0/3 steps PASS
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** Extend the 005 code-intelligence graph with Leiden community detection + god nodes (architectural orientation), a **precomputed process layer** (entry-point → execution flows, so agents see what a subsystem *does* end-to-end), and a knowledge-graph layer that maps docs, configs, and SQL schemas as nodes linked to code — so agents see subsystems, their flows, and the "why" beyond the call graph.
+**Goal:** Extend the 005 code-intelligence graph with Leiden community detection + god nodes (architectural orientation), a **precomputed process layer** (entry-point → execution flows, so agents see what a subsystem *does* end-to-end), and a knowledge-graph layer that maps docs, configs, and SQL schemas as nodes linked to code — so agents see subsystems, their flows, and the "why" beyond the call graph — gated by a retrieval-eval harness that makes ranking quality measured, not asserted.
 
-**Architecture:** Additive `012_*` schema on top of 005's symbols/edges. Layer 1 runs `bluuewhale/loom` Leiden (pure-Go, zero deps) over the edges table to produce communities + god nodes + LLM-free labels. Layer 2 is the **process pass**: traces execution flows from 010's entry points through 005 call edges (depth-capped, cross-community flag) into LLM-labeled `processes`/`process_steps`. Layer 3 adds deterministic doc/config/SQL extractors feeding the same graph. See `change.md` decisions.
+**Architecture:** Additive `012_*` schema on top of 005's symbols/edges. Step 01 runs `bluuewhale/loom` Leiden (pure-Go, zero deps) over the edges table into communities + god nodes + LLM-free labels + community tools, AND ships the **retrieval-eval harness** (git-derived leak-free ground truth, one shared index per corpus, paired bootstrap CI + permutation p-values, file-granularity metrics) that gates the **retrieval-quality layer** on 005's ranker (explainable bounded rerank table, file-level RRF agreement, confidence→action, skeletonized snippets, output-time secret redaction, `doctor --strict`). Step 02 is the **process pass**: entry-point → call-chain traces into LLM-labeled `processes`/`process_steps`. Step 03 adds deterministic doc/config/SQL extractors feeding the same graph. See `change.md` decisions.
 
 **Tech Stack:** Go (`skillgrid-cli`), SQLite (`modernc.org/sqlite`, CGo-free), gotreesitter graph from 005, `bluuewhale/loom` (pure-Go Leiden/Louvain), MCP (`mcp-go`), CLI, optional LLM for process labels (cached by content-hash; not required for graph structure).
 
@@ -18,7 +18,7 @@
 
 ## Goal
 
-Coding agents and operators get subsystem-level orientation (communities, god nodes), **precomputed execution flows (processes)**, and a knowledge graph that connects code to its docs, configs, and data schema — answering "what are the core modules?", "what does this subsystem *do*, end to end?", "which flow does this symbol participate in?", and "which code reads/writes this table?" without reading files.
+Coding agents and operators get subsystem-level orientation (communities, god nodes), **precomputed execution flows (processes)**, and a knowledge graph that connects code to its docs, configs, and data schema — answering "what are the core modules?", "what does this subsystem *do*, end to end?", "which flow does this symbol participate in?", and "which code reads/writes this table?" without reading files — with retrieval quality **measured, not asserted**.
 
 ## Out of scope / Non-Goals
 
@@ -41,6 +41,9 @@ Change is done only when **all** of the following are true:
 - [ ] Config files (`.yaml`/`.toml`/`.json`) become nodes with `configures` edges to the code they configure
 - [ ] SQL schema (`.sql` DDL) becomes table/column nodes with `reads`/`writes` edges to code that references them
 - [ ] Every new edge carries a Confidence Label (`EXTRACTED | INFERRED | AMBIGUOUS`)
+- [ ] A **retrieval-eval harness** ships: git-derived ground truth (commit subject → files changed, zero leakage), one shared index per corpus, paired bootstrap CI + permutation p-value on every non-baseline row, file-granularity metrics (`recall@5/10`, `MRR`, `nDCG@10`, `useful@budget`, `tokens`, `dup%`, p50/p95/p99); the harness **removes or rejects at least one candidate ranking signal that fails significance** (or documents that all shipped signals passed)
+- [ ] 005's hybrid ranker gains the **explainable bounded rerank table** + **file-level RRF agreement** + **categorical confidence→action contract** + **skeletonized snippets** — each change proven by the harness, not asserted
+- [ ] Secret-like patterns are **re-redacted at output time** in `code_*` search/read responses; `skillgrid doctor --strict` reports redaction + freshness state for CI
 - [ ] Existing 005 `code_*` tools are unchanged (name + required params); `go test ./...` passes for touched packages
 - [ ] Every Step Blueprint entry has a matching section in `tasks.md` with Verdict `PASS` or `PASS WITH WARNINGS`
 - [ ] Every `@step-NN` Feature in `acceptance.feature` has passing `@happy`, `@edge`, and `@failure` scenarios
@@ -57,23 +60,32 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 - CGo-free: Leiden is a pure-Go implementation (`bluuewhale/loom`, no C dependency)
 - Every new edge carries a Confidence Label: `EXTRACTED | INFERRED | AMBIGUOUS`
 - Community labels are LLM-free (derived from top god-node names + file paths, not an API call)
-- Processes are **precomputed at index time** — traced from entry points through 005 call edges, LLM-labeled once, cached by process content-hash (re-label only on change); a `code_processes` query returns complete flows in one call with no per-query traversal
+- Processes are **precomputed at index time** (GitNexus "precompute, don't query" thesis) — traced from entry points through 005 call edges, LLM-labeled once, so a `code_processes` query returns complete flows in one call with no per-query traversal
 - Process tracing is deterministic (graph traversal + LLM label only); no per-query LLM call
-- Process label cache keyed to process content-hash; LLM down → flow is cached **unlabeled**, never fabricated
+- Process label cache keyed to process content-hash (re-label only on change); LLM down → flow is cached **unlabeled**, never fabricated
 - Process trace is depth/step-capped; a trace that can't be completed is truncated with a "stops at <symbol> (<reason>)" note (reuses 005's graph-stops), never a silent cut
-- Doc/config/SQL extraction is deterministic (AST/regex/link-parse); no LLM for graph structure
+- Doc/config/SQL extraction is deterministic (AST/regex/link-parse), no LLM for the graph structure
 - Unresolvable config refs are `AMBIGUOUS`, never dropped
 - Per-file extract failure → `warn+continue` (fallback); never abort the whole index run
+- **Retrieval quality is measured, not asserted:** every ranking signal ships only if it survives the eval harness — paired bootstrap 95% CI + permutation p-value on a git-derived query set, one shared index per corpus (ablation deltas measure ranking, never indexing variance). A signal that fails is removed or kept-off, with the decision recorded
+- **Explainable, bounded rerank:** every boost/penalty is a named, capped factor with a written rationale
+- **File-level RRF agreement:** fusion candidates are keyed by `(path, line-bucket)`; cross-source agreement at file level produces one strong candidate, not two weak ones
+- **Confidence→action contract:** search responses carry a categorical `high|medium|low` confidence mapped to an explicit agent action (high = read ranges + answer; medium = read + one confirming grep; low = use the attached fallbacks) plus **fallback suggestions** (ready `rg` patterns, likely paths, "broaden query") when low
+- **Skeletonized snippets:** result snippets collapse unrelated bodies while preserving imports, signatures, matched lines, and exact read ranges
+- **Fail closed at the security boundary:** secret-like patterns are re-redacted at output time (not only at index time); `doctor --strict` exposes redaction + freshness state for CI
 - Existing 005 `code_*` tools keep name + required params; all new tools use distinct `code_*` names
 - Migration id `012_community_knowledge_graph.sql` — leave `011` for 005
 - Leiden on a graph with < 2 nodes → `warn+continue` (single trivial community; no crash)
-- Community label resolution finds no god node → `warn+continue` (label = "community-N"; never fabricated)
+- Community label resolution finds no god node → `warn+continue` (label = "community-N"; never fabricated names)
 - Doc file with unparseable links → `warn+continue` (skip bad links; index the rest)
 - SQL DDL that fails to parse → `warn+continue` (skip that statement; index the rest)
-- Entry point with no traceable call chain → `warn+continue` (single-step or skipped; not fabricated)
+- Entry point with no traceable call chain → `warn+continue` (single-step, or skipped; not fabricated; "stops at <dispatch>" if mid-flow)
 - Bad / missing args on new `code_*` tools → `abort` with clear validation error; do not invent communities or processes
+- Eval harness: expected file no longer exists at HEAD → `abort` (harness run); stale expectation is a loud error, not a silently deflated score
+- Eval: a candidate ranking signal fails significance → `warn+continue`; signal removed or kept-off, decision + CI/p-value recorded in the harness report
+- Secret-like pattern in a search/read snippet → redact at output (pattern replaced in the response text; never emitted raw)
 - No git-PR-impact, no video/audio/image extraction, no cloud sync or multi-project merge
-- Communities are cached by content-hash; communities are advisory, not load-bearing (seeded RNG + pinned resolution)
+- Communities are advisory, not load-bearing (seeded RNG + pinned resolution); the eval harness is the gate, not a feature — it stays even if the retrieval-quality layer rolls back
 
 ---
 
@@ -83,7 +95,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 phase: spec          # spec | apply | verify | archive
 current_step: 01-community-detection
 status: in_progress  # in_progress | blocked | done
-updated: 2026-09-08T10:00:00+02:00
+updated: 2026-09-09
 ```
 
 ## Step map
@@ -98,14 +110,16 @@ updated: 2026-09-08T10:00:00+02:00
 
 | Field | Value |
 |-------|-------|
-| Estimated changed lines (change) | ~1200–1800 |
+| Estimated changed lines (change) | ~1600–2200 |
 | 400-line budget risk | High |
 | Chained PRs recommended | Yes |
 | Delivery strategy | ask-on-risk |
 
-Honest forecast: three vertical slices (communities → processes → knowledge nodes), each likely its own stacked PR. Step 01 alone is near/over the 400-line budget (~450–600: schema + loom adapter + god nodes + labels + 3 tools). Do not attempt a single-PR delivery without explicit exception.
+<!-- single-pr = one PR for the change; each ## NN step still commits separately when DoD is met (see work-unit-commits / commits.md). -->
 
-Suggested split: PR1 communities → PR2 processes → PR3 knowledge nodes · Chain strategy: stacked-to-main
+Honest forecast: three vertical slices (communities+eval+ranker → processes → knowledge nodes), each its own stacked PR. Step 01 alone is well over the 400-line budget (~800–1100: schema + loom adapter + god nodes + labels + 3 community tools + the eval harness + the retrieval-quality ranker layer + `doctor --strict`). Do not attempt a single-PR delivery without explicit exception.
+
+Suggested split: PR1 communities + eval harness + retrieval-quality layer → PR2 processes → PR3 knowledge nodes · Chain strategy: stacked-to-main
 
 ---
 
@@ -113,13 +127,13 @@ Suggested split: PR1 communities → PR2 processes → PR3 knowledge nodes · Ch
 
 ### Goal
 
-Additive `012_*` schema + pure-Go Leiden (`bluuewhale/loom`) + god nodes + LLM-free community labels + `code_communities` / `code_god_nodes` / `code_explain_community` MCP/CLI tools so agents see subsystems and the most-connected concepts.
+Additive `012_*` schema + pure-Go Leiden (`bluuewhale/loom`) + god nodes + LLM-free community labels + `code_communities` / `code_god_nodes` / `code_explain_community` MCP/CLI tools — AND the **retrieval-eval harness** (git-derived ground truth, significance-tested ablations) that gates 005's ranker — AND the **retrieval-quality layer** it proves (explainable bounded rerank table, file-level RRF agreement, categorical confidence→action + fallbacks, skeletonized snippets, output-time secret redaction, `doctor --strict`, `skillgrid eval` CLI).
 
 ### Out of scope / Non-Goals
 
 - Doc/config/SQL knowledge nodes (step 03)
 - Process flows (step 02)
-- Hybrid search; changing 005 tools
+- Changing 005 tool *names/required params* (the ranker internals are modified, the contract is not)
 
 ### Definition of Done
 
@@ -139,46 +153,105 @@ This step is done only when:
 - Create: `skillgrid-cli/internal/mnemonic/community/godnodes.go`
 - Create: `skillgrid-cli/internal/mnemonic/community/labels.go`
 - Create: `skillgrid-cli/internal/mnemonic/mcp/tools_code_community.go`
+- Create: `skillgrid-cli/internal/mnemonic/eval/genqueries.go`
+- Create: `skillgrid-cli/internal/mnemonic/eval/harness.go`
+- Create: `skillgrid-cli/internal/mnemonic/eval/metrics.go`
+- Create: `skillgrid-cli/internal/mnemonic/hybrid/confidence.go`
+- Create: `skillgrid-cli/internal/mnemonic/hybrid/snippet.go`
+- Modify: `skillgrid-cli/internal/mnemonic/hybrid/rerank.go`
 - Modify: `skillgrid-cli/internal/mnemonic/service/service.go` (community facade)
-- Modify: `skillgrid-cli/cmd/skillgrid/code_intel.go` (CLI community commands)
+- Modify: `skillgrid-cli/cmd/skillgrid/code_intel.go` (CLI community commands + `skillgrid eval` runner)
+- Modify: `skillgrid-cli/cmd/skillgrid/doctor.go` (`doctor --strict`)
 - Modify: `skillgrid-cli/go.mod` (add `bluuewhale/loom`)
-- Test: `skillgrid-cli/internal/mnemonic/community/...`, `skillgrid-cli/internal/mnemonic/store/...`, `skillgrid-cli/internal/mnemonic/mcp/...`, `skillgrid-cli/cmd/skillgrid/...`
+- Test: `skillgrid-cli/internal/mnemonic/community/...`, `skillgrid-cli/internal/mnemonic/eval/...`, `skillgrid-cli/internal/mnemonic/hybrid/...`, `skillgrid-cli/internal/mnemonic/store/...`, `skillgrid-cli/internal/mnemonic/mcp/...`, `skillgrid-cli/cmd/skillgrid/...`
 
 **Interfaces:**
-- Consumes: 005's symbols/edges tables, existing store migration runner, 005 tool registration baseline
-- Produces: `communities` / `community_meta` tables + god-node ranking; LLM-free community labels; `code_communities`, `code_god_nodes` (`--exclude-hubs`), `code_explain_community` MCP tools + CLI parity; seeded Leiden partition (content-hash cache key)
+- Consumes: 005's symbols/edges tables + existing hybrid ranker, existing store migration runner, 005 tool registration baseline
+- Produces: `communities` / `community_meta` tables + god-node ranking; LLM-free community labels; `code_communities`, `code_god_nodes` (`--exclude-hubs`), `code_explain_community` MCP tools + CLI parity; `skillgrid eval` runner; git-derived leak-free query set + one-shared-index-per-corpus ablation + file-granularity metrics with paired bootstrap CI + permutation p-values; the retrieval-quality ranker layer (explainable rerank table, file-level RRF agreement, categorical confidence→action + fallback suggestions, skeletonized snippets, output-time redaction) exposed additively in 005 `code_search`/`code_read` responses; `doctor --strict` redaction + freshness state
 
 ### Tasks
 
-- [ ] 01.1 `[RED]` Mnemonic tool surface — 005 `code_search` schema stable before community tools land (Scenario: code_communities returns labeled subsystems and 005 tools stay stable) — threat: Mnemonic tool surface
-  - [ ] 01.1.a Write failing test — assert 005 `code_*` tool names + required params are unchanged (baseline lock) before community tools register
-  - [ ] 01.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ToolSurfaceBaseline -count=1` — Expected: FAIL (or red until baseline lock exists)
-  - [ ] 01.1.c Minimal implementation — lock 005 tool-surface baseline assertions
-  - [ ] 01.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ToolSurfaceBaseline -count=1` — Expected: PASS
-  - [ ] 01.1.e Commit — `test(mnemonic): lock 005 tool surface baseline`
-- [ ] 01.2 `[RED]` Leiden over 005 edges produces labeled communities (Scenario: code_communities returns labeled subsystems and 005 tools stay stable)
-  - [ ] 01.2.a Write failing test — fixture graph of symbols/edges; after the community pass, `communities` rows partition the graph coherently, each community carries an LLM-free label; `code_communities` returns the partition; 005 tools still registered
-  - [ ] 01.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Communities -count=1` — Expected: FAIL
-  - [ ] 01.2.c Minimal implementation — `012_*` migration + `community/leiden.go` (loom `NodeRegistry` + `LeidenOptions{Seed, Resolution, MaxIterations, NumRuns}`, partition → community rows) + `labels.go` + `go.mod` dep + `tools_code_community.go` `code_communities` + service facade
-  - [ ] 01.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Communities -count=1` — Expected: PASS
-  - [ ] 01.2.e Commit — `feat(mnemonic): leiden community detection with llm-free labels`
-- [ ] 01.3 `[RED]` Mnemonic tool surface — community tools register and reject bad args (Scenario: community tools reject bad args clearly) — threat: Mnemonic tool surface
-  - [ ] 01.3.a Write failing test — `code_communities` / `code_god_nodes` / `code_explain_community` registered with distinct `code_*` names; bad/missing args (e.g. non-existent community id) rejected clearly with a validation error, no invented communities
-  - [ ] 01.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run CommunityToolsArgs -count=1` — Expected: FAIL
-  - [ ] 01.3.c Minimal implementation — arg validation in `tools_code_community.go` + service
-  - [ ] 01.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run CommunityToolsArgs -count=1` — Expected: PASS
-  - [ ] 01.3.e Commit — `feat(mnemonic): community tool arg validation`
-- [ ] 01.4 `[RED]` God nodes ranked by degree with exclude-hubs (Scenario: code_god_nodes ranks hubs and exclude-hubs suppresses them)
-  - [ ] 01.4.a Write failing test — `code_god_nodes` returns symbols ranked by degree; `--exclude-hubs` suppresses utility super-hubs from the ranking
-  - [ ] 01.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run GodNodes -count=1` — Expected: FAIL
-  - [ ] 01.4.c Minimal implementation — `community/godnodes.go` (degree ranking + `--exclude-hubs`) + `code_god_nodes` tool + CLI flag
-  - [ ] 01.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run GodNodes -count=1` — Expected: PASS
-  - [ ] 01.4.e Commit — `feat(mnemonic): god-node ranking with exclude-hubs`
-- [ ] 01.5 `[AFK]` code_explain_community returns members and entry points (Scenario: code_explain_community explains a subsystem) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` — Expected: PASS
-- [ ] 01.6 `[AFK]` Tiny graph (< 2 nodes) yields one trivial community, no crash (Scenario: Tiny graph yields a single trivial community) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run TinyGraph -count=1` — Expected: PASS
-- [ ] 01.7 `[AFK]` Community label falls back to community-N when no god node (Scenario: Community label falls back when no god node exists) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -count=1` — Expected: PASS
-- [ ] 01.8 `[AFK]` Communities are seeded, pinned, and cached by content-hash (Scenario: Community partition is reproducible and cached by content-hash) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/codeindex/... -count=1` — Expected: PASS
-- [ ] 01.9 `[AFK]` CLI parity for community commands via `code_intel.go` (Scenario: CLI community commands return the same views) — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
+- [ ] 01.1 `[RED]` Retrieval quality / evaluation — eval harness derives a leak-free git query set and reports metrics with paired CI + p-values (Scenario: Evaluation harness derives a leak-free query set and reports significance) — threat: Retrieval quality / evaluation
+  - [ ] 01.1.a Write failing test — from a git-history fixture, the harness mints a query set (commit subject → changed files), drops merges/reverts/releases/bumps/formatting + changelog-like + benchmark-touching commits, builds ONE index per corpus shared by all variants, and reports `recall@5/10`, `MRR`, `nDCG@10`, `useful@budget`, `tokens`, `dup%`, p50/p95/p99 with a paired bootstrap 95% CI + permutation p-value per non-baseline row
+  - [ ] 01.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run EvalHarnessSignificance -count=1` — Expected: FAIL
+  - [ ] 01.1.c Minimal implementation — `eval/genqueries.go` (git-derived generator + noise drops + `CORPUS_EXCLUDES`) + `eval/metrics.go` (file-granularity IR metrics + seeded paired bootstrap CI + permutation p-value) + `eval/harness.go` (one-index-per-corpus ablation runner)
+  - [ ] 01.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run EvalHarnessSignificance -count=1` — Expected: PASS
+  - [ ] 01.1.e Commit — `feat(eval): git-derived leak-free query set with paired significance`
+- [ ] 01.2 `[RED]` Retrieval quality / evaluation — stale expectation fails the run loudly (Scenario: Stale evaluation expectation fails the run loudly) — threat: Retrieval quality / evaluation
+  - [ ] 01.2.a Write failing test — a query whose expected file no longer exists at HEAD makes `validate_queries` fail the run with a loud error, not a silently deflated score
+  - [ ] 01.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run EvalStaleExpectation -count=1` — Expected: FAIL
+  - [ ] 01.2.c Minimal implementation — `validate_queries` pass in `eval/harness.go` (expected-file-exists-at-HEAD check)
+  - [ ] 01.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run EvalStaleExpectation -count=1` — Expected: PASS
+  - [ ] 01.2.e Commit — `feat(eval): validate_queries fails on stale expectations`
+- [ ] 01.3 `[RED]` Security boundary (output) — planted secret is redacted in search/read output (Scenario: Snippets are skeletonized and secrets are redacted in output) — threat: Security boundary (output)
+  - [ ] 01.3.a Write failing test — a secret-like pattern in an indexed file is replaced (never emitted raw) in `code_search`/`code_read` response text; index-time exclusion alone does not count
+  - [ ] 01.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -run OutputRedaction -count=1` — Expected: FAIL
+  - [ ] 01.3.c Minimal implementation — output-time secret redaction in `hybrid/snippet.go` applied to search/read response text
+  - [ ] 01.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -run OutputRedaction -count=1` — Expected: PASS
+  - [ ] 01.3.e Commit — `feat(hybrid): output-time secret redaction`
+- [ ] 01.4 `[RED]` Security boundary (output) — strict doctor reports redaction + freshness and exits non-zero on violation (Scenarios: Strict doctor reports redaction and freshness state; Doctor strict exits non-zero on redaction violation) — threat: Security boundary (output)
+  - [ ] 01.4.a Write failing test — `doctor --strict` reports redaction state + freshness state, and exits non-zero when a redaction or freshness violation exists (CI-usable)
+  - [ ] 01.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -run DoctorStrict -count=1` — Expected: FAIL
+  - [ ] 01.4.c Minimal implementation — `--strict` flag + redaction/freshness checks + non-zero exit in `cmd/skillgrid/doctor.go`
+  - [ ] 01.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -run DoctorStrict -count=1` — Expected: PASS
+  - [ ] 01.4.e Commit — `feat(cli): doctor --strict redaction and freshness state`
+- [ ] 01.5 `[RED]` Mnemonic tool surface — 005 `code_*` schema stable (additive response gains only) before new tools land (Scenario: Community detection returns labeled subsystems and existing search tools stay stable) — threat: Mnemonic tool surface
+  - [ ] 01.5.a Write failing test — assert 005 `code_*` tool names + required params are unchanged (baseline lock); `code_search` response schema may only *gain* confidence/reasons/redaction fields additively
+  - [ ] 01.5.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ToolSurfaceBaseline -count=1` — Expected: FAIL (red until the additive-gain assertion exists)
+  - [ ] 01.5.c Minimal implementation — lock 005 tool-surface baseline + additive-response assertion
+  - [ ] 01.5.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ToolSurfaceBaseline -count=1` — Expected: PASS
+  - [ ] 01.5.e Commit — `test(mnemonic): lock 005 tool surface baseline (additive gains only)`
+- [ ] 01.6 `[RED]` Leiden over 005 edges produces labeled communities + community tools (Scenario: Community detection returns labeled subsystems and existing search tools stay stable)
+  - [ ] 01.6.a Write failing test — fixture graph of symbols/edges; after the community pass, community rows partition the graph coherently, each community carries an LLM-free label; `code_communities` returns the partition; 005 tools still registered
+  - [ ] 01.6.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Communities -count=1` — Expected: FAIL
+  - [ ] 01.6.c Minimal implementation — `012_*` migration + `community/leiden.go` (loom `NodeRegistry` + `LeidenOptions{Seed, Resolution, MaxIterations, NumRuns}`, partition → community rows) + `labels.go` + `go.mod` dep + `tools_code_community.go` `code_communities` + service facade
+  - [ ] 01.6.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Communities -count=1` — Expected: PASS
+  - [ ] 01.6.e Commit — `feat(mnemonic): leiden community detection with llm-free labels`
+- [ ] 01.7 `[RED]` God nodes ranked by degree with exclude-hubs (Scenario: God nodes rank hubs and hub exclusion suppresses utility symbols)
+  - [ ] 01.7.a Write failing test — `code_god_nodes` returns symbols ranked by degree; `--exclude-hubs` suppresses utility super-hubs from the ranking
+  - [ ] 01.7.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run GodNodes -count=1` — Expected: FAIL
+  - [ ] 01.7.c Minimal implementation — `community/godnodes.go` (degree ranking + `--exclude-hubs`) + `code_god_nodes` tool + CLI flag
+  - [ ] 01.7.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run GodNodes -count=1` — Expected: PASS
+  - [ ] 01.7.e Commit — `feat(mnemonic): god-node ranking with exclude-hubs`
+- [ ] 01.8 `[RED]` Mnemonic tool surface — community + eval tools register and reject bad args (Scenarios: Community tools reject bad args clearly; bad community/eval args rejected) — threat: Mnemonic tool surface
+  - [ ] 01.8.a Write failing test — `code_communities` / `code_god_nodes` / `code_explain_community` + `skillgrid eval` registered with distinct `code_*` names / CLI verbs; bad/missing args (e.g. non-existent community id, unknown eval corpus) rejected clearly with a validation error, no invented communities or runs
+  - [ ] 01.8.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/cmd/skillgrid/... -run CommunityAndEvalArgs -count=1` — Expected: FAIL
+  - [ ] 01.8.c Minimal implementation — arg validation in `tools_code_community.go` + `code_intel.go` eval runner + service
+  - [ ] 01.8.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/cmd/skillgrid/... -run CommunityAndEvalArgs -count=1` — Expected: PASS
+  - [ ] 01.8.e Commit — `feat(mnemonic): community and eval tool arg validation`
+- [ ] 01.9 `[RED]` Explainable rerank table + file-level RRF agreement (Scenario: Search response carries confidence action rerank reasons and fallbacks)
+  - [ ] 01.9.a Write failing test — each hit carries a named, capped boost/penalty factor with a written rationale (exact-symbol +, definition-kind +, path-match +, degree + bounded, source-over-prose +, documentation −, generated/vendor −, test-on-non-test −); fusion candidates keyed by `(path, line-bucket)`; two retrievers finding the same file at different locators yield one strong file-level candidate under a fixed agreement weight
+  - [ ] 01.9.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -run RerankAgreement -count=1` — Expected: FAIL
+  - [ ] 01.9.c Minimal implementation — explainable bounded rerank table + file-level RRF agreement in `hybrid/rerank.go`
+  - [ ] 01.9.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -run RerankAgreement -count=1` — Expected: PASS
+  - [ ] 01.9.e Commit — `feat(hybrid): explainable rerank table and file-level rrf agreement`
+- [ ] 01.10 `[RED]` Categorical confidence→action + fallback suggestions (Scenario: Search response carries confidence action rerank reasons and fallbacks)
+  - [ ] 01.10.a Write failing test — search responses carry categorical `high|medium|low` confidence mapped to an explicit agent action (high = read ranges + answer; medium = read + one confirming grep; low = use fallbacks); `low` attaches fallback suggestions (ready `rg` patterns, likely paths, "broaden query")
+  - [ ] 01.10.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -run ConfidenceAction -count=1` — Expected: FAIL
+  - [ ] 01.10.c Minimal implementation — categorical confidence→action contract + fallback suggestions in `hybrid/confidence.go`, surfaced in search responses
+  - [ ] 01.10.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -run ConfidenceAction -count=1` — Expected: PASS
+  - [ ] 01.10.e Commit — `feat(hybrid): confidence-to-action contract with fallbacks`
+- [ ] 01.11 `[RED]` Skeletonized snippets + SimHash near-duplicate suppression (Scenario: Snippets are skeletonized and secrets are redacted in output)
+  - [ ] 01.11.a Write failing test — result snippets collapse unrelated bodies while preserving imports, signatures, matched lines, and exact read ranges; SimHash suppression cuts near-duplicate hits (`dup%`) without moving a metric
+  - [ ] 01.11.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -run SnippetSkeleton -count=1` — Expected: FAIL
+  - [ ] 01.11.c Minimal implementation — snippet skeletonization + SimHash near-dup suppression in `hybrid/snippet.go`
+  - [ ] 01.11.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -run SnippetSkeleton -count=1` — Expected: PASS
+  - [ ] 01.11.e Commit — `feat(hybrid): skeletonized snippets and simhash dedup`
+- [ ] 01.12 `[RED]` Shipped ranking config is the significance winner across pooled corpora (Scenario: Shipped ranking config is the significance winner)
+  - [ ] 01.12.a Write failing test — on ≥2 pooled corpora, the shipped ranking config is non-negative vs the 005 baseline and every shipped signal survived significance; a candidate that fails is removed/kept-off with the decision + CI/p-value recorded in the report
+  - [ ] 01.12.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run ShippedConfigSignificance -count=1` — Expected: FAIL
+  - [ ] 01.12.c Minimal implementation — multi-corpus pooling + non-negative-across-all gate + decision record in `eval/harness.go`; wire the winning config as the shipped ranker config
+  - [ ] 01.12.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run ShippedConfigSignificance -count=1` — Expected: PASS
+  - [ ] 01.12.e Commit — `feat(eval): ship only the significance-winning ranking config`
+- [ ] 01.13 `[AFK]` Community explanation returns members and entry points (Scenario: Community explanation returns members and entry points) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -run ExplainCommunity -count=1` — Expected: PASS
+- [ ] 01.14 `[AFK]` Tiny graph (< 2 nodes) yields one trivial community, no crash (Scenario: Tiny graph yields a single trivial community) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run TinyGraph -count=1` — Expected: PASS
+- [ ] 01.15 `[AFK]` Community label falls back to community-N when no god node (Scenario: Community label falls back when no god node exists) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -run LabelFallback -count=1` — Expected: PASS
+- [ ] 01.16 `[AFK]` Communities are seeded, pinned, and cached by content-hash (Scenario: Community partition is reproducible and cached by content-hash) — `Run: go test ./skillgrid-cli/internal/mnemonic/community/... -count=1` — Expected: PASS
+- [ ] 01.17 `[AFK]` Eval harness drops noise commits (merges/reverts/releases/bumps/formatting/changelog-like/benchmark-touching) (Scenario: Evaluation harness drops noise commits from the query set) — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run QuerySetNoiseDrops -count=1` — Expected: PASS
+- [ ] 01.18 `[AFK]` Benchmark scaffolding excluded from the graded corpus (Scenario: Evaluation corpus excludes the benchmark scaffolding) — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run CorpusExcludes -count=1` — Expected: PASS
+- [ ] 01.19 `[AFK]` Ablation shares one index so deltas measure ranking only (Scenario: Ablation shares one index so deltas measure ranking) — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run OneIndexPerCorpus -count=1` — Expected: PASS
+- [ ] 01.20 `[AFK]` Failing ranking signal removed/kept-off with decision recorded (Scenario: Failing ranking signal is removed or kept off with the decision recorded) — `Run: go test ./skillgrid-cli/internal/mnemonic/eval/... -run FailingSignalDecision -count=1` — Expected: PASS
+- [ ] 01.21 `[AFK]` CLI parity for community + eval commands (Scenarios: CLI community commands; `skillgrid eval --corpus <self>`) — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
 
 ### Verification
 
@@ -188,15 +261,16 @@ Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` | PASS | | |
-| Acceptance `@step-01` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `skillgrid index` on fixture repo; `code_communities` / `code_god_nodes` via MCP + CLI | PASS | | |
-| Rollback boundary | Drop `012_*` + `community/` + community tools + `go.mod` dep | PASS | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/community/... ./skillgrid-cli/internal/mnemonic/eval/... ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/internal/mnemonic/store/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` | PASS | | |
+| Acceptance `@step-01` / `@p0` | BDD / mapped unit scenarios (incl. `EvalHarnessSignificance`, `OutputRedaction`, `DoctorStrict`, `RerankAgreement`, `ConfidenceAction`) | PASS | | |
+| Eval gate | `go test ./skillgrid-cli/internal/mnemonic/eval/... -count=1` + `skillgrid eval --corpus <self> [--corpus <second-language>]` | PASS | | shipped config = significance-winner over 005 baseline on ≥2 corpora |
+| Runtime harness | `skillgrid index` on fixture repo; `code_communities` / `code_god_nodes` via MCP + CLI; `skillgrid doctor --strict` | PASS | | |
+| Rollback boundary | Drop `012_*` + `community/` + `eval/` + ranker-layer revert + community tools + `go.mod` dep (eval harness **stays**) | PASS | | |
 | Global Constraints | — | held | | |
 
 ### Commit
 
-When step DoD is met: `feat(mnemonic): leiden community detection, god nodes, and community tools`
+When step DoD is met: `feat(mnemonic): leiden communities, retrieval-eval harness, and measured retrieval-quality layer`
 
 ---
 
@@ -222,7 +296,7 @@ This step is done only when:
 - [ ] Depends-on step(s) already PASS / PASS WITH WARNINGS
 - [ ] No Global Constraint violated
 
-> Depends on: 01-community-detection (community + cross-community flag), 010 (entry points)
+> Depends on: 01-community-detection (communities + cross-community flag), 010 (entry points)
 
 **Files:**
 - Create: `skillgrid-cli/internal/mnemonic/process/trace.go`
@@ -237,14 +311,14 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 02.1 `[RED]` Mnemonic tool surface — `code_explain_symbol` surfaces process participation + 005 tools stable (Scenario: code_explain_symbol surfaces process participation and 005 tools stay stable) — threat: Mnemonic tool surface
+- [ ] 02.1 `[RED]` Mnemonic tool surface — `code_explain_symbol` surfaces process participation + 005 tools stable (Scenario: Symbol explanation surfaces process participation and existing search tools stay stable) — threat: Mnemonic tool surface
   - [ ] 02.1.a Write failing test — after process pass, `code_explain_symbol <sym>` (005) includes which processes the symbol participates in (step N/M); 005 tool names + required params unchanged; process tools registered with distinct names
   - [ ] 02.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -run ExplainSymbolProcess -count=1` — Expected: FAIL
   - [ ] 02.1.c Minimal implementation — wire process participation into `code_explain_symbol` + register `code_processes` / `code_process`
   - [ ] 02.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -run ExplainSymbolProcess -count=1` — Expected: PASS
   - [ ] 02.1.e Commit — `feat(mnemonic): surface process participation in code_explain_symbol`
-- [ ] 02.2 `[RED]` Entry-point → call-chain trace builds precomputed flows (Scenario: code_processes returns precomputed flows from entry points)
-  - [ ] 02.2.a Write failing test — seeded from 010 entry points (routes/handlers/CLI mains), trace through 005 call edges into `processes` + `process_steps`; `code_processes` returns complete flows in one call (no per-query traversal); each process has named steps + a cross-community flag
+- [ ] 02.2 `[RED]` Entry-point → call-chain trace builds precomputed flows (Scenario: Process list returns precomputed flows from entry points)
+  - [ ] 02.2.a Write failing test — seeded from 010 entry points (routes/handlers/CLI mains), trace through 005 call edges into `processes` + `process_steps`; `code_processes` returns complete flows in one call (no per-query traversal); each process has named steps + a cross-community flag + an LLM label
   - [ ] 02.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... ./skillgrid-cli/internal/mnemonic/mcp/... -run ProcessTrace -count=1` — Expected: FAIL
   - [ ] 02.2.c Minimal implementation — `process/trace.go` (entry-point seeding, depth-capped BFS over call edges, cross-community flag from 01, persist `processes`/`process_steps`) + `tools_code_process.go` `code_processes` + service facade
   - [ ] 02.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... ./skillgrid-cli/internal/mnemonic/mcp/... -run ProcessTrace -count=1` — Expected: PASS
@@ -255,16 +329,17 @@ This step is done only when:
   - [ ] 02.3.c Minimal implementation — `process/labels.go` (content-hash key, LLM call, cache store)
   - [ ] 02.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run ProcessLabels -count=1` — Expected: PASS
   - [ ] 02.3.e Commit — `feat(mnemonic): llm process labels cached by content-hash`
-- [ ] 02.4 `[RED]` Dispatch-boundary truncation with "stops at" note (Scenario: Trace stops at a dispatch boundary with a note)
+- [ ] 02.4 `[RED]` Dispatch-boundary truncation with "stops at" note + per-hop confidence (Scenario: Trace stops at a dispatch boundary with a note)
   - [ ] 02.4.a Write failing test — a trace that hits a dispatch boundary (interface→impl, message bus, callback) is truncated with a "stops at <symbol> (<reason>)" note (reusing 005 graph-stops), not silently cut; `code_process <name>` shows each hop's Confidence Label + the stop note
   - [ ] 02.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run DispatchStop -count=1` — Expected: FAIL
-  - [ ] 02.4.c Minimal implementation — depth/step cap + dispatch-boundary detection in `process/trace.go`
+  - [ ] 02.4.c Minimal implementation — depth/step cap + dispatch-boundary detection + per-hop confidence in `process/trace.go`
   - [ ] 02.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run DispatchStop -count=1` — Expected: PASS
   - [ ] 02.4.e Commit — `feat(mnemonic): dispatch-boundary truncation in process trace`
-- [ ] 02.5 `[AFK]` LLM down → flow cached unlabeled, never fabricated (Scenario: LLM down caches the flow unlabeled) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -count=1` — Expected: PASS
-- [ ] 02.6 `[AFK]` Entry point with no traceable chain → single-step or skipped (Scenario: Untraceable entry point yields single-step or is skipped) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -count=1` — Expected: PASS
-- [ ] 02.7 `[AFK]` Cross-community process is flagged (Scenario: Cross-community process is flagged) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -count=1` — Expected: PASS
-- [ ] 02.8 `[AFK]` code_process returns the full trace with confidence (Scenario: code_process returns the full step-by-step trace) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/process/... -count=1` — Expected: PASS
+- [ ] 02.5 `[AFK]` Process detail returns the full trace with confidence (Scenario: Process detail returns the full step-by-step trace) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/process/... -run ProcessDetail -count=1` — Expected: PASS
+- [ ] 02.6 `[AFK]` LLM down → flow cached unlabeled, never fabricated (Scenario: LLM down caches the flow unlabeled) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run LLMDownUnlabeled -count=1` — Expected: PASS
+- [ ] 02.7 `[AFK]` Entry point with no traceable chain → single-step or skipped (Scenario: Untraceable entry point yields single-step or is skipped) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run UntraceableEntry -count=1` — Expected: PASS
+- [ ] 02.8 `[AFK]` Cross-community process is flagged (Scenario: Cross-community process is flagged) — `Run: go test ./skillgrid-cli/internal/mnemonic/process/... -run CrossCommunityFlag -count=1` — Expected: PASS
+- [ ] 02.9 `[AFK]` Process tools reject bad args clearly (Scenario: Process tools reject bad args clearly) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run ProcessArgs -count=1` — Expected: PASS
 
 ### Verification
 
@@ -275,7 +350,7 @@ Evidence:
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
 | Focused test | `go test ./skillgrid-cli/internal/mnemonic/process/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` | PASS | | |
-| Acceptance `@step-02` / `@p0` | BDD / mapped unit scenarios | PASS | | |
+| Acceptance `@step-02` / `@p0` | BDD / mapped unit scenarios (incl. `ProcessTrace`, `ExplainSymbolProcess`, `ProcessLabels`) | PASS | | |
 | Runtime harness | `code_processes` / `code_process` on a fixture with 010 entry points | PASS | | |
 | Rollback boundary | Drop `process/` + process tools + `code_explain_symbol` participation | PASS | | |
 | Global Constraints | — | held | | |
@@ -349,11 +424,11 @@ This step is done only when:
   - [ ] 03.4.c Minimal implementation — `knowledge/sql.go` (DDL parser + identifier-ref scan → `reads`/`writes`)
   - [ ] 03.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run SqlSchema -count=1` — Expected: PASS
   - [ ] 03.4.e Commit — `feat(mnemonic): sql-schema extractor`
-- [ ] 03.5 `[AFK]` Unresolvable config ref is AMBIGUOUS, not dropped (Scenario: Unresolvable config ref is ambiguous not dropped) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -count=1` — Expected: PASS
-- [ ] 03.6 `[AFK]` Malformed doc file: skip bad links, index the rest (Scenario: Malformed doc file falls back and indexes the rest) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -count=1` — Expected: PASS
-- [ ] 03.7 `[AFK]` Malformed SQL statement: skip it, index the rest (Scenario: Malformed SQL statement is skipped and the rest is indexed) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -count=1` — Expected: PASS
-- [ ] 03.8 `[AFK]` Indexer hook runs all three passes in the same transaction (Scenario: Indexer hook runs community, process, and knowledge in one transaction) — `Run: go test ./skillgrid-cli/internal/mnemonic/codeindex/... -count=1` — Expected: PASS
-- [ ] 03.9 `[AFK]` code_path traces code to doc to config to table (Scenario: code_path traces code to doc to config to table) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/knowledge/... -count=1` — Expected: PASS
+- [ ] 03.5 `[AFK]` Unresolvable config ref is AMBIGUOUS, not dropped (Scenario: Unresolvable config ref is ambiguous not dropped) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run AmbiguousConfigRef -count=1` — Expected: PASS
+- [ ] 03.6 `[AFK]` Malformed doc file: skip bad links, index the rest (Scenario: Malformed doc file falls back and indexes the rest) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run MalformedDoc -count=1` — Expected: PASS
+- [ ] 03.7 `[AFK]` Malformed SQL statement: skip it, index the rest (Scenario: Malformed SQL statement is skipped and the rest is indexed) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run MalformedSQL -count=1` — Expected: PASS
+- [ ] 03.8 `[AFK]` Indexer hook runs all three passes in the same transaction (Scenario: Indexer hook runs community, process, and knowledge in one transaction) — `Run: go test ./skillgrid-cli/internal/mnemonic/codeindex/... -run IndexerHook -count=1` — Expected: PASS
+- [ ] 03.9 `[AFK]` code_path traces code to doc to config to table (Scenario: Path tool traces code to doc to config to table) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/knowledge/... -run CodePathSpan -count=1` — Expected: PASS
 
 ### Verification
 
@@ -364,7 +439,7 @@ Evidence:
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
 | Focused test | `go test ./skillgrid-cli/internal/mnemonic/knowledge/... ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` | PASS | | |
-| Acceptance `@step-03` / `@p0` | BDD / mapped unit scenarios | PASS | | |
+| Acceptance `@step-03` / `@p0` | BDD / mapped unit scenarios (incl. `DocLinks`, `ConfigRefs`, `SqlSchema`) | PASS | | |
 | Runtime harness | `skillgrid index` on fixture with docs/configs/SQL; `code_path` code→doc→config→table | PASS | | |
 | Rollback boundary | Drop `knowledge/` + knowledge tools + indexer hook | PASS | | |
 | Global Constraints | — | held | | |

@@ -3,31 +3,73 @@
 # Trace: change.md ## Goal + ## Definition of Done; tasks.md @step-NN verify lines.
 # Mapping: @p0 scenarios ↔ change.md DoD / Testing strategy; @p1 = important failure paths.
 # Threat: Mnemonic tool surface — owning steps 01, 02, 03 (005 tools must stay stable in each)
+# Threat: Retrieval quality / evaluation — owning step 01 (significance-proven ranking, leak-free ground truth)
+# Threat: Security boundary (output) — owning step 01 (output-time redaction + doctor --strict)
 # One Feature per step; tag each Feature with @step-NN matching tasks.md.
 # WHAT not HOW: no file paths or function names.
 
 @step-01
-Feature: Leiden community detection with god nodes and community tools
+Feature: Leiden community detection, god nodes, and a measured retrieval-quality layer
   As a coding agent
-  I want subsystem-level orientation from clustered communities and hub symbols
-  So that I know the core modules and the most-connected concepts before editing
+  I want subsystem-level orientation from clustered communities and hub symbols, plus search results whose ranking, confidence, and safety are measured and auditable
+  So that I know the core modules before editing and can trust that a search hit is explainable, categorized, and free of raw secrets
 
   @happy @p0
-  Scenario: code_communities returns labeled subsystems and 005 tools stay stable
+  Scenario: Community detection returns labeled subsystems and existing search tools stay stable
     Given an indexed project whose symbols and edges form distinct subsystems
     When the community detection pass runs and the agent lists communities
     Then clustered subsystems are returned, each with an LLM-free label
     And the existing 005 code search tools keep their names and required parameters
 
   @happy @p0
-  Scenario: code_god_nodes ranks hubs and exclude-hubs suppresses them
+  Scenario: God nodes rank hubs and hub exclusion suppresses utility symbols
     Given an indexed project with a few very highly-connected utility symbols
     When the agent requests god nodes with hubs excluded
     Then the most-connected symbols are ranked by degree
     And the utility super-hubs are suppressed from the ranking
 
+  @happy @p0
+  Scenario: Evaluation harness derives a leak-free query set and reports significance
+    Given a project with git history whose commits each change known files
+    When the evaluation harness mints its query set and runs the ablation
+    Then the query set is derived from commit subjects to changed files with merge, revert, release, bump, formatting, changelog-like, and benchmark-touching commits dropped
+    And exactly one index per corpus is shared by every variant
+    And file-granularity recall, MRR, nDCG, useful-at-budget, tokens, duplicate percent, and p50 p95 p99 latency are reported
+    And every non-baseline row carries a paired bootstrap 95 percent CI and a permutation p-value
+
+  @happy @p0
+  Scenario: Shipped ranking config is the significance winner
+    Given the evaluation harness run over at least two pooled corpora
+    When the shipped ranking configuration is compared against the 005 baseline
+    Then the shipped config is non-negative across all pooled corpora
+    And every ranking signal it ships survived significance
+
+  @happy @p0
+  Scenario: Search response carries confidence action rerank reasons and fallbacks
+    Given an indexed project with symbols that match a search query
+    When the agent runs a search
+    Then each hit carries an explainable rerank reason from a named bounded factor
+    And a candidate found by two retrievers at different locators surfaces as one strong file-level candidate
+    And the response carries a categorical high or medium or low confidence mapped to an explicit agent action
+    And a low-confidence response attaches fallback suggestions with ready patterns, likely paths, and a broaden-query hint
+
+  @happy @p0
+  Scenario: Snippets are skeletonized and secrets are redacted in output
+    Given an indexed file containing a secret-like pattern and an unrelated long function body
+    When the agent reads the search or read output for that file
+    Then the snippet preserves imports, signatures, and the matched line with an exact read range
+    And unrelated bodies are collapsed
+    And the secret-like pattern is replaced and never emitted raw
+
+  @happy @p0
+  Scenario: Strict doctor reports redaction and freshness state
+    Given an indexed project with redaction and freshness state
+    When the operator runs strict doctor for CI
+    Then redaction state and freshness state are reported
+    And the command exits non-zero when a security or freshness violation exists
+
   @edge
-  Scenario: code_explain_community explains a subsystem
+  Scenario: Community explanation returns members and entry points
     Given a community returned by community detection
     When the agent requests an explanation for that community
     Then the community's member symbols and its key entry points are returned
@@ -53,12 +95,54 @@ Feature: Leiden community detection with god nodes and community tools
     Then the partition is reproducible under the pinned seed and resolution
     And the result is cached by content-hash so an unchanged re-index is not recomputed
 
+  @edge
+  Scenario: Evaluation harness drops noise commits from the query set
+    Given a project whose git history contains merges, reverts, releases, version bumps, formatting-only commits, changelog-like commits, and commits that touch the benchmark itself
+    When the evaluation harness derives its query set
+    Then none of those commits contribute a query
+    And only substantive commits with changed files remain
+
+  @edge
+  Scenario: Evaluation corpus excludes the benchmark scaffolding
+    Given a corpus that contains the evaluation benchmark itself
+    When the evaluation harness builds the corpus it grades
+    Then the benchmark scaffolding is excluded from the corpus
+    And the retriever can never see the ground truth it is graded against
+
+  @edge
+  Scenario: Ablation shares one index so deltas measure ranking
+    Given two ranking variants to compare on one corpus
+    When the ablation runner executes both
+    Then both variants query the single shared index for that corpus
+    And the measured delta reflects ranking only, never indexing variance
+
+  @edge
+  Scenario: Failing ranking signal is removed or kept off with the decision recorded
+    Given a candidate ranking signal whose pooled significance fails
+    When the evaluation harness completes the ablation
+    Then the signal is removed or kept off the shipped configuration
+    And the decision with its CI and p-value is recorded in the harness report
+
+  @failure @p1
+  Scenario: Stale evaluation expectation fails the run loudly
+    Given an evaluation query whose expected file no longer exists at HEAD
+    When the evaluation harness validates its query set
+    Then the run fails with a loud validation error
+    And the score is not silently deflated
+
   @failure @p1
   Scenario: Community tools reject bad args clearly
     Given the community tools are registered on the Mnemonic tool surface
     When the agent calls a community tool with a missing or unknown community id
     Then a clear validation error is returned
     And no community is invented
+
+  @failure @p1
+  Scenario: Doctor strict exits non-zero on redaction violation
+    Given an indexed project where a secret-like pattern would be emitted raw in search output
+    When the operator runs strict doctor for CI
+    Then the redaction state reports the violation
+    And the command exits non-zero
 
 @step-02
 Feature: Precomputed process flows from entry points through call chains
@@ -67,14 +151,14 @@ Feature: Precomputed process flows from entry points through call chains
   So that I can answer which flow a symbol participates in without reading every file
 
   @happy @p0
-  Scenario: code_processes returns precomputed flows from entry points
+  Scenario: Process list returns precomputed flows from entry points
     Given an indexed project with entry points for routes handlers and CLI mains
     When the process pass runs and the agent lists processes
     Then complete execution flows are returned in a single call with no per-query traversal
-    And each flow has named steps and a cross-community flag
+    And each flow has named steps and a cross-community flag and an LLM label
 
   @happy @p0
-  Scenario: code_process returns the full step-by-step trace
+  Scenario: Process detail returns the full step-by-step trace
     Given a named process from the process layer
     When the agent requests that process by name
     Then the full step-by-step trace is returned
@@ -102,7 +186,7 @@ Feature: Precomputed process flows from entry points through call chains
     And the trace is not silently cut
 
   @edge
-  Scenario: code_explain_symbol surfaces process participation and 005 tools stay stable
+  Scenario: Symbol explanation surfaces process participation and existing search tools stay stable
     Given a symbol that participates in a precomputed process
     When the agent explains that symbol
     Then the processes the symbol participates in are surfaced with its step position
@@ -157,7 +241,7 @@ Feature: Knowledge-graph nodes for docs, configs, and SQL
     And the code that references them gets reads and writes edges with confidence labels
 
   @edge
-  Scenario: code_path traces code to doc to config to table
+  Scenario: Path tool traces code to doc to config to table
     Given a graph that now spans code, docs, configs, and tables
     When the agent requests a path from a code symbol to a data table
     Then a single query traces through doc, config, and table nodes
