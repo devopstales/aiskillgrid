@@ -11,6 +11,8 @@ metadata:
 
 # SDD Verify
 
+> **For agentic workers:** REQUIRED SUB-SKILL: use `verification` (Iron Law); `requesting-code-review` as needed. Judge, do not fix.
+
 Stage owner (v4). Independent gate — judge, do not fix. Traceability lives in Evidence (no separate `sdd-trace` stage). Findings re-enter **apply**; archive only when both agent and human gates pass.
 
 Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md).
@@ -33,6 +35,24 @@ Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-s
 [ ] 3. Code review as needed
 [ ] 4. Findings → apply (do not archive)
 [ ] 5. Archive eligibility check
+```
+
+```dot
+digraph process {
+  rankdir=LR;
+  gate [label="1\nAgent gate", shape=box, style=filled, fillcolor="#ffcccc"];
+  qa [label="2\nHuman QA plan", shape=box];
+  review [label="3\nCode review", shape=box];
+  findings [label="4\nFindings?", shape=diamond];
+  apply [label="→ apply", shape=box];
+  eligible [label="5\nArchive eligible?", shape=diamond, style=filled, fillcolor="#ccffcc"];
+  archive [label="→ archive", shape=box];
+  gate -> qa -> review -> findings;
+  findings -> apply [label="gaps"];
+  findings -> eligible [label="clean"];
+  eligible -> archive [label="PASS + QA ok"];
+  eligible -> apply [label="else"];
+}
 ```
 
 ### 1. Agent gate

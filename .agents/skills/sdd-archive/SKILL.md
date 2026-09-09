@@ -11,6 +11,8 @@ metadata:
 
 # SDD Archive
 
+> **For agentic workers:** REQUIRED: mechanical move only (`git mv` + `diff -r`). Do not use `handoff` to close.
+
 Stage owner (v4). Terminal step. Archive is the audit trail — mechanical move, not a model paraphrase. Do **not** auto-promote ADRs. Do **not** use **`handoff`** for closing (handoff is out-of-scope spin-off only).
 
 Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md).
@@ -46,6 +48,18 @@ Any FAIL → return `blocked` with gate + step named. Do not move.
 [ ] 3. Ticket close-out (when Ticket set) + archive commit
 [ ] 4. Optional finish-branch + Mnemonic learnings
 [ ] 5. Persist archive-report + envelope
+```
+
+```dot
+digraph process {
+  rankdir=LR;
+  gates [label="1\nGates pass?", shape=diamond, style=filled, fillcolor="#ffcccc"];
+  move [label="2\nMove + diff -r", shape=box];
+  commit [label="3\nTicket + commit", shape=box];
+  finish [label="4\nFinish-branch + learnings", shape=box];
+  report [label="5\nArchive-report", shape=box, style=filled, fillcolor="#ccffcc"];
+  gates -> move -> commit -> finish -> report;
+}
 ```
 
 ### 1. Load + gates

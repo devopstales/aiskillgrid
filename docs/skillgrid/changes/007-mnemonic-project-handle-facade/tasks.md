@@ -69,9 +69,9 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 
 ```yaml
 phase: apply
-current_step: 03-http-single-open
+current_step: 04-collapse-wrappers
 status: in_progress
-updated: 2026-09-09T11:30:00+02:00
+updated: 2026-09-09T13:00:00+02:00
 ```
 
 ## Step map
@@ -254,11 +254,11 @@ HTTP single-project routes match the MCP lifecycle: one Project Handle open per 
 
 This step is done only when:
 
-- [ ] All `### Tasks` checkboxes below are `[x]`
-- [ ] All `@step-03` scenarios in `acceptance.feature` pass
-- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] Depends-on step(s) already PASS / PASS WITH WARNINGS
-- [ ] No Global Constraint violated
+- [x] All `### Tasks` checkboxes below are `[x]`
+- [x] All `@step-03` scenarios in `acceptance.feature` pass
+- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS` (sdd-verify owns)
+- [x] Depends-on step(s) already PASS / PASS WITH WARNINGS (step 01 applied)
+- [x] No Global Constraint violated
 
 > Depends on: 01-export-project-handle
 
@@ -272,13 +272,13 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 03.1 `[RED]` Observation create / recent path uses one handle open
-  - [ ] 03.1.a Write failing test — Scenario: Observation routes open store once
-  - [ ] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/http/ -run 'Observation|SingleOpen|Handle' -count=1` — Expected: FAIL
-  - [ ] 03.1.c Minimal implementation
-  - [ ] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/http/ -run 'Observation|SingleOpen|Handle' -count=1` — Expected: PASS
-  - [ ] 03.1.e Commit — `feat(mnemonic): HTTP observation routes use Project Handle`
-- [ ] 03.2 `[AFK]` Session, search, code, web single-project handlers use handle; migrate/merge stay on root; bearer auth unchanged — Scenarios: Single-project HTTP uses handle; Migrate and merge stay on root — `Run: go test ./skillgrid-cli/internal/mnemonic/http/ -count=1` — Expected: PASS
+- [x] 03.1 `[RED]` Observation create / recent path uses one handle open
+  - [x] 03.1.a Write failing test — Scenario: Observation routes open store once
+  - [x] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/http/ -run 'Observation|SingleOpen|Handle' -count=1` — Expected: FAIL (NOTE: passed pre-rewire, count already 1 — HTTP never had the MCP-style double-open; see Verification)
+  - [x] 03.1.c Minimal implementation
+  - [x] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/http/ -run 'Observation|SingleOpen|Handle' -count=1` — Expected: PASS
+  - [x] 03.1.e Commit — `feat(mnemonic): HTTP single-project routes use Project Handle`
+- [x] 03.2 `[AFK]` Session, search, code, web single-project handlers use handle; migrate/merge stay on root; bearer auth unchanged — Scenarios: Single-project HTTP uses handle; Migrate and merge stay on root — `Run: go test ./skillgrid-cli/internal/mnemonic/http/ -count=1` — Expected: PASS
 
 ### Verification
 
@@ -288,15 +288,17 @@ Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/http/ -count=1` | PASS | | |
-| Acceptance `@step-03` / `@p0` | map scenarios to HTTP tests | PASS | | |
-| Runtime harness | N/A | PASS | | |
-| Rollback boundary | revert; no migrations | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/http/ -count=1` | PASS | PASS | 53 tests; service/mcp/store PASS |
+| Acceptance `@step-03` / `@p0` | map scenarios to HTTP tests | PASS | PASS | single_open_test.go: TestObservationRoutesOpenStoreOnce, TestSingleProjectRoutesUseHandle (20 routes), TestMigrateMergeStayOnRoot |
+| Runtime harness | N/A | PASS | PASS | |
+| Rollback boundary | revert; no migrations | PASS | PASS | |
+| Global Constraints | — | held | held | http/ + tests only |
 
 ### Commit
 
-When step DoD is met: `feat(mnemonic): HTTP single-project routes use Project Handle`
+Step 03 commits: `153c4ce` (HTTP single-project routes use Project Handle), `4a08eff` (load config once in code index route)
+
+Note: HTTP never had the MCP-style double-open — `projectFromRequest` resolves the id with no store.Open, and each handler called exactly one facade (one open) → 0+1=1. The [RED] test passed pre-rewire (count already 1); the rewire is still correct (MCP-consistent) and the single-open invariant is now pinned by tests. Brief/prediction discrepancy, not an implementation defect.
 
 ---
 

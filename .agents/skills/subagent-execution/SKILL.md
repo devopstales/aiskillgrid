@@ -135,7 +135,7 @@ Use the least powerful model that can handle the role — and **always specify i
 - **Mechanical implementation** (isolated functions, clear spec, 1–2 files): fast, cheap model. Most implementation is mechanical when the plan is well-specified.
 - **Integration and judgment** (multi-file, pattern matching, debugging): standard model.
 - **Architecture / design / final whole-branch review:** most capable available.
-- **Reviews:** scale to the diff's size, complexity, and risk.
+- **Reviews:** scale to the diff's size, complexity, and risk. Floor is mid-tier — cheap models take 2–3× the turns and cost more wall-clock than they save.
 - **Fix-loop rounds 4–5:** one tier above the stuck implementer.
 
 ## The task loop

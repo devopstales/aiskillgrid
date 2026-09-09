@@ -11,6 +11,8 @@ metadata:
 
 # SDD Spec
 
+> **For agentic workers:** REQUIRED SUB-SKILL: use `glossary` for terms; stop at user gate. Do not call `sdd-apply`.
+
 Stage owner (v4). Punch-lists + Gherkin in one phase. Own **NN** numbering; write change-level **`tasks.md`** and **`acceptance.feature`**; then **STOP for user gate** (Implement | Revise). Do not call `sdd-apply`.
 
 Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md).
@@ -33,6 +35,19 @@ Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-s
 [ ] 4. Write acceptance.feature
 [ ] 5. Self-check + persist
 [ ] 6. STOP — user gate
+```
+
+```dot
+digraph process {
+  rankdir=LR;
+  load [label="1\nLoad change.md", shape=box];
+  nn [label="2\nOwn NN allocation", shape=box];
+  tasks [label="3\nWrite tasks.md", shape=box, style=filled, fillcolor="#ffcccc"];
+  feature [label="4\nWrite acceptance.feature", shape=box, style=filled, fillcolor="#ffcccc"];
+  check [label="5\nSelf-check + persist", shape=box];
+  gate [label="6\nSTOP user gate", shape=box, style=filled, fillcolor="#ccffcc"];
+  load -> nn -> tasks -> feature -> check -> gate;
+}
 ```
 
 ### 1. Load change.md

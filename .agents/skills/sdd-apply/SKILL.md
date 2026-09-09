@@ -11,6 +11,8 @@ metadata:
 
 # SDD Apply
 
+> **For agentic workers:** REQUIRED SUB-SKILL: use `subagent-execution` (or `simple-execution` per routing) to execute. Do not freestyle inline.
+
 Stage owner (v4). Only phase that writes production code. Consume specs — do not invent requirements. Progress is cumulative across batches.
 
 ## Hard Rules
@@ -33,6 +35,18 @@ Stage owner (v4). Only phase that writes production code. Consume specs — do n
 [ ] 5. Persist + hand off to verify
 ```
 
+```dot
+digraph process {
+  rankdir=LR;
+  guard [label="1\nGuard + load", shape=diamond];
+  workload [label="2\nWorkload / isolation", shape=box];
+  route [label="3\nRoute execution", shape=diamond, style=filled, fillcolor="#ffcccc"];
+  mark [label="4\nMark [x] + commit", shape=box];
+  persist [label="5\nPersist → verify", shape=box, style=filled, fillcolor="#ccffcc"];
+  guard -> workload -> route -> mark -> persist;
+}
+```
+
 ### 1. Guard + load context
 
 From `## State` / orchestrator:
@@ -46,7 +60,7 @@ Read: `change.md`, `tasks.md` (`## NN-<name>`), `acceptance.feature` (`@step-NN`
 ### 2. Workload / isolation
 
 - Review workload High / chained / unresolved `ask-on-risk` → STOP until delivery path resolved (`auto-chain` | `exception-ok` | explicit `size:exception`).
-- Prefer **`isolated-workspace`** for non-trivial branches.
+- **`isolated-workspace`** is required for `auto-chain` / `chained-PR` / dirty shared branch / risky change; optional for small `single-pr` in-place work.
 - Commits: **`work-unit-commits`** / [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) — checkpoint when green. **Per step always**, even under `single-pr` (one PR ≠ one commit). Skipping step commits requires an explicit user override recorded in apply-progress.
 - **Ticket (when `change.md` `Ticket:` is not `none`):** follow the tracker’s **Ticket lifecycle** in [`../_shared/issue-tracker/`](../_shared/issue-tracker/) — set in-progress at apply start; every step commit footer references the id (`Refs:` / `Refs #…`). Creating the ticket is propose/spec’s job (`force_ticket_creation`); apply **owns progress updates**, not creation.
 

@@ -12,6 +12,8 @@ metadata:
 
 # use-skillgrid
 
+> **For agentic workers:** REQUIRED: route via `sdd-*` stages only. Do not freestyle a parallel process or write code here.
+
 Entry skill for Skillgrid SDD — counterpart to Superpowers' `using-superpowers`.
 **Routes only.** Does not write `change.md` / `tasks.md` / product code.
 

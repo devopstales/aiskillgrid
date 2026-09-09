@@ -11,6 +11,8 @@ metadata:
 
 # SDD Propose
 
+> **For agentic workers:** REQUIRED SUB-SKILL: use `questioning` after concrete inputs; `sdd-explore` / `design-spike` via gate only. Do not write production code.
+
 Stage owner (v4). Reserve `NNN`, write **`change.md`**, stop before code. Architecture decisions live **in** `change.md` — promote to ADR later only when they outlive this change.
 
 Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md).
@@ -38,6 +40,22 @@ Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-s
 [ ] 7. Design checkpoint — present direction, get nod before full change.md
 [ ] 8. Write change.md from template
 [ ] 9. Glossary + persist + envelope
+```
+
+```dot
+digraph process {
+  rankdir=LR;
+  classify [label="1\nClassify path", shape=box, style=filled, fillcolor="#ccffcc"];
+  decompose [label="2\nDecompose check", shape=box];
+  gate [label="3\nExplore/spike gate?", shape=diamond];
+  reserve [label="4\nReserve NNN", shape=box];
+  question [label="5\nQuestioning", shape=box];
+  read [label="6\nRead code", shape=box];
+  checkpoint [label="7\nDesign checkpoint", shape=box, style=filled, fillcolor="#ffcccc"];
+  write [label="8\nWrite change.md", shape=box];
+  persist [label="9\nPersist + envelope", shape=box, style=filled, fillcolor="#ccccff"];
+  classify -> decompose -> gate -> reserve -> question -> read -> checkpoint -> write -> persist;
+}
 ```
 
 ### 1. Classify path — announce it

@@ -47,6 +47,55 @@ Announce pattern: `Using use-skillgrid to <route>`.
 
 Onboard helpers (refresh anytime): `sdd-map-codebase`, `sdd-agent-context`, `sdd-constraints`, `sdd-domain`.
 
+## Skill triggers (who calls who)
+
+Order: `onboard → propose → spec → apply ⇄ verify → archive` (explore/spike are pre-propose helpers).
+
+```mermaid
+flowchart TD
+    use["use-skillgrid<br/>router"] --> onboard["sdd-onboard"]
+    use --> propose["sdd-propose"]
+    use --> spec["sdd-spec"]
+    use --> apply["sdd-apply"]
+    use --> verify["sdd-verify"]
+    use --> archive["sdd-archive"]
+
+    onboard --> map["sdd-map-codebase"]
+    onboard --> init["sdd-init"]
+    onboard --> agentctx["sdd-agent-context"]
+    onboard --> constraints["sdd-constraints"]
+    onboard --> domain["sdd-domain"]
+    init --> questioning1["questioning"]
+
+    propose --> explore["sdd-explore"]
+    propose --> spike["design-spike"]
+    propose --> questioning2["questioning"]
+    propose --> codesign["codebase-design"]
+    propose --> glossary1["glossary"]
+    explore --> investigate["investigate"]
+    explore --> dispatch1["dispatching-parallel-agents"]
+
+    spec --> glossary2["glossary"]
+    spec --> issuecreation["issue-creation"]
+
+    apply --> isolated1["isolated-workspace"]
+    apply --> simple["simple-execution"]
+    apply --> subexec["subagent-execution"]
+    apply --> tdd["tdd"]
+    apply --> debugging["debugging"]
+    apply --> workunits["work-unit-commits"]
+    subexec --> isolated2["isolated-workspace"]
+
+    verify --> verification["verification"]
+    verify --> reqreview["requesting-code-review"]
+    verify --> reception["review-reception"]
+    verify --> judgment["judgment-day"]
+    verify -->|findings| apply
+
+    archive --> finish["finishing-a-development-branch"]
+    archive --> mnemonic["mnemonic"]
+```
+
 ## Artifacts
 
 ```text
