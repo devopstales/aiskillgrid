@@ -13,6 +13,7 @@ import (
 
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/hybrid"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
 )
 
@@ -140,7 +141,7 @@ func handleCodeSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 		return toolError(err)
 	}
 
-	return JSONResult(map[string]any{"hits": codeHitDTOs(hits)})
+	return JSONResult(map[string]any{"hits": codeHitDTOs(h.Store().DB, query, hits)})
 }
 
 func handleCodeRead(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
@@ -161,6 +162,18 @@ func handleCodeRead(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Ca
 	result, err := mcpReadIndexedCode(h.Store().DB, path, startLine, endLine)
 	if err != nil {
 		return toolError(err)
+	}
+	// Output-time secret redaction (01.3): a secret-like string in the indexed
+	// file is replaced before it is emitted — index-time exclusion alone does
+	// not count. The additive redacted field reports whether a replacement
+	// occurred.
+	rawText, _ := result["text"].(string)
+	redacted := hybrid.RedactSecrets(rawText)
+	if redacted != rawText {
+		result["text"] = redacted
+		result["redacted"] = true
+	} else {
+		result["redacted"] = false
 	}
 	return JSONResult(result)
 }
@@ -231,18 +244,75 @@ func mcpReadIndexedCode(db *sql.DB, path string, startLine, endLine int) (map[st
 	}, nil
 }
 
-func codeHitDTOs(hits []search.CodeHit) []map[string]any {
+// codeHitDTOs maps code_search hits to their response DTO. The 005 fields
+// (path/start_line/end_line/snippet/score) are unchanged; the additive fields
+// (confidence, action, rerank_reasons, redacted) are GAINED per 005's
+// additive-response contract (the tool's name + required `query` param are
+// never changed).
+func codeHitDTOs(db *sql.DB, query string, hits []search.CodeHit) []map[string]any {
 	out := make([]map[string]any, len(hits))
 	for i, hit := range hits {
+		// Derive a RankHit for the explainable rerank table. The symbol is the
+		// nearest indexed symbol in the hit range (best-effort; "" when absent).
+		sym, kind := symbolAtRange(db, hit.Path, hit.StartLine, hit.EndLine)
+		ctx := hybrid.RerankContext{
+			Query:      query,
+			IsTestFile: isTestPath(hit.Path),
+		}
+		factors := hybrid.ApplyRerankTable(hybrid.RankHit{
+			Path: hit.Path, StartLine: hit.StartLine, EndLine: hit.EndLine,
+			Symbol: sym, Kind: kind, Score: hit.Score,
+		}, ctx)
+		baseScore := hit.Score + hybrid.RerankDelta(factors)
+		conf := hybrid.ConfidenceFromScore(baseScore, factors).
+			WithActionAndFallbacks(query, []string{hit.Path})
+		// Skeletonize the snippet (01.11) and redact it (01.3) so the snippet
+		// stays short and a secret never ships raw.
+		skel := hybrid.Skeletonize(strings.Split(hit.Snippet, "\n"), query, hit.StartLine, hit.EndLine)
+		skelText := strings.Join(skel, "\n")
+		redacted := hybrid.RedactSecrets(skelText)
 		out[i] = map[string]any{
-			"path":       hit.Path,
-			"start_line": hit.StartLine,
-			"end_line":   hit.EndLine,
-			"snippet":    hit.Snippet,
-			"score":      hit.Score,
+			"path":           hit.Path,
+			"start_line":     hit.StartLine,
+			"end_line":       hit.EndLine,
+			"snippet":        redacted,
+			"score":          hit.Score,
+			// Additive response gains (005 contract: name + required params
+			// unchanged, response schema only grows).
+			"confidence":     conf.Level,
+			"action":         conf.Action,
+			"rerank_reasons": hybrid.RerankReasons(factors),
+			"redacted":       redacted != skelText,
+		}
+		if len(conf.Suggested) > 0 {
+			out[i]["fallbacks"] = conf.Suggested
 		}
 	}
 	return out
+}
+
+// symbolAtRange best-effort resolves the symbol defined in [start,end] of a
+// path (for the rerank table's exact-symbol / definition-kind factors).
+func symbolAtRange(db *sql.DB, path string, start, end int) (string, string) {
+	var fileID int64
+	if err := db.QueryRow(`SELECT id FROM files WHERE path = ?`, path).Scan(&fileID); err != nil {
+		return "", ""
+	}
+	var name, kind string
+	err := db.QueryRow(`
+		SELECT name, kind FROM symbols
+		WHERE file_id = ? AND start_line >= ? AND start_line <= ?
+		ORDER BY end_line - start_line ASC
+		LIMIT 1`, fileID, start, end).Scan(&name, &kind)
+	if err != nil {
+		return "", ""
+	}
+	return name, kind
+}
+
+func isTestPath(path string) bool {
+	lower := strings.ToLower(path)
+	return strings.Contains(lower, "_test.go") || strings.HasSuffix(lower, ".test.js") || strings.Contains(lower, "test_")
 }
 
 func gitRoot(cwd string) (string, error) {
