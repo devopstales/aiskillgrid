@@ -12,7 +12,7 @@
 
 **Tech stack:** Go (`skillgrid-cli`), SQLite (`modernc.org/sqlite`, CGo-free), existing gotreesitter graph from 005, `github.com/fsnotify/fsnotify` (file watcher, CGo-free), MCP (`mcp-go`), CLI.
 
-**Research:** CodeGraph README (framework-routes table, `codegraph affected`, auto-sync + staleness-banner section) — see 005 codegraph-takeaways observation.
+**Research:** CodeGraph README (framework-routes table, `codegraph affected`, auto-sync + staleness-banner section) — see 005 codegraph-takeaways observation. Graft (`trailhq/Graft`, 6.7k★) README/wiki — see 005 graft-takeaways observation: drop-rather-than-guess edge policy, pull-at-query fingerprint gate, `blast --base <ref>` PR integration.
 
 **Prototype:** none
 
@@ -40,11 +40,12 @@ This change is done only when **all** of the following are true:
 
 - [ ] Supported frameworks' routing files produce `route` nodes linked by `references` edges to their handlers (callers of a view/controller surface the URL pattern)
 - [ ] Supported routers produce `navigates` edges (the function that sends the user somewhere is linked to the screen it names)
-- [ ] `code_affected <files...>` (and `--stdin`) returns the test files affected by changed source, via transitive import + `tests-for` traversal, with `--depth` / `--filter` / `--json`
+- [ ] `code_affected <files...>` (and `--stdin`, `--base <ref>`) returns the test files affected by changed source, via transitive import + `tests-for` traversal, with `--depth` / `--filter` / `--json`; `--base` derives the changed set from the merge-base diff and reports affected areas with git-history owners
 - [ ] `code_rename <symbol> <new_name>` (`--dry-run`) returns edits split into **graph** (high-confidence, mechanical) and **text-search** (review carefully) buckets, with `files_affected`/`total_edits` counts; `dry_run` touches nothing
 - [ ] A file watcher with debounced auto-sync keeps the index current on create/modify/delete while the MCP server runs; **publication is copy-and-swap** (sidecar build → atomic publish) so a reader never sees a torn index; running MCP/serve processes **reopen the new index on the next tool call (~5s) without restart**; connect-time catch-up reconciles `(size, mtime)` + content-hash on (re)connect
+- [ ] A **pull-at-query fingerprint gate** (structural-only stat-walk, ~3ms) makes every `code_*` query fresh even when the watcher is off; it never invokes the embedder leg and is keyed by the extractor stamp
 - [ ] MCP tool responses that reference a still-pending file prepend a `⚠️` staleness banner naming it and saying "Read it directly"; pending files not referenced surface as a footer
-- [ ] Every new edge carries a Confidence Label (`EXTRACTED | INFERRED | AMBIGUOUS`); computed/unresolvable route or navigation destinations are left unresolved, not guessed
+- [ ] Every new edge carries a Confidence Label (`EXTRACTED | INFERRED | AMBIGUOUS`); computed/unresolvable route or navigation destinations are left unresolved, not guessed; **ambiguous references are dropped (not guessed) and excluded from blast-radius math**
 - [ ] Existing 005/008 `code_*` tools are unchanged (name + required params); `go test ./...` passes for touched packages
 - [ ] Every Step Blueprint entry has a matching section in `tasks.md` with Verdict `PASS` or `PASS WITH WARNINGS`
 - [ ] Every `@step-NN` Feature in `acceptance.feature` has passing `@happy`, `@edge`, and `@failure` scenarios
@@ -68,12 +69,15 @@ This change is done only when **all** of the following are true:
 - CGo-free: fsnotify is pure-Go (no C dependency); matches the codebase's CGo-free stance (modernc + gotreesitter + loom)
 - Every new edge carries a Confidence Label: `EXTRACTED | INFERRED | AMBIGUOUS`; route/navigation edges that resolve from explicit syntax are `EXTRACTED`, convention/heuristic ones `INFERRED`, name-only guesses `AMBIGUOUS`
 - Route/navigation destinations that are **computed** (not a string literal) or that **no route serves** are left unresolved — never fabricated; a markup-written link is marked `INFERRED`
+- **Drop rather than guess** (Graft): an ambiguous reference (no same-file match, no explicit specifier, no unique global/owner-qualified match) is **dropped**, not `AMBIGUOUS`-kept — ambiguous edges are excluded from `code_affected` / blast-radius math so a false-positive can never inflate the radius. `AMBIGUOUS` is reserved for edges that *were* resolved but with a heuristic (e.g. markup-written `navigates`); a drop is reported as a warning, not a silent discard
 - `code_affected` is a **query only** — it adds no nodes/edges; it traverses 005's import/`tests-for` edges with a depth cap (default 5) and returns paths, not invented relationships
+- **`--base <ref>` PR mode** (Graft `blast --base`): `code_affected --base origin/main` derives the changed file set from the merge-base diff (no `--stdin` needed), reports the areas the change can reach (per-symbol detail collapsed under each area), and names **git-history owners** ("who to tag") for each affected area via `git blame` on the touched lines. `--quiet`/`--json` make the output a ready PR comment / CI gate
 - `code_rename` is the **write counterpart** of `code_affected`: it resolves the symbol (reusing 005's disambiguation), then splits edits into **graph edits** (high-confidence: definition + typed references from the edges table) and **text-search edits** (lower-confidence: string matches the graph didn't resolve). `dry_run` (default `true`) returns the plan without writing. Every edit carries a confidence label; a rename that can't resolve the symbol returns a candidate list, never a silent pick
-- Watcher is opt-out by default in `serve`/MCP path; debounce window default 2000ms (tunable, clamped [100ms, 60s]); filtered to source files only; a sandboxed env (`SKILLGRID_NO_WATCH=1`) disables it gracefully
+- Watcher is opt-out by default in `serve`/MCP path; debounce window default 2000ms (tunable, clamped [100ms, 60s]); filtered to source files only; a sandboxed env (`SKILLGRID_NO_WATCH=1`) disables it gracefully — the pull-at-query fingerprint gate still makes every query fresh (structural-only), so a disabled watcher degrades to "slightly slower but never stale"
 - **The embedder stays warm** while a session is active: the ONNX runtime (005's default embedder) is loaded once and **kept in RAM** across `skillgrid search` / MCP calls rather than re-loading the ~270MB model per invocation. It **evicts on idle** (`idle_timeout`, default 10min, tunable) and is **kept alive by MCP heartbeat** while an MCP client is connected. This is the "the index is never cold" counterpart to the watcher's "never stale" — a warm embedder means the semantic leg of `code_hybrid_search` doesn't pay model-load latency on the agent's hot search loop
 - **Publication is copy-and-swap:** the watcher builds the re-index into a sidecar, then atomically publishes it (rename/swap), so a concurrent reader never observes a torn index. On Windows / sidecar-unsupported filesystems it updates in place with a write-failure guard (retry if the failure was pre-write; stop if it may have mutated the live index). Running MCP/serve processes **reopen the newly-published index on their next tool call (~5s), no restart**
 - Staleness banner is the specific trick: during the debounce window, any MCP response referencing a pending file names it and tells the agent to `Read` it directly — solves "silent wrong answer between an edit and the next sync"
+- **Pull-at-query fingerprint gate** (Graft): every `code_*` MCP/CLI query first runs a ~3ms `(size, mtime)` stat-walk of the working tree against the last index's fingerprint; on drift it triggers a **structural-only** incremental re-index (never the LLM/embedder leg), guarded by the same writer lock as the watcher. The fsnotify watcher stays the *comfort* layer (near-zero-latency, background); the fingerprint gate is the *correctness backstop* — even with the watcher off, a query answers against the tree as it is now (uncommitted edits included). Fingerprint is keyed by the extractor stamp (a binary/version change invalidates it)
 - Existing 005/008 `code_*` tools keep name + required params; all new tools use distinct `code_*` names
 - Migration id `013_framework_routes.sql` — leave `011` (005) and `012` (008) as-is
 
@@ -81,7 +85,7 @@ This change is done only when **all** of the following are true:
 
 - Schema: `route_nodes` (+ `references`/`navigates` edge types; additive `013_*`)
 - Framework-route extractor layer: per-language/per-framework node maps (web-framework routes → `route` node + `references` → handler; routers → `navigates` → named screen)
-- `code_affected` MCP/CLI tool (transitive import + `tests-for` traversal from changed files → test files; `--stdin`, `--depth`, `--filter`, `--json`, `--quiet`)
+- `code_affected` MCP/CLI tool (transitive import + `tests-for` traversal from changed files → test files; `--stdin`, `--base <ref>` merge-base diff + affected-area grouping + git-history owners, `--depth`, `--filter`, `--json`, `--quiet`)
 - `code_rename` MCP/CLI tool (graph-confidence vs. text-search edit buckets, `dry_run`, per-edit confidence)
 - fsnotify auto-sync watcher (debounced incremental re-index in the serve/MCP path) with **copy-and-swap publication** + **reader auto-reopen** + connect-time `(size, mtime)` + content-hash catch-up
 - **Warm embedder daemon**: keep 005's ONNX embedder in RAM while a session is active (load-once, evict-on-idle with `idle_timeout`, MCP-heartbeat keep-alive) so the semantic leg of search doesn't pay model-load latency per call
@@ -94,11 +98,12 @@ This change is done only when **all** of the following are true:
 - **Risk:** `code_affected` traverses too deep on huge repos — **Mitigation:** depth cap (default 5, `--depth`); returns paths not a full subgraph; `--quiet` for CI
 - **Risk:** `code_rename` misses or over-applies (text-search bucket catches a string that isn't the symbol) — **Mitigation:** two-bucket split (graph = high-confidence mechanical, text-search = flagged "review carefully"); `dry_run` by default; per-edit confidence; ambiguous target → candidate list, never a silent pick; the graph never invents a reference
 - **Risk:** Watcher fires on generated/vendored files, re-indexing noise — **Mitigation:** filter to source files via 005's include/exclude + `.gitignore` awareness; debounce collapses edit bursts into one sync
+- **Risk:** Fingerprint gate adds per-query cost — **Mitigation:** it is a shallow stat-walk (~3ms, no file reads, no LLM) that runs only when the cheap stat comparison shows drift; `SKILLGRID_NO_REFRESH=1`-style opt-out for the rare case a caller wants the on-disk index as-is (matches Graft's `--no-refresh`)
 - **Risk:** Reader observes a torn index mid-reindex — **Mitigation:** copy-and-swap publication (sidecar → atomic publish) means a reader sees either the old or the new index, never a partial one; in-place fallback has a pre-write/post-write failure guard
 - **Risk:** Two `serve`/MCP processes on one project fight over the index — **Mitigation:** one live writer per project (shared or single direct-mode); a second exits with a clear writer-lock error; `SKILLGRID_NO_WATCH=1` to run in-process
 - **Risk:** Staleness banner noise if debounce is too long — **Mitigation:** 2000ms default (tunable, clamped); banner only names files actually referenced (footer otherwise)
 - **Risk:** Warm embedder holds ~270MB RAM indefinitely — **Mitigation:** evict on `idle_timeout` (default 10min) + MCP-heartbeat keep-alive; a down/absent model just falls back to FTS+signals (005's floor); `off`/external providers don't hold RAM at all
-- **Rollback:** Drop `013_*` migration + `route/` package + the `code_affected` tool + the watcher/banner in the serve path + the warm-embedder cache; 005/008's symbols/edges/chunks/hybrid/community/knowledge stay intact
+- **Rollback:** Drop `013_*` migration + `route/` package + the `code_affected` tool + the watcher/banner in the serve path + the fingerprint gate + the warm-embedder cache; 005/008's symbols/edges/chunks/hybrid/community/knowledge stay intact
 
 ## Error handling
 
@@ -140,7 +145,7 @@ Contract for `sdd-spec`. Do not renumber after `tasks.md` exists. Per-step Out o
 
 ## Technical approach
 
-Three additive layers on top of 005's graph. Layer 1 (step 01) adds a framework-route extractor: per-language/per-framework node maps that emit `route` nodes (web-framework routing files) linked by `references` edges to handlers, and `navigates` edges for routers (the function that sends the user somewhere → the screen it names). Resolved destinations are string literals; computed/unresolvable ones stay unresolved. Layer 2 (step 02) adds `code_affected` — a pure traversal over 005's import + `tests-for` edges from a set of changed files to the test files that must run (depth-capped, `--stdin`/`--filter`/`--json`/`--quiet`). Layer 3 (step 03) adds an fsnotify watcher in the serve/MCP path that debounces source-file create/modify/delete into incremental re-indexes, does a `(size, mtime)` + content-hash reconciliation on connect, and prepends a `⚠️` staleness banner to any MCP response that references a still-pending file. Preserve all 005/008 `code_*` contracts.
+Three additive layers on top of 005's graph. Layer 1 (step 01) adds a framework-route extractor: per-language/per-framework node maps that emit `route` nodes (web-framework routing files) linked by `references` edges to handlers, and `navigates` edges for routers (the function that sends the user somewhere → the screen it names). Resolved destinations are string literals; computed/unresolvable ones stay unresolved. Layer 2 (step 02) adds `code_affected` — a pure traversal over 005's import + `tests-for` edges from a set of changed files to the test files that must run (depth-capped, `--stdin`/`--base <ref>`/`--filter`/`--json`/`--quiet`; `--base` derives the changed set from a merge-base diff and reports affected areas with git-history owners). Layer 3 (step 03) adds an fsnotify watcher in the serve/MCP path that debounces source-file create/modify/delete into incremental re-indexes, does a `(size, mtime)` + content-hash reconciliation on connect, and prepends a `⚠️` staleness banner to any MCP response that references a still-pending file; a pull-at-query fingerprint gate (stat-walk against the working tree, structural-only re-index on drift) is the correctness backstop that keeps queries fresh even with the watcher off. Preserve all 005/008 `code_*` contracts.
 
 ## Architecture decisions
 
@@ -158,12 +163,19 @@ Three additive layers on top of 005's graph. Layer 1 (step 01) adds a framework-
 **Alternatives considered:** Recompute the dependency graph on each call (slow, duplicates the index); store a precomputed impact matrix (memory + staleness)
 **Rationale:** CodeGraph's `codegraph affected` is the single most "why do I need this graph" demo, and it's *free* on top of 005's edges — no new extraction. Depth cap + `--quiet` make it CI-safe (`git diff --name-only | skillgrid search affected --stdin`).
 
+### Decision: `code_affected --base <ref>` — diff-anchored PR impact (Graft `blast`)
+
+**Module / Interface / Seam / Adapter / Depth:** Query extension over the existing edges table + git
+**Choice:** `code_affected --base origin/main` derives the changed file set from `git merge-base <base> HEAD` + diff (no `--stdin` plumbing), walks the same import/`tests-for` traversal, groups the result into affected **areas** (per-symbol detail collapsed under each area), and names git-history owners for each touched area via `git blame` on the changed lines. `--quiet`/`--json` shape it as a PR comment or CI-gate input.
+**Alternatives considered:** `--stdin` only (forces callers to run `git diff --name-only` themselves — fine for CI, clumsy for the agent-in-PR-review case); a separate `code_blast` tool (dup surface — `blast` is just `code_affected` with a different changed-set source)
+**Rationale:** Graft's `blast --base` is the integration surface that puts the graph in front of PR review — "what can this change break, and who owns it" is the question a reviewer actually asks. Reusing `code_affected`'s traversal (one code path, two changed-set sources) keeps the tool surface small; owner attribution is `git blame`, so no new graph data.
+
 ### Decision: fsnotify watcher + staleness banner for auto-sync
 
 **Module / Interface / Seam / Adapter / Depth:** Adapter (fsnotify) + seam at the MCP serve response path
-**Choice:** A native fsnotify watcher (FSEvents/inotify/KQueue, pure-Go) in the serve/MCP path captures source-file create/modify/delete, debounces (2000ms default, clamped [100ms,60s]) into incremental re-indexes, and does `(size, mtime)` + content-hash catch-up on connect. MCP tool responses that reference a still-pending file prepend a `⚠️ <file> is pending sync — Read it directly` banner; un-referenced pending files surface as a footer.
+**Choice:** A native fsnotify watcher (FSEvents/inotify/KQueue, pure-Go) in the serve/MCP path captures source-file create/modify/delete, debounces (2000ms default, clamped [100ms,60s]) into incremental re-indexes, and does `(size, mtime)` + content-hash catch-up on connect. MCP tool responses that reference a still-pending file prepend a `⚠️ <file> is pending sync — Read it directly` banner; un-referenced pending files surface as a footer. **In parallel, a pull-at-query fingerprint gate** (Graft's `ensureFreshGraph`): every `code_*` query stats the working tree against the last index's fingerprint (~3ms, no file reads); on drift it runs a structural-only incremental re-index (never the embedder leg) under the same writer lock before answering. The watcher is the comfort layer (near-zero-latency background sync); the fingerprint gate is the correctness backstop — with the watcher off (`SKILLGRID_NO_WATCH=1`), queries are still fresh, just slower.
 **Alternatives considered:** No watcher (manual `skillgrid index` — index goes stale mid-session); poll-based watcher (CPU + latency); full re-index per change (slow, cost grows with repo not the change)
-**Rationale:** The staleness banner is the specific trick that removes the "silent wrong answer between an edit and the next sync" class of bugs — the agent gets an explicit signal and falls back to `Read`. Incremental sync (cost grows with the change, not the repo) matches 005's single-transaction hash+mtime guard. CGo-free via fsnotify.
+**Rationale:** The staleness banner is the specific trick that removes the "silent wrong answer between an edit and the next sync" class of bugs — the agent gets an explicit signal and falls back to `Read`. Incremental sync (cost grows with the change, not the repo) matches 005's single-transaction hash+mtime guard. CGo-free via fsnotify. The fingerprint gate makes freshness *structural* rather than *coincidental*: a query can no longer answer from an index the tree has moved past, even in manual/watcher-off mode — Graft's whole "no stale index to babysit" claim comes from exactly this pull-at-query design.
 
 ### Decision: Migration number
 
@@ -183,6 +195,8 @@ flowchart TD
   agent --> path["code_path URL -> handler -> screen (005, now spans routes)"]
   watcher["fsnotify watcher (debounced)"] --> reindex["incremental re-index (005 single-tx guard)"]
   reindex --> symbols
+  query["any code_* query"] --> gate["fingerprint stat-walk (~3ms)"]
+  gate -- "drift" --> reindex
   mcp["MCP serve"] --> banner["staleness banner if response references a pending file"]
 ```
 
@@ -196,6 +210,7 @@ skillgrid-cli/internal/mnemonic/
 ├── affected/affected.go                          # code_affected traversal (import + tests-for, depth-capped)
 ├── affected/rename.go                            # code_rename (graph vs text-search buckets, dry_run)
 ├── codeindex/watch.go                            # fsnotify watcher + debounce + connect-time catch-up
+├── codeindex/fingerprint.go                      # pull-at-query stat-walk fingerprint gate (structural-only re-index on drift)
 ├── codeindex/publish.go                          # copy-and-swap publication + reader auto-reopen
 ├── embedder/warm.go                              # warm ONNX embedder cache (load-once, idle-evict, heartbeat)
 ├── mcp/tools_code_route.go                       # route/navigates query tools
@@ -217,6 +232,7 @@ skillgrid-cli/internal/mnemonic/
 | `skillgrid-cli/internal/mnemonic/mcp/tools_code_affected.go` | Create | 02 | `code_affected` + `code_rename` MCP tools |
 | `skillgrid-cli/cmd/skillgrid/code_intel.go` | Modify | 02 | `skillgrid search affected` CLI (`--stdin`/`--depth`/`--filter`/`--json`/`--quiet`) + `skillgrid search rename` |
 | `skillgrid-cli/internal/mnemonic/codeindex/watch.go` | Create | 03 | fsnotify watcher + debounce + `(size,mtime)`+hash connect-time catch-up |
+| `skillgrid-cli/internal/mnemonic/codeindex/fingerprint.go` | Create | 03 | Pull-at-query stat-walk fingerprint gate (structural-only re-index on drift, extractor-stamp keyed) |
 | `skillgrid-cli/internal/mnemonic/codeindex/publish.go` | Create | 03 | Copy-and-swap publication (sidecar → atomic publish) + reader auto-reopen (~5s) |
 | `skillgrid-cli/internal/mnemonic/embedder/warm.go` | Create | 03 | Warm ONNX embedder cache (load-once, `idle_timeout` evict, MCP-heartbeat keep-alive) |
 | `skillgrid-cli/internal/mnemonic/mcp/server.go` | Modify | 03 | Wire staleness banner + auto-reopen + warm-embedder heartbeat into response path |
@@ -258,7 +274,7 @@ Observable behavior each step must deliver (feeds Gherkin). Not implementation H
 
 **Goal:** Keep the graph fresh *and* the embedder warm as the agent edits — fsnotify auto-sync + **copy-and-swap publication** + **reader auto-reopen** + connect-time catch-up + staleness banner + **warm embedder daemon**
 **Out of scope:** Route edges (step 01); `code_affected`/`code_rename` (step 02); manual full re-index (still available)
-**Definition of Done:** A debounced fsnotify watcher re-indexes on source-file create/modify/delete while the MCP server runs; **publication is copy-and-swap** (sidecar build → atomic publish) so a reader never sees a torn index; running MCP/serve processes **reopen the new index on the next tool call (~5s) without restart**; connect-time `(size,mtime)` + content-hash reconciliation absorbs edits made while no server was up; MCP responses referencing a pending file prepend a `⚠️` staleness banner (naming it + "Read it directly"), un-referenced pending files as a footer; **the ONNX embedder is loaded once and kept in RAM** while a session is active, evicted on `idle_timeout`, kept alive by MCP heartbeat; watcher is source-file-filtered and disable-able; a second writer exits with a clear lock error; 005/008 tools unchanged
+**Definition of Done:** A debounced fsnotify watcher re-indexes on source-file create/modify/delete while the MCP server runs; **publication is copy-and-swap** (sidecar build → atomic publish) so a reader never sees a torn index; running MCP/serve processes **reopen the new index on the next tool call (~5s) without restart**; connect-time `(size,mtime)` + content-hash reconciliation absorbs edits made while no server was up; MCP responses referencing a pending file prepend a `⚠️` staleness banner (naming it + "Read it directly"), un-referenced pending files as a footer; **a pull-at-query fingerprint gate makes every `code_*` query fresh even with the watcher off** (structural-only re-index on drift, never the embedder leg); **the ONNX embedder is loaded once and kept in RAM** while a session is active, evicted on `idle_timeout`, kept alive by MCP heartbeat; watcher is source-file-filtered and disable-able; a second writer exits with a clear lock error; 005/008 tools unchanged
 
 - Saving a source file fires the watcher, debounces (default 2000ms), and incrementally re-indexes only what changed (cost grows with the change, not the repo)
 - **Copy-and-swap:** the re-index is built into a sidecar and published atomically — a concurrent reader sees either the old or the new index, never a partial one. On Windows / sidecar-unsupported filesystems it updates in place with a write-failure guard (retry if pre-write; stop if it may have mutated the live index)
@@ -267,6 +283,7 @@ Observable behavior each step must deliver (feeds Gherkin). Not implementation H
 - An MCP tool response that references a still-pending file prepends `⚠️ <file> is pending sync — Read it directly`; pending files not referenced surface as a small footer
 - The watcher filters to source files (honors 005 include/exclude + `.gitignore`); bursts of edits collapse into one sync
 - `SKILLGRID_NO_WATCH=1` (or a sandboxed env) disables the watcher gracefully; `skillgrid index status` shows a `### Pending sync:` section (files + edit age)
+- **Fingerprint gate:** with the watcher off, a `code_*` query made after an edit still answers against the edited tree (stat-walk detects drift, structural-only re-index runs before the answer); the gate never invokes the embedder leg; the fingerprint is invalidated when the extractor stamp (indexer version) changes
 - Two `serve`/MCP processes on one project: the second exits with a clear writer-lock error; CGo-free via fsnotify
 - **Warm embedder:** the ONNX model is loaded once and kept in RAM across `skillgrid search` / MCP calls; after `idle_timeout` (default 10min) of no use it is evicted; an active MCP client connection keeps it alive via heartbeat. A down/absent model falls back to FTS+signals (005's floor) — no model-load latency on the agent's hot search loop
 - Existing 005/008 `code_*` tools are unchanged; bad watcher/status args are rejected clearly
@@ -281,16 +298,16 @@ Mark each row `Applicable` or `N/A: reason`. Applicable rows name an owning step
 | Git repository selection | N/A: no gitRoot / worktree authority change | — | — |
 | Commit state | N/A: `code_affected` reads a diff, does not commit | — | — |
 | Push state | N/A: no push automation | — | — |
-| **PR commands** | Applicable — `code_affected` consumes a PR/diff file list (read-only); `code_rename` can write source files | 02 | `code_affected --stdin` on a fixture diff returns correct test files; empty diff → empty result; `code_rename --dry-run` touches nothing; a non-dry `code_rename` edits only the listed files (no commit/push) |
+| **PR commands** | Applicable — `code_affected` consumes a PR/diff file list (read-only) incl. `--base <ref>` merge-base diff + owner attribution; `code_rename` can write source files | 02 | `code_affected --stdin` on a fixture diff returns correct test files; `code_affected --base <ref>` on a fixture branch returns correct areas + git-history owners; empty diff → empty result; `code_rename --dry-run` touches nothing; a non-dry `code_rename` edits only the listed files (no commit/push) |
 | **Mnemonic tool surface** | Applicable — new `code_affected` + `code_rename` + route tools + staleness banner; 005/008 tools unchanged | 01, 02, 03 | 01: route tools registered + 005 `code_search` schema stable + bad args rejected; 02: `code_affected` + `code_rename` registered + rename disambiguation (no silent pick) + dry_run touches nothing + 005/008 tools still stable + bad args rejected; 03: watcher doesn't alter tool schemas + banner present + bad args rejected |
-| **Index freshness / concurrency** | Applicable — watcher + copy-and-swap publication + auto-reopen + connect-time catch-up + single-writer lock | 03 | debounce collapses bursts; copy-and-swap means a reader never sees a torn index; auto-reopen picks up a new index without restart; connect-time catch-up absorbs offline edits; second writer exits with lock error; banner fires for pending referenced file |
+| **Index freshness / concurrency** | Applicable — watcher + copy-and-swap publication + auto-reopen + connect-time catch-up + single-writer lock + pull-at-query fingerprint gate | 03 | debounce collapses bursts; copy-and-swap means a reader never sees a torn index; auto-reopen picks up a new index without restart; connect-time catch-up absorbs offline edits; second writer exits with lock error; banner fires for pending referenced file; fingerprint gate re-indexes structurally on drift with the watcher off (and never touches the embedder leg) |
 | **Warm embedder lifecycle** | Applicable — load-once ONNX cache + idle-evict + MCP-heartbeat keep-alive; a down model must degrade to FTS+signals | 03 | embedder loads once and is reused across search calls (no per-call model-load); evicts after `idle_timeout`; MCP heartbeat keeps it alive while a client is connected; an absent/failed model degrades to FTS+signals (no hard-fail, no agent-visible load error) |
 | **Shared-convention drift** | N/A: no `_shared/conventions/*` edits in this Change | — | — |
 
 ## Migration / rollout
 
-- Additive `013_framework_routes.sql`. Route extraction + `code_affected` + watcher are additive on 005's single-transaction guard. No CGo (fsnotify is pure-Go). No LLM.
-- Rollback drops `013_*` + `route/` + `affected/` + `codeindex/watch.go` + the new tools + the serve-path banner; 005/008's graph + hybrid + community + knowledge stay.
+- Additive `013_framework_routes.sql`. Route extraction + `code_affected` + watcher + fingerprint gate are additive on 005's single-transaction guard. No CGo (fsnotify is pure-Go). No LLM.
+- Rollback drops `013_*` + `route/` + `affected/` + `codeindex/watch.go` + `codeindex/fingerprint.go` + the new tools + the serve-path banner; 005/008's graph + hybrid + community + knowledge stay.
 - Route framework set + `code_affected` depth default + watcher debounce tuned in steps 01/02/03; Confidence Label always required on route/navigates edges.
 
 ## Open questions

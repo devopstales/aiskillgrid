@@ -28,6 +28,7 @@ var menuCodeTools = []string{
 	"code_get_callers", "code_get_callees", "code_get_dependents",
 	"code_get_implementors", "code_get_hierarchy", "code_get_tests_for",
 	"code_path", "code_explain",
+	"code_communities", "code_god_nodes", "code_explain_community",
 }
 
 // exploreInitializeGuidance is injected at MCP initialize (server
@@ -90,18 +91,18 @@ func codeToolsEnabled() bool {
 // exploreResult is the composite answer: source by file, call-flow between the
 // returned symbols, and a blast-radius summary.
 type exploreResult struct {
-	Symbol     string                   `json:"symbol"`
-	Source     map[string][]srcSpan     `json:"source"`
-	CallFlow   []flowEdge               `json:"call_flow"`
-	Impact     *service.ImpactResultDTO `json:"impact"`
-	Truncated  bool                     `json:"truncated,omitempty"`
+	Symbol    string                   `json:"symbol"`
+	Source    map[string][]srcSpan     `json:"source"`
+	CallFlow  []flowEdge               `json:"call_flow"`
+	Impact    *service.ImpactResultDTO `json:"impact"`
+	Truncated bool                     `json:"truncated,omitempty"`
 }
 
 type srcSpan struct {
-	Symbol   string `json:"symbol"`
-	Start    int    `json:"start_line"`
-	End      int    `json:"end_line"`
-	Content  string `json:"content"`
+	Symbol  string `json:"symbol"`
+	Start   int    `json:"start_line"`
+	End     int    `json:"end_line"`
+	Content string `json:"content"`
 }
 
 type flowEdge struct {

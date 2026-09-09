@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/community"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/config"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/embedder"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/files"
@@ -1237,6 +1238,137 @@ func (h *ProjectHandle) Web() *webcache.Service { return h.web }
 
 // Store returns the underlying store for an open handle.
 func (h *ProjectHandle) Store() *store.Store { return h.store }
+
+// CommunityResult is the code_communities answer (LLM-free labeled
+// subsystems + a stable content-hash cache key).
+type CommunityResult = community.Result
+
+// CommunityOptions tunes the community pass.
+type CommunityOptions = community.Options
+
+// CodeCommunities runs the seeded Leiden community pass over projectID's
+// indexed graph and returns the labeled subsystems (with the cache key and any
+// non-fatal warning). The partition is advisory, never load-bearing.
+func (s *Service) CodeCommunities(ctx context.Context, projectID string, opts CommunityOptions) (*CommunityResult, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return community.Detect(ctx, h.store.DB, opts)
+}
+
+// GodNode is a degree-ranked symbol (the most-connected concepts).
+type GodNode = community.GodNode
+
+// CodeGodNodes returns the most-connected symbols in projectID ranked by
+// degree. excludeHubs suppresses utility super-hubs from the ranking.
+func (s *Service) CodeGodNodes(ctx context.Context, projectID string, excludeHubs bool, limit int) ([]GodNode, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	rows, err := h.store.DB.Query(`SELECT id FROM symbols`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	gods, err := community.RankGodNodes(h.store.DB, ids, excludeHubs)
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 && len(gods) > limit {
+		gods = gods[:limit]
+	}
+	return gods, nil
+}
+
+// CommunityExplanation is the code_explain_community answer: the community's
+// members + key entry points (top god nodes).
+type CommunityExplanation struct {
+	Found    bool                `json:"found"`
+	ID       int                 `json:"id"`
+	Label    string              `json:"label"`
+	Members  []map[string]any    `json:"members"`
+	EntryPts []community.GodNode `json:"entry_points"`
+	Reason   string              `json:"reason,omitempty"`
+}
+
+// CodeExplainCommunity returns a community's members + key entry points. An
+// unknown community id returns Found=false with a not-found reason (no
+// invented community).
+func (s *Service) CodeExplainCommunity(ctx context.Context, projectID string, id int) (*CommunityExplanation, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	var maxID int
+	if err := h.store.DB.QueryRow(`SELECT COALESCE(MAX(id), -1) FROM communities`).Scan(&maxID); err != nil {
+		return nil, err
+	}
+	if id < 0 || id > maxID {
+		return &CommunityExplanation{Found: false, Reason: fmt.Sprintf("community %d not found (0-%d exist)", id, maxID)}, nil
+	}
+	rows, err := h.store.DB.Query(`SELECT symbol_id FROM communities WHERE id = ? ORDER BY symbol_id`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var memberIDs []int64
+	for rows.Next() {
+		var mid int64
+		if err := rows.Scan(&mid); err != nil {
+			return nil, err
+		}
+		memberIDs = append(memberIDs, mid)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(memberIDs) == 0 {
+		return &CommunityExplanation{Found: false, Reason: fmt.Sprintf("community %d not found", id)}, nil
+	}
+	label := "community-" + fmt.Sprintf("%d", id)
+	_ = h.store.DB.QueryRow(`SELECT label FROM community_meta WHERE id = ?`, id).Scan(&label)
+
+	out := &CommunityExplanation{Found: true, ID: id, Label: label, EntryPts: []community.GodNode{}}
+	for _, mid := range memberIDs {
+		var name, kind, lang, path string
+		var startLine, endLine int
+		if err := h.store.DB.QueryRow(`
+			SELECT s.name, s.kind, COALESCE(s.language,''), f.path, s.start_line, s.end_line
+			FROM symbols s INNER JOIN files f ON f.id = s.file_id WHERE s.id = ?`, mid).
+			Scan(&name, &kind, &lang, &path, &startLine, &endLine); err == nil {
+			out.Members = append(out.Members, map[string]any{
+				"id":         mid,
+				"name":       name,
+				"kind":       kind,
+				"language":   lang,
+				"path":       path,
+				"start_line": startLine,
+				"end_line":   endLine,
+			})
+		}
+	}
+	gods, err := community.RankGodNodes(h.store.DB, memberIDs, false)
+	if err == nil {
+		out.EntryPts = gods
+	}
+	return out, nil
+}
 
 func readIndexedCode(db *sql.DB, path string, startLine, endLine int) (map[string]any, error) {
 	var fileID int64
