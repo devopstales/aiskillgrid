@@ -48,7 +48,7 @@ func NewOnnx(cfg OnnxConfig) *Onnx {
 	}
 }
 
-func (o *Onnx) Model() string { return o.cfg.Model }
+func (o *Onnx) Model() string  { return o.cfg.Model }
 func (o *Onnx) Dimension() int { return o.cfg.Dimension }
 
 // modelPath returns the cached model path.

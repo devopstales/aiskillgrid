@@ -14,8 +14,8 @@ type NullEmbedder struct{}
 // NewNull returns the Null Adapter.
 func NewNull() NullEmbedder { return NullEmbedder{} }
 
-func (NullEmbedder) Model() string     { return "off" }
-func (NullEmbedder) Dimension() int    { return 0 }
+func (NullEmbedder) Model() string  { return "off" }
+func (NullEmbedder) Dimension() int { return 0 }
 
 func (NullEmbedder) Embed(_ context.Context, _ string) (memory.Vector, error) {
 	return memory.Vector{}, nil

@@ -64,11 +64,11 @@ func (e *External) EmbedQuery(ctx context.Context, text string) (memory.Vector, 
 }
 
 type externalRequest struct {
-	Model          string       `json:"model"`
-	Input          string       `json:"input"`
-	InputType      string       `json:"input_type,omitempty"`
-	Instructions   string       `json:"instructions,omitempty"`
-	MaxTokens      int          `json:"max_tokens,omitempty"`
+	Model        string `json:"model"`
+	Input        string `json:"input"`
+	InputType    string `json:"input_type,omitempty"`
+	Instructions string `json:"instructions,omitempty"`
+	MaxTokens    int    `json:"max_tokens,omitempty"`
 }
 
 type externalResponse struct {
@@ -84,8 +84,8 @@ func (e *External) embed(ctx context.Context, text string, p AsymParams, isQuery
 	// The output dimension is model-wide; the side-specific params only
 	// change how the input is treated (instructions / input_type).
 	reqBody := externalRequest{
-		Model:    e.cfg.Model,
-		Input:    text,
+		Model:     e.cfg.Model,
+		Input:     text,
 		InputType: p.InputType,
 	}
 	if !isQuery {

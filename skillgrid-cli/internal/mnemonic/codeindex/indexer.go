@@ -14,7 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/embedder"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/extract"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/store"
 )
 
@@ -236,11 +238,19 @@ func ChunkLines(content []byte, chunkLines, chunkOverlap int) []Chunk {
 // Indexer incrementally indexes source files into the store.
 type Indexer struct {
 	store *store.Store
+	emb   embedder.Embedder
 }
 
 // New creates an Indexer backed by st.
 func New(st *store.Store) *Indexer {
 	return &Indexer{store: st}
+}
+
+// WithEmbedder sets the optional embedder used by the eager dual-granularity
+// embedding pass. A nil embedder (the default) skips the pass entirely.
+func (idx *Indexer) WithEmbedder(e embedder.Embedder) *Indexer {
+	idx.emb = e
+	return idx
 }
 
 type existingFile struct {
@@ -272,6 +282,10 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 	}
 	scannedPaths := make(map[string]struct{}, len(scanned))
 	targetUIDs := make(map[string]struct{})
+	// skippedFileIDs holds the file IDs of unchanged files that were skipped
+	// this run. Their symbols are already correct in the DB, so their UIDs
+	// must be added to targetUIDs to prevent the orphan prune from deleting them.
+	skippedFileIDs := make([]int64, 0, len(existing))
 	now := time.Now().UTC().Format(time.RFC3339)
 	tx, err := idx.store.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -292,6 +306,7 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 		prev, ok := existing[file.Path]
 		if ok && prev.MtimeNs == file.MtimeNs && prev.Size == file.Size && prev.ContentHash == file.Hash {
 			stats.FilesSkipped++
+			skippedFileIDs = append(skippedFileIDs, prev.ID)
 			continue
 		}
 		fileID, err := upsertFile(tx, file, now)
@@ -343,12 +358,29 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 		}
 		stats.FilesDeleted++
 	}
+	// Seed the orphan-prune target set with UIDs from unchanged (skipped)
+	// files. Their symbols are already correct in the DB, but their UIDs never
+	// made it into targetUIDs (only re-indexed files contribute above), so
+	// without this the orphan prune would delete them.
+	if err := seedTargetUIDsFromSkippedFiles(tx, skippedFileIDs, targetUIDs); err != nil {
+		return stats, fmt.Errorf("seed target uids: %w", err)
+	}
 	// Global target-state prune: any symbol whose uid is not in the declared
 	// target set is an orphan (its file was deleted or its function removed).
 	// Deleting it cascades to edges, embeddings, LSH buckets, rationale, and
 	// FTS rows in one pass.
 	if err := pruneOrphanSymbols(tx, targetUIDs); err != nil {
 		return stats, fmt.Errorf("prune orphan symbols: %w", err)
+	}
+	// Eager dual-granularity embedding: symbol-level vectors (function/type
+	// signatures) upserted in the same tx so the content-hash + mtime guard
+	// stays single-path. Batched + resumable: only embeds symbols that are new
+	// or whose content changed. A down embedder warns and continues — the FTS
+	// floor still works.
+	if idx.emb != nil {
+		if err := idx.embedPass(ctx, tx); err != nil {
+			fmt.Fprintf(os.Stderr, "warn: embed pass: %v\n", err)
+		}
 	}
 	// Stale edges: an edge whose to_name no longer matches any live symbol and
 	// whose to_id is null is a dangling name-only edge; drop it. (Name-only
@@ -370,6 +402,35 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 // set. The file_id cascade (for deleted files) has already removed their
 // symbols; this catches symbols in surviving files that were rewritten (e.g.
 // a removed function) and whose uid is no longer produced by extraction.
+// seedTargetUIDsFromSkippedFiles adds the UIDs of all symbols belonging to
+// skipped (unchanged) files to targetUIDs. This ensures the orphan prune does
+// not delete symbols from files that were not re-indexed this run.
+func seedTargetUIDsFromSkippedFiles(tx *sql.Tx, fileIDs []int64, targetUIDs map[string]struct{}) error {
+	if len(fileIDs) == 0 {
+		return nil
+	}
+	placeholders := make([]string, len(fileIDs))
+	args := make([]interface{}, len(fileIDs))
+	for i, id := range fileIDs {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	query := fmt.Sprintf(`SELECT uid FROM symbols WHERE file_id IN (%s)`, strings.Join(placeholders, ","))
+	rows, err := tx.Query(query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uid string
+		if err := rows.Scan(&uid); err != nil {
+			return err
+		}
+		targetUIDs[uid] = struct{}{}
+	}
+	return rows.Err()
+}
+
 func pruneOrphanSymbols(tx *sql.Tx, targetUIDs map[string]struct{}) error {
 	rows, err := tx.Query(`SELECT id, uid FROM symbols`)
 	if err != nil {
@@ -397,6 +458,85 @@ func pruneOrphanSymbols(tx *sql.Tx, targetUIDs map[string]struct{}) error {
 		}
 	}
 	return nil
+}
+
+// embedPass runs the eager dual-granularity embedding pass. It embeds
+// symbol-level vectors (name + signature) and upserts only rows that are new
+// or whose content changed. The embedding_model guard in embed_meta ensures a
+// model swap triggers a full re-embed.
+func (idx *Indexer) embedPass(ctx context.Context, tx *sql.Tx) error {
+	model := idx.emb.Model()
+	dim := idx.emb.Dimension()
+	if model == "" || dim <= 0 {
+		return nil
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	// Model-swap guard: if the indexed model differs, clear all vectors.
+	var indexedModel string
+	_ = tx.QueryRow(`SELECT value FROM embed_meta WHERE key = 'embedding_model'`).Scan(&indexedModel)
+	if indexedModel != "" && indexedModel != model {
+		if _, err := tx.Exec(`DELETE FROM embeddings`); err != nil {
+			return fmt.Errorf("clear stale embeddings: %w", err)
+		}
+		if _, err := tx.Exec(`INSERT OR REPLACE INTO embed_meta (key, value) VALUES ('embedding_model', ?)`, model); err != nil {
+			return err
+		}
+	} else if indexedModel == "" {
+		if _, err := tx.Exec(`INSERT OR REPLACE INTO embed_meta (key, value) VALUES ('embedding_model', ?)`, model); err != nil {
+			return err
+		}
+	}
+	// Symbol-level embedding: embed each symbol's name + signature.
+	rows, err := tx.Query(`
+		SELECT s.id, s.name, s.signature
+		FROM symbols s
+		ORDER BY s.id
+	`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		var symID int64
+		var name, sig string
+		if err := rows.Scan(&symID, &name, &sig); err != nil {
+			return err
+		}
+		// Skip if already embedded with the current model (model-swap clears
+		// all rows above, so an existing row is by definition current-model).
+		var existingModel string
+		err := tx.QueryRow(`SELECT model FROM embeddings WHERE symbol_id = ?`, symID).Scan(&existingModel)
+		if err == nil && existingModel == model {
+			continue
+		}
+		text := name
+		if sig != "" {
+			text += "\n" + sig
+		}
+		vec, err := idx.emb.Embed(ctx, text)
+		if err != nil {
+			continue
+		}
+		if len(vec.Data) != dim {
+			continue
+		}
+		blob := memory.EncodeVector(vec)
+		if _, err := tx.Exec(`
+			INSERT INTO embeddings (symbol_id, model, dim, vector, updated_at)
+			VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT(symbol_id) DO UPDATE SET
+			  model = excluded.model,
+			  dim = excluded.dim,
+			  vector = excluded.vector,
+			  updated_at = excluded.updated_at
+		`, symID, model, dim, blob, now); err != nil {
+			return err
+		}
+	}
+	return rows.Err()
 }
 
 // extractFile runs the Extractor for one scanned file and returns its symbols,
@@ -490,7 +630,7 @@ func writeFileGraph(tx *sql.Tx, fileID int64, syms []extract.Symbol, edges []ext
 	// id) is essential: the edges table has no per-symbol cascade that can
 	// reach a file's edges once its symbols are re-keyed on rewrite, so a
 	// re-index would otherwise leave stale rows behind.
-		if _, err := tx.Exec(`DELETE FROM edges WHERE file_id = ?`, fileID); err != nil {
+	if _, err := tx.Exec(`DELETE FROM edges WHERE file_id = ?`, fileID); err != nil {
 		return 0, fmt.Errorf("prune edges for file %d: %w", fileID, err)
 	}
 	// Upsert edges. Edges require a resolvable from_id (the symbol they

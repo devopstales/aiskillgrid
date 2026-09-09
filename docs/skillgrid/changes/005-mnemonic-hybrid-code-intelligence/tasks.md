@@ -1,6 +1,6 @@
 # Tasks: 005-mnemonic-hybrid-code-intelligence
 
-> **STATUS:** `in-progress` (2026-09-08) — 1/4 steps PASS (03 done)
+> **STATUS:** `in-progress` (2026-09-09) — 2/4 steps PASS (03+04 done)
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: use subagent-driven-development (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
@@ -398,37 +398,37 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 04.1 `[RED]` Mnemonic tool surface — hybrid distinct + `code_search` stable + bad args rejected (Scenario: Hybrid tool is distinct and rejects bad args) — threat: Mnemonic tool surface
-  - [ ] 04.1.a Write failing test — assert `code_hybrid_search` registers distinct from memory `semantic_search`; `code_search` name + `query` schema still stable; bad hybrid/semantic args are rejected clearly
-  - [ ] 04.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run HybridTools -count=1` — Expected: FAIL
-  - [ ] 04.1.c Minimal implementation — `tools_code_hybrid.go` + `server.go` registration without dropping existing `code_*` or memory `semantic_search`
-  - [ ] 04.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run HybridTools -count=1` — Expected: PASS
-  - [ ] 04.1.e Commit — `feat(mnemonic): register hybrid code search tools`
-- [ ] 04.2 `[RED]` Mnemonic tool surface — `skillgrid doctor` functional embed round-trip both sides (Scenario: doctor performs a functional embed round-trip on both sides) — threat: Mnemonic tool surface
-  - [ ] 04.2.a Write failing test — assert `skillgrid doctor` performs a real embed round-trip (embed a known string, check dimension + non-degenerate) under BOTH `indexing_params` and `query_params`, plus capability checks (gotreesitter grammars, ONNX model present + version, WAL/journal state, CGo-free)
-  - [ ] 04.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/cmd/skillgrid/... ./skillgrid-cli/internal/mnemonic/embedder/... -run Doctor -count=1` — Expected: FAIL
-  - [ ] 04.2.c Minimal implementation — `cmd/skillgrid/doctor.go` functional round-trip (both param sets) + capability probes + `main.go` `doctor` dispatch
-  - [ ] 04.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/cmd/skillgrid/... ./skillgrid-cli/internal/mnemonic/embedder/... -run Doctor -count=1` — Expected: PASS
-  - [ ] 04.2.e Commit — `feat(mnemonic): functional skillgrid doctor with embed round-trip`
-- [ ] 04.3 `[RED]` ONNX nomic-embed-code is the default provider (Scenario: ONNX default embeds and caches the model)
-  - [ ] 04.3.a Write failing test — with no `embedder` config, provider resolves to `onnx`; `Embed` returns a 768-dim vector; model downloads to `~/.skillgrid/models/` and is cached (second call does not re-download)
-  - [ ] 04.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/embedder/... -run OnnxDefault -count=1` — Expected: FAIL
-  - [ ] 04.3.c Minimal implementation — `embedder/onnx.go` (pure-Go ONNX runtime, `nomic-embed-code`, download + cache) + provider selection in `config` + `main.go`
-  - [ ] 04.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/embedder/... -run OnnxDefault -count=1` — Expected: PASS
-  - [ ] 04.3.e Commit — `feat(mnemonic): ONNX nomic-embed-code default embedder`
-- [ ] 04.4 `[RED]` Eager dual-granularity embedding with asymmetric params and overlap (Scenario: Index embeds symbol-level and chunk-level eagerly and re-embeds on model swap)
-  - [ ] 04.4.a Write failing test — (1) `Indexer.Run` embeds symbol-level (function/type bodies from `DefinitionSpans`, keyed to Symbol) AND chunk-level (overlapping 80-line windows) in the same transaction, batched + resumable, without re-embedding unchanged units; (2) the embedder honors separate `indexing_params`/`query_params` (dimension model-wide); (3) chunk windows overlap so boundary context is captured; (4) a function spanning two chunks yields ONE symbol-level vector; (5) changing `embedding_model` re-embeds all vectors
-  - [ ] 04.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/embedder/... -run EagerEmbed -count=1` — Expected: FAIL
-  - [ ] 04.4.c Minimal implementation — eager embed hook in `Indexer.Run` (batched + resumable + `max_file_size`-aware) + symbol-level vectors + chunk-level overlapping vectors + `indexing_params`/`query_params` + `embedding_model` re-embed guard
-  - [ ] 04.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/embedder/... -run EagerEmbed -count=1` — Expected: PASS
-  - [ ] 04.4.e Commit — `feat(mnemonic): eager dual-granularity code embedding with overlap and model-swap guard`
-- [ ] 04.5 `[AFK]` Hybrid search ranks offline with per-signal provenance (Scenario: Hybrid search ranks offline with provenance) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
-- [ ] 04.6 `[AFK]` Down embedder degrades to FTS and signals (Scenario: Down embedder degrades to FTS and signals) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -count=1` — Expected: PASS
-- [ ] 04.7 `[AFK]` External provider is configurable (Scenario: External provider embeds via HTTP endpoint) — `Run: go test ./skillgrid-cli/internal/mnemonic/embedder/... -count=1` — Expected: PASS
-- [ ] 04.8 `[AFK]` `code_semantic_search` returns symbol-named results for symbol-level hits (Scenario: Semantic search names the symbol) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
-- [ ] 04.9 `[AFK]` `off` provider is a Null Adapter (Scenario: Off provider is a Null Adapter) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/internal/mnemonic/embedder/... -count=1` — Expected: PASS
-- [ ] 04.10 `[AFK]` `skillgrid search` CLI — hybrid default, table + `--json`, `search grep`, `embedding-status` (Scenario: CLI search returns hybrid hits with provenance) — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
-- [ ] 04.11 `[AFK]` Degenerate vector is reported by doctor and degrades to FTS (Scenario: Degenerate vector is reported and search degrades) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
+- [x] 04.1 `[RED]` Mnemonic tool surface — hybrid distinct + `code_search` stable + bad args rejected (Scenario: Hybrid tool is distinct and rejects bad args) — threat: Mnemonic tool surface
+  - [x] 04.1.a Write failing test — assert `code_hybrid_search` registers distinct from memory `semantic_search`; `code_search` name + `query` schema still stable; bad hybrid/semantic args are rejected clearly
+  - [x] 04.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run HybridTools -count=1` — Expected: FAIL
+  - [x] 04.1.c Minimal implementation — `tools_code_hybrid.go` + `server.go` registration without dropping existing `code_*` or memory `semantic_search`
+  - [x] 04.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run HybridTools -count=1` — Expected: PASS
+  - [x] 04.1.e Commit — `feat(mnemonic): register hybrid code search tools` (`f67b2a4`)
+- [x] 04.2 `[RED]` Mnemonic tool surface — `skillgrid doctor` functional embed round-trip both sides (Scenario: doctor performs a functional embed round-trip on both sides) — threat: Mnemonic tool surface
+  - [x] 04.2.a Write failing test — assert `skillgrid doctor` performs a real embed round-trip (embed a known string, check dimension + non-degenerate) under BOTH `indexing_params` and `query_params`, plus capability checks (gotreesitter grammars, ONNX model present + version, WAL/journal state, CGo-free)
+  - [x] 04.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/cmd/skillgrid/... ./skillgrid-cli/internal/mnemonic/embedder/... -run Doctor -count=1` — Expected: FAIL
+  - [x] 04.2.c Minimal implementation — `cmd/skillgrid/doctor.go` functional round-trip (both param sets) + capability probes + `main.go` `doctor` dispatch
+  - [x] 04.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/cmd/skillgrid/... ./skillgrid-cli/internal/mnemonic/embedder/... -run Doctor -count=1` — Expected: PASS
+  - [x] 04.2.e Commit — `feat(mnemonic): functional skillgrid doctor with embed round-trip`
+- [x] 04.3 `[RED]` ONNX nomic-embed-code is the default provider (Scenario: ONNX default embeds and caches the model)
+  - [x] 04.3.a Write failing test — with no `embedder` config, provider resolves to `onnx`; `Embed` returns a 768-dim vector; model downloads to `~/.skillgrid/models/` and is cached (second call does not re-download)
+  - [x] 04.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/embedder/... -run OnnxDefault -count=1` — Expected: FAIL
+  - [x] 04.3.c Minimal implementation — `embedder/onnx.go` (pure-Go ONNX runtime, `nomic-embed-code`, download + cache) + provider selection in `config` + `main.go`
+  - [x] 04.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/embedder/... -run OnnxDefault -count=1` — Expected: PASS
+  - [x] 04.3.e Commit — `feat(mnemonic): ONNX nomic-embed-code default embedder`
+- [x] 04.4 `[RED]` Eager dual-granularity embedding with asymmetric params and overlap (Scenario: Index embeds symbol-level and chunk-level eagerly and re-embeds on model swap)
+  - [x] 04.4.a Write failing test — (1) `Indexer.Run` embeds symbol-level (function/type bodies from `DefinitionSpans`, keyed to Symbol) AND chunk-level (overlapping 80-line windows) in the same transaction, batched + resumable, without re-embedding unchanged units; (2) the embedder honors separate `indexing_params`/`query_params` (dimension model-wide); (3) chunk windows overlap so boundary context is captured; (4) a function spanning two chunks yields ONE symbol-level vector; (5) changing `embedding_model` re-embeds all vectors
+  - [x] 04.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/embedder/... -run EagerEmbed -count=1` — Expected: FAIL
+  - [x] 04.4.c Minimal implementation — eager embed hook in `Indexer.Run` (batched + resumable + `max_file_size`-aware) + symbol-level vectors + chunk-level overlapping vectors + `indexing_params`/`query_params` + `embedding_model` re-embed guard
+  - [x] 04.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/embedder/... -run EagerEmbed -count=1` — Expected: PASS
+  - [x] 04.4.e Commit — `feat(mnemonic): eager dual-granularity code embedding with overlap and model-swap guard`
+- [x] 04.5 `[AFK]` Hybrid search ranks offline with per-signal provenance (Scenario: Hybrid search ranks offline with provenance) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
+- [x] 04.6 `[AFK]` Down embedder degrades to FTS and signals (Scenario: Down embedder degrades to FTS and signals) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... -count=1` — Expected: PASS
+- [x] 04.7 `[AFK]` External provider is configurable (Scenario: External provider embeds via HTTP endpoint) — `Run: go test ./skillgrid-cli/internal/mnemonic/embedder/... -count=1` — Expected: PASS
+- [x] 04.8 `[AFK]` `code_semantic_search` returns symbol-named results for symbol-level hits (Scenario: Semantic search names the symbol) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` — Expected: PASS
+- [x] 04.9 `[AFK]` `off` provider is a Null Adapter (Scenario: Off provider is a Null Adapter) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/internal/mnemonic/embedder/... -count=1` — Expected: PASS
+- [x] 04.10 `[AFK]` `skillgrid search` CLI — hybrid default, table + `--json`, `search grep`, `embedding-status` (Scenario: CLI search returns hybrid hits with provenance) — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
+- [x] 04.11 `[AFK]` Degenerate vector is reported by doctor and degrades to FTS (Scenario: Degenerate vector is reported and search degrades) — `Run: go test ./skillgrid-cli/internal/mnemonic/hybrid/... ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
 
 ### Verification
 

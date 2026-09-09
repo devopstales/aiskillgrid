@@ -1260,14 +1260,14 @@ type ImpactOptions struct {
 // single resolved symbol) or Candidates is set (a ranked ambiguous list —
 // never a silent pick).
 type ImpactResultDTO struct {
-	Found      bool                 `json:"found"`
-	Ambiguous  bool                 `json:"ambiguous,omitempty"`
-	Candidates []graph.Symbol       `json:"candidates,omitempty"`
-	Target     *graph.Symbol        `json:"target,omitempty"`
-	WillBreak  []graph.ImpactEdge   `json:"will_break,omitempty"`
-	Likely     []graph.ImpactEdge   `json:"likely_affected,omitempty"`
-	Excluded   int                  `json:"excluded_low_confidence,omitempty"`
-	Reason     string               `json:"reason,omitempty"`
+	Found      bool               `json:"found"`
+	Ambiguous  bool               `json:"ambiguous,omitempty"`
+	Candidates []graph.Symbol     `json:"candidates,omitempty"`
+	Target     *graph.Symbol      `json:"target,omitempty"`
+	WillBreak  []graph.ImpactEdge `json:"will_break,omitempty"`
+	Likely     []graph.ImpactEdge `json:"likely_affected,omitempty"`
+	Excluded   int                `json:"excluded_low_confidence,omitempty"`
+	Reason     string             `json:"reason,omitempty"`
 }
 
 func (r *ImpactResultDTO) Summary() string {
@@ -1364,10 +1364,10 @@ func (s *Service) GrabNeighbors(ctx context.Context, projectID, view, symbol str
 
 // PathDTO is the code_path answer.
 type PathDTO struct {
-	Found      bool             `json:"found"`
-	Path       []graph.Edge     `json:"path,omitempty"`
+	Found      bool              `json:"found"`
+	Path       []graph.Edge      `json:"path,omitempty"`
 	GraphStops *graph.GraphStops `json:"graph_stops,omitempty"`
-	Reason     string           `json:"reason,omitempty"`
+	Reason     string            `json:"reason,omitempty"`
 }
 
 // CodePath returns the shortest edge path between two symbols or a
@@ -1586,7 +1586,11 @@ func (s *Service) RunCodeIndex(ctx context.Context, directory string) (codeindex
 		ChunkOverlap: cfg.ChunkOverlap,
 		MaxFileSize:  cfg.MaxFileSize,
 	}
-	return codeindex.New(h.store).Run(ctx, directory, idxCfg)
+	idx := codeindex.New(h.store)
+	if emb := resolveEmbedder(h.root); emb != nil {
+		idx = idx.WithEmbedder(emb)
+	}
+	return idx.Run(ctx, directory, idxCfg)
 }
 
 // CodeHybridResult is the hybrid code search answer (per-signal provenance on

@@ -207,8 +207,8 @@ func Search(ctx context.Context, db *sql.DB, query string, opts Options) (*Resul
 					}
 				}
 				h := hits[id]
-			h.Provenance.Sim = vh.Sim
-			hits[id] = h
+				h.Provenance.Sim = vh.Sim
+				hits[id] = h
 				semRanks[id] = i
 			}
 			if len(embLeg) > 0 {
@@ -267,6 +267,12 @@ func vectorLeg(ctx context.Context, db *sql.DB, query string, emb embedder.Embed
 		}
 		vec, derr := memory.DecodeVector(blob)
 		if derr != nil || len(vec.Data) == 0 {
+			degenerate++
+			continue
+		}
+		// An all-zeros vector has cosine similarity 0 with everything — it
+		// carries no direction, so the vector leg skips it (04.11).
+		if memory.CosineSimilarity(vec, vec) == 0 {
 			degenerate++
 			continue
 		}

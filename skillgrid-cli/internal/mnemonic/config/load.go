@@ -26,10 +26,10 @@ const MaxFileSizeDefault = 500 * 1024
 // provider selects the embedder (onnx default | external | off); indexing and
 // query params are asymmetric (separate treatment of corpus vs. query).
 type EmbedderConfig struct {
-	Provider   string
-	Dimension  int
-	Indexing   EmbedderParams
-	Query      EmbedderParams
+	Provider  string
+	Dimension int
+	Indexing  EmbedderParams
+	Query     EmbedderParams
 	// External-only.
 	BaseURL string
 	Model   string
@@ -70,13 +70,13 @@ type mnemonicSection struct {
 }
 
 type embedderSection struct {
-	Provider   string           `yaml:"provider"`
-	Dimension  int              `yaml:"dimension"`
-	Indexing   embedderParams   `yaml:"indexing_params"`
-	Query      embedderParams   `yaml:"query_params"`
-	BaseURL    string           `yaml:"base_url"`
-	Model      string           `yaml:"model"`
-	APIKey     string           `yaml:"api_key"`
+	Provider  string         `yaml:"provider"`
+	Dimension int            `yaml:"dimension"`
+	Indexing  embedderParams `yaml:"indexing_params"`
+	Query     embedderParams `yaml:"query_params"`
+	BaseURL   string         `yaml:"base_url"`
+	Model     string         `yaml:"model"`
+	APIKey    string         `yaml:"api_key"`
 }
 
 type embedderParams struct {
