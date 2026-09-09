@@ -40,6 +40,8 @@ func TestAllToolsRegistered(t *testing.T) {
 		"code_route", "code_navigates",
 		// Precomputed process-flow tools.
 		"code_processes", "code_process",
+		// Knowledge-graph query tools.
+		"code_docs", "code_configs", "code_sql_schema", "code_sql_access",
 		"web_cache_lookup", "web_cache_save", "web_cache_search",
 		"web_cache_get", "web_cache_status",
 		"team_spawn_task", "agent_pull_next_task", "agent_read_task",

@@ -144,7 +144,8 @@ func main() {
 		runCodeIntel(version, rest)
 		return
 	case "callers", "callees", "dependents", "implementors", "hierarchy",
-		"tests-for", "path", "explain", "impact", "explore":
+		"tests-for", "path", "explain", "impact", "explore",
+		"docs", "configs", "sql-schema", "sql-access":
 		runCodeIntel(version, rest)
 		return
 	case "setup":

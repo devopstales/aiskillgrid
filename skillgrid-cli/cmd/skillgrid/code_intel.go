@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"syscall"
 
+	"database/sql"
+
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/community"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
@@ -43,6 +45,8 @@ func runCodeIntel(version string, args []string) {
 		runGodNodes(version, args[1:])
 	case "explain-community":
 		runExplainCommunity(version, args[1:])
+	case "docs", "configs", "sql-schema", "sql-access":
+		runKnowledge(version, args[0], args[1:])
 	case "help", "-h", "--help":
 		printCodeIntelUsage()
 	default:
@@ -65,9 +69,13 @@ func printCodeIntelUsage() {
   explain SYMBOL          Symbol node + degree + connections ranked by degree
    impact SYMBOL           Risk-tiered blast radius (WILL BREAK / LIKELY AFFECTED)
    explore SYMBOL          Composite: source + call-flow + blast radius in one call
-   communities             Leiden-clustered subsystems (LLM-free labels)
-   god-nodes [--exclude-hubs] [--limit N]  Most-connected symbols by degree
-   explain-community ID    A community's members + key entry points
+  communities             Leiden-clustered subsystems (LLM-free labels)
+  god-nodes [--exclude-hubs] [--limit N]  Most-connected symbols by degree
+  explain-community ID    A community's members + key entry points
+  docs [PATH]             Indexed markdown docs + references edges
+  configs [PATH]          Indexed config files + configures edges
+  sql-schema [TABLE]      Indexed SQL schema (tables + columns)
+  sql-access [TABLE]      reads/writes edges between code and SQL tables
 
   graph flags:
     --json    Emit machine-readable JSON (default: human table)
@@ -91,6 +99,281 @@ func graphView(sub string) string {
 		return v
 	}
 	return sub
+}
+
+// runKnowledge implements the knowledge-graph query subcommands (CLI parity
+// for the code_docs / code_configs / code_sql_schema / code_sql_access MCP
+// tools).
+func runKnowledge(version, sub string, args []string) {
+	fs := flag.NewFlagSet(sub, flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	var jsonOut bool
+	fs.BoolVar(&jsonOut, "json", false, "emit machine-readable JSON")
+	fs.Usage = func() {
+		fmt.Fprintf(fs.Output(), "usage: skillgrid %s [TARGET] [--json]\n", sub)
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+	target := ""
+	if fs.NArg() >= 1 {
+		target = fs.Arg(0)
+	}
+	svc, projectID, err := openGraphService()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	_ = version
+	_, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	h, cleanup, err := svc.Open(projectID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	defer cleanup()
+	db := h.Store().DB
+	var out map[string]any
+	switch sub {
+	case "docs":
+		out, err = knowledgeDocsCLI(db, target)
+	case "configs":
+		out, err = knowledgeConfigsCLI(db, target)
+	case "sql-schema":
+		out, err = knowledgeSQLSchemaCLI(db, target)
+	case "sql-access":
+		out, err = knowledgeSQLAccessCLI(db, target)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	if jsonOut {
+		b, _ := json.MarshalIndent(out, "", "  ")
+		fmt.Fprintln(os.Stdout, string(b))
+		return
+	}
+	printKnowledge(sub, out)
+}
+
+// printKnowledge renders a knowledge query result as a human table.
+func printKnowledge(sub string, out map[string]any) {
+	switch sub {
+	case "docs":
+		docs, _ := out["docs"].([]map[string]any)
+		if len(docs) == 0 {
+			fmt.Fprintln(os.Stderr, "no docs indexed")
+			return
+		}
+		for _, d := range docs {
+			fmt.Printf("%s (%s)\n", d["path"], d["title"])
+			refs, _ := d["references"].([]map[string]any)
+			for _, r := range refs {
+				fmt.Printf("  -> %s [%s] :%v\n", r["target"], r["confidence"], r["line"])
+			}
+		}
+	case "configs":
+		configs, _ := out["configs"].([]map[string]any)
+		if len(configs) == 0 {
+			fmt.Fprintln(os.Stderr, "no configs indexed")
+			return
+		}
+		for _, c := range configs {
+			fmt.Printf("%s (%s)\n", c["path"], c["title"])
+			refs, _ := c["configures"].([]map[string]any)
+			for _, r := range refs {
+				fmt.Printf("  configures %v [%s] :%v\n", r["target"], r["confidence"], r["line"])
+			}
+		}
+	case "sql-schema":
+		tables, _ := out["tables"].([]map[string]any)
+		if len(tables) == 0 {
+			fmt.Fprintln(os.Stderr, "no sql schema indexed")
+			return
+		}
+		for _, tb := range tables {
+			fmt.Printf("table %s (%s)\n", tb["table"], tb["path"])
+			cols, _ := tb["columns"].([]string)
+			for _, c := range cols {
+				fmt.Printf("  column %s\n", c)
+			}
+		}
+	case "sql-access":
+		access, _ := out["access"].([]map[string]any)
+		if len(access) == 0 {
+			fmt.Fprintln(os.Stderr, "no sql access indexed")
+			return
+		}
+		for _, a := range access {
+			fmt.Printf("%s %s -> table %v [%s] %s:%v\n", a["symbol"], a["op"], a["table"], a["confidence"], a["path"], a["line"])
+		}
+	}
+}
+
+// knowledgeDocsCLI backs `skillgrid docs` (query-only over doc_nodes).
+func knowledgeDocsCLI(db *sql.DB, path string) (map[string]any, error) {
+	where := ""
+	var args []any
+	if path != "" {
+		where = " WHERE dn.path = ?"
+		args = append(args, path)
+	}
+	rows, err := db.Query(`SELECT dn.path, dn.title, COALESCE(e.to_name,''), COALESCE(e.target_path,''), COALESCE(e.confidence,''), COALESCE(e.line,0)
+		FROM doc_nodes dn LEFT JOIN edges e ON e.from_id = dn.id AND e.kind = 'references'`+where, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	docs := map[string]map[string]any{}
+	var order []string
+	for rows.Next() {
+		var p, title, toName, target, conf string
+		var line int
+		if err := rows.Scan(&p, &title, &toName, &target, &conf, &line); err != nil {
+			return nil, err
+		}
+		d, ok := docs[p]
+		if !ok {
+			d = map[string]any{"path": p, "title": title, "references": []map[string]any{}}
+			docs[p] = d
+			order = append(order, p)
+		}
+		if toName != "" {
+			refs := d["references"].([]map[string]any)
+			d["references"] = append(refs, map[string]any{"target": target, "confidence": conf, "line": line})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	out := make([]map[string]any, 0, len(order))
+	for _, p := range order {
+		out = append(out, docs[p])
+	}
+	return map[string]any{"docs": out, "total": len(out)}, nil
+}
+
+// knowledgeConfigsCLI backs `skillgrid configs` (query-only over config_nodes).
+func knowledgeConfigsCLI(db *sql.DB, path string) (map[string]any, error) {
+	where := ""
+	var args []any
+	if path != "" {
+		where = " WHERE cn.path = ?"
+		args = append(args, path)
+	}
+	rows, err := db.Query(`SELECT cn.path, cn.title, COALESCE(e.to_name,''), COALESCE(s.name,''), COALESCE(e.confidence,''), COALESCE(e.line,0)
+		FROM config_nodes cn LEFT JOIN edges e ON e.from_id = cn.id AND e.kind = 'configures'
+		LEFT JOIN symbols s ON s.id = e.to_id`+where, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	configs := map[string]map[string]any{}
+	var order []string
+	for rows.Next() {
+		var p, title, toName, symName, conf string
+		var line int
+		if err := rows.Scan(&p, &title, &toName, &symName, &conf, &line); err != nil {
+			return nil, err
+		}
+		c, ok := configs[p]
+		if !ok {
+			c = map[string]any{"path": p, "title": title, "configures": []map[string]any{}}
+			configs[p] = c
+			order = append(order, p)
+		}
+		if toName != "" {
+			refs := c["configures"].([]map[string]any)
+			c["configures"] = append(refs, map[string]any{"target": toName, "symbol": symName, "confidence": conf, "line": line})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	out := make([]map[string]any, 0, len(order))
+	for _, p := range order {
+		out = append(out, configs[p])
+	}
+	return map[string]any{"configs": out, "total": len(out)}, nil
+}
+
+// knowledgeSQLSchemaCLI backs `skillgrid sql-schema` (query-only over
+// sql_schema_nodes).
+func knowledgeSQLSchemaCLI(db *sql.DB, table string) (map[string]any, error) {
+	where := ""
+	var args []any
+	if table != "" {
+		where = " WHERE ss.table_name = ?"
+		args = append(args, table)
+	}
+	rows, err := db.Query(`SELECT ss.table_name, ss.column_name, ss.kind, ss.path
+		FROM sql_schema_nodes ss`+where+` ORDER BY ss.table_name, ss.kind, ss.column_name`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	tables := map[string]map[string]any{}
+	var order []string
+	for rows.Next() {
+		var tn, col, kind, p string
+		if err := rows.Scan(&tn, &col, &kind, &p); err != nil {
+			return nil, err
+		}
+		tbl, ok := tables[tn]
+		if !ok {
+			tbl = map[string]any{"table": tn, "path": p, "columns": []string{}}
+			tables[tn] = tbl
+			order = append(order, tn)
+		}
+		if kind == "column" && col != "" {
+			cols := tbl["columns"].([]string)
+			tbl["columns"] = append(cols, col)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	out := make([]map[string]any, 0, len(order))
+	for _, tn := range order {
+		out = append(out, tables[tn])
+	}
+	return map[string]any{"tables": out, "total": len(out)}, nil
+}
+
+// knowledgeSQLAccessCLI backs `skillgrid sql-access` (query-only over the
+// reads/writes edges).
+func knowledgeSQLAccessCLI(db *sql.DB, table string) (map[string]any, error) {
+	where := ""
+	var args []any
+	if table != "" {
+		where = " WHERE e.to_name = ?"
+		args = append(args, table)
+	}
+	rows, err := db.Query(`SELECT e.kind, s.name, f.path, e.to_name, e.confidence, e.line
+		FROM edges e JOIN symbols s ON s.id = e.from_id JOIN files f ON f.id = s.file_id
+		WHERE e.kind IN ('reads','writes')`+where+` ORDER BY e.to_name, e.kind, s.id`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []map[string]any
+	for rows.Next() {
+		var kind, sym, p, tn, conf string
+		var line int
+		if err := rows.Scan(&kind, &sym, &p, &tn, &conf, &line); err != nil {
+			return nil, err
+		}
+		out = append(out, map[string]any{"op": kind, "symbol": sym, "path": p, "table": tn, "confidence": conf, "line": line})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if out == nil {
+		out = []map[string]any{}
+	}
+	return map[string]any{"access": out, "total": len(out)}, nil
 }
 
 // openGraphService resolves the project for the current directory.
