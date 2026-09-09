@@ -36,6 +36,8 @@ func TestAllToolsRegistered(t *testing.T) {
 		"code_hybrid_search", "code_semantic_search", "code_embedding_status",
 		// Community detection tools.
 		"code_communities", "code_god_nodes", "code_explain_community",
+		// Framework route / navigation query tools.
+		"code_route", "code_navigates",
 		"web_cache_lookup", "web_cache_save", "web_cache_search",
 		"web_cache_get", "web_cache_status",
 		"team_spawn_task", "agent_pull_next_task", "agent_read_task",
