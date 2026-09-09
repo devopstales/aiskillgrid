@@ -1,6 +1,6 @@
 # Tasks: 005-mnemonic-hybrid-code-intelligence
 
-> **STATUS:** `in-progress` (2026-09-09) — 4/4 steps PASS (01+02+03+04 done); verify in progress
+> **STATUS:** `complete` (2026-09-09) — 4/4 steps PASS (01+02+03+04 done)
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
@@ -37,13 +37,13 @@ Coding agents and operators get queryable Symbols and Edges, Identifier-Aware FT
 
 Change is done only when **all** of the following are true:
 
-- [ ] Every success criterion / DoD checkbox in `change.md` is met
-- [ ] Every `@step-NN` Feature in `acceptance.feature` has passing `@happy`, `@edge`, and `@failure` scenarios
-- [ ] Every step below has Verdict `PASS` or `PASS WITH WARNINGS`
-- [ ] No unchecked `- [ ]` under any `### Tasks`
-- [ ] No **Global Constraint** violated
-- [ ] Rollback path in `change.md` is still valid (or N/A documented)
-- [ ] `## State` status is `done` (set at archive gate)
+- [x] Every success criterion / DoD checkbox in `change.md` is met
+- [x] Every `@step-NN` Feature in `acceptance.feature` has passing `@happy`, `@edge`, and `@failure` scenarios
+- [x] Every step below has Verdict `PASS` or `PASS WITH WARNINGS`
+- [x] No unchecked `- [ ]` under any `### Tasks`
+- [x] No **Global Constraint** violated
+- [x] Rollback path in `change.md` is still valid (or N/A documented)
+- [x] `## State` status is `done` (set at archive gate)
 
 ## Global Constraints
 
@@ -84,9 +84,9 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: verify        # spec | apply | verify | archive
+phase: archive       # spec | apply | verify | archive
 current_step: 04-hybrid-search-core
-status: in_progress  # in_progress | blocked | done
+status: done         # in_progress | blocked | done
 updated: 2026-09-09
 ```
 
@@ -130,11 +130,11 @@ Additive `011_hybrid_code_intel` schema + gotreesitter-backed Extractor Module (
 
 This step is done only when:
 
-- [ ] All `### Tasks` checkboxes below are `[x]`
-- [ ] All `@step-01` scenarios in `acceptance.feature` pass
-- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] Produces contracts listed under Interfaces are available to dependents
-- [ ] No Global Constraint violated
+- [x] All `### Tasks` checkboxes below are `[x]`
+- [x] All `@step-01` scenarios in `acceptance.feature` pass
+- [x] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
+- [x] Produces contracts listed under Interfaces are available to dependents
+- [x] No Global Constraint violated
 
 > Depends on: none
 
@@ -205,11 +205,11 @@ Identifier-Aware FTS + structural `code_grep` + Tier-1 orientation (signature, T
 
 This step is done only when:
 
-- [ ] All `### Tasks` checkboxes below are `[x]`
-- [ ] All `@step-02` scenarios in `acceptance.feature` pass
-- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] Depends-on step(s) already PASS / PASS WITH WARNINGS
-- [ ] No Global Constraint violated
+- [x] All `### Tasks` checkboxes below are `[x]`
+- [x] All `@step-02` scenarios in `acceptance.feature` pass
+- [x] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
+- [x] Depends-on step(s) already PASS / PASS WITH WARNINGS
+- [x] No Global Constraint violated
 
 > Depends on: 01-schema-extractors
 
@@ -285,11 +285,11 @@ Edge resolve + Confidence Labels + Tier-2 graph tools (callers/callees/dependent
 
 This step is done only when:
 
-- [ ] All `### Tasks` checkboxes below are `[x]`
-- [ ] All `@step-03` scenarios in `acceptance.feature` pass
-- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] Depends-on step(s) already PASS / PASS WITH WARNINGS
-- [ ] No Global Constraint violated
+- [x] All `### Tasks` checkboxes below are `[x]`
+- [x] All `@step-03` scenarios in `acceptance.feature` pass
+- [x] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
+- [x] Depends-on step(s) already PASS / PASS WITH WARNINGS
+- [x] No Global Constraint violated
 
 > Depends on: 02-identifier-fts-orientation
 
@@ -374,11 +374,11 @@ Offline RRF hybrid ranker (FTS + deterministic signals + optional embeddings) + 
 
 This step is done only when:
 
-- [ ] All `### Tasks` checkboxes below are `[x]`
-- [ ] All `@step-04` scenarios in `acceptance.feature` pass
-- [ ] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] Depends-on step(s) already PASS / PASS WITH WARNINGS
-- [ ] No Global Constraint violated
+- [x] All `### Tasks` checkboxes below are `[x]`
+- [x] All `@step-04` scenarios in `acceptance.feature` pass
+- [x] `### Verification` Verdict is `PASS` or `PASS WITH WARNINGS`
+- [x] Depends-on step(s) already PASS / PASS WITH WARNINGS
+- [x] No Global Constraint violated
 
 > Depends on: 03-call-graph-traversal
 
@@ -505,9 +505,9 @@ When step DoD is met: `feat(mnemonic): offline hybrid code search with pluggable
 
 ## Archive gate checklist
 
-- [ ] Change-level **Definition of Done** fully checked
-- [ ] No unchecked `- [ ]` under any `### Tasks`
-- [ ] Every step Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] No Global Constraint violated
-- [ ] `## State` status is `done` and phase is `archive` (set by verify/archive)
-- [ ] STATUS banner updated to `complete`
+- [x] Change-level **Definition of Done** fully checked
+- [x] No unchecked `- [ ]` under any `### Tasks`
+- [x] Every step Verdict is `PASS` or `PASS WITH WARNINGS`
+- [x] No Global Constraint violated
+- [x] `## State` status is `done` and phase is `archive` (set by verify/archive)
+- [x] STATUS banner updated to `complete`

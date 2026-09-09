@@ -64,6 +64,8 @@ docs/skillgrid/
 
 No `steps/` tree. No companion `*-glossary-reference.md`. No required root `CONSTRAINTS.md` / `CONTEXT.md`. ADRs under `docs/adr/` only on **promote** (see plan).
 
+Scratch (git-ignored, never committed): `.skillgrid/sdd/<NNN-slug>/` — `subagent-execution` briefs, implementer reports, review diffs, `progress.md` ledger. Resolved by `scripts/sdd-workspace <tasks.md>`; deleted at finish. A `handoff` brief is different: OS temp (`/tmp`), never under `.skillgrid/`.
+
 ## Artifact File Paths
 
 | Skill | Creates / updates | Path |

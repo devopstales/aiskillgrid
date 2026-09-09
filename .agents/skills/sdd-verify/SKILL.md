@@ -42,6 +42,7 @@ Load `change.md`, `tasks.md`, `acceptance.feature`, `apply-progress`. Apply `rul
 For each step (NN order; honor `Depends on:` — predecessor must already be PASS/WARNINGS):
 
 1. Incomplete tasks under that step → mark step `blocked`, skip full suite.
+2. No step commit in `git log` (message per `### Commit`, ticket footer when set) → WARNING: verdict capped at PASS WITH WARNINGS, append a commit task back to apply.
 2. Map every `@step-NN` scenario → covering test + runtime result (COMPLIANT / PARTIAL / FAILING / UNTESTED).
 3. Check `change.md` coherence + Global Constraints.
 4. Run focused tests / build / coverage per config and `Run:` lines — record command, exit, counts.
@@ -91,6 +92,7 @@ Only when agent gates are PASS/WARNINGS for every step, no open tasks, and human
 ## Gotchas
 
 - Scenario totals must equal the `@step-NN` Feature count — never invent.
+- A completed step with no commit is PASS WITH WARNINGS at best — process gaps are WARNING, never silently PASS.
 - A PASS with a CRITICAL finding is a FAIL.
 - Do not archive on agent PASS alone while human QA is still open.
 - `mem_search` previews lose scenario lists — `mem_get_observation(id)`.

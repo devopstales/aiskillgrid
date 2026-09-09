@@ -29,7 +29,7 @@ Stage owner (v4). Only phase that writes production code. Consume specs — do n
 [ ] 1. Guard + load context
 [ ] 2. Workload / isolation
 [ ] 3. Route execution
-[ ] 4. Mark [x] + State + evidence
+[ ] 4. Mark [x] + commit + State + evidence
 [ ] 5. Persist + hand off to verify
 ```
 
@@ -63,9 +63,9 @@ For each unblocked assigned step:
 
 Pass Strict TDD flag and `Run:`/`Expected:` lines into the chosen route. Match existing code patterns; note deviations.
 
-### 4. Mark [x] + State + evidence
+### 4. Mark [x] + commit + State + evidence
 
-Under assigned `## NN-<name>` → `### Tasks`, flip checkboxes as completed. Bump `## State`. Record Step Evidence (focused test, `@step-NN` coverage, runtime harness or N/A+reason, rollback boundary). If Strict TDD active, also TDD Cycle Evidence (RED→GREEN→TRIANGULATE→REFACTOR). Do not invent Verification PASS.
+Under assigned `## NN-<name>` → `### Tasks`, flip checkboxes as completed. Then **commit the step before starting the next one** (per `work-unit-commits`: message from the step's `### Commit` hint, ticket footer when `Ticket:` is set, `tasks.md` marks included). A step with no commit is not done — report it as partial. If the step truly changed nothing, record N/A+reason in the evidence instead of an empty commit. Bump `## State`. Record Step Evidence (focused test, `@step-NN` coverage, runtime harness or N/A+reason, rollback boundary). If Strict TDD active, also TDD Cycle Evidence (RED→GREEN→TRIANGULATE→REFACTOR). Do not invent Verification PASS.
 
 ### 5. Persist + hand off
 
@@ -78,6 +78,7 @@ Under assigned `## NN-<name>` → `### Tasks`, flip checkboxes as completed. Bum
 **Change**: {NNN-slug} · **Mode**: Strict TDD | Standard
 **Status**: success | partial | blocked
 **Completed / Remaining**: …
+**Step commits**: <NN → SHA per completed step>
 **Step Evidence**: …
 **Deviations / Issues**: …
 **Workload boundary**: …
@@ -87,6 +88,7 @@ Under assigned `## NN-<name>` → `### Tasks`, flip checkboxes as completed. Bum
 ## Gotchas
 
 - Crossing an unfinished `Depends on:` silently breaks verify's evidence chain — return `blocked`.
+- A step marked `[x]` with no commit is partial, not success — verify caps it at PASS WITH WARNINGS.
 - Upserting `apply-progress` without reading prior progress drops earlier batches.
 - `mem_search` previews are not acceptance criteria — `mem_get_observation(id)`.
 - Prototype path is a learning aid, not a license to ship spike code unmarked.

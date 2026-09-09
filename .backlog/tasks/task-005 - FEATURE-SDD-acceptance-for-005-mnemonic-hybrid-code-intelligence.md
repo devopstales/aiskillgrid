@@ -1,23 +1,24 @@
 ---
 id: TASK-005
 title: '[FEATURE] SDD acceptance for 005-mnemonic-hybrid-code-intelligence (mnemonic)'
-status: needs-triage
+status: done
 assignee: []
 created_date: '2026-09-04 14:23'
-updated_date: '2026-09-05'
+updated_date: '2026-09-09 08:53'
 labels: []
 dependencies: []
-priority: medium
-type: feature
 references:
   - docs/skillgrid/changes/005-mnemonic-hybrid-code-intelligence/change.md
   - docs/skillgrid/changes/005-mnemonic-hybrid-code-intelligence/tasks.md
-  - docs/skillgrid/changes/005-mnemonic-hybrid-code-intelligence/acceptance.feature
+  - >-
+    docs/skillgrid/changes/005-mnemonic-hybrid-code-intelligence/acceptance.feature
   - docs/plan/07-nmemonic-hybid-search.md
   - skillgrid-cli/internal/mnemonic/
 documentation:
   - docs/skillgrid/changes/005-mnemonic-hybrid-code-intelligence/change.md
   - .agents/skills/_shared/conventions/sdd-structure.md
+priority: medium
+type: feature
 ---
 
 ## Description
