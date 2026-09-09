@@ -1,0 +1,187 @@
+package knowledge
+
+import (
+	"context"
+	"database/sql"
+	"testing"
+
+	_ "modernc.org/sqlite"
+)
+
+// openKnowledgeStore opens a scratch SQLite store with the 005
+// symbols/edges/files tables plus the 015 knowledge tables — the full surface
+// the knowledge extractors read from / write to.
+func openKnowledgeStore(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	stmts := []string{
+		`CREATE TABLE files (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL, mtime_ns INTEGER, size INTEGER, content_hash TEXT, indexed_at TEXT)`,
+		`CREATE TABLE symbols (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, name TEXT NOT NULL, qualified_name TEXT, kind TEXT NOT NULL, language TEXT, signature TEXT, start_line INTEGER NOT NULL, end_line INTEGER NOT NULL, content_hash TEXT NOT NULL, uid TEXT NOT NULL UNIQUE)`,
+		`CREATE TABLE edges (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, from_id INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE, file_id INTEGER REFERENCES files(id) ON DELETE CASCADE, to_id INTEGER REFERENCES symbols(id) ON DELETE CASCADE, to_name TEXT, target_path TEXT, confidence TEXT NOT NULL DEFAULT 'EXTRACTED', line INTEGER, UNIQUE(kind, from_id, file_id, to_id, to_name, target_path, line))`,
+		`CREATE TABLE doc_nodes (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, title TEXT NOT NULL, path TEXT NOT NULL)`,
+		`CREATE TABLE config_nodes (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, title TEXT NOT NULL, path TEXT NOT NULL)`,
+		`CREATE TABLE sql_schema_nodes (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE, table_name TEXT NOT NULL, column_name TEXT, kind TEXT NOT NULL, path TEXT NOT NULL)`,
+	}
+	for _, s := range stmts {
+		if _, err := db.Exec(s); err != nil {
+			t.Fatalf("create schema: %v", err)
+		}
+	}
+	return db
+}
+
+func seedFile(t *testing.T, db *sql.DB, path string) int64 {
+	t.Helper()
+	res, err := db.Exec(`INSERT INTO files (path, mtime_ns, size, content_hash, indexed_at) VALUES (?, 1, 1, 'h', 'now')`, path)
+	if err != nil {
+		t.Fatalf("seed file %s: %v", path, err)
+	}
+	id, _ := res.LastInsertId()
+	return id
+}
+
+func seedSymbol(t *testing.T, db *sql.DB, fileID int64, name, kind string, line int) int64 {
+	t.Helper()
+	res, err := db.Exec(`INSERT INTO symbols (file_id, name, kind, start_line, end_line, content_hash, uid) VALUES (?, ?, ?, ?, ?, 'h', ?)`,
+		fileID, name, kind, line, line, name+kind)
+	if err != nil {
+		t.Fatalf("seed symbol %s: %v", name, err)
+	}
+	id, _ := res.LastInsertId()
+	return id
+}
+
+// countTable returns the row count of a table.
+func countTable(t *testing.T, db *sql.DB, table string) int {
+	t.Helper()
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM ` + table).Scan(&n); err != nil {
+		t.Fatalf("count %s: %v", table, err)
+	}
+	return n
+}
+
+// TestDocLinks covers @step-03 (Scenario: Markdown links and wikilinks become
+// references edges): .md files with [text](./other.md) and [[wikilinks]]
+// produce doc_nodes + references edges between doc nodes, each
+// confidence-labeled.
+func TestDocLinks(t *testing.T) {
+	db := openKnowledgeStore(t)
+	ctx := context.Background()
+
+	// Two docs: a.md links to b.md (markdown link) and to a wiki (wikilink).
+	fA := seedFile(t, db, "docs/a.md")
+	fB := seedFile(t, db, "docs/b.md")
+	seedFile(t, db, "docs/wiki.md")
+
+	aDoc := ExtractDoc("docs/a.md", []byte("# A\n\nSee [B](./b.md) and [[wiki]].\n"))
+	if !aDoc.IsDoc {
+		t.Fatalf("a.md should be recognized as a doc")
+	}
+	if aDoc.Title != "A" {
+		t.Errorf("doc title = %q, want A (first H1)", aDoc.Title)
+	}
+	if len(aDoc.Links) != 2 {
+		t.Fatalf("expected 2 links (md + wiki), got %d: %+v", len(aDoc.Links), aDoc.Links)
+	}
+
+	// Persist the doc nodes + references edges via the store API.
+	store := &Store{db: db}
+	for _, f := range []struct {
+		path string
+		doc  *DocResult
+	}{
+		{"docs/a.md", aDoc},
+		{"docs/b.md", ExtractDoc("docs/b.md", []byte("# B\nplain doc\n"))},
+		{"docs/wiki.md", ExtractDoc("docs/wiki.md", []byte("# Wiki\ncontent\n"))},
+	} {
+		if _, err := store.SaveDoc(ctx, f.path, f.doc); err != nil {
+			t.Fatalf("SaveDoc %s: %v", f.path, err)
+		}
+	}
+
+	// doc_nodes exist for the three docs.
+	if n := countTable(t, db, "doc_nodes"); n != 3 {
+		t.Errorf("expected 3 doc_nodes, got %d", n)
+	}
+
+	// references edges: a.md -> b.md (EXTRACTED) and a.md -> wiki.md
+	// (INFERRED), both resolvable between doc nodes.
+	var refs int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'references'`).Scan(&refs); err != nil {
+		t.Fatalf("count references: %v", err)
+	}
+	if refs != 2 {
+		t.Errorf("expected 2 references edges, got %d", refs)
+	}
+
+	// The markdown link is EXTRACTED, the wikilink is INFERRED.
+	var mdConf, wikiConf string
+	err := db.QueryRow(`
+		SELECT e.confidence FROM edges e
+		JOIN doc_nodes dn ON dn.id = e.from_id
+		WHERE e.kind = 'references' AND e.target_path = 'docs/b.md'`).Scan(&mdConf)
+	if err != nil || mdConf != ConfidenceExtracted {
+		t.Errorf("a.md -> b.md references confidence = %q (err %v), want EXTRACTED", mdConf, err)
+	}
+	err = db.QueryRow(`
+		SELECT e.confidence FROM edges e
+		JOIN doc_nodes dn ON dn.id = e.from_id
+		WHERE e.kind = 'references' AND e.target_path = 'docs/wiki.md'`).Scan(&wikiConf)
+	if err != nil || wikiConf != ConfidenceInferred {
+		t.Errorf("a.md -> wiki.md references confidence = %q (err %v), want INFERRED", wikiConf, err)
+	}
+
+	// Every references edge from a doc node is confidence-labeled.
+	var unlabeled int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'references' AND (confidence IS NULL OR confidence = '')`).Scan(&unlabeled); err != nil {
+		t.Fatalf("count unlabeled: %v", err)
+	}
+	if unlabeled != 0 {
+		t.Errorf("expected all doc references edges labeled, got %d unlabeled", unlabeled)
+	}
+
+	_ = fA
+	_ = fB
+}
+
+// TestMalformedDoc covers @step-03 (Scenario: Malformed doc file falls back
+// and indexes the rest): a doc with unparseable links among valid docs skips
+// the bad links and indexes the rest; the index does not abort.
+func TestMalformedDoc(t *testing.T) {
+	db := openKnowledgeStore(t)
+	ctx := context.Background()
+	store := &Store{db: db}
+
+	// A doc with a malformed link (no closing paren) next to a valid one.
+	bad := "# Mix\n\nGood [B](./b.md)\nbroken [C](./c.md\n"
+	seedFile(t, db, "docs/bad.md")
+	seedFile(t, db, "docs/b.md")
+	res := ExtractDoc("docs/bad.md", []byte(bad))
+	if !res.IsDoc {
+		t.Fatalf("bad.md should be a doc")
+	}
+	if _, err := store.SaveDoc(ctx, "docs/bad.md", res); err != nil {
+		t.Fatalf("SaveDoc bad.md: %v", err)
+	}
+	if _, err := store.SaveDoc(ctx, "docs/b.md", ExtractDoc("docs/b.md", []byte("# B\n"))); err != nil {
+		t.Fatalf("SaveDoc b.md: %v", err)
+	}
+
+	// The valid link (b.md) is indexed; the malformed link (c.md) is skipped,
+	// not fatal. The doc node + its good reference edge exist.
+	if n := countTable(t, db, "doc_nodes"); n != 2 {
+		t.Errorf("expected 2 doc_nodes (bad.md, b.md), got %d", n)
+	}
+	var refs int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'references'`).Scan(&refs); err != nil {
+		t.Fatalf("count references: %v", err)
+	}
+	if refs != 1 {
+		t.Errorf("expected 1 references edge (the valid b.md link; the malformed c.md link skipped), got %d", refs)
+	}
+}
