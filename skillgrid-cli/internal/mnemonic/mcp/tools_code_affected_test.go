@@ -75,9 +75,9 @@ func TestAffectedTools(t *testing.T) {
 	assertCodeToolStable(t, codeSearchTool(), "code_search", []string{"query"})
 
 	// The tool surface grows additively: 71 baseline + 2 affected/rename +
-	// 1 code_pdg_query = 74.
-	if len(tools) != 75 {
-		t.Errorf("expected 75 tools (71 baseline + 2 affected/rename + 1 pdg_query + 1 taint), got %d", len(tools))
+	// 1 code_pdg_query + 1 code_taint + 2 governance (mem_share/mem_governance) = 77.
+	if len(tools) != 77 {
+		t.Errorf("expected 77 tools (71 baseline + 2 affected/rename + 1 pdg_query + 1 taint + 2 governance), got %d", len(tools))
 	}
 
 	// code_affected runs the traversal (changed -> affected test files).

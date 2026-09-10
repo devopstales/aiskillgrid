@@ -54,6 +54,8 @@ func TestAllToolsRegistered(t *testing.T) {
 		"code_pdg_query",
 		// Intraprocedural source->sink taint tool (011 step 02).
 		"code_taint",
+		// Asset-governance tools (013 step 01).
+		"mem_share", "mem_governance",
 	}
 	if len(tools) != len(want) {
 		t.Errorf("expected %d tools, got %d (%v)", len(want), len(tools), tools)

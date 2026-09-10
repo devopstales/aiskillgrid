@@ -1061,6 +1061,13 @@ func observationDTO(o memory.Observation) map[string]any {
 		"revision_count":  o.RevisionCount,
 		"created_at":      o.CreatedAt,
 		"updated_at":      o.UpdatedAt,
+		// Additive governance fields (013 step 01). Private-by-default: a new
+		// observation carries visibility=private + its owner; status defaults
+		// to active. Additive on existing mem_* responses (never required).
+		"owner":           o.Owner,
+		"visibility":      o.Visibility,
+		"status":          o.Status,
+		"retrieval_usage": o.RetrievalUsage,
 	}
 	if o.TopicKey != "" {
 		m["topic_key"] = o.TopicKey
