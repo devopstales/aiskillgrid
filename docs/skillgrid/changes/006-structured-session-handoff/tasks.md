@@ -67,7 +67,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 
 ```yaml
 phase: apply          # spec | apply | verify | archive
-current_step: 04-session-cli
+current_step: 05-handoff-watchdog
 status: in_progress  # in_progress | blocked | done
 updated: 2026-09-10T22:00:00+02:00
 ```
@@ -341,28 +341,32 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 04.1 `[RED]` CLI mirrors MCP on same store — Scenario: CLI mirrors MCP on the same store
-  - [ ] 04.1.a Write failing test
-  - [ ] 04.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session'` — Expected: FAIL
-  - [ ] 04.1.c Minimal implementation — `session.go` + `main.go` dispatch calling same `relay` Module
-  - [ ] 04.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session'` — Expected: PASS
-  - [ ] 04.1.e Commit — `feat(cli): add skillgrid session subcommands`
-- [ ] 04.2 `[AFK]` Bad flags / missing id — Scenario: Bad flags or missing id — `Run: go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session.*(Bad|Missing|Flag)'` — Expected: PASS
-- [ ] 04.3 `[AFK]` No usable store fails closed — Scenario: CLI fails closed without a store — `Run: go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session.*(Store|Fail)'` — Expected: PASS
+- [x] 04.1 `[RED]` CLI mirrors MCP on same store — Scenario: CLI mirrors MCP on the same store
+  - [x] 04.1.a Write failing test
+  - [x] 04.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session'` — Expected: FAIL
+  - [x] 04.1.c Minimal implementation — `session.go` + `main.go` dispatch calling same `relay` Module
+  - [x] 04.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session'` — Expected: PASS
+  - [x] 04.1.e Commit — `feat(cli): add skillgrid session subcommands`
+- [x] 04.2 `[AFK]` Bad flags / missing id — Scenario: Bad flags or missing id — `Run: go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session.*(Bad|Missing|Flag)'` — Expected: PASS
+- [x] 04.3 `[AFK]` No usable store fails closed — Scenario: CLI fails closed without a store — `Run: go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session.*(Store|Fail)'` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/cmd/skillgrid/ -run 'Session'` | PASS | | |
-| Acceptance `@step-04` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `go test ./skillgrid-cli/cmd/skillgrid/` | PASS | | |
-| Rollback boundary | remove `session` dispatch; MCP path unchanged | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/cmd/skillgrid/ -count=1` | PASS | PASS | Session mirrors-MCP (subprocess CLI + in-process MCP on one shared store), bad-flag/missing-id (exit 2 + stderr), no-store (exit 1 + stderr + no partial bundle) |
+| Acceptance `@step-04` / `@p0` | BDD / mapped unit scenarios | PASS | PASS | CLI mirrors MCP on the same store; Bad flags or missing id; CLI fails closed without a store |
+| Runtime harness | `go test ./skillgrid-cli/cmd/skillgrid/` | PASS | PASS | cmd/skillgrid suite `ok` |
+| Rollback boundary | remove `session` dispatch; MCP path unchanged | PASS | PASS | session.go is a new caller of the relay Module; main.go only registers the dispatch; the only mcp/ touch is two pure test aliases (no behavior change, no new tool) |
+| Global Constraints | — | held | held | mirrors MCP (identical relay.Handoff/Resume/Status + identical store resolution, MNEMONIC_PROJECT override); fail-closed (non-zero exit + stderr + no partial cleave); no watchdog; no compact CLI subcommand (MCP-only); session-relay-only (no 002/003/004/005) |
+
+Review: task reviewer `approved` (clean). The mirrors-MCP property is proven non-vacuously: a real subprocess CLI drives the shared store, then the in-process MCP handlers read back the CLI-written NEXT_PROMPT / row / status count — CLI and MCP agree in both directions (handoff→MCP resume, resume, status). Fail-closed is asserted as exit-code + message + no-partial-bundle. Two minor (non-blocking) notes: session_test.go uses CombinedOutput so the stderr split isn't independently asserted (correct in the CLI itself, verified by code); reorderSessionArgs is a naive flag/positional splitter (value starting with `-` edge case, consistent with the mem/trail convention).
+
+Commits (step 04): 0a86df3 (session.go + main.go dispatch + session_test.go; two pure MCP test aliases).
 
 ### Commit
 
