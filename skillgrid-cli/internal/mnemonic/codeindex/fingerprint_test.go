@@ -132,10 +132,13 @@ func TestFingerprintStampInvalidation(t *testing.T) {
 }
 
 // countEmbedder is a counting spy embedder: it records every Model/Dimension/
-// Embed/EmbedQuery call so a test can prove the structural (embedder-free)
-// re-index leg never touches the embedder. Model/Dimension() return a
-// non-zero dimension + a real model name so that IF the eager embedPass ran,
-// it would call Embed at least once (and the test would fail).
+// Embed/EmbedQuery call. Used in TestFingerprintGateEmbedderFree to prove the
+// spy is sensitive to the WithEmbedder attach — a counterfactual run of the
+// SAME Indexer with the spy attached fires it (the eager embedPass invokes the
+// embedder), which isolates the attach as the single variable that distinguishes
+// a full run from the gate's structural re-index (no attach). Model/Dimension()
+// return a non-zero dimension + a real model name so that IF the eager embedPass
+// ran, it would call Embed at least once (and the test would fail).
 type countEmbedder struct {
 	embedder.Embedder
 	modelCalls atomic.Int64
@@ -226,8 +229,10 @@ func TestFingerprintGateEmbedderFree(t *testing.T) {
 	}
 
 	// The gate's re-index: build the SAME Indexer WITHOUT the attach (exactly
-	// what ReindexStructural / the gate do) and run it. It must be embedder-free.
-	gateIdx := New(idx.store) // no WithEmbedder → embedder leg skipped
+	// what ReindexStructural / the gate do — codeindex.New with no WithEmbedder)
+	// and run it. With no attach, embedPass is skipped (Run only embeds when
+	// idx.emb != nil), so the structural leg is embedder-free.
+	gateIdx := New(idx.store)
 	lock := NewWriterLock()
 	if err := lock.Acquire("query-gate"); err != nil {
 		t.Fatalf("acquire writer lock: %v", err)
@@ -237,10 +242,11 @@ func TestFingerprintGateEmbedderFree(t *testing.T) {
 	}
 	lock.Release()
 
-	// The load-bearing assertion: the gate's re-index (no attach) never invoked
-	// the embedder — no model load, no dimension read, no embedding call. (The
-	// spy was consumed by the counterfactual above; the gate run used a fresh
-	// unattached Indexer, so it structurally cannot call the embedder.)
+	// The load-bearing property (this gate test + the service-level
+	// TestReindexStructuralIsEmbedderFree together): the gate's re-index is
+	// embedder-free because it never attaches an embedder, while the
+	// counterfactual above (same Indexer WITH the attach) proves the attach is
+	// the single variable that fires the embedder.
 	// Sanity: the structural re-index still synced the new symbol (not a no-op —
 	// it just skips the embedder leg).
 	var gamma int
