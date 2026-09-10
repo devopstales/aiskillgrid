@@ -120,9 +120,10 @@ func TestKnowledgeTools(t *testing.T) {
 	assertCodeToolStable(t, codeSearchTool(), "code_search", []string{"query"})
 
 	// The tool surface grows additively: 67 baseline + 4 knowledge + 2
-	// affected/rename = 73 (all keep their names + required params).
-	if len(tools) != 73 {
-		t.Errorf("expected 73 tools (67 baseline + 4 knowledge + 2 affected/rename), got %d", len(tools))
+	// affected/rename + 1 code_pdg_query = 74 (all keep their names + required
+	// params).
+	if len(tools) != 74 {
+		t.Errorf("expected 74 tools (67 baseline + 4 knowledge + 2 affected/rename + 1 pdg_query), got %d", len(tools))
 	}
 
 	// code_docs returns the indexed docs (a query, not an error).

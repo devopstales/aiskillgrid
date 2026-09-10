@@ -1111,6 +1111,40 @@ func (s *Service) RunCodeIndex(ctx context.Context, directory string) (codeindex
 	return idx.Run(ctx, directory, idxCfg)
 }
 
+// RunCodeIndexPDG runs incremental code indexing for directory with the opt-in
+// --pdg (per-function CFG + PDG) and --lsp (LSP-resolved member-call edges)
+// passes toggled. It mirrors RunCodeIndex so the CLI `index --pdg/--lsp` flags
+// reach the same incremental transaction; both default to the static index when
+// off, so pdg=false/lsp=false is byte-for-byte the non---pdg path.
+func (s *Service) RunCodeIndexPDG(ctx context.Context, directory string, pdg, lsp bool) (codeindex.Stats, error) {
+	h, cleanup, err := s.openProjectForDirectory(directory)
+	if err != nil {
+		return codeindex.Stats{}, err
+	}
+	defer cleanup()
+	cfg := config.Load(directory)
+	idxCfg := codeindex.Config{
+		Include:      cfg.Include,
+		Exclude:      cfg.Exclude,
+		ChunkLines:   cfg.ChunkLines,
+		ChunkOverlap: cfg.ChunkOverlap,
+		MaxFileSize:  cfg.MaxFileSize,
+		PDG:          pdg,
+		LSP:          lsp,
+	}
+	idx := codeindex.New(h.store)
+	if emb := resolveEmbedder(h.root); emb != nil {
+		idx = idx.WithEmbedder(emb)
+	}
+	if pdg {
+		idx.EnablePDG()
+	}
+	if lsp {
+		idx.EnableLSP()
+	}
+	return idx.Run(ctx, directory, idxCfg)
+}
+
 // ReindexStructural runs a structural-only incremental re-index for directory:
 // it syncs chunks/symbols/edges (the 005 extraction) but does NOT attach an
 // embedder, so no model load or embedding call happens. This is the

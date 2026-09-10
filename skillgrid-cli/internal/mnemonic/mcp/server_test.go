@@ -50,6 +50,8 @@ func TestAllToolsRegistered(t *testing.T) {
 		"mnemonic_commit",
 		// PR-command tools (010 step 02).
 		"code_affected", "code_rename",
+		// Per-function CFG/PDG query tool (011 step 01).
+		"code_pdg_query",
 	}
 	if len(tools) != len(want) {
 		t.Errorf("expected %d tools, got %d (%v)", len(want), len(tools), tools)

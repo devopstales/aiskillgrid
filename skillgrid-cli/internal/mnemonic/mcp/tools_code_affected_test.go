@@ -74,9 +74,10 @@ func TestAffectedTools(t *testing.T) {
 	// code_search name + required `query` param schema unchanged (005 baseline).
 	assertCodeToolStable(t, codeSearchTool(), "code_search", []string{"query"})
 
-	// The tool surface grows additively: 71 baseline + 2 = 73.
-	if len(tools) != 73 {
-		t.Errorf("expected 73 tools (71 baseline + 2 affected/rename), got %d", len(tools))
+	// The tool surface grows additively: 71 baseline + 2 affected/rename +
+	// 1 code_pdg_query = 74.
+	if len(tools) != 74 {
+		t.Errorf("expected 74 tools (71 baseline + 2 affected/rename + 1 pdg_query), got %d", len(tools))
 	}
 
 	// code_affected runs the traversal (changed -> affected test files).
