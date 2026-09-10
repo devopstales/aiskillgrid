@@ -67,7 +67,8 @@ func (idx *Indexer) pdgPass(ctx context.Context, passDB *sql.DB, scanned []Scann
 		if c == nil {
 			continue // body not locatable — skip
 		}
-		rows, err := pdg.Build(s.ID, c, callsBySymbol[s.ID])
+		calls := callsBySymbol[s.ID]
+		rows, err := pdg.Build(s.ID, c, calls)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "warn: pdg build %s: %v\n", s.Name, err)
 			continue
@@ -79,8 +80,60 @@ func (idx *Indexer) pdgPass(ctx context.Context, passDB *sql.DB, scanned []Scann
 		if err := pdg.Persist(passDB, rows); err != nil {
 			fmt.Fprintf(os.Stderr, "warn: pdg persist %s: %v\n", s.Name, err)
 		}
+		// Taint (011 step 02): the opt-in source->sink solver runs AFTER the
+		// PDG derivation (it consumes the just-built dataDeps + call
+		// boundaries). Additive: it only writes taint_findings (a non---pdg
+		// index never reaches this point, so the table stays empty and the
+		// 005/008/010 graph is byte-for-byte unchanged).
+		ti := taintInput(s.ID, rows, calls)
+		findings := pdg.Taint(ti, pdg.DefaultTaintConfig())
+		if err := pdg.PersistTaint(passDB, s.ID, findings); err != nil {
+			fmt.Fprintf(os.Stderr, "warn: taint persist %s: %v\n", s.Name, err)
+		}
 	}
 	return nil
+}
+
+// taintInput assembles the solver's input for one function from its PDG rows
+// (data-dependence edges only) and call sites. Deterministic: dataDeps are
+// sorted by (from_line, to_line, from_name).
+func taintInput(symbolID int64, rows []pdg.EdgeRow, calls []pdg.CallSite) pdg.TaintInput {
+	in := pdg.TaintInput{SymbolID: symbolID, ByLine: map[int]*pdg.CallInfo{}}
+	for i := range calls {
+		cs := &calls[i]
+		in.ByLine[cs.Line] = &pdg.CallInfo{
+			Name: cs.Name, Resolved: cs.Resolved, LSPResolved: cs.LSPResolved,
+		}
+	}
+	var deps []struct {
+		fromLine, toLine int
+		fromName, toName, conf, note string
+	}
+	for _, r := range rows {
+		if r.Kind != "data" {
+			continue
+		}
+		deps = append(deps, struct {
+			fromLine, toLine int
+			fromName, toName, conf, note string
+		}{r.FromLine, r.ToLine, r.FromName, r.ToName, r.Confidence, r.Note})
+	}
+	sort.Slice(deps, func(i, j int) bool {
+		if deps[i].fromLine != deps[j].fromLine {
+			return deps[i].fromLine < deps[j].fromLine
+		}
+		if deps[i].toLine != deps[j].toLine {
+			return deps[i].toLine < deps[j].toLine
+		}
+		return deps[i].fromName < deps[j].fromName
+	})
+	for _, d := range deps {
+		in.DataDeps = append(in.DataDeps, pdg.DataDep{
+			FromLine: d.fromLine, ToLine: d.toLine, FromName: d.fromName,
+			ToName: d.toName, Confidence: d.conf, Note: d.note,
+		})
+	}
+	return in
 }
 
 // scanRoot is the root the pdg pass reads unchanged files from. It is set by
@@ -125,9 +178,14 @@ func pdgFunctions(db *sql.DB) ([]pdgFunction, error) {
 // edge). Returns symbol id -> []pdg.CallSite.
 func pdgCallSites(db *sql.DB) (map[int64][]pdg.CallSite, error) {
 	// Join calls edges to their from-symbol; to_id NULL means unresolved.
+	// The call name is the callee (to_name), not the from-symbol's name.
+	// to_id NULL means unresolved; a non-NULL to_id is a static resolution
+	// (EXTRACTED). LSP_RESOLVED edges carry a non-NULL to_id AND the
+	// LSP_RESOLVED confidence (the --lsp tier wrote them).
 	rows, err := db.Query(`
-		SELECT e.from_id, e.line, COALESCE(s.name,''), e.to_id IS NOT NULL
-		FROM edges e JOIN symbols s ON s.id = e.from_id
+		SELECT e.from_id, e.line, e.to_name,
+		       e.to_id IS NOT NULL, e.confidence = 'LSP_RESOLVED'
+		FROM edges e
 		WHERE e.kind = 'calls' AND e.to_name IS NOT NULL
 		ORDER BY e.from_id, e.line`)
 	if err != nil {
@@ -139,22 +197,20 @@ func pdgCallSites(db *sql.DB) (map[int64][]pdg.CallSite, error) {
 		var symID int64
 		var line int
 		var name string
-		var resolved bool
-		if err := rows.Scan(&symID, &line, &name, &resolved); err != nil {
+		var resolved, lspResolved bool
+		if err := rows.Scan(&symID, &line, &name, &resolved, &lspResolved); err != nil {
 			return nil, err
 		}
 		out[symID] = append(out[symID], pdg.CallSite{
-			Line:     line,
-			Name:     name,
-			Resolved: resolved,
+			Line:        line,
+			Name:        name,
+			Resolved:    resolved,
+			LSPResolved: resolved && lspResolved,
 		})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	// Mark LSP_RESOLVED boundaries as resolved too (they were AMBIGUOUS in the
-	// static pass). The edges table stores LSP_RESOLVED calls with to_id set,
-	// so the to_id IS NOT NULL above already covers them.
 	return out, nil
 }
 

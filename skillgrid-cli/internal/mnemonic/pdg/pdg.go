@@ -66,11 +66,16 @@ func Build(symbolID int64, c *cfg, calls []CallSite) ([]EdgeRow, error) {
 // receiver (for member calls, "" when absent), the callee name, and whether
 // the callee is resolved (to a symbol) in the 005 edges table. Resolved
 // boundaries (static or LSP) are not AMBIGUOUS; unresolved member calls are.
+// LSPResolved is the stronger claim: Resolved AND the resolution came from the
+// --lsp tier (a calls edge with confidence LSP_RESOLVED). The taint solver
+// labels a hop through such a boundary LSP_RESOLVED (a resolved call
+// boundary), distinct from a static resolution (a resolved data-dependence).
 type CallSite struct {
-	Line     int
-	Receiver string
-	Name     string
-	Resolved bool
+	Line        int
+	Receiver    string
+	Name        string
+	Resolved    bool
+	LSPResolved bool
 }
 
 // controlEdges derives control-dependence pdg_edges from the CFG. A block B is
@@ -105,12 +110,11 @@ func controlEdges(symbolID int64, c *cfg) []EdgeRow {
 			ToLine:     child.StartLine,
 			FromName:   branch.Kind,
 			ToName:     child.Kind,
-			Confidence: ConfidenceExtracted, // fully intraprocedural control flow
+				Confidence: ConfidenceExtracted, // fully intraprocedural control flow
 			Note:       e.Condition,
 		})
 	}
-	dedupeEdgeRows(rows)
-	return rows
+	return dedupeEdgeRows(rows)
 }
 
 // dataEdges derives data-dependence pdg_edges: for each statement that reads a
@@ -172,8 +176,7 @@ func dataEdges(symbolID int64, c *cfg, calls []CallSite) []EdgeRow {
 		lastCallLine = b.StartLine
 		lastCallName = callNameAt(calls, b.StartLine)
 	}
-	dedupeEdgeRows(rows)
-	return rows
+	return dedupeEdgeRows(rows)
 }
 
 // callNameAt returns the call name at a line ("" when none).
@@ -206,10 +209,13 @@ func truncateCFG(c *cfg, max int) *cfg {
 	return &cfg{Blocks: blocks, Edges: edges}
 }
 
-// dedupeEdgeRows removes duplicate EdgeRows (same symbol/kind/from/to/conf).
-func dedupeEdgeRows(rows []EdgeRow) {
+// dedupeEdgeRows removes duplicate EdgeRows (same symbol/kind/from/to/names/
+// conf). It returns the deduped slice (in the original order); the caller
+// MUST use the returned value — a filter that appends to a backing array
+// already holding the skipped rows would corrupt the retained rows.
+func dedupeEdgeRows(rows []EdgeRow) []EdgeRow {
 	seen := map[[6]any]bool{}
-	out := rows[:0]
+	var out []EdgeRow
 	for _, r := range rows {
 		key := [6]any{r.SymbolID, r.Kind, r.FromLine, r.ToLine, r.FromName, r.Confidence}
 		if seen[key] {
@@ -218,7 +224,7 @@ func dedupeEdgeRows(rows []EdgeRow) {
 		seen[key] = true
 		out = append(out, r)
 	}
-	rows = out
+	return out
 }
 
 // Persist writes PDG edges into the pdg_edges table (target-state: clears the
