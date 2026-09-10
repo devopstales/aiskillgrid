@@ -67,7 +67,7 @@ Change is done only when **all** of the following are true:
 
 ```yaml
 phase: apply          # spec | apply | verify | archive
-current_step: 02-layered-distill
+current_step: 03-layered-retrieval-budgets
 status: in_progress  # in_progress | blocked | done
 updated: 2026-09-10
 ```
@@ -238,17 +238,21 @@ This step is done only when:
 
 ### Verification
 
-Verdict: `PENDING`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/memory/layer/... ./skillgrid-cli/internal/mnemonic/store/... -count=1` | PASS | PASS | layer (7 tests) + store ok; RED 02.1/02.2 captured |
-| Acceptance `@step-02` / `@p0` | `go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` + BDD `@step-02 @p0` | PASS | PASS | Provenance, LayerTools, DistillHook, CacheHash, NoLLMFloor, NoOp, AtomCorrectable, MemLayers, BadLayerArgs all green |
-| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/... -count=1` | PASS | PASS | all 22 mnemonic packages ok (route/affected/community/pdg/codeindex baselines included) |
-| Rollback boundary | drop `015_*` layer portion + `memory/layer` package + `tools_memory_layer.go` + distill hook; 005 + step-01 governance intact | PASS | PASS | 017 untouched; 018 + layer pkg + tool + hook are the additive surface |
-| Global Constraints | — | held | held | provenance-linked (no orphan layers / no-op on empty); no-LLM floor reuses 005 CapturePassive; LLM cached by content-hash; 005 mem_* names+params unchanged (77→78); opt-in + async + best-effort |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/memory/layer/... ./skillgrid-cli/internal/mnemonic/store/... -count=1` | PASS | PASS | layer (provenance, cache-hash, no-LLM floor, no-op, chain) + store 018 ok; RED 02.1/02.2 captured |
+| Acceptance `@step-02` / `@p0` | `go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` + BDD `@step-02 @p0` | PASS | PASS | Provenance, LayerTools, DistillHook (incl. end-to-end session-close wiring), CacheHash, NoLLMFloor, NoOp, AtomCorrectable, MemLayers, BadLayerArgs all green |
+| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/... -count=1` (+ `-race`) | PASS | PASS | all 22 mnemonic packages ok incl. `-race`; route/affected/community/pdg/codeindex baselines included |
+| Rollback boundary | drop `018_*` layer portion + `memory/layer` package + `tools_memory_layer.go` + distill hook; 005 + step-01 governance intact | PASS | PASS | 017 untouched; 018 + layer pkg + tool + hook are the additive surface |
+| Global Constraints | — | held | held | provenance-linked (no orphan layers / no-op on empty); no-LLM floor reuses 005 CapturePassive (exported wrappers); LLM cached by content-hash (both directions); 005 mem_* names+params unchanged (77→78); opt-in + async (detached goroutine) + best-effort (error swallowed, never a close failure) |
+
+Review: task reviewer `approved with fixes`. Fix commit c86414c (the session-close distill hook was tested but UNWIRED — `DistillSession` had zero non-test callers, so production session close never distilled and the "async fire-and-forget" claim had no committed goroutine. Now `memory.SessionEnd` — the single choke point both `handleMemSessionEnd` and the HTTP handler go through — launches the opt-in hook in a detached `go` goroutine, armed on `*Service` by `EnableDistill` (read at close time), error swallowed into `DistillResult.Err` (never a close failure). Scoped re-review: end-to-end tests drive the real close handler — enabled → hook fires + layers + close succeeds; distill-error → close still succeeds (best-effort); disabled → no hook. `-race` clean.
+
+Commits (step 02): 547c5d0 (018 schema), 66f9b6c (mem_layers + 77→78), 5ede761 (cache-hash/no-op/chain tests), 2829fce (session-close hook + mem_layers seam + atom-correctable), 7dc3441 (bad-args + 005-stable), a4c6202 (DistillResult.Err), c86414c (wire session-close distill into real close path). Migration `018_layered_distill.sql` (brief's 015 was taken by 008; 017 is step-01's, untouched).
 
 ### Commit
 
