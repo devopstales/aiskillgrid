@@ -19,6 +19,7 @@ import (
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/extract"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/knowledge"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/pdg"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/process"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/route"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/store"
@@ -262,6 +263,10 @@ type Indexer struct {
 	// OR'd with Config.PDG / Config.LSP in Run.
 	pdgEnabled bool
 	lspEnabled bool
+	// lspResolver is the per-call LSP resolution seam (test hook). When set,
+	// the --lsp tier resolves member calls through it (hermetic) instead of
+	// spawning the real server. Nil = real server on PATH.
+	lspResolver pdg.ResolveMemberCall
 }
 
 // New creates an Indexer backed by st.
@@ -289,6 +294,14 @@ func (idx *Indexer) EnablePDG() *Indexer {
 // next Run. It is equivalent to Config.LSP=true.
 func (idx *Indexer) EnableLSP() *Indexer {
 	idx.lspEnabled = true
+	return idx
+}
+
+// WithLSPResolver sets the per-call LSP resolution seam (test hook). When set,
+// the --lsp tier resolves member calls through it instead of spawning the real
+// language server (hermetic; no gopls required).
+func (idx *Indexer) WithLSPResolver(fn pdg.ResolveMemberCall) *Indexer {
+	idx.lspResolver = fn
 	return idx
 }
 

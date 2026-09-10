@@ -2,14 +2,21 @@ package pdg
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
+
+	ts "github.com/odvcencio/gotreesitter"
 )
+
+// tsNode aliases the gotreesitter node type (used in MemberCallSites' walk).
+type tsNode = ts.Node
 
 // LSP edge tier (011 step 01): an external-process language-server adapter that
 // resolves member calls the static tree-sitter pass could not type. It shells
@@ -68,7 +75,8 @@ type LSPClientOptions struct {
 
 // LSPClient is the external-process language-server adapter.
 type LSPClient struct {
-	opts LSPClientOptions
+	opts        LSPClientOptions
+	resolveWith ResolveMemberCall
 }
 
 // NewLSPClient builds an LSP client. It returns an error when no server binary
@@ -86,6 +94,19 @@ func NewLSPClient(opts LSPClientOptions) (*LSPClient, error) {
 		return nil, fmt.Errorf("no language server on PATH")
 	}
 	return c, nil
+}
+
+// NewLSPClientForTest builds an LSP client with an injected per-call resolver
+// seam, bypassing the PATH lookup. It is the hermetic entrypoint the indexer
+// uses when a test resolver is set (no real gopls required).
+func NewLSPClientForTest(opts LSPClientOptions, resolver ResolveMemberCall) *LSPClient {
+	if opts.Timeout == 0 {
+		opts.Timeout = 30 * time.Second
+	}
+	if opts.Servers == nil {
+		opts.Servers = defaultServers
+	}
+	return &LSPClient{opts: opts, resolveWith: resolver}
 }
 
 // defaultServers maps a language to its candidate server binaries (in order).
@@ -149,6 +170,24 @@ func (c *LSPClient) resolveBin(bin string) string {
 	return ""
 }
 
+// ResolveMemberCall is the per-call resolution seam: it asks the language
+// server (or a deterministic fake, via the ResolveWith hook) whether the
+// member call `receiver.Callee` at (filePath, line) resolves to a callee.
+// It returns (resolvedCallee, ok); ok=false means unresolved (the caller
+// leaves the static edge alone). This is the hook a hermetic fake server
+// implements — no real gopls required.
+type ResolveMemberCall func(ctx context.Context, filePath string, line int, receiver, callee string) (resolvedCallee string, ok bool)
+
+// WithResolveWith sets the per-call resolution seam (test hook). When set,
+// ResolveMemberCalls resolves each member call through it instead of spawning
+// the real server, making the LSP tier hermetic-testable.
+func (c *LSPClient) WithResolveWith(fn ResolveMemberCall) {
+	c.resolveWith = fn
+}
+
+// ResolveWith holds the injected per-call resolver (nil = real server).
+var _ = (*LSPClient)(nil)
+
 // Close releases the client's resources (the JSON-RPC server processes are
 // short-lived per ResolveMemberCalls; Close is a no-op kept for symmetry).
 func (c *LSPClient) Close() error {
@@ -157,17 +196,32 @@ func (c *LSPClient) Close() error {
 
 // ResolveMemberCalls resolves member calls across the scanned files and
 // returns the resolved edges (to be written into 005's edges table with
-// LSP_RESOLVED confidence). In this step it is a deterministic best-effort
-// pass: it shells out to the language server (via the seam resolveWithServer)
-// and maps the response to edges. A failing/timeout server returns an error
-// (the caller warns + continues); it never returns a partial edge set on
-// error (the whole resolution is all-or-nothing).
+// LSP_RESOLVED confidence). When a ResolveWith seam is set (test hook) it
+// resolves each member call through it (hermetic); otherwise it shells out to
+// the language server. A failing/timeout server returns an error (the caller
+// warns + continues); it never returns a partial edge set on error.
 func (c *LSPClient) ResolveMemberCalls(ctx context.Context) ([]LSPResolvedEdge, error) {
+	files := c.opts.Files()
+	// When a hermetic resolver is injected, use it for every member call.
+	if c.resolveWith != nil {
+		var edges []LSPResolvedEdge
+		for _, f := range sortedLSPFiles(files) {
+			for _, site := range MemberCallSites(f.Path, f.Contents) {
+				callee, ok := c.resolveWith(ctx, f.Path, site.Line, site.Receiver, site.Callee)
+				if ok && callee != "" {
+					edges = append(edges, LSPResolvedEdge{
+						FilePath: f.Path, Line: site.Line, Receiver: site.Receiver, Callee: callee,
+					})
+				}
+			}
+		}
+		return edges, nil
+	}
+	// Real server path: per language, spawn the server and resolve.
 	langs := c.languagesInUse()
 	if len(langs) == 0 {
 		return nil, nil
 	}
-	files := c.opts.Files()
 	var edges []LSPResolvedEdge
 	for _, lang := range langs {
 		bin := ""
@@ -180,7 +234,6 @@ func (c *LSPClient) ResolveMemberCalls(ctx context.Context) ([]LSPResolvedEdge, 
 		if bin == "" {
 			continue // no server for this language — skip (best-effort)
 		}
-		// Collect the language's files.
 		var langFiles []LSPFile
 		for _, f := range files {
 			if LSPLanguageForPath(f.Path) == lang {
@@ -189,13 +242,79 @@ func (c *LSPClient) ResolveMemberCalls(ctx context.Context) ([]LSPResolvedEdge, 
 		}
 		resolved, err := c.resolveWithServer(ctx, lang, bin, langFiles)
 		if err != nil {
-			// Best-effort: a failing server for one language is a no-op for
-			// that language (warn + continue); we do not return a partial set.
-			continue
+			continue // best-effort: failing server → no-op for this language
 		}
 		edges = append(edges, resolved...)
 	}
 	return edges, nil
+}
+
+// MemberCallSite is a member call (receiver.Callee) the static pass could not
+// type. It is the unit the LSP tier resolves.
+type MemberCallSite struct {
+	Path     string
+	Line     int
+	Receiver string
+	Callee   string
+}
+
+// MemberCallSites returns the member call sites in a file (receiver-bound
+// calls: selector_expression / method_call_expression / call with a receiver).
+// It rides on the existing gotreesitter AST (no new grammar). Deterministic
+// (source order).
+func MemberCallSites(path string, src []byte) []MemberCallSite {
+	lang := LSPLanguageForPath(path)
+	if lang == "" {
+		return nil
+	}
+	tree, l, err := ParseTree(lang, src)
+	if err != nil {
+		return nil
+	}
+	defer tree.Release()
+	var out []MemberCallSite
+	var walk func(n *tsNode)
+	walk = func(n *tsNode) {
+		if n == nil {
+			return
+		}
+		t := n.Type(l)
+		if t == "selector_expression" || t == "method_call_expression" {
+			nameNode := n.ChildByFieldName("field", l)
+			if nameNode == nil {
+				nameNode = n.ChildByFieldName("name", l)
+			}
+			recvNode := n.ChildByFieldName("operand", l)
+			if recvNode == nil {
+				recvNode = n.ChildByFieldName("object", l)
+			}
+			if nameNode != nil && recvNode != nil {
+				recv := strings.TrimSpace(recvNode.Text(src))
+				name := strings.TrimSpace(nameNode.Text(src))
+				if recv != "" && name != "" {
+					out = append(out, MemberCallSite{
+						Path: path, Line: lineOf(src, n.StartByte()), Receiver: recv, Callee: name,
+					})
+				}
+			}
+			// Do not descend (the call's inner nodes are not separate sites).
+			return
+		}
+		for i := 0; i < n.ChildCount(); i++ {
+			if c := n.Child(i); c != nil {
+				walk(c)
+			}
+		}
+	}
+	walk(tree.RootNode())
+	return out
+}
+
+// sortedLSPFiles returns files in deterministic (sorted path) order.
+func sortedLSPFiles(files []LSPFile) []LSPFile {
+	out := append([]LSPFile(nil), files...)
+	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out
 }
 
 // LSPResolvedEdge is one member call resolved by the LSP tier. The indexer
@@ -206,6 +325,63 @@ type LSPResolvedEdge struct {
 	Line     int
 	Receiver string
 	Callee   string
+}
+
+// PersistResolvedEdges writes LSP_RESOLVED member-call edges into 005's edges
+// table (upsert by the existing edges unique key). A resolved callee is
+// looked up by name (the symbol's id when it exists, else name-only); the
+// static edge is NOT downgraded or duplicated (ON CONFLICT keeps the existing
+// row's confidence unless it is the AMBIGUOUS static one, which is promoted to
+// LSP_RESOLVED). Returns the number of edges written.
+func PersistResolvedEdges(db *sql.DB, root string, edges []LSPResolvedEdge) (int, error) {
+	written := 0
+	for _, e := range edges {
+		// Resolve the from-symbol (the enclosing function of the call site) and
+		// the to-symbol (the resolved callee) by name (best-effort; name-only
+		// when the symbol is absent).
+		fromID, fileID := enclosingSymbolForLine(db, e.FilePath, e.Line)
+		if fromID == 0 {
+			continue // no enclosing symbol — no edge source (not fabricated)
+		}
+		toID, toName := symbolByName(db, e.Callee)
+		conf := "LSP_RESOLVED"
+		// The callee may be a method on a receiver; target by callee name.
+		_, err := db.Exec(`
+			INSERT INTO edges (kind, from_id, file_id, to_id, to_name, target_path, confidence, line)
+			VALUES ('calls', ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(kind, from_id, file_id, to_id, to_name, target_path, line) DO UPDATE SET
+			  confidence = 'LSP_RESOLVED'`,
+			fromID, fileID, toID, toName, "", conf, e.Line)
+		if err == nil {
+			written++
+		}
+	}
+	return written, nil
+}
+
+// enclosingSymbolForLine resolves the symbol (function/method) enclosing
+// (path, line) and its file id. Returns (0,0) when unresolvable.
+func enclosingSymbolForLine(db *sql.DB, path string, line int) (symID, fileID int64) {
+	var id, fid int64
+	err := db.QueryRow(`
+		SELECT s.id, s.file_id FROM symbols s JOIN files f ON f.id = s.file_id
+		WHERE f.path = ? AND s.kind IN ('function','method')
+		  AND s.start_line <= ? AND s.end_line >= ?
+		ORDER BY (s.end_line - s.start_line) ASC LIMIT 1`, path, line, line).Scan(&id, &fid)
+	if err != nil {
+		return 0, 0
+	}
+	return id, fid
+}
+
+// symbolByName resolves a symbol by name (its id when unique, else 0 + name).
+func symbolByName(db *sql.DB, name string) (int64, string) {
+	var id int64
+	err := db.QueryRow(`SELECT id FROM symbols WHERE name = ? LIMIT 1`, name).Scan(&id)
+	if err != nil {
+		return 0, name
+	}
+	return id, name
 }
 
 // resolveWithServer shells out to the language server (JSON-RPC over a

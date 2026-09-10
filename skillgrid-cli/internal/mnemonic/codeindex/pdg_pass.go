@@ -176,28 +176,48 @@ func (idx *Indexer) lspPass(ctx context.Context, passDB *sql.DB, scanned []Scann
 	if tableMissing(passDB, "edges") {
 		return nil
 	}
-	client, err := pdg.NewLSPClient(pdg.LSPClientOptions{
-		Root: scanRoot,
-		Files: func() []pdg.LSPFile {
-			var out []pdg.LSPFile
-			for _, f := range scanned {
-				if lang := pdg.LSPLanguageForPath(f.Path); lang != "" {
-					out = append(out, pdg.LSPFile{Path: f.Path, Contents: f.Contents})
-				}
+	// The resolver seam (test hook / real server) is resolved once; when a
+	// hermetic resolver is set (lspResolver) it is used, otherwise the client
+	// shells out to the language server on PATH.
+	files := func() []pdg.LSPFile {
+		var out []pdg.LSPFile
+		for _, f := range scanned {
+			if lang := pdg.LSPLanguageForPath(f.Path); lang != "" {
+				out = append(out, pdg.LSPFile{Path: f.Path, Contents: f.Contents})
 			}
-			return out
-		},
-	})
+		}
+		return out
+	}
+	resolver := idx.lspResolver
+	var client *pdg.LSPClient
+	if resolver != nil {
+		// Hermetic resolver: construct the client directly (no PATH lookup) and
+		// attach the resolver seam.
+		client = pdg.NewLSPClientForTest(pdg.LSPClientOptions{Root: scanRoot, Files: files}, resolver)
+	} else {
+		c, err := pdg.NewLSPClient(pdg.LSPClientOptions{
+			Root: scanRoot,
+			Files: files,
+		})
+		if err != nil {
+			// No resolvable server for the scanned languages: warn + continue,
+			// static index unchanged (01.3 / 01.10).
+			fmt.Fprintf(os.Stderr, "warn: lsp tier: %v (static index unchanged)\n", err)
+			return nil
+		}
+		client = c
+	}
+	edges, err := client.ResolveMemberCalls(ctx)
 	if err != nil {
-		// No resolvable server for the scanned languages: warn + continue,
-		// static index unchanged (01.3 / 01.10).
+		// Best-effort: a failing server is a no-op (static index unchanged).
 		fmt.Fprintf(os.Stderr, "warn: lsp tier: %v (static index unchanged)\n", err)
 		return nil
 	}
-	defer client.Close()
-	if _, err := client.ResolveMemberCalls(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "warn: lsp tier: %v (static index unchanged)\n", err)
+	if len(edges) == 0 {
 		return nil
+	}
+	if _, err := pdg.PersistResolvedEdges(passDB, scanRoot, edges); err != nil {
+		fmt.Fprintf(os.Stderr, "warn: lsp persist: %v (static index unchanged)\n", err)
 	}
 	return nil
 }
