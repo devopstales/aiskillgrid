@@ -262,19 +262,26 @@ func Taint(in TaintInput, cfg TaintConfig) []TaintFinding {
 				}
 				ci, isCall := in.ByLine[d.ToLine]
 				if isCall && ci != nil && !ci.Resolved {
-					// Unresolved boundary: TRUNCATE this branch.
+					// Unresolved boundary: TRUNCATE this branch. The path is
+					// reported truncated at the boundary (AMBIGUOUS + stops-at
+					// note) — never fabricated beyond it. If the boundary
+					// happens to be a sink the finding is a (truncated)
+					// source->sink; otherwise it is a source->boundary
+					// truncation (sink_name = the boundary callee).
 					trunc := append(append([]TaintHop{}, path...), TaintHop{
 						Line: d.ToLine, Name: d.ToName, Confidence: ConfidenceAmbiguous,
 						Note: "stops at " + d.ToName,
 					})
-					if sinkName, sinkKind, isSink := sinkAt(d.ToLine); isSink {
-						findings = append(findings, TaintFinding{
-							SourceLine: s.line, SourceName: s.name, SourceKind: s.kind,
-							SinkLine: d.ToLine, SinkName: sinkName, SinkKind: sinkKind,
-							Path: trunc, PathLabel: worstHop(trunc),
-							StopsAt: "stops at " + d.ToName,
-						})
+					sinkName, sinkKind, isSink := sinkAt(d.ToLine)
+					if !isSink {
+						sinkName = d.ToName // the boundary callee (a truncated sink)
 					}
+					findings = append(findings, TaintFinding{
+						SourceLine: s.line, SourceName: s.name, SourceKind: s.kind,
+						SinkLine: d.ToLine, SinkName: sinkName, SinkKind: sinkKind,
+						Path: trunc, PathLabel: worstHop(trunc),
+						StopsAt: "stops at " + d.ToName,
+					})
 					continue // the walk stops at the boundary
 				}
 				visited[d.ToLine] = true
