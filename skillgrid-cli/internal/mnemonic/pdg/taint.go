@@ -394,9 +394,9 @@ func pathKey(path []TaintHop) string {
 
 // PersistTaint writes a function's taint findings into taint_findings
 // (target-state: clears the function's prior rows first so a re-index is
-// idempotent). The persisted row carries the path label as confidence and the
-// stops-at note (when truncated); the full hop-by-hop path is reconstructed
-// from the PDG on query (code_taint re-walks the dataDeps).
+// idempotent). The persisted row carries the path-level confidence label
+// (worst-hop) and the stops-at note (when truncated); the per-hop path is
+// derived in-memory by the solver and is not stored as a separate column.
 func PersistTaint(db *sql.DB, symbolID int64, findings []TaintFinding) error {
 	if _, err := db.Exec(`DELETE FROM taint_findings WHERE symbol_id = ?`, symbolID); err != nil {
 		return err

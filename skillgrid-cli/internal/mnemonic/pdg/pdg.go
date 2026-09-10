@@ -110,7 +110,7 @@ func controlEdges(symbolID int64, c *cfg) []EdgeRow {
 			ToLine:     child.StartLine,
 			FromName:   branch.Kind,
 			ToName:     child.Kind,
-				Confidence: ConfidenceExtracted, // fully intraprocedural control flow
+			Confidence: ConfidenceExtracted, // fully intraprocedural control flow
 			Note:       e.Condition,
 		})
 	}
