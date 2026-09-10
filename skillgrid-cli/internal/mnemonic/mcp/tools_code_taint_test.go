@@ -133,6 +133,34 @@ func TestTaintTool(t *testing.T) {
 	if outUnknown.Count != 0 {
 		t.Errorf("an unknown symbol should have no fabricated findings, got %d", outUnknown.Count)
 	}
+
+	// (02.8) A --file filter narrows to findings in that file; an unknown file
+	// is not-found. The fixture's finding is in main.go.
+	outFile := runTaint(t, map[string]any{"file": "main.go"})
+	if outFile.Count == 0 {
+		t.Errorf("expected main.go to have taint findings, got 0: %s", outFile.Message)
+	}
+	outFileUnknown := runTaint(t, map[string]any{"file": "no_such_file.go"})
+	if outFileUnknown.Count != 0 {
+		t.Errorf("an unknown file should have no fabricated findings, got %d", outFileUnknown.Count)
+	}
+
+	// (02.8) --json returns the machine-readable findings array (CI).
+	res, err := handleCodeTaint(context.Background(), newCallTool("code_taint", map[string]any{"json": true}))
+	if err != nil {
+		t.Fatalf("handleCodeTaint (--json): %v", err)
+	}
+	text := callResultText(t, res)
+	var jsonOut struct {
+		Findings []json.RawMessage `json:"findings"`
+		Count    int               `json:"count"`
+	}
+	if err := json.Unmarshal([]byte(text), &jsonOut); err != nil {
+		t.Fatalf("parse --json result %q: %v", text, err)
+	}
+	if jsonOut.Count == 0 {
+		t.Errorf("--json: expected findings, got count 0: %s", text)
+	}
 }
 
 // TestTaintToolNotIndexed covers @step-02 (02.9, Scenario: Non-pdg taint query
