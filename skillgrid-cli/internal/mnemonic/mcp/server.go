@@ -58,6 +58,7 @@ func Start() error {
 	registerCompactionTools(s)
 	registerAffectedTools(s)
 	registerPdgTools(s)
+	registerTaintTools(s)
 	return server.ServeStdio(s)
 }
 
@@ -85,5 +86,6 @@ func NewServer() *Server {
 	registerCompactionTools(s)
 	registerAffectedTools(s)
 	registerPdgTools(s)
+	registerTaintTools(s)
 	return s
 }

@@ -122,8 +122,8 @@ func TestKnowledgeTools(t *testing.T) {
 	// The tool surface grows additively: 67 baseline + 4 knowledge + 2
 	// affected/rename + 1 code_pdg_query = 74 (all keep their names + required
 	// params).
-	if len(tools) != 74 {
-		t.Errorf("expected 74 tools (67 baseline + 4 knowledge + 2 affected/rename + 1 pdg_query), got %d", len(tools))
+	if len(tools) != 75 {
+		t.Errorf("expected 75 tools (67 baseline + 4 knowledge + 2 affected/rename + 1 pdg_query + 1 taint), got %d", len(tools))
 	}
 
 	// code_docs returns the indexed docs (a query, not an error).

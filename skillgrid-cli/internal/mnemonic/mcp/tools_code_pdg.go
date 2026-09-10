@@ -23,6 +23,12 @@ func registerPdgTools(s *server.MCPServer) {
 	s.AddTool(codePdgQueryTool(), handleCodePdgQuery)
 }
 
+// registerTaintTools registers the step-02 taint query tool (code_taint). It is
+// a distinct code_* tool — none clashes with the 005/008/010 baseline.
+func registerTaintTools(s *server.MCPServer) {
+	s.AddTool(codeTaintTool(), handleCodeTaint)
+}
+
 func codePdgQueryTool() mcplib.Tool {
 	return mcplib.NewTool("code_pdg_query",
 		mcplib.WithDescription("Query the opt-in per-function CFG/PDG built by `index --pdg`: return the control- and data-dependents of a given statement inside a function. statement is the 1-based source line of the statement. Every returned dependence carries its Confidence Label (EXTRACTED | INFERRED | AMBIGUOUS | LSP_RESOLVED). If the index was not built with --pdg the tables are empty and the tool returns a clear 'run index --pdg' message (not an error). An unknown symbol or statement returns not-found, never a fabricated dependence. symbol is disambiguated to a function/method (a kind=class/struct is rejected)."),
