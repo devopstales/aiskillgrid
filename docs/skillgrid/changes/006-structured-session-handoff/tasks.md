@@ -67,7 +67,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 
 ```yaml
 phase: apply          # spec | apply | verify | archive
-current_step: 03-status-compact
+current_step: 04-session-cli
 status: in_progress  # in_progress | blocked | done
 updated: 2026-09-10T22:00:00+02:00
 ```
@@ -271,30 +271,34 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 03.1 `[RED]` Mnemonic tool surface: `session_status` and `knowledge_compact` registered; `mem_save` still works; compact succeeds with **no** Fact Memory — Scenario: New tools leave mem_save intact
-  - [ ] 03.1.a Write failing test in `server_test.go`
-  - [ ] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'SessionStatus|KnowledgeCompact|MemSave'` — Expected: FAIL
-  - [ ] 03.1.c Minimal implementation — `tools_session_status.go` via step-02 registrar hook **without** re-editing `server.go`
-  - [ ] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'SessionStatus|KnowledgeCompact|MemSave'` — Expected: PASS
-  - [ ] 03.1.e Commit — `feat(mnemonic): register session_status and knowledge_compact`
-- [ ] 03.2 `[AFK]` Create `status.go` — Status aggregation (handoff count + last known cost/context when caller supplies stats)
-- [ ] 03.3 `[AFK]` Create `compact.go` — thin `CompactKnowledge` refreshes `.cleave/KNOWLEDGE.md` from handoff inputs/session notes only
-- [ ] 03.4 `[AFK]` Cover WHAT happy — Scenario: Status and compact without facts — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'Status|Compact'` — Expected: PASS
-- [ ] 03.5 `[AFK]` Cover WHAT edge — Scenario: No handoffs yet — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Status|Compact|Empty'` — Expected: PASS
+- [x] 03.1 `[RED]` Mnemonic tool surface: `session_status` and `knowledge_compact` registered; `mem_save` still works; compact succeeds with **no** Fact Memory — Scenario: New tools leave mem_save intact
+  - [x] 03.1.a Write failing test in `server_test.go`
+  - [x] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'SessionStatus|KnowledgeCompact|MemSave'` — Expected: FAIL
+  - [x] 03.1.c Minimal implementation — `tools_session_status.go` via step-02 registrar hook **without** re-editing `server.go`
+  - [x] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'SessionStatus|KnowledgeCompact|MemSave'` — Expected: PASS
+  - [x] 03.1.e Commit — `feat(mnemonic): register session_status and knowledge_compact`
+- [x] 03.2 `[AFK]` Create `status.go` — Status aggregation (handoff count + last known cost/context when caller supplies stats)
+- [x] 03.3 `[AFK]` Create `compact.go` — thin `CompactKnowledge` refreshes `.cleave/KNOWLEDGE.md` from handoff inputs/session notes only
+- [x] 03.4 `[AFK]` Cover WHAT happy — Scenario: Status and compact without facts — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'Status|Compact'` — Expected: PASS
+- [x] 03.5 `[AFK]` Cover WHAT edge — Scenario: No handoffs yet — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Status|Compact|Empty'` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/relay/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'Status\|Compact'` | PASS | | |
-| Acceptance `@step-03` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/mcp/` | PASS | | |
-| Rollback boundary | remove status/compact tools; handoff/resume remain | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/relay/ ./skillgrid-cli/internal/mnemonic/mcp/ -count=1` | PASS | PASS | relay (Status zero-count/optional-stats, Compact no-fact-memory/empty→minimal, ctx threaded) + mcp (session_status/knowledge_compact registered + mem_save dispatch + bad args) |
+| Acceptance `@step-03` / `@p0` | BDD / mapped unit scenarios | PASS | PASS | Status and compact without facts; No handoffs yet (zero counts, no crash); New tools leave mem_save intact |
+| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/mcp/` | PASS | PASS | mcp suite `ok` |
+| Rollback boundary | remove status/compact tools; handoff/resume remain | PASS | PASS | tools_session_status.go is additive (appended to registerSessionTools slice); 80→82 surface lock; handoff/resume tools unchanged |
+| Global Constraints | — | held | held | thin compact (no Fact Memory, only session_handoffs.context_summary + bundle); status zero-counts on empty (no crash); empty inputs → minimal KNOWLEDGE.md (warn+continue); registered via step-02 registrar hook (server.go NOT re-edited); 82-tool surface additive; session-relay-only |
+
+Review: task reviewer `approved` (clean). Fix commit 95a280b (compact.go `contextNotes` used `context.Background()` and dropped the caller's `_ = ctx` — now threads the caller's `ctx` through `CompactKnowledge`→`gatherKnowledge`→`contextNotes`→`QueryContext`). The `QueryContext` addition to the `relay.Store` interface is purely additive (`*sql.DB`-compatible, no breaking implementer). Bad-args on the two new tools is covered by the handler arg-validation path (no dedicated case, non-blocking).
+
+Commits (step 03): 3cad7e7 (session_status + thin knowledge_compact, registrar hook, 80→82), 95a280b (thread caller ctx through compact query).
 
 ### Commit
 
