@@ -210,7 +210,12 @@ func mcpGrabNeighbors(ctx context.Context, h *service.ProjectHandle, view, symbo
 	return &service.NeighborsDTO{Symbol: &sym, Edges: edges}, nil
 }
 
-// mcpCodePath is the single-open backing for code_path.
+// mcpCodePath is the single-open backing for code_path. When both endpoints
+// resolve as 005 symbols it uses graph.Path (the 005 baseline, unchanged). When
+// either endpoint is not a symbol (a doc, config, or table knowledge node) it
+// falls back to graph.PathSpanFromName, which resolves each endpoint through
+// the unified node space and spans code→doc→config→table. Additive: code-to-
+// code paths are byte-identical to the baseline.
 func mcpCodePath(ctx context.Context, h *service.ProjectHandle, from, to string) (*service.PathDTO, error) {
 	db := h.Store().DB
 	resFrom, err := graph.Resolve(ctx, db, from, graph.ResolveFilter{})
@@ -221,18 +226,25 @@ func mcpCodePath(ctx context.Context, h *service.ProjectHandle, from, to string)
 	if err != nil {
 		return nil, err
 	}
-	if resFrom.NotFound || resTo.NotFound {
-		missing := from
-		if !resFrom.NotFound {
-			missing = to
+	// 005 baseline: both endpoints are code symbols.
+	if !resFrom.NotFound && !resTo.NotFound {
+		res, err := graph.Path(ctx, db, resFrom.Target, resTo.Target)
+		if err != nil {
+			return nil, err
 		}
-		return &service.PathDTO{Found: false, Reason: "symbol not found: " + missing}, nil
+		return &service.PathDTO{Found: res.Found, Path: res.Path, GraphStops: res.GraphStops}, nil
 	}
-	res, err := graph.Path(ctx, db, resFrom.Target, resTo.Target)
+	// Knowledge span: at least one endpoint is a doc/config/table node (or an
+	// unknown name). PathSpanFromName resolves each endpoint (symbol first, then
+	// knowledge node) and walks the unified graph.
+	res, err := graph.PathSpanFromName(ctx, db, from, to)
 	if err != nil {
 		return nil, err
 	}
-	return &service.PathDTO{Found: res.Found, Path: res.Path, GraphStops: res.GraphStops}, nil
+	if !res.Found && res.Reason == "" {
+		res.Reason = "path not found: " + from + " -> " + to
+	}
+	return &service.PathDTO{Found: res.Found, Path: res.Path, GraphStops: res.GraphStops, Reason: res.Reason}, nil
 }
 
 // mcpCodeExplain is the single-open backing for code_explain.

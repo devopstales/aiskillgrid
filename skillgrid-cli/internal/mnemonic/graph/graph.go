@@ -299,9 +299,12 @@ type RefusedMatch struct {
 // PathResult is the code_path answer: either a shortest path or a
 // where-the-graph-stops explanation. Never empty, never fabricated.
 type PathResult struct {
-	Found    bool        `json:"found"`
-	Path     []Edge      `json:"path,omitempty"`
+	Found      bool        `json:"found"`
+	Path       []Edge      `json:"path,omitempty"`
 	GraphStops *GraphStops `json:"graph_stops,omitempty"`
+	// Reason is a short human-readable note when Found is false and no
+	// GraphStops frontier exists (e.g. the target name resolved to nothing).
+	Reason string `json:"reason,omitempty"`
 }
 
 // Path finds the shortest edge path between a and b (BFS over resolved
