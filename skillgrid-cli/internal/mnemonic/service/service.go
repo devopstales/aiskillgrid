@@ -1185,7 +1185,7 @@ func (s *Service) warmSearchEmbedder(configRoot string) embedder.Embedder {
 	if cfg.Embedder.Provider == "" || cfg.Embedder.Provider == "off" {
 		return nil // off → FTS floor (no vector leg, no RAM)
 	}
-	we := warmFor(cfg.Embedder.Provider)
+	we := warmFor(cfg.Embedder.Provider, configRoot)
 	// Get is the heartbeat: it records the access (resets the idle-evict window)
 	// and returns the resident embedder (loading once on first use).
 	return we.Get(context.Background())
@@ -1246,12 +1246,15 @@ var (
 // building it on first use. The warm cache loads the model once and reuses it;
 // an idle-evict timer (external to this function) calls warmEmb.CheckIdle, and
 // each search call's Get is the heartbeat that keeps it alive while connected.
-func warmFor(provider string) *embedder.WarmEmbedder {
+// configRoot is the project root (h.root) — the warm cache resolves the
+// embedder from the project's config, not the CWD, so a call where h.root !=
+// CWD still picks the correct embedder.
+func warmFor(provider, configRoot string) *embedder.WarmEmbedder {
 	warmMu.Lock()
 	defer warmMu.Unlock()
 	if warmEmb == nil || warmProvider != provider {
 		warmEmb = embedder.NewWarm(embedder.WarmConfig{
-			Factory:     func() embedder.Embedder { return buildEmbedderFromProvider(provider) },
+			Factory:     func() embedder.Embedder { return buildEmbedderFromProvider(provider, configRoot) },
 			IdleTimeout: embedder.DefaultIdleTimeout,
 		})
 		warmProvider = provider
@@ -1260,19 +1263,20 @@ func warmFor(provider string) *embedder.WarmEmbedder {
 }
 
 // buildEmbedderFromProvider builds a concrete embedder from a provider name
-// (the warm cache's factory). It re-reads config at load time so a model swap
-// is picked up on reload.
-func buildEmbedderFromProvider(provider string) embedder.Embedder {
+// (the warm cache's factory). It re-reads the project's config (configRoot, the
+// project root — not the CWD) at load time so a model swap is picked up on
+// reload.
+func buildEmbedderFromProvider(provider, configRoot string) embedder.Embedder {
 	if provider == "" || provider == "off" {
 		return nil // Null Adapter (FTS floor)
 	}
-	cfg := config.Load(".")
+	cfg := config.Load(configRoot)
 	if provider != cfg.Embedder.Provider {
 		// A config provider different from the requested one: honor the config
 		// (the warm cache is keyed by the config's actual provider).
 		provider = cfg.Embedder.Provider
 	}
-	return resolveEmbedder(".")
+	return resolveEmbedder(configRoot)
 }
 
 // WarmEmbedderHandle returns the process-wide warm embedder (for the idle-evict
