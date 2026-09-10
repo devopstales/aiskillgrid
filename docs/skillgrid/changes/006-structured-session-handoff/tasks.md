@@ -66,9 +66,9 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: apply          # spec | apply | verify | archive
+phase: verify          # spec | apply | verify | archive
 current_step: 05-handoff-watchdog
-status: in_progress  # in_progress | blocked | done
+status: done  # in_progress | blocked | done
 updated: 2026-09-10T22:00:00+02:00
 ```
 
@@ -408,29 +408,33 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 05.1 `[AFK]` Decide usage signal (client `%` vs token estimate); document choice in `watchdog.go` comment; Interface takes a fraction either way
-- [ ] 05.2 `[RED]` Enabled watchdog past threshold triggers same Handoff path — Scenario: Enabled watchdog past threshold
-  - [ ] 05.2.a Write failing test
-  - [ ] 05.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog'` — Expected: FAIL
-  - [ ] 05.2.c Minimal implementation — flag/env-gated (`SKILLGRID_HANDOFF_WATCHDOG` + threshold); off by default; Check → same `Handoff`
-  - [ ] 05.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog'` — Expected: PASS
-  - [ ] 05.2.e Commit — `feat(mnemonic): optional session handoff watchdog`
-- [ ] 05.3 `[AFK]` Disabled/default or below threshold is no-op — Scenario: Disabled or below threshold is no-op — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog.*(Disabled|Below|Default)'` — Expected: PASS
-- [ ] 05.4 `[AFK]` Invalid config fails closed — Scenario: Invalid watchdog config fails closed — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog.*(Invalid|Config)'` — Expected: PASS
+- [x] 05.1 `[AFK]` Decide usage signal (client `%` vs token estimate); document choice in `watchdog.go` comment; Interface takes a fraction either way
+- [x] 05.2 `[RED]` Enabled watchdog past threshold triggers same Handoff path — Scenario: Enabled watchdog past threshold
+  - [x] 05.2.a Write failing test
+  - [x] 05.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog'` — Expected: FAIL
+  - [x] 05.2.c Minimal implementation — flag/env-gated (`SKILLGRID_HANDOFF_WATCHDOG` + threshold); off by default; Check → same `Handoff`
+  - [x] 05.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog'` — Expected: PASS
+  - [x] 05.2.e Commit — `feat(mnemonic): optional session handoff watchdog`
+- [x] 05.3 `[AFK]` Disabled/default or below threshold is no-op — Scenario: Disabled or below threshold is no-op — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog.*(Disabled|Below|Default)'` — Expected: PASS
+- [x] 05.4 `[AFK]` Invalid config fails closed — Scenario: Invalid watchdog config fails closed — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog.*(Invalid|Config)'` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Watchdog'` | PASS | | |
-| Acceptance `@step-05` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/relay/` | PASS | | |
-| Rollback boundary | unset env/flag → never auto-handoff | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/relay/ -count=1` | PASS | PASS | Watchdog (enabled+past-threshold → 1 handoff row + 3 cleave files via the SAME Relay.Handoff), Disabled/Default/Below (no row, no bundle), Invalid config (clear error, no auto-handoff) |
+| Acceptance `@step-05` / `@p0` | BDD / mapped unit scenarios | PASS | PASS | Enabled watchdog past threshold; Disabled or below threshold is no-op; Invalid watchdog config fails closed |
+| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/relay/` | PASS | PASS | relay suite `ok` |
+| Rollback boundary | unset env/flag → never auto-handoff | PASS | PASS | `isOff` is the FIRST statement in Check — env unset → no-op before any threshold/config/Handoff code; library-only (no live always-on call site); even if wired later the env gate holds |
+| Global Constraints | — | held | held | off by default (never always-on); disabled/default/below-threshold → no-op; invalid threshold (non-numeric, <0, >1) → fail closed (error before any handoff, no fall-through); same Relay.Handoff (not a re-impl); usage = caller-supplied fraction (dependency-free, documented); no separate MCP tool; no Fact Memory; session-relay-only |
+
+Review: task reviewer `approved` (clean). The threshold comparison is `usage < threshold → no-op` (i.e. at/exactly-threshold triggers, consistent with the "at/past" wording + test). Fix commit 9409c34 (the enable-gate doc comment understated the falsy-set check — now documents `""/0/off/false/no` case-insensitive/whitespace-trimmed as the disable set). One cosmetic note (non-blocking): the empty-threshold error prints the env name rather than the operator's value; the message still names the required `threshold in [0,1]`.
+
+Commits (step 05): d529769 (watchdog.go + watchdog_test.go), 9409c34 (doc comment).
 
 ### Commit
 
