@@ -56,6 +56,7 @@ func Start() error {
 	registerTeamsTools(s)
 	registerRetrievalTools(s)
 	registerCompactionTools(s)
+	registerAffectedTools(s)
 	return server.ServeStdio(s)
 }
 
@@ -81,5 +82,6 @@ func NewServer() *Server {
 	registerTeamsTools(s)
 	registerRetrievalTools(s)
 	registerCompactionTools(s)
+	registerAffectedTools(s)
 	return s
 }

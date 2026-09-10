@@ -101,9 +101,8 @@ func runSearch(version string, args []string) {
 		return
 	}
 	if len(args) >= 1 && args[0] == "rename" {
-		_ = version
-		fmt.Fprintln(os.Stderr, "usage: skillgrid search rename OLD NEW [--file F] [--uid U] [--kind K] [--apply] [--json]")
-		os.Exit(2)
+		runSearchRename(version, args)
+		return
 	}
 	if fs.NArg() != 1 {
 		fmt.Fprintln(os.Stderr, "error: search requires exactly one QUERY argument")

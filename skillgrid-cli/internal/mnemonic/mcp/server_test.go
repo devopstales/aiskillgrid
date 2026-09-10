@@ -48,6 +48,8 @@ func TestAllToolsRegistered(t *testing.T) {
 		"agent_submit_output", "agent_submit_review", "agent_mark_done",
 		"semantic_search", "load_full_details",
 		"mnemonic_commit",
+		// PR-command tools (010 step 02).
+		"code_affected", "code_rename",
 	}
 	if len(tools) != len(want) {
 		t.Errorf("expected %d tools, got %d (%v)", len(want), len(tools), tools)
