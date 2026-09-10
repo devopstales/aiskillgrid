@@ -1,6 +1,6 @@
 # Tasks: 006-structured-session-handoff
 
-> **STATUS:** `in-progress` (2026-09-04) — 0/5 steps PASS
+> **STATUS:** `complete` (2026-09-10) — 5/5 steps PASS · verify PASS (16/16 scenarios, -race) · QA waived · archived `a04ca0b`
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: use subagent-execution (or simple-execution) to implement step-by-step. Steps use checkbox (`- [ ]`) syntax.
 
@@ -66,7 +66,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: verify          # spec | apply | verify | archive
+phase: archive          # spec | apply | verify | archive
 current_step: 05-handoff-watchdog
 status: done  # in_progress | blocked | done
 updated: 2026-09-10T22:00:00+02:00
@@ -473,9 +473,9 @@ Review: per-step task reviewers (01 approved, 02 approved-with-fixes→fixed, 03
 
 ## Archive gate checklist
 
-- [ ] Change-level **Definition of Done** fully checked
-- [ ] No unchecked `- [ ]` under any `### Tasks`
-- [ ] Every step Verdict is `PASS` or `PASS WITH WARNINGS`
-- [ ] No Global Constraint violated
-- [ ] `## State` status is `done` and phase is `archive` (set by verify/archive)
-- [ ] STATUS banner updated to `complete`
+- [x] Change-level **Definition of Done** fully checked
+- [x] No unchecked `- [ ]` under any `### Tasks`
+- [x] Every step Verdict is `PASS` or `PASS WITH WARNINGS`
+- [x] No Global Constraint violated
+- [x] `## State` status is `done` and phase is `archive` (set by verify/archive)
+- [x] STATUS banner updated to `complete`
