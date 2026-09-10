@@ -124,9 +124,17 @@ func Resume(ctx context.Context, db Store, projectID, handoffID, projectRoot str
 			return prompt, handoffID, 0, fmt.Errorf("relay: record archive: %w", aerr)
 		}
 		id64, _ := res.LastInsertId()
-		_, _ = db.ExecContext(ctx, `
+		// Fail closed on the status flip: a session_archives row is already
+		// written, so a failed UPDATE would leave the handoff 'pending' with a
+		// live archive row — the reverse of the no-orphan invariant. Surface
+		// the error so the caller sees the archive is incomplete (the archive
+		// row was written but the handoff status flip failed).
+		if _, uerr := db.ExecContext(ctx, `
 			UPDATE session_handoffs SET status = 'archived', archived_at = ?
-			WHERE project = ? AND handoff_id = ?`, now, projectID, handoffID)
+			WHERE project = ? AND handoff_id = ?`, now, projectID, handoffID); uerr != nil {
+			return prompt, handoffID, id64,
+				fmt.Errorf("relay: archived but failed to mark handoff archived: %w", uerr)
+		}
 		return prompt, handoffID, id64, nil
 	}
 	return prompt, handoffID, 0, nil

@@ -2,6 +2,8 @@ package relay
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -208,6 +210,67 @@ func TestResumeMissing(t *testing.T) {
 	if !strings.Contains(err.Error(), "cleave") {
 		t.Errorf("error should mention the missing cleave bundle, got: %v", err)
 	}
+}
+
+// TestResumeArchiveStatusFlipFails asserts the fail-closed status-update fix:
+// if the `UPDATE session_handoffs SET status='archived'` fails after the
+// session_archives row is written, Resume surfaces an error (no swallowed
+// `_, _ =`), so an archive row is never left with a still-pending handoff
+// silently.
+func TestResumeArchiveStatusFlipFails(t *testing.T) {
+	st, root := openStore(t, "relayproj")
+	ctx := context.Background()
+	seedSession(t, st, "s-flip")
+
+	hid, _, err := Handoff(ctx, st.DB, "relayproj", "ho-flip", root, Bundle{
+		Progress:      "p",
+		NextPrompt:    "prompt",
+		SourceSession: "s-flip",
+	})
+	if err != nil {
+		t.Fatalf("handoff: %v", err)
+	}
+
+	// Wrap the store so the UPDATE that flips status fails (the INSERT for the
+	// archive row still succeeds).
+	db := &failOnUpdate{DB: st.DB, failOn: "UPDATE session_handoffs SET status"}
+	_, _, _, rerr := Resume(ctx, db, "relayproj", hid, root, true)
+	if rerr == nil {
+		t.Fatalf("expected resume(archive=true) to error when the status flip fails")
+	}
+	if !strings.Contains(rerr.Error(), "failed to mark handoff archived") {
+		t.Errorf("error should say the status flip failed, got: %v", rerr)
+	}
+	// The archive row was written (before the flip), but the handoff is still
+	// pending → the inconsistency is surfaced, not hidden.
+	var arc int
+	if err := st.DB.QueryRow(`SELECT COUNT(*) FROM session_archives WHERE handoff_id = ?`, hid).Scan(&arc); err != nil {
+		t.Fatalf("count archive: %v", err)
+	}
+	if arc != 1 {
+		t.Errorf("expected the archive row to be written before the flip, got %d", arc)
+	}
+	var status string
+	if err := st.DB.QueryRow(`SELECT status FROM session_handoffs WHERE handoff_id = ?`, hid).Scan(&status); err != nil {
+		t.Fatalf("read status: %v", err)
+	}
+	if status != "pending" {
+		t.Errorf("after a failed flip the handoff should still be pending, got %q", status)
+	}
+}
+
+// failOnUpdate wraps *sql.DB and returns an error from ExecContext for queries
+// containing failOn (used to simulate a transient status-flip failure).
+type failOnUpdate struct {
+	*sql.DB
+	failOn string
+}
+
+func (f *failOnUpdate) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	if strings.Contains(query, f.failOn) {
+		return nil, fmt.Errorf("injected status-flip failure")
+	}
+	return f.DB.ExecContext(ctx, query, args...)
 }
 
 // TestResumeUnknown covers the edge (Scenario: Missing cleave or unknown
