@@ -67,7 +67,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 
 ```yaml
 phase: apply          # spec | apply | verify | archive
-current_step: 02-handoff-resume
+current_step: 03-status-compact
 status: in_progress  # in_progress | blocked | done
 updated: 2026-09-10T22:00:00+02:00
 ```
@@ -199,31 +199,35 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 02.1 `[RED]` Mnemonic tool surface: `session_handoff` and `session_resume` registered **and** `mem_save` still registered/dispatches — Scenario: Fail closed and mem tools remain
-  - [ ] 02.1.a Write failing test in `server_test.go`
-  - [ ] 02.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'SessionHandoff|SessionTools|MemSave'` — Expected: FAIL
-  - [ ] 02.1.c Minimal implementation — `tools_session_handoff.go` + registrar hook from `server.go` without dropping `mem_*`
-  - [ ] 02.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'SessionHandoff|SessionTools|MemSave'` — Expected: PASS
-  - [ ] 02.1.e Commit — `feat(mnemonic): register session_handoff and session_resume`
-- [ ] 02.2 `[AFK]` Create `cleave.go` — WriteBundle/ReadBundle for `.skillgrid/.cleave/{PROGRESS,KNOWLEDGE,NEXT_PROMPT}.md`; soft-optional L0 under `.skillgrid/workspace/sessions/{id}/`
-- [ ] 02.3 `[AFK]` Create `relay.go` — `Handoff` / `Resume` writing SQL rows + cleave files; fail closed; clear errors for missing `.cleave/` / unknown id
-- [ ] 02.4 `[AFK]` Modify `.gitignore` to ignore `.skillgrid/.cleave/` by default
-- [ ] 02.5 `[AFK]` Cover WHAT happy path — Scenario: Handoff writes cleave bundle and row — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'Handoff|Resume'` — Expected: PASS
-- [ ] 02.6 `[AFK]` Cover WHAT edge — Scenario: Missing cleave or unknown handoff id — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Resume|Missing|Unknown'` — Expected: PASS
+- [x] 02.1 `[RED]` Mnemonic tool surface: `session_handoff` and `session_resume` registered **and** `mem_save` still registered/dispatches — Scenario: Fail closed and mem tools remain
+  - [x] 02.1.a Write failing test in `server_test.go`
+  - [x] 02.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'SessionHandoff|SessionTools|MemSave'` — Expected: FAIL
+  - [x] 02.1.c Minimal implementation — `tools_session_handoff.go` + registrar hook from `server.go` without dropping `mem_*`
+  - [x] 02.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/ -run 'SessionHandoff|SessionTools|MemSave'` — Expected: PASS
+  - [x] 02.1.e Commit — `feat(mnemonic): register session_handoff and session_resume`
+- [x] 02.2 `[AFK]` Create `cleave.go` — WriteBundle/ReadBundle for `.skillgrid/.cleave/{PROGRESS,KNOWLEDGE,NEXT_PROMPT}.md`; soft-optional L0 under `.skillgrid/workspace/sessions/{id}/`
+- [x] 02.3 `[AFK]` Create `relay.go` — `Handoff` / `Resume` writing SQL rows + cleave files; fail closed; clear errors for missing `.cleave/` / unknown id
+- [x] 02.4 `[AFK]` Modify `.gitignore` to ignore `.skillgrid/.cleave/` by default
+- [x] 02.5 `[AFK]` Cover WHAT happy path — Scenario: Handoff writes cleave bundle and row — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'Handoff|Resume'` — Expected: PASS
+- [x] 02.6 `[AFK]` Cover WHAT edge — Scenario: Missing cleave or unknown handoff id — `Run: go test ./skillgrid-cli/internal/mnemonic/relay/ -run 'Resume|Missing|Unknown'` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/relay/ ./skillgrid-cli/internal/mnemonic/mcp/ -run 'Handoff\|Resume\|Session'` | PASS | | |
-| Acceptance `@step-02` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/mcp/` | PASS | | |
-| Rollback boundary | remove session tools; `mem_*` still work | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/relay/ ./skillgrid-cli/internal/mnemonic/mcp/ -count=1` | PASS | PASS | relay (Handoff/Resume/fail-closed/soft-L0/missing/unknown/archive) + mcp (session tools registered + mem_save dispatches + bad args) |
+| Acceptance `@step-02` / `@p0` | BDD / mapped unit scenarios | PASS | PASS | Handoff writes cleave bundle and row; Missing cleave or unknown handoff id; Fail closed and mem tools remain |
+| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/mcp/` | PASS | PASS | mcp suite `ok` |
+| Rollback boundary | remove session tools; `mem_*` still work | PASS | PASS | registerSessionTools is additive; expectedMemToolSurface re-asserted (78→80, all mem_* names+required params pinned); TestMemSaveDispatch drives a real dispatch |
+| Global Constraints | — | held | held | fail-closed no-orphan (file-before-row, EACCES-forced test); resume aborts on missing .cleave/unknown id (no invented prompt); .cleave/ gitignored; soft-optional L0 degrades; session-relay-only (no 002/003/004/005 deps) |
+
+Review: task reviewer `approved with fixes`. Fix commit ef53f61 (the Resume archive path swallowed the follow-up `UPDATE session_handoffs SET status='archived'` with `_, _ =` — now surfaces a clear error "relay: archived but failed to mark handoff archived" + new `TestResumeArchiveStatusFlipFails`; happy path `TestResume` asserts the status flips to `archived` + archive row exists). Other nits (redundant `.skillgrid/.cleave/` gitignore line — `.skillgrid/` already ignored; root-account fragility of the EACCES test) are harmless/non-blocking.
+
+Commits (step 02): 29feb6e (relay cleave bundle + handoff/resume fail-closed), b72ecb8 (register session_handoff/session_resume, 78→80 surface), 174eeb4 (gitignore .skillgrid/.cleave/), ef53f61 (surface failed archive status flip).
 
 ### Commit
 
