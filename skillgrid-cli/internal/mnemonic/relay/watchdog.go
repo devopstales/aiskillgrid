@@ -12,7 +12,8 @@ import (
 // with no enable gate set, Check is a no-op and never auto-hands-off. It is
 // never always-on — an explicit opt-in is required.
 //
-//	EnvWatchdog           — enable gate. Any value other than ""/off enables.
+//	EnvWatchdog           — enable gate. ""/0/off/false/no (case-insensitive,
+//	                       whitespace-trimmed) disable; any other value enables.
 //	EnvWatchdogThreshold  — the context-usage fraction (0.0–1.0) at/above
 //	                       which an enabled watchdog hands off.
 const (
