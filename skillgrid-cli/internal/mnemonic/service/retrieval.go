@@ -12,8 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/config"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/embedder"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/store"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/tiered"
 )
 
@@ -146,24 +148,72 @@ func (s *Service) SemanticSearch(ctx context.Context, projectID, query, corpus s
 	return &SemanticSearchResult{Results: results, TrailID: trailID}, nil
 }
 
-// BudgetedRetrieval is the change-013 step-03 layered + budgeted read seam:
-// it runs layered retrieval (L2/L3-first bootstrap, or the L1/L0 RRF fallback
+// BudgetedRetrieval is the change-013 step-03 layered + budgeted read facade.
+// It runs layered retrieval (L2/L3-first bootstrap, or the L1/L0 RRF fallback
 // for a specific fact) and then applies the uniform read budget (item cap +
-// char budget + context timeout). It is the facade the MCP/CLI read paths use
-// so every mem_* read is budgeted. mem_get_observation is NOT budgeted — it
-// stays the only full-content path (the in-list hits here are the truncated
-// snippets; the full content is fetched by the hit's get_observation_id).
+// char budget + context timeout, with the timeout enforced by a deadline-bound
+// read context). It is the production entry point the CLI `mem search` routes
+// through, so the L2/L3-first + RRF-fallback path is real end-to-end, not
+// test-only. mem_get_observation is NOT budgeted — it stays the only
+// full-content path (the in-list hits here are the truncated snippets; the full
+// content is fetched by the hit's get_observation_id).
+//
+// For a specific fact (mode "fact") with a non-empty readerOwner, the RRF leg is
+// run owner-gated (SearchOwnerScoped) so the step-01 per-owner visibility filter
+// still holds: a private observation of another owner is absent from the
+// in-list result even when the specific fact matches. The budget is applied to
+// the visible hits only.
 func (s *Service) BudgetedRetrieval(ctx context.Context, projectID, mode, query string, limit int) (memory.BudgetResult, error) {
-	h, cleanup, err := s.openProject(projectID, ".")
+	return s.BudgetedRetrievalAs(ctx, projectID, "", mode, query, limit)
+}
+
+// BudgetedRetrievalAs is BudgetedRetrieval with a reader identity for the
+// owner-visibility gate. readerOwner names the live reader (blank =
+// owner-identity / single-operator store, see everything); a non-blank reader
+// scopes the L1/L0 RRF fallback to what that reader may see (step-01). The CLI
+// `mem search` passes its --reader-owner here, which is the real production
+// caller that routes a live read through the layered L2/L3-first + RRF-fallback
+// path with the per-owner gate held.
+func (s *Service) BudgetedRetrievalAs(ctx context.Context, projectID, readerOwner, mode, query string, limit int) (memory.BudgetResult, error) {
+	return s.BudgetedRetrievalAsRoot(ctx, projectID, ".", readerOwner, mode, query, limit)
+}
+
+// BudgetedRetrievalAsRoot is BudgetedRetrievalAs with an explicit config root:
+// the read budget is tuned from the mnemonic.retrieval_budget section found by
+// walking up from configRoot (the CLI passes its --dir / data directory here so
+// its config — or its flags — are honored). This is the production entry point
+// the CLI `mem search` routes through.
+func (s *Service) BudgetedRetrievalAsRoot(ctx context.Context, projectID, configRoot, readerOwner, mode, query string, limit int) (memory.BudgetResult, error) {
+	root := configRoot
+	if root == "" {
+		root = "."
+	}
+	if abs, absErr := filepath.Abs(root); absErr == nil {
+		root = abs
+	}
+	st, err := store.Open(s.dataDir, projectID)
 	if err != nil {
 		return memory.BudgetResult{}, err
 	}
-	defer cleanup()
-	hits, err := h.Memory().Retrieve(ctx, memory.RetrieveOpts{
-		Mode:  mode,
-		Query: query,
-		Limit: limit,
-	})
+	defer st.Close()
+	mem := memory.New(st, projectID)
+	// Budget (change 013, step 03): tune the read budget from config
+	// (mnemonic.retrieval_budget). Zero fields fall back to the memory package
+	// defaults, so a config without the section is the default budget.
+	cfg := config.Load(root)
+	rb := cfg.RetrievalBudget
+	mem.SetBudget(memory.BudgetConfig{Items: rb.Items, Chars: rb.Chars, TimeoutNs: rb.TimeoutNs})
+	// A per-project override (CLI flags) takes precedence over the config.
+	if p, ok := s.budgetOverrideFor(projectID); ok {
+		mem.SetBudget(p)
+	}
+
+	// Route through the layered read path with the per-owner gate held (step
+	// 01). For a specific fact the L1/L0 RRF leg is owner-scoped
+	// (SearchOwnerScoped); bootstrap (L2/L3) is project-scoped and unaffected
+	// by the gate. The bound context enforces the budget's context timeout on
+	// the query (a slow read is cut, never hung).
+	hits, err := mem.SearchOwnerScopedRetrieve(mem.Budget().Bound(ctx), readerOwner, mode, query, limit)
 	if err != nil {
 		return memory.BudgetResult{}, err
 	}
@@ -182,7 +232,7 @@ func (s *Service) BudgetedRetrieval(ctx context.Context, projectID, mode, query 
 			Project: h.TargetKind,
 		})
 	}
-	return h.Memory().Budget().Apply(ctx, obs), nil
+	return mem.Budget().Apply(ctx, obs), nil
 }
 
 // LoadFullDetails returns L2 markdown for a registered path.

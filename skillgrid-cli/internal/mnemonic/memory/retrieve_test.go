@@ -122,3 +122,57 @@ func TestRetrieve(t *testing.T) {
 		}
 	})
 }
+
+// TestLayered is 03.3 [AFK] — proves the layered-retrieval contract in full:
+// a bootstrap read returns L2/L3 first (cheap, stable), and a specific-fact
+// query falls back to L1/L0 via the EXISTING RRF path (BlendedSearch). It is
+// the standalone scenario test for
+// layered-retrieval-l2-l3-first-with-l1-l0-rrf-fallback.
+func TestLayered(t *testing.T) {
+	fx := newFixture(t, "layered-proj")
+	ctx := context.Background()
+	seedLayeredStore(t, fx)
+
+	// Bootstrap: L2/L3 first. The first hit must be L3 (persona_delta), then L2
+	// (scenario) — the most stable, cheapest layers before any L1/L0.
+	boot, err := fx.svc.Retrieve(ctx, RetrieveOpts{Mode: "bootstrap", Limit: 10})
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	if len(boot) < 2 {
+		t.Fatalf("expected >=2 bootstrap layers, got %d", len(boot))
+	}
+	layers := make([]string, 0, len(boot))
+	for _, h := range boot {
+		layers = append(layers, h.Layer)
+	}
+	if layers[0] != "L3" || layers[1] != "L2" {
+		t.Fatalf("bootstrap must return L3 then L2 first, got %v", layers)
+	}
+	// No L1/L0 in the bootstrap (those are the RRF fallback, not bootstrap).
+	for _, h := range boot {
+		if h.Layer == "L1" || h.Layer == "L0" {
+			t.Fatalf("bootstrap must not include L1/L0, got layer %q", h.Layer)
+		}
+	}
+
+	// Specific fact: falls back to L1/L0 via the existing RRF path. The fact
+	// matches the L1 atom's content, so the RRF leg (BlendedSearch/FTS) returns
+	// it as an L1 hit.
+	fact, err := fx.svc.Retrieve(ctx, RetrieveOpts{Mode: "fact", Query: "persona profile increment", Limit: 10})
+	if err != nil {
+		t.Fatalf("fact: %v", err)
+	}
+	if len(fact) == 0 {
+		t.Fatal("specific-fact query must fall back to L1/L0 RRF and return a hit")
+	}
+	for _, h := range fact {
+		if h.Layer != "L1" {
+			t.Fatalf("fact fallback must be L1/L0 RRF, got layer %q", h.Layer)
+		}
+		// Every RRF fallback hit carries its full-content fetch id.
+		if h.GetObservationID == 0 {
+			t.Fatalf("fact hit missing full-content fetch id: %+v", h)
+		}
+	}
+}

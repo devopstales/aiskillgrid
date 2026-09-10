@@ -85,6 +85,36 @@ func (s *Service) Retrieve(ctx context.Context, opts RetrieveOpts) ([]LayerHit, 
 	return out, nil
 }
 
+// SearchOwnerScoped is the owner-gated layered read path behind the
+// production CLI `mem search` (change 013, step 03): it runs the same layered
+// retrieval as Retrieve, but for a specific fact (mode "fact") it runs the
+// L1/L0 RRF fallback through the EXISTING per-owner visibility-filtered read
+// (s.SearchOwnerScoped — the step-01 seam) so a private observation of another
+// owner is absent from the in-list result. Bootstrap (L2/L3) is unaffected
+// (persona distillation is project-scoped, not per-owner gated). This is what
+// makes the layered path observable at a real entry point WITHOUT regressing
+// the step-01 per-owner visibility gate.
+func (s *Service) SearchOwnerScopedRetrieve(ctx context.Context, readerOwner, mode, query string, limit int) ([]LayerHit, error) {
+	if s == nil || s.store == nil || s.store.DB == nil {
+		return nil, errors.New("memory service not initialized")
+	}
+	m := strings.ToLower(strings.TrimSpace(mode))
+	if m == "" {
+		m = "bootstrap"
+	}
+	if limit <= 0 {
+		limit = defaultSearchLimit
+	}
+	switch m {
+	case "bootstrap":
+		return s.layerBootstrap(ctx, limit)
+	case "fact":
+		return s.rrfFallbackOwnerScoped(ctx, readerOwner, query, limit)
+	default:
+		return nil, fmt.Errorf("unknown retrieve mode %q (valid: bootstrap, fact)", m)
+	}
+}
+
 // layerBootstrap returns the L2/L3 bootstrap hits: the step-02 personas records
 // (L3 persona-delta before L2 scenario — the most stable, cheapest first), each
 // provenance-linked to its resolvable L0 source. A project with no distilled
@@ -165,6 +195,50 @@ func (s *Service) rrfFallback(ctx context.Context, query string, limit int) ([]L
 	if err != nil {
 		return nil, err
 	}
+	return layerHitsFromObservations(hits, limit), nil
+}
+
+// rrfFallbackOwnerScoped is the owner-gated L1/L0 leg: same as rrfFallback
+// (routes through the EXISTING 005 RRF read path, BlendedSearch — FTS + vector
+// + ReciprocalRankFusion) but the returned hits are then filtered by the
+// step-01 per-owner visibility gate (canRead), so a private observation of
+// another owner is absent from the in-list result. This is the seam the
+// production CLI `mem search` uses so the per-owner visibility gate holds on
+// the layered read path WITHOUT regressing the existing RRF ranking.
+func (s *Service) rrfFallbackOwnerScoped(ctx context.Context, readerOwner, query string, limit int) ([]LayerHit, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, nil
+	}
+	hits, err := s.BlendedSearch(ctx, query, "any", "", Vector{}, limit*3)
+	if err != nil {
+		return nil, err
+	}
+	var visible []Observation
+	for _, o := range hits {
+		if readerOwner == "" {
+			visible = append(visible, o)
+			continue
+		}
+		ok, cerr := s.canRead(ctx, o.ID, s.projectID, readerOwner, readerOwner)
+		if cerr != nil {
+			// A row already gone (deleted/expired since the RRF read) is absent,
+			// not a failure; a genuine visibility lookup error is surfaced.
+			if errors.Is(cerr, ErrNotFoundForReader) {
+				continue
+			}
+			return nil, cerr
+		}
+		if ok {
+			visible = append(visible, o)
+		}
+	}
+	return layerHitsFromObservations(visible, limit), nil
+}
+
+// layerHitsFromObservations maps in-list observations (from the RRF leg) into
+// LayerHits, each carrying its full-content fetch id.
+func layerHitsFromObservations(hits []Observation, limit int) []LayerHit {
 	var out []LayerHit
 	for _, o := range hits {
 		out = append(out, LayerHit{
@@ -179,7 +253,7 @@ func (s *Service) rrfFallback(ctx context.Context, query string, limit int) ([]L
 	if len(out) > limit {
 		out = out[:limit]
 	}
-	return out, nil
+	return out
 }
 
 // ErrRetrievalEmpty is returned (not raised as a failure) when a layered

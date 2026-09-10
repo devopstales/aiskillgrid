@@ -58,6 +58,42 @@ type Service struct {
 	distillHookFired int
 	// distillLastResult is a test-only record of the most recent hook result.
 	distillLastResult layer.DistillResult
+	// budgetOverrides is a per-project read-budget override (change 013,
+	// step 03). The CLI sets it from its --item/--char/--timeout flags so they
+	// take precedence over the config-loaded budget for a BudgetedRetrieval
+	// read; the MCP path leaves it empty (config in openProject is the source
+	// of truth). Guarded by budgetMu (set before reads, read at read time).
+	budgetMu        sync.Mutex
+	budgetOverrides map[string]memory.BudgetConfig
+}
+
+// SetBudgetOverride sets a per-project read-budget override (change 013,
+// step 03). A zero field in the override falls back to its default, and the
+// override takes precedence over the config-loaded budget for subsequent
+// BudgetedRetrieval reads of that project. The CLI uses it to apply its
+// --item/--char/--timeout flags; the MCP path does not (config is its source
+// of truth in openProject).
+func (s *Service) SetBudgetOverride(projectID string, cfg memory.BudgetConfig) {
+	if s == nil {
+		return
+	}
+	s.budgetMu.Lock()
+	defer s.budgetMu.Unlock()
+	if s.budgetOverrides == nil {
+		s.budgetOverrides = make(map[string]memory.BudgetConfig)
+	}
+	s.budgetOverrides[projectID] = cfg
+}
+
+// budgetOverrideFor returns the per-project read-budget override, if any.
+func (s *Service) budgetOverrideFor(projectID string) (memory.BudgetConfig, bool) {
+	if s == nil {
+		return memory.BudgetConfig{}, false
+	}
+	s.budgetMu.Lock()
+	defer s.budgetMu.Unlock()
+	cfg, ok := s.budgetOverrides[projectID]
+	return cfg, ok
 }
 
 // DistillHookFired returns how many times the session-close distill hook ran.
