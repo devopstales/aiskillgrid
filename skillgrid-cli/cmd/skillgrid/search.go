@@ -104,6 +104,10 @@ func runSearch(version string, args []string) {
 		runSearchRename(version, args)
 		return
 	}
+	if len(args) >= 1 && args[0] == "pdg" {
+		runSearchPdg(version, args)
+		return
+	}
 	if fs.NArg() != 1 {
 		fmt.Fprintln(os.Stderr, "error: search requires exactly one QUERY argument")
 		os.Exit(2)

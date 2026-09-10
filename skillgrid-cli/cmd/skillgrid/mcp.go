@@ -214,9 +214,13 @@ func runIndex(version string, args []string) {
 	var (
 		dir     string
 		project string
+		pdg     bool
+		lsp     bool
 	)
 	fs.StringVar(&dir, "dir", ".", "directory to index")
 	fs.StringVar(&project, "project", envOr("SKILLGRID_MNEMONIC_PROJECT", ""), "fixed project identity")
+	fs.BoolVar(&pdg, "pdg", false, "opt-in per-function CFG + PDG pass (fills cfg_blocks/cfg_edges/pdg_edges)")
+	fs.BoolVar(&lsp, "lsp", false, "opt-in LSP edge tier (adds LSP_RESOLVED member-call edges; best-effort, static index unchanged when no server)")
 	fs.Usage = func() {
 		fmt.Fprintln(fs.Output(), "usage: skillgrid index [flags]")
 		fmt.Fprintln(fs.Output(), "  Run incremental code indexing for a directory.")
@@ -239,7 +243,7 @@ func runIndex(version string, args []string) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	stats, err := svc.RunCodeIndex(ctx, dir)
+	stats, err := svc.RunCodeIndexPDG(ctx, dir, pdg, lsp)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)

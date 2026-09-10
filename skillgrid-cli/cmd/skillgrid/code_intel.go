@@ -378,6 +378,8 @@ func knowledgeSQLAccessCLI(db *sql.DB, table string) (map[string]any, error) {
 
 // openGraphService resolves the project for the current directory.
 func openGraphService() (*service.Service, string, error) {
+	// newMnemonicService honors the injected cliService (test harness) and the
+	// SKILLGRID_MNEMONIC_DATA_DIR env (real invocation).
 	dataDir := envOr("SKILLGRID_MNEMONIC_DATA_DIR", "")
 	svc, err := newMnemonicService(dataDir)
 	if err != nil {

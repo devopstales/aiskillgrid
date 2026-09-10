@@ -1136,12 +1136,8 @@ func (s *Service) RunCodeIndexPDG(ctx context.Context, directory string, pdg, ls
 	if emb := resolveEmbedder(h.root); emb != nil {
 		idx = idx.WithEmbedder(emb)
 	}
-	if pdg {
-		idx.EnablePDG()
-	}
-	if lsp {
-		idx.EnableLSP()
-	}
+	// The PDG/LSP passes are driven by Config.PDG/Config.LSP in Run; the
+	// flags set them above so `index --pdg/--lsp` reach the same transaction.
 	return idx.Run(ctx, directory, idxCfg)
 }
 
