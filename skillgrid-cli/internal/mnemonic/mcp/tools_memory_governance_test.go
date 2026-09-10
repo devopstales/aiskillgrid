@@ -36,9 +36,9 @@ func TestMemGovernanceTools(t *testing.T) {
 		}
 	}
 
-	// Tool surface grows additively: 75 baseline + 2 governance + 1 layers = 78.
-	if len(tools) != 78 {
-		t.Errorf("expected 78 tools (75 baseline + 2 governance + 1 mem_layers), got %d", len(tools))
+	// Tool surface grows additively: 75 baseline + 2 governance + 1 layers + 2 session = 80.
+	if len(tools) != 80 {
+		t.Errorf("expected 80 tools (75 baseline + 2 governance + 1 mem_layers + 2 session), got %d", len(tools))
 	}
 
 	// Existing 005 mem_* tools keep their names + required params unchanged.

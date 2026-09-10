@@ -61,6 +61,7 @@ func Start() error {
 	registerTaintTools(s)
 	registerMemoryGovernanceTools(s)
 	registerMemoryLayerTools(s)
+	registerSessionTools(s)
 	return server.ServeStdio(s)
 }
 
@@ -91,5 +92,6 @@ func NewServer() *Server {
 	registerTaintTools(s)
 	registerMemoryGovernanceTools(s)
 	registerMemoryLayerTools(s)
+	registerSessionTools(s)
 	return s
 }
