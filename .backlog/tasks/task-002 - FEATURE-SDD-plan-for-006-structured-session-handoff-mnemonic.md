@@ -1,14 +1,12 @@
 ---
 id: TASK-002
 title: '[FEATURE] SDD plan for 006-structured-session-handoff (mnemonic)'
-status: ready-for-agent
+status: done
 assignee: []
 created_date: '2026-09-04'
-updated_date: '2026-09-05'
+updated_date: '2026-09-10 20:46'
 labels: []
 dependencies: []
-priority: medium
-type: feature
 references:
   - docs/skillgrid/changes/006-structured-session-handoff/change.md
   - docs/skillgrid/changes/006-structured-session-handoff/tasks.md
@@ -18,27 +16,33 @@ references:
 documentation:
   - docs/skillgrid/changes/006-structured-session-handoff/change.md
   - .agents/skills/_shared/conventions/sdd-structure.md
+priority: medium
+type: feature
 ---
 
 ## Description
 
-Track implementation of the approved SDD plan for change **006-structured-session-handoff** (Cleave-style **Session Relay**). Continuity across context fill / session end without Hermes facts/skills or 003 tiered/semantic/commit/trail cores.
+<!-- SECTION:DESCRIPTION:BEGIN -->
+Track implementation of the approved SDD plan for change 006-structured-session-handoff (Cleave-style Session Relay). Continuity across context fill / session end without Hermes facts/skills or 003 tiered/semantic/commit/trail cores.
 
 **Current State:**
-- Intent approved; plan authored at `docs/skillgrid/changes/006-structured-session-handoff/change.md`
-- No session_handoff / `.cleave/` / `skillgrid session` surface yet
+- Intent approved; plan authored at docs/skillgrid/changes/006-structured-session-handoff/change.md
+- Steps 01-05 IMPLEMENTED + per-step task-review PASS (commit range 53cc95b..d529769, doc-fix 9409c34): 01 relay-schema (019 additive migration), 02 handoff-resume (relay + MCP session_handoff/session_resume, fail-closed no-orphan), 03 status-compact (session_status + thin knowledge_compact, no Fact Memory), 04 session-cli (skillgrid session handoff|resume|status mirrors MCP on the same store), 05 handoff-watchdog (env-gated, off by default, fail-closed on invalid config)
+- Change-level verify PASS: 16/16 @step-NN scenarios COMPLIANT at runtime (store/relay/mcp/cmd -race ok); 005/008/010/011/013 baselines intact (one pre-existing flaky 011 pdg wall-clock timeout, passes alone); all Global Constraints held; additive 82-tool surface
+- Human QA WAIVED (load-bearing invariants asserted by passing -race runtime tests; additive change)
 
 **Expected State:**
-- Steps 01–05 implemented per plan (schema → handoff/resume → status/compact → CLI → optional watchdog)
-- `go test ./...` passes for touched packages
+- Steps 01-05 implemented per plan (DONE)
+- go test ./... passes for touched packages (DONE - -race)
+- NEXT: sdd-archive (move changes/006 -> archive/006 + readback + close this ticket)
+<!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
-
 <!-- AC:BEGIN -->
-- [ ] #1 Plan artifact exists (filesystem + Engram `sdd/006-structured-session-handoff/plan`)
-- [ ] #2 Steps 01–05 deliver Session Relay per plan Step WHAT
-- [ ] #3 Threat-matrix RED tests for new MCP session tools (02, 03)
-- [ ] #4 Soft-after 003 L0 paths; `.cleave/` gitignored; `go test ./...` passes for touched packages
+- [x] #1 Plan artifact exists (filesystem + Engram `sdd/006-structured-session-handoff/plan`)
+- [x] #2 Steps 01–05 deliver Session Relay per plan Step WHAT
+- [x] #3 Threat-matrix RED tests for new MCP session tools (02, 03)
+- [x] #4 Soft-after 003 L0 paths; `.cleave/` gitignored; `go test ./...` passes for touched packages
 <!-- AC:END -->
 
 ## Definition of Done
