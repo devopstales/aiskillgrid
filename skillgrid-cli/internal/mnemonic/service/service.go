@@ -1110,6 +1110,33 @@ func (s *Service) RunCodeIndex(ctx context.Context, directory string) (codeindex
 	return idx.Run(ctx, directory, idxCfg)
 }
 
+// ReindexStructural runs a structural-only incremental re-index for directory:
+// it syncs chunks/symbols/edges (the 005 extraction) but does NOT attach an
+// embedder, so no model load or embedding call happens. This is the
+// pull-at-query fingerprint gate's re-index (structural-only, embedder-free)
+// and the watcher's comfort-layer sync. Advisory: a failure keeps the old
+// index live.
+func (s *Service) ReindexStructural(ctx context.Context, directory string, cfg codeindex.Config) (codeindex.Stats, error) {
+	h, cleanup, err := s.openProjectForDirectory(directory)
+	if err != nil {
+		return codeindex.Stats{}, err
+	}
+	defer cleanup()
+	idx := codeindex.New(h.store)
+	stats, err := idx.Run(ctx, directory, cfg)
+	if err != nil {
+		return codeindex.Stats{}, err
+	}
+	// Persist the extractor stamp so the next query's fingerprint gate knows
+	// the structural re-index ran under this stamp (a stamp change invalidates
+	// the fingerprint and forces a re-walk). Advisory: a failure here does not
+	// fail the re-index (the 005 extraction is already committed).
+	if err := codeindex.StoreFingerprint(h.store.DB, directory, cfg, codeindex.ExtractorStamp()); err != nil {
+		fmt.Fprintf(os.Stderr, "warn: fingerprint stamp: %v\n", err)
+	}
+	return stats, nil
+}
+
 // CodeHybridResult is the hybrid code search answer (per-signal provenance on
 // every hit).
 type CodeHybridResult = hybrid.Result
