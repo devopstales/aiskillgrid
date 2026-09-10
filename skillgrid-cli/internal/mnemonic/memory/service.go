@@ -128,6 +128,27 @@ func New(st *store.Store, projectID string) *Service {
 	return &Service{store: st, projectID: projectID}
 }
 
+// DB returns the underlying *sql.DB. It is exposed so an additive layer that
+// composes on the same store (the layered distillation, change 013 step 02) can
+// read sessions and write the provenance link tables without reaching into the
+// unexported store field.
+func (s *Service) DB() *sql.DB {
+	if s == nil || s.store == nil {
+		return nil
+	}
+	return s.store.DB
+}
+
+// ProjectID returns the store bucket this service is bound to. It is exposed so
+// an additive layer composing on the same store (change 013 step 02) can scope
+// its queries to the project without reaching into the unexported field.
+func (s *Service) ProjectID() string {
+	if s == nil {
+		return ""
+	}
+	return s.projectID
+}
+
 // Save stores an observation, deduplicating by hash within 24h or upserting by topic_key.
 func (s *Service) Save(ctx context.Context, in SaveInput) (int64, error) {
 	if s == nil || s.store == nil || s.store.DB == nil {
