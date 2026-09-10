@@ -100,15 +100,19 @@ type TaintHop struct {
 }
 
 // TaintFinding is one source->sink taint result: the source, the sink, and the
-// hop-by-hop path between them (every hop confidence-labeled). PathLabel is
-// the worst hop (EXTRACTED only when every hop is EXTRACTED). StopsAt is set
-// when the path TRUNCATED at an unresolved boundary (the path never continues
-// past it); it is "" when the path reaches the sink fully.
+// hop-by-hop path between them (every hop confidence-labeled). SourceKind /
+// SinkKind are the configurable-set class the source/sink matched (a finding
+// is source->sink, not a guess). PathLabel is the worst hop (EXTRACTED only
+// when every hop is EXTRACTED). StopsAt is set when the path TRUNCATED at an
+// unresolved boundary (the path never continues past it); it is "" when the
+// path reaches the sink fully.
 type TaintFinding struct {
 	SourceLine int        `json:"source_line"`
 	SourceName string     `json:"source_name"`
+	SourceKind string     `json:"source_kind"`
 	SinkLine   int        `json:"sink_line"`
 	SinkName   string     `json:"sink_name"`
+	SinkKind   string     `json:"sink_kind"`
 	Path       []TaintHop `json:"path"`
 	PathLabel  string     `json:"path_label"`
 	StopsAt    string     `json:"stops_at,omitempty"`
@@ -170,6 +174,7 @@ func Taint(in TaintInput, cfg TaintConfig) []TaintFinding {
 	type srcInfo struct {
 		line int
 		name string
+		kind string
 	}
 	seenSrc := map[int]bool{}
 	var srcs []srcInfo
@@ -178,8 +183,8 @@ func Taint(in TaintInput, cfg TaintConfig) []TaintFinding {
 			continue
 		}
 		seenSrc[d.FromLine] = true
-		if sourceMatch(cfg, d.FromName, d.Note) {
-			srcs = append(srcs, srcInfo{line: d.FromLine, name: d.FromName})
+		if kind, ok := sourceKind(cfg, d.FromName, d.Note); ok {
+			srcs = append(srcs, srcInfo{line: d.FromLine, name: d.FromName, kind: kind})
 		}
 	}
 	sort.Slice(srcs, func(i, j int) bool {
@@ -188,17 +193,22 @@ func Taint(in TaintInput, cfg TaintConfig) []TaintFinding {
 		}
 		return srcs[i].name < srcs[j].name
 	})
-	// sinkAt: a line is a sink when its statement matches a sink class.
-	sinkAt := func(line int) (string, bool) {
-		if ci, ok := in.ByLine[line]; ok && ci != nil && sinkMatch(cfg, ci.Name, "") {
-			return ci.Name, true
-		}
-		for _, d := range in.DataDeps {
-			if d.ToLine == line && sinkMatch(cfg, d.ToName, d.Note) {
-				return d.ToName, true
+	// sinkAt: a line is a sink when its statement matches a sink class; returns
+	// the sink name + the matched kind.
+	sinkAt := func(line int) (string, string, bool) {
+		if ci, ok := in.ByLine[line]; ok && ci != nil {
+			if kind, ok := sinkKind(cfg, ci.Name, ""); ok {
+				return ci.Name, kind, true
 			}
 		}
-		return "", false
+		for _, d := range in.DataDeps {
+			if d.ToLine == line {
+				if kind, ok := sinkKind(cfg, d.ToName, d.Note); ok {
+					return d.ToName, kind, true
+				}
+			}
+		}
+		return "", "", false
 	}
 	// hopConfidence labels the hop into line: call boundaries per resolution,
 	// else the data edge's confidence.
@@ -238,10 +248,10 @@ func Taint(in TaintInput, cfg TaintConfig) []TaintFinding {
 		visited := map[int]bool{s.line: true}
 		var dfs func(line int, path []TaintHop)
 		dfs = func(line int, path []TaintHop) {
-			if sinkName, isSink := sinkAt(line); isSink {
+			if sinkName, sinkKind, isSink := sinkAt(line); isSink {
 				findings = append(findings, TaintFinding{
-					SourceLine: s.line, SourceName: s.name,
-					SinkLine: line, SinkName: sinkName,
+					SourceLine: s.line, SourceName: s.name, SourceKind: s.kind,
+					SinkLine: line, SinkName: sinkName, SinkKind: sinkKind,
 					Path: path, PathLabel: worstHop(path),
 				})
 				return
@@ -257,10 +267,10 @@ func Taint(in TaintInput, cfg TaintConfig) []TaintFinding {
 						Line: d.ToLine, Name: d.ToName, Confidence: ConfidenceAmbiguous,
 						Note: "stops at " + d.ToName,
 					})
-					if sinkName, isSink := sinkAt(d.ToLine); isSink {
+					if sinkName, sinkKind, isSink := sinkAt(d.ToLine); isSink {
 						findings = append(findings, TaintFinding{
-							SourceLine: s.line, SourceName: s.name,
-							SinkLine: d.ToLine, SinkName: sinkName,
+							SourceLine: s.line, SourceName: s.name, SourceKind: s.kind,
+							SinkLine: d.ToLine, SinkName: sinkName, SinkKind: sinkKind,
 							Path: trunc, PathLabel: worstHop(trunc),
 							StopsAt: "stops at " + d.ToName,
 						})
@@ -293,6 +303,28 @@ func Taint(in TaintInput, cfg TaintConfig) []TaintFinding {
 	return out
 }
 
+// sourceKind returns the first matching source class name (or "" when none
+// matches). A finding is source->sink (a matched class), not a guess.
+func sourceKind(cfg TaintConfig, name, note string) (string, bool) {
+	for _, s := range cfg.Sources {
+		if s.MatchSource != nil && s.MatchSource(name, note) {
+			return s.Name, true
+		}
+	}
+	return "", false
+}
+
+// sinkKind returns the first matching sink class name (or "" when none
+// matches). A finding is source->sink (a matched class), not a guess.
+func sinkKind(cfg TaintConfig, name, note string) (string, bool) {
+	for _, s := range cfg.Sinks {
+		if s.MatchSink != nil && s.MatchSink(name, note) {
+			return s.Name, true
+		}
+	}
+	return "", false
+}
+
 // worstHop returns the path-level label: EXTRACTED only when every hop is
 // EXTRACTED (a resolved data-dependence); otherwise the worst hop present
 // (any AMBIGUOUS wins, then any INFERRED, then any LSP_RESOLVED).
@@ -318,26 +350,6 @@ func worstHop(path []TaintHop) string {
 	default:
 		return ConfidenceExtracted
 	}
-}
-
-// sourceMatch reports whether (name, note) matches any configured source class.
-func sourceMatch(cfg TaintConfig, name, note string) bool {
-	for _, s := range cfg.Sources {
-		if s.MatchSource != nil && s.MatchSource(name, note) {
-			return true
-		}
-	}
-	return false
-}
-
-// sinkMatch reports whether (name, note) matches any configured sink class.
-func sinkMatch(cfg TaintConfig, name, note string) bool {
-	for _, s := range cfg.Sinks {
-		if s.MatchSink != nil && s.MatchSink(name, note) {
-			return true
-		}
-	}
-	return false
 }
 
 // sortFindings orders findings deterministically (source line, sink line,
