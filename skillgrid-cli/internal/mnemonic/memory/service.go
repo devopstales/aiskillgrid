@@ -42,6 +42,11 @@ type Service struct {
 	// directly, e.g. in unit tests) session close has no hook — the current
 	// default-off behavior.
 	hookProvider distillHookProvider
+	// budget is the uniform read budget (change 013, step 03) applied to every
+	// mem_* read path. Lazily defaulted (NewBudget) so a Service built directly
+	// in unit tests still enforces the default caps. The service layer tunes it
+	// from config (mnemonic.retrieval_budget) via SetBudget.
+	budget *Budget
 }
 
 // SetDistillHookProvider attaches the owning handle (which carries the opt-in
@@ -50,6 +55,24 @@ type Service struct {
 func (s *Service) SetDistillHookProvider(p distillHookProvider) {
 	if s != nil {
 		s.hookProvider = p
+	}
+}
+
+// Budget returns the uniform read budget for this service, defaulting to the
+// standard caps when none was set (a Service built directly in unit tests).
+func (s *Service) Budget() *Budget {
+	if s == nil || s.budget == nil {
+		return Default()
+	}
+	return s.budget
+}
+
+// SetBudget overrides the read budget (change 013, step 03). The service layer
+// calls it from config (mnemonic.retrieval_budget) so the item/char/timeout
+// caps are tunable; a zero field falls back to its default.
+func (s *Service) SetBudget(cfg BudgetConfig) {
+	if s != nil {
+		s.budget = NewBudget(cfg)
 	}
 }
 
