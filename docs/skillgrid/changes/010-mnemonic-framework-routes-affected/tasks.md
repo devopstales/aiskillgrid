@@ -68,7 +68,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 
 ```yaml
 phase: apply         # spec | apply | verify | archive
-current_step: 02-code-affected
+current_step: 03-autosync-watcher
 status: in_progress  # in_progress | blocked | done
 updated: 2026-09-09
 ```
@@ -220,42 +220,42 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 02.1 `[RED]` `code_affected` traverses changed files to test files (Scenario: code_affected returns affected test files)
+- [x] 02.1 `[RED]` `code_affected` traverses changed files to test files (Scenario: code_affected returns affected test files)
   - [ ] 02.1.a Write failing test — fixture repo where changed sources are transitively imported; `code_affected src/utils.ts src/api.ts` returns the test files that (transitively) import the changed symbols via import + `tests-for` edges; `--depth` caps traversal (default 5); `--filter "e2e/*"` restricts reported test files; `--json` / `--quiet` emit scriptable output; result is paths/relationships from the existing graph only (no invented edges)
   - [ ] 02.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeAffected -count=1` — Expected: FAIL
   - [ ] 02.1.c Minimal implementation — `affected/affected.go` traversal (import + `tests-for`, depth cap, filter) + service/CLI facade
   - [ ] 02.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeAffected -count=1` — Expected: PASS
   - [ ] 02.1.e Commit — `feat(mnemonic): code_affected test-impact traversal`
-- [ ] 02.2 `[RED]` PR commands — `code_affected --stdin` on a fixture diff (Scenario: code_affected consumes a diff file list from stdin) — threat: PR commands
+- [x] 02.2 `[RED]` PR commands — `code_affected --stdin` on a fixture diff (Scenario: code_affected consumes a diff file list from stdin) — threat: PR commands
   - [ ] 02.2.a Write failing test — `git diff --name-only`-style stdin (fixture diff) returns the correct test files; an empty diff (empty stdin) returns an empty result with a clear message, not an error
   - [ ] 02.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... ./skillgrid-cli/cmd/skillgrid/... -run CodeAffectedStdin -count=1` — Expected: FAIL
   - [ ] 02.2.c Minimal implementation — `--stdin` file-list ingestion in traversal + `code_intel.go` `search affected` CLI
   - [ ] 02.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... ./skillgrid-cli/cmd/skillgrid/... -run CodeAffectedStdin -count=1` — Expected: PASS
   - [ ] 02.2.e Commit — `feat(mnemonic): code_affected --stdin for CI and hooks`
-- [ ] 02.3 `[RED]` PR commands — `code_affected --base <ref>` merge-base diff + affected areas + git-history owners (Scenario: code_affected --base derives areas and owners) — threat: PR commands; Business rule "`code_affected --base <ref>` PR mode"
+- [x] 02.3 `[RED]` PR commands — `code_affected --base <ref>` merge-base diff + affected areas + git-history owners (Scenario: code_affected --base derives areas and owners) — threat: PR commands; Business rule "`code_affected --base <ref>` PR mode"
   - [ ] 02.3.a Write failing test — fixture branch with a merge-base diff against a base ref; `code_affected --base origin/main` derives the changed file set from `git merge-base <base> HEAD` + diff (no `--stdin` plumbing), walks the same import/`tests-for` traversal, groups the result into affected **areas** (per-symbol detail collapsed under each area), and names **git-history owners** ("who to tag") for each touched area via `git blame` on the changed lines; `--quiet`/`--json` shape the output as a ready PR comment / CI gate
   - [ ] 02.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeAffectedBase -count=1` — Expected: FAIL
   - [ ] 02.3.c Minimal implementation — `--base` merge-base diff changed-set source + affected-area grouping + `git blame` owner attribution in `affected/affected.go` + `code_intel.go`
   - [ ] 02.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeAffectedBase -count=1` — Expected: PASS
   - [ ] 02.3.e Commit — `feat(mnemonic): code_affected --base merge-base diff with owners`
-- [ ] 02.4 `[RED]` `code_rename` splits edits into graph vs text-search buckets (Scenario: code_rename returns graph and text-search edit buckets)
+- [x] 02.4 `[RED]` `code_rename` splits edits into graph vs text-search buckets (Scenario: code_rename returns graph and text-search edit buckets)
   - [ ] 02.4.a Write failing test — `code_rename validateUser verifyUser` on a fixture returns `files_affected` / `total_edits` split into **graph edits** (high-confidence: definition + typed references from the edges table) and **text-search edits** (lower-confidence: flagged "review carefully"); every edit carries a confidence label; `--dry-run` (default) returns the plan without writing any file
   - [ ] 02.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeRename -count=1` — Expected: FAIL
   - [ ] 02.4.c Minimal implementation — `affected/rename.go` (resolve via 005 disambiguation; graph edges → graph bucket; string matches → text-search bucket; per-edit confidence; `dry_run` default true)
   - [ ] 02.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeRename -count=1` — Expected: PASS
   - [ ] 02.4.e Commit — `feat(mnemonic): code_rename graph and text-search buckets`
-- [ ] 02.5 `[RED]` PR commands — non-dry `code_rename` edits only listed files, no commit/push (Scenario: code_rename applies only listed files without committing) — threat: PR commands
+- [x] 02.5 `[RED]` PR commands — non-dry `code_rename` edits only listed files, no commit/push (Scenario: code_rename applies only listed files without committing) — threat: PR commands
   - [ ] 02.5.a Write failing test — a non-dry `code_rename` against a fixture edits exactly the files in its plan (no other file touched); no commit or push is performed
   - [ ] 02.5.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeRenameApply -count=1` — Expected: FAIL
   - [ ] 02.5.c Minimal implementation — apply path limited to planned files; no git side effects
   - [ ] 02.5.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeRenameApply -count=1` — Expected: PASS
   - [ ] 02.5.e Commit — `feat(mnemonic): code_rename applies only planned files`
-- [ ] 02.6 `[AFK]` Ambiguous rename target returns a ranked candidate list (Scenario: Ambiguous rename target returns candidates) — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeRenameAmbiguous -count=1` — Expected: PASS
-- [ ] 02.7 `[AFK]` No changed files gives an empty result not an error (Scenario: code_affected with no changed files returns empty) — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -count=1` — Expected: PASS
-- [ ] 02.8 `[AFK]` Blast-radius math traverses only resolved edges (Scenario: Dropped references are excluded from blast radius) — Business rule "Drop rather than guess" inherited by `code_affected`
+- [x] 02.6 `[AFK]` Ambiguous rename target returns a ranked candidate list (Scenario: Ambiguous rename target returns candidates) — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run CodeRenameAmbiguous -count=1` — Expected: PASS
+- [x] 02.7 `[AFK]` No changed files gives an empty result not an error (Scenario: code_affected with no changed files returns empty) — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -count=1` — Expected: PASS
+- [x] 02.8 `[AFK]` Blast-radius math traverses only resolved edges (Scenario: Dropped references are excluded from blast radius) — Business rule "Drop rather than guess" inherited by `code_affected`
   - [ ] 02.8.a Write failing test — on a fixture with a reference dropped at extraction (step 01 drop policy) and one resolved, `code_affected` traverses only the resolved edges: the dropped/ambiguous reference contributes nothing, so a false positive can never inflate the reported test-file radius
   - [ ] 02.8.b Run to confirm — `Run: go test ./skillgrid-cli/internal/mnemonic/affected/... -run BlastRadius -count=1` — Expected: PASS
-- [ ] 02.9 `[RED]` Mnemonic tool surface — `code_affected` + `code_rename` register, rename disambiguation, dry_run touches nothing, 005/008 tools stable (Scenario: affected and rename tools register and stay stable) — threat: Mnemonic tool surface
+- [x] 02.9 `[RED]` Mnemonic tool surface — `code_affected` + `code_rename` register, rename disambiguation, dry_run touches nothing, 005/008 tools stable (Scenario: affected and rename tools register and stay stable) — threat: Mnemonic tool surface
   - [ ] 02.9.a Write failing test — assert `code_affected` + `code_rename` register with distinct `code_*` names; `code_affected` exposes `--stdin`/`--base <ref>`/`--depth`/`--filter`/`--json`/`--quiet`; rename disambiguation returns a candidate list (no silent pick); `dry_run` touches nothing; 005/008 tools (incl. `code_search`) still stable; bad affected/rename args rejected with a clear validation error
   - [ ] 02.9.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run AffectedTools -count=1` — Expected: FAIL
   - [ ] 02.9.c Minimal implementation — `tools_code_affected.go` + server registration without dropping existing `code_*`
@@ -264,17 +264,19 @@ This step is done only when:
 
 ### Verification
 
-Verdict: `PENDING`
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/affected/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/cmd/skillgrid/... -count=1` | PASS | | |
-| Acceptance `@step-02` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `git diff --name-only \| skillgrid search affected --stdin` on fixture repo; `skillgrid search affected --base <ref>` on a fixture branch (areas + owners); `skillgrid search rename` dry-run | PASS | | |
-| Rollback boundary | Drop `affected/` + `tools_code_affected.go`; revert `code_intel.go` | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/affected/... ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/cmd/skillgrid/... -count=1` | PASS | PASS | affected/mcp/cmd `ok`; 005/008/010 baseline (graph/route/community) `ok` |
+| Acceptance `@step-02` / `@p0` | mapped unit scenarios (`CodeAffected`, `CodeAffectedStdin`, `CodeAffectedBase`, `CodeRename`, `CodeRenameApply`, `CodeRenameAmbiguous`, `BlastRadius`, `AffectedTools`) | PASS | PASS | hermetic temp-repo git fixture; drop-policy blast-radius test real (resolved edge present, dropped absent) |
+| Runtime harness | `git diff --name-only \| skillgrid search affected --stdin`; `skillgrid search affected --base <ref>` (areas + owners); `skillgrid search rename` dry-run | PASS | PASS | `--base` merge-base diff → areas (collapsed hops) + `git blame` owners; rename dry_run default true |
+| Rollback boundary | Drop `affected/` + `tools_code_affected.go`; revert `code_intel.go` | PASS | PASS | 005/010 tables untouched (no step-02 migration); tool surface 71→73 additive |
+| Global Constraints | — | held | held | CGo-free (git via os/exec); query-only (no node/edge writes); resolved-edges-only blast radius; dry_run default |
+
+Sub-agent review: approved with fixes — package-level `pathCache` (stale-path/parallelism hazard) + `parseBlameAuthor` digit-truncation → fixed (22aef81 per-call cache scoping, c109f2f structural blame-author parse). Re-review: both ADDRESSED, no new breakage, behavior-preserving.
 
 ### Commit
 
