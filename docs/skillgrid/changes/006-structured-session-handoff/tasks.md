@@ -66,10 +66,10 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: spec          # spec | apply | verify | archive
-current_step: 01-relay-schema
+phase: apply          # spec | apply | verify | archive
+current_step: 02-handoff-resume
 status: in_progress  # in_progress | blocked | done
-updated: 2026-09-04T22:00:00+02:00
+updated: 2026-09-10T22:00:00+02:00
 ```
 
 ## Step map
@@ -129,28 +129,32 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 01.1 `[AFK]` Create `012_session_relay.sql` with additive `session_handoffs` and `session_archives` (leave `009_*`/`010_*`/`011_*` for 001/003/004)
-- [ ] 01.2 `[RED]` Store open creates handoff/archive tables without rewriting sessions/observations — Scenario: Store open creates handoff tables
-  - [ ] 01.2.a Write failing test
-  - [ ] 01.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/store/ -run 'Handoff|SessionRelay|012'` — Expected: FAIL
-  - [ ] 01.2.c Minimal implementation (ensure migration applies on open)
-  - [ ] 01.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/store/ -run 'Handoff|SessionRelay|012'` — Expected: PASS
-  - [ ] 01.2.e Commit — `feat(mnemonic): add 012 session relay schema`
-- [ ] 01.3 `[AFK]` Re-open idempotent; prior rows survive — Scenarios: Re-open is idempotent; Prior rows survive migration — `Run: go test ./skillgrid-cli/internal/mnemonic/store/ -run 'Handoff|SessionRelay|012'` — Expected: PASS
+- [x] 01.1 `[AFK]` Create `012_session_relay.sql` with additive `session_handoffs` and `session_archives` (leave `009_*`/`010_*`/`011_*` for 001/003/004)
+- [x] 01.2 `[RED]` Store open creates handoff/archive tables without rewriting sessions/observations — Scenario: Store open creates handoff tables
+  - [x] 01.2.a Write failing test
+  - [x] 01.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/store/ -run 'Handoff|SessionRelay|012'` — Expected: FAIL
+  - [x] 01.2.c Minimal implementation (ensure migration applies on open)
+  - [x] 01.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/store/ -run 'Handoff|SessionRelay|012'` — Expected: PASS
+  - [x] 01.2.e Commit — `feat(mnemonic): add 012 session relay schema`
+- [x] 01.3 `[AFK]` Re-open idempotent; prior rows survive — Scenarios: Re-open is idempotent; Prior rows survive migration — `Run: go test ./skillgrid-cli/internal/mnemonic/store/ -run 'Handoff|SessionRelay|012'` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/store/ -run 'Handoff\|SessionRelay\|012'` | PASS | | |
-| Acceptance `@step-01` / `@p0` | BDD / mapped unit scenarios | PASS | | |
-| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/store/` | PASS | | |
-| Rollback boundary | drop/skip `012_*` leaves prior tables | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/store/ -count=1` | PASS | PASS | TestSessionRelayMigration: open-creates-tables + prior-rows-survive + re-open-idempotent; RED real (relay tables absent pre-migration) |
+| Acceptance `@step-01` / `@p0` | BDD / mapped unit scenarios | PASS | PASS | Store open creates handoff tables; Re-open idempotent; Prior rows survive migration |
+| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/store/` | PASS | PASS | store suite `ok` |
+| Rollback boundary | drop/skip `019_*` leaves prior tables | PASS | PASS | 019 is pure `CREATE TABLE/INDEX IF NOT EXISTS`; seeded 001-era sessions+observations rows survive (count + content intact); no ALTER/DROP/rewrite |
+| Global Constraints | — | held | held | additive SQL only; store open/migrate additive; no rewrite of sessions/observations; schema-only (no FS/tools/CLI/watchdog); migration 019 (brief's 012 was taken by 008) |
+
+Review: task reviewer `approved` (clean). The only nit (unclosed raw `*sql.DB` handle) was a false positive — the handle IS closed after seeding (`db.Close()` at session_relay_schema_test.go:44). The app-enforced archive→handoff link (scoped `UNIQUE(project, handoff_id)`, no hard FK) is correct given SQLite's FK-target restriction (handoff_id uniqueness is scoped, not a PK/UNIQUE a hard FK could target) and the "no hard SQL dependency" constraint.
+
+Commits (step 01): 53cc95b (019_session_relay.sql — `session_handoffs` + `session_archives`, additive; + store test). Migration slot 019 (brief's 012 was taken by `012_community_knowledge_graph.sql` from 008).
 
 ### Commit
 
