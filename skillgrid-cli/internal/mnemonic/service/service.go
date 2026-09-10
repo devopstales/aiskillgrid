@@ -22,6 +22,7 @@ import (
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/graph"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/hybrid"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory/layer"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/process"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/project"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/search"
@@ -32,11 +33,83 @@ import (
 // Service is the shared facade over memory, codeindex, webcache, and search.
 type Service struct {
 	dataDir string
+	// distillEnabled is the opt-in switch for the session-close distillation
+	// pass (change 013, step 02). It is false by default so session close is
+	// unchanged unless the operator opts in; the hook is async + best-effort
+	// (a distill failure never breaks session close).
+	distillEnabled bool
+	// distillLLM is the optional LLM for the distill pass (nil = no-LLM floor).
+	distillLLM layer.LLM
 }
 
 // New creates a service using dataDir for per-project SQLite stores.
 func New(dataDir string) *Service {
 	return &Service{dataDir: dataDir}
+}
+
+// EnableDistill turns on the opt-in session-close distillation pass. It is a no
+// operation on the rest of the facade: it only arms the async best-effort hook
+// that runs at session end.
+func (s *Service) EnableDistill() error {
+	if s == nil {
+		return errors.New("service not initialized")
+	}
+	s.distillEnabled = true
+	return nil
+}
+
+// DistillSession runs the session-close distillation for sessionID (L0 → L1
+// atoms → L2 scenario → L3 persona delta, provenance-linked). It is the
+// best-effort seam: when distillation is not enabled the pass is a no-op, and a
+// distill error is captured in DistillResult.Err (not returned) so it never
+// breaks session close.
+//
+// The method itself is synchronous and returns the populated result (so the
+// hook's effect is observable and testable); the session-close hook is async
+// because the handler (02.4) runs this in a detached goroutine that discards
+// the result, which is what "async, never breaks close" means in production.
+// The wg parameter (nil for fire-and-forget) is signaled when the pass has
+// run, so a caller can await completion in tests.
+func (s *Service) DistillSession(ctx context.Context, projectID, sessionID string, wg *sync.WaitGroup) (layer.DistillResult, error) {
+	res := layer.DistillResult{}
+	if s == nil {
+		return res, errors.New("service not initialized")
+	}
+	if !s.distillEnabled {
+		// Opt-in: when distillation is not enabled the pass is a no-op.
+		if wg != nil {
+			wg.Add(1)
+			wg.Done()
+		}
+		return res, nil
+	}
+	if wg != nil {
+		wg.Add(1)
+	}
+	h, cleanup, err := s.openProject(projectID, ".")
+	if wg != nil {
+		wg.Done()
+	}
+	if err != nil {
+		res.Err = err
+		return res, nil
+	}
+	defer cleanup()
+	// Best-effort: the distill error is captured, not propagated, so it never
+	// breaks the caller (session close).
+	res, _ = layer.Distill(ctx, h.Memory(), sessionID, layer.DistillOptions{LLM: s.distillLLM})
+	return res, nil
+}
+
+// Layers returns the L0→L1→L2→L3 chain for a session, with each layer's
+// provenance link — the service seam behind mem_layers.
+func (s *Service) Layers(ctx context.Context, projectID, sessionID string) (layer.Chain, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return layer.Chain{}, err
+	}
+	defer cleanup()
+	return layer.Inspect(ctx, h.Memory(), sessionID)
 }
 
 // DefaultDataDir returns the mnemonic data directory from env or ~/.skillgrid/mnemonic.
