@@ -6,6 +6,7 @@ require (
 	github.com/benedoc-inc/onnxer v0.7.0
 	github.com/bluuewhale/loom v0.0.0-20260402142357-ae7e94ccfead
 	github.com/charmbracelet/huh v1.0.0
+	github.com/fsnotify/fsnotify v1.5.1
 	github.com/google/uuid v1.6.0
 	github.com/mark3labs/mcp-go v0.58.0
 	github.com/odvcencio/gotreesitter v0.52.0
@@ -30,7 +31,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
