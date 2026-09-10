@@ -38,6 +38,16 @@ type Config struct {
 	ChunkLines   int
 	ChunkOverlap int
 	MaxFileSize  int
+	// PDG enables the opt-in per-function CFG + PDG pass (011 step 01). When
+	// false (the default) the pass never runs and the cfg/pdg tables stay
+	// empty — a non---pdg index is byte-for-byte the 005/008/010 graph.
+	PDG bool
+	// LSP enables the independent opt-in language-server edge tier (011 step
+	// 01). When set it runs BEFORE the PDG pass (so LSP_RESOLVED call edges
+	// exist before the PDG derives dependences) and is best-effort: an absent
+	// / failing / timing-out server warns and continues, leaving the static
+	// index unchanged (no partial LSP edge set).
+	LSP bool
 }
 
 // Stats summarizes one indexing run.
@@ -248,6 +258,10 @@ type Indexer struct {
 	// not a live LLM); the key is that the process pass RUNS at index time so
 	// code_processes is populated, not just in tests.
 	processLLM process.LLM
+	// pdgEnabled / lspEnabled are opt-in pass gates (011 step 01). They are
+	// OR'd with Config.PDG / Config.LSP in Run.
+	pdgEnabled bool
+	lspEnabled bool
 }
 
 // New creates an Indexer backed by st.
@@ -260,6 +274,21 @@ func New(st *store.Store) *Indexer {
 // process pass still runs and labels at index time.
 func (idx *Indexer) WithProcessLLM(llm process.LLM) *Indexer {
 	idx.processLLM = llm
+	return idx
+}
+
+// EnablePDG turns on the opt-in per-function CFG + PDG pass for the next Run.
+// It is equivalent to Config.PDG=true; provided so tests and callers can set
+// it without reconstructing the Config.
+func (idx *Indexer) EnablePDG() *Indexer {
+	idx.pdgEnabled = true
+	return idx
+}
+
+// EnableLSP turns on the independent opt-in language-server edge tier for the
+// next Run. It is equivalent to Config.LSP=true.
+func (idx *Indexer) EnableLSP() *Indexer {
+	idx.lspEnabled = true
 	return idx
 }
 
@@ -463,6 +492,26 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 	}
 	if err := idx.knowledgePass(ctx, passDB, scanned); err != nil {
 		fmt.Fprintf(os.Stderr, "warn: knowledge pass: %v\n", err)
+	}
+	// 011 step 01: opt-in LSP edge tier + per-function CFG/PDG. Each is gated
+	// on its own flag (Config.PDG / Config.LSP or the EnablePDG/EnableLSP
+	// hooks). The LSP tier is INDEPENDENT of PDG (it writes LSP_RESOLVED call
+	// edges into 005's edges table) and, when both are set, runs FIRST so the
+	// PDG pass sees the LSP_RESOLVED edges as available (not dropped). Both
+	// passes are advisory (warn + continue); a failure never rolls back the
+	// already-committed 005 graph.
+	if idx.lspEnabled || cfg.LSP {
+		if err := idx.lspPass(ctx, passDB, scanned); err != nil {
+			fmt.Fprintf(os.Stderr, "warn: lsp pass: %v\n", err)
+		}
+	}
+	// The passes read unchanged files from disk via the scan root; record it
+	// (the scanned files are already in memory, so this is a fallback only).
+	scanRoot = root
+	if idx.pdgEnabled || cfg.PDG {
+		if err := idx.pdgPass(ctx, passDB, scanned); err != nil {
+			fmt.Fprintf(os.Stderr, "warn: pdg pass: %v\n", err)
+		}
 	}
 	return stats, nil
 }
