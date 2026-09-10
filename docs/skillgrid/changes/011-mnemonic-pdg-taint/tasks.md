@@ -332,6 +332,62 @@ When step DoD is met: `feat(mnemonic): intraprocedural source-to-sink taint with
 
 ---
 
+## Verification (change-level)
+
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
+
+**Change**: 011-mnemonic-pdg-taint
+**Per-step verdicts**: 01-cfg-pdg PASS · 02-taint-solver PASS
+**Runtime proof** (all run at verify time, `-count=1`, exit 0):
+- Full 011 suite: `go test ./internal/mnemonic/pdg/... ./internal/mnemonic/codeindex/... ./internal/mnemonic/mcp/... ./cmd/skillgrid/... ./internal/mnemonic/store/... -count=1` → all `ok`
+- 005/008/010 baseline intact: `go test ./internal/mnemonic/route/... ./internal/mnemonic/affected/... ./internal/mnemonic/community/... -count=1` → all `ok`
+- CGo-free: `CGO_ENABLED=0 go build ./internal/mnemonic/pdg/... ./internal/mnemonic/codeindex/...` → exit 0
+
+### Scenario traceability (21 scenarios; @step-01 = 10, @step-02 = 11)
+
+Every scenario is COMPLIANT — a covering test passed at runtime in the suite above.
+
+| @step-01 Scenario | Covering test | Result |
+|---|---|---|
+| Opt-in index builds per-function CFG and PDG | `codeindex.TestCfgPdgBuild` | COMPLIANT |
+| LSP index adds LSP_RESOLVED member-call edges | `codeindex.TestLspResolvedEdges` | COMPLIANT |
+| LSP tier works standalone and composes with PDG | `codeindex.TestLspComposition` | COMPLIANT |
+| Non-opt-in index is byte-for-byte unchanged | `codeindex.TestOptInIsolation` (baselineFingerprint 164fd991779f234) | COMPLIANT |
+| LSP index with no server is byte-for-byte static | `codeindex.TestLspAbsentServer` + `TestLspWarnsOnAbsentServer` (isolated PATH) | COMPLIANT |
+| Every PDG edge carries a confidence label | `codeindex.TestPdgConfidenceLabels` | COMPLIANT |
+| Malformed function CFG skips and index continues | `codeindex.TestPdgMalformedCfgSkipsContinues` (01.8) | COMPLIANT |
+| Over-cap function truncates with a note | `codeindex.TestPdgOverCapTruncatesNeverAborts` (01.9) | COMPLIANT |
+| LSP server failure is best-effort no-op | `codeindex.TestLspFailingServerNoPartialEdgeSet` (01.10) + `pdg/lsp_timeout_test.go` | COMPLIANT |
+| Repeated PDG builds are reproducible | `codeindex.TestPdgReproducible` | COMPLIANT |
+| code_pdg_query registered and bad args fail | `mcp.TestPdgQueryTool` (+ not-found, not-indexed) | COMPLIANT |
+
+| @step-02 Scenario | Covering test | Result |
+|---|---|---|
+| Source to sink taint path found | `codeindex.TestTaintSourceToSink` | COMPLIANT |
+| Every taint hop carries a confidence label | `codeindex.TestTaintConfidenceLabels` | COMPLIANT |
+| Opt-in taint index leaves 005/008/010 results unchanged | `codeindex.TestTaintOptInIsolation` (baselineFingerprint) | COMPLIANT |
+| Taint path continues through an LSP_RESOLVED boundary | `codeindex.TestTaintLspResolvedBoundary` (both --lsp/--pdg arms) | COMPLIANT |
+| Taint path stops at an unresolved boundary | `codeindex.TestTaintBoundaryNotFabricated` (truncation + stops-at) | COMPLIANT |
+| No source to sink path means no finding | `codeindex.TestTaintBoundaryNotFabricated` (no-finding assertion) | COMPLIANT |
+| Repeated taint runs are reproducible | `codeindex.TestTaintReproducible` | COMPLIANT |
+| Taint findings filter by symbol and file | `mcp.TestTaintTool` (--symbol/--file/--json) | COMPLIANT |
+| Non-pdg taint query returns run-pdg hint | `mcp.TestTaintToolNotIndexed` | COMPLIANT |
+| Source and sink sets are configurable | `codeindex.TestTaintConfigurable` (taint_config_test.go) | COMPLIANT |
+| code_taint registered and bad args fail | `mcp.TestTaintTool` (registration + bad args) | COMPLIANT |
+
+### Global Constraints — held
+- Opt-in isolation: `--pdg`/`--lsp` gates real; non-flag index byte-for-byte the 005/008/010 graph (content-hash 164fd991779f234 + route/affected/community suites `ok`).
+- CGo-free: CFG from existing gotreesitter AST (no new grammar); PDG/taint/LSP-adapter pure Go; `CGO_ENABLED=0 go build` exit 0.
+- LSP best-effort: absent/failing/timing-out server → warn+continue, static index unchanged, no partial edge set; `LSP_RESOLVED` is a 4th confidence value.
+- Intraprocedural M1: taint per-function; unresolved boundary → `AMBIGUOUS`/"stops at", never fabricated.
+- Deterministic: repeated PDG + taint builds byte-identical (sorted traversal, stable ids / keyed findings).
+
+### Review
+- Per-step task reviews: 01 `approved with fixes` (fix 4682339), 02 `approved` (fix fd94b0d). Both re-reviewed clean.
+- Non-blocking follow-ups (do not gate archive): (a) real external-process JSON-RPC path `pdg/lsp.go:resolveLSPServer` is exercised only via the hermetic `lspResolver` seam (edge-write semantics + the absent/failing/timeout paths are tested; the live JSON-RPC handshake is not, to stay hermetic); (b) `taint_findings` persists the path-LEVEL label + stops-at note, not per-hop rows (deliberate schema choice; per-hop reconstruction on query is a future enhancement); (c) package-level `scanRoot` mutable global in `pdg_pass.go` (single-threaded `Run` in practice).
+
+---
+
 ## Archive gate checklist
 
 - [ ] Change-level **Definition of Done** fully checked
