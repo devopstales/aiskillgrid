@@ -293,9 +293,9 @@ func dependentsOf(ctx context.Context, db *sql.DB, symID int64, kinds string) ([
 func symbolByID(ctx context.Context, db *sql.DB, id int64) (sym, error) {
 	var s sym
 	err := db.QueryRowContext(ctx, `
-		SELECT s.name, s.uid, f.path
+		SELECT s.id, s.name, s.kind, s.uid, f.path
 		FROM symbols s JOIN files f ON f.id = s.file_id
-		WHERE s.id = ?`, id).Scan(&s.Name, &s.UID, &s.Path)
+		WHERE s.id = ?`, id).Scan(&s.ID, &s.Name, &s.Kind, &s.UID, &s.Path)
 	if err != nil {
 		return sym{}, err
 	}
@@ -303,7 +303,9 @@ func symbolByID(ctx context.Context, db *sql.DB, id int64) (sym, error) {
 }
 
 type sym struct {
+	ID   int64
 	Name string
+	Kind string
 	UID  string
 	Path string
 }
