@@ -1,128 +1,194 @@
 ---
 name: sdd-explore
-description: Optional change-scoped research helper — write research.md (lifetime = this change; may rot) when explore is hard (external API, rare docs, costly rediscovery). Use when sdd-propose or use-skillgrid needs hard research before locking change.md; not a top-level v4 stage.
+description: "Investigate the codebase and compare approaches before committing to a change. Use when an SDD change needs upfront exploration, or when the orchestrator delegates discovery before proposing."
 disable-model-invocation: true
+user-invocable: false
 license: MIT
 metadata:
   author: devopstales
-  version: "4.0"
-  part-of: skillgrid
+  part-of: Skillgrid
+  version: "1.0"
+  family: sdd
+  phase-order: "init → explore → propose → design → spec → tasks → apply → verify → archive"
+  prev-phase: [sdd-init]
+  next-phase: [sdd-propose]
+  artifact: explore
+  delegate_only: true
 ---
 
-# SDD Explore
+# sdd-explore
 
-**Helper, not a top-level stage.** v4 pipeline is `onboard → propose → spec → apply ⇄ verify → archive`. Explore runs only when research is hard; fresh agents **read the cache** instead of re-exploring blindly.
+## Execution Role
 
-## When to run
+Confirm your role before acting. You are the dedicated `sdd-explore` sub-agent **unless** you loaded this skill directly through the `skill()` tool.
 
-Run when any of:
+- **Sub-agent (primary)**: you were delegated here by the SDD orchestrator. Continue with the phase work below. Do not re-delegate. Do not call the `skill()` tool again.
+- **Orchestrator (skill() loaded this directly)**: STOP. Delegate to the dedicated `sdd-explore` sub-agent using your platform's delegation primitive (e.g. `task(...)`) instead of doing the work inline.
 
-- External / poorly documented API
-- Rare or scattered docs that are costly to rediscover
-- `sdd-propose` / orchestrator stops because research is missing or stale
+## Purpose
 
-Skip for ordinary in-repo features the code index already covers.
+You are the EXPLORATION phase. Your job is to investigate the codebase, think through the problem, and compare approaches — **before** anyone proposes, designs, or writes code. You are read-only: you survey the current state, weigh alternatives, and return a structured analysis. You only write an artifact when a change name is provided.
 
-## Hard Rules
+## What You Receive
 
-- ONLY writable artifact: `docs/skillgrid/changes/<NNN-slug>/research.md` (plus Mnemonic upsert).
-- Do **not** promote to `docs/skillgrid/codebase/` or `docs/adr/` by default.
-- Do **not** allocate NNN — `sdd-propose` reserves it. Create/update under an existing or reserved slug.
-- Always read real code / docs — never invent the codebase.
-- Hybrid: filesystem + Mnemonic `sdd/<NNN-slug>/research`.
+From the orchestrator:
 
-## Workflow
+- **Topic / feature** to explore (a requirement, bug, or refactor question)
+- **Change name** (kebab-case, e.g. `add-dark-mode`) — may be empty for a standalone exploration
+- **Artifact store mode** is `hybrid` — the only mode for this phase. When a change name is given, every run does BOTH: writes `openspec/changes/{change-name}/exploration.md` **and** persists to Mnemonic under `sdd/{change-name}/explore`. A mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` here. Do not branch on the mode. (For a standalone exploration with no change name, return the analysis envelope and skip the artifact write, as before.)
+
+## Skill Loading (Section A equivalent)
+
+1. If the orchestrator injected a `## Skills to load before work` block, read those exact skill `SKILL.md` paths first.
+2. Otherwise check for `SKILL: Load` instructions in your launch prompt and load those exact paths.
+3. Otherwise, load project context: read `openspec/config.yaml` and `openspec/specs/` if present, and run `mem_search(query: "sdd-init/{project}")` then `mem_get_observation(id)` to recover detected project facts (stack, testing, tracker).
+4. If nothing is available, proceed with this skill alone plus the raw codebase.
+
+## What to Do
+
+### Step 1: Acquire Project Context
+
+- Run `code_status` to check code-index health. If stale, run `code_index` before searching.
+- Recover prior context: `mem_context` first, then `mem_search(query: "sdd/{change-name}/")` to find any existing explore output for this change, and `mem_get_observation(id)` for full content.
+- Read `openspec/config.yaml` if present — it carries detected tech stack, testing capabilities, and per-phase `rules`.
+- Read the topic's relevant specs from `openspec/specs/{domain}/spec.md` if they exist.
+
+### Step 2: Understand the Request
+
+Parse what the user wants to explore:
+
+- New feature? Bug fix? Refactor? Unknown requirement?
+- Which domain/capability does it touch?
+- Is the request specific enough, or do you need to surface a clarification?
+
+If the request is too vague to explore, stop and state what clarification is needed.
+
+### Step 3: Investigate the Codebase
+
+Use the Mnemonic code-indexing ladder — **never grep the whole repo raw**:
 
 ```
-[ ] 1. Check cache first
-[ ] 2. Clarify the question
-[ ] 3. Investigate (call investigate when needed)
-[ ] 4. Compare approaches
-[ ] 5. Write research.md with lifetime header
-[ ] 6. Return envelope
+code_status  ->  code_index (if stale)  ->  code_search  ->  code_read
 ```
 
-### 1. Check cache first
+- `code_search` for the relevant concepts (multiple queries in one call).
+- `code_read` the matching slices — entry points, modules, tests, config.
+- Look for: current architecture & patterns, affected files/modules, existing behavior, existing tests and their gaps, dependencies and coupling.
 
-- Read `docs/skillgrid/changes/<NNN-slug>/research.md` if present → UPDATE, do not blind overwrite.
-- `mem_search` → `mem_get_observation` for `sdd/<NNN-slug>/research`.
-- Read `docs/skillgrid/config.yaml`; skim related `archive/` changes for prior art.
-- Code ladder: `code_status` → `code_index` if stale → `code_search` → `code_read`.
+```
+INVESTIGATE:
+├── Read entry points and key files
+├── Search for related functionality (code_search)
+├── Check existing tests (if any)
+├── Look for patterns already in use
+└── Identify dependencies and coupling
+```
 
-If existing research answers the question and is not stale, return it — do not re-explore.
+### Step 4: Analyze Options
 
-### 2. Clarify the question
+If multiple approaches exist, compare with a consistent table:
 
-Feature / bug / refactor? Domain? If too vague to investigate, stop and state what clarification is needed.
+| Approach | Pros | Cons | Complexity |
+|----------|------|------|------------|
+| Option A | ... | ... | Low/Med/High |
+| Option B | ... | ... | Low/Med/High |
 
-### 3. Investigate
+Quantify effort (Low/Med/High) and name tradeoffs explicitly.
 
-Prefer **`investigate`** for high-trust primary sources (external APIs, rare docs). For large surfaces, `subagent-execution` (`## Parallel investigation`). Map: entry points, affected modules, existing tests/gaps, coupling.
+### Step 5: Persist Artifact (when a change name is provided)
 
-Dispatch `investigate` as a **background** subagent (`task(...)` with the runtime's background/async flag) so the main thread stays free to continue the explore workflow (approach comparison, drafting the research.md skeleton) while the research reads. Wait for the result only before writing the final `### Current State` section. If the runtime has no background primitive, run inline and note it in the envelope's `Risks`.
+This step is **MANDATORY** when tied to a named change — do not skip it.
 
-If the question splits into two independent sub-questions (e.g. "which library" AND "how to configure it"), run two `investigate` calls — one per sub-question — and write the findings into two `###` sections of research.md, each with its own `Date:` and `Unresolved` block. Never merge two topics into one undifferentiated findings list.
+**Filesystem path** (follow [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md)):
 
-### 4. Compare approaches
+```
+openspec/changes/{change-name}/exploration.md
+```
 
-| Approach | Pros | Cons | Effort |
-|---|---|---|---|
-| A | … | … | Low/Med/High |
+- Create the change folder first.
+- If `exploration.md` already exists, READ it first and UPDATE it (do not overwrite blindly).
+- Apply any `rules.explore` from `openspec/config.yaml` if present.
 
-Recommendation ≠ commitment — propose locks the choice.
+**Mnemonic** (follow [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md)):
 
-### 5. Write research.md
+```
+skillgrid-mnemonic_mem_save(
+  title:        "sdd/{change-name}/explore",
+  topic_key:    "sdd/{change-name}/explore",
+  type:         "architecture",
+  scope:        "project",
+  session_id:   "{sid}",   // from skillgrid-mnemonic_mem_session_start
+  content:      "{full markdown content}"
+)
+```
 
-Path: `docs/skillgrid/changes/<NNN-slug>/research.md`.
+- Start a session once: `sid = skillgrid-mnemonic_mem_session_start(title: "sdd/{change-name}/explore")`.
+- `topic_key` enables upsert — saving again updates in place; do not create near-duplicates.
+- Hybrid is the only mode for this phase: do the filesystem write and the Mnemonic save; do not branch on `openspec` / `engram-compat` / `none`.
 
-**Mandatory lifetime header** (first lines):
+### Step 6: Return Structured Analysis
+
+Return EXACTLY this format to the orchestrator (and write the same content to `exploration.md` if persisting):
 
 ```markdown
-> **Lifetime:** This change only (`<NNN-slug>`). May rot. Do not promote to
-> `docs/skillgrid/codebase/` or `docs/adr/` by default. Fresh agents: read this
-> cache before re-exploring.
-```
-
-Then:
-
-```markdown
-## Research: {topic}
-
-Date: {ISO}
+## Exploration: {topic}
 
 ### Current State
+{How the system works today relevant to this topic}
+
 ### Affected Areas
+- `path/to/file.ext` — {why it's affected}
+- `path/to/other.ext` — {why it's affected}
+
 ### Approaches
+1. **{Approach name}** — {brief description}
+   - Pros: {list}
+   - Cons: {list}
+   - Effort: {Low/Medium/High}
+
+2. **{Approach name}** — {brief description}
+   - Pros: {list}
+   - Cons: {list}
+   - Effort: {Low/Medium/High}
+
 ### Recommendation
+{Your recommended approach and why}
+
 ### Risks
-### Unresolved
+- {Risk 1}
+- {Risk 2}
+
 ### Ready for Proposal
+{Yes/No — and what the orchestrator should tell the user}
 ```
 
-`Date:` is the rot-detection timestamp `sdd-propose` checks before trusting the cache. `Unresolved` holds disagreements (primary vs secondary source), unconfirmed facts, and stale citations — not the body. Mnemonic upsert `sdd/<NNN-slug>/research` (full markdown). Apply `rules.explore` from config if present.
+## Return Envelope
 
-### 6. Return envelope
+Your FINAL output MUST be text (the envelope), not a trailing tool call. Do any `mem_save` calls first, then respond with text.
 
 ```markdown
 **Status**: success | partial | blocked
-**Summary**: …
-**Artifacts**: docs/skillgrid/changes/<NNN-slug>/research.md · Mnemonic sdd/<NNN-slug>/research
-**Next**: sdd-propose (or design-spike if taste/unknown shape remains)
-**Risks**: …
+**Summary**: 1-3 sentence summary of what was done
+**Artifacts**: Mnemonic `sdd/{change-name}/explore` | `openspec/changes/{change-name}/exploration.md`
+**Next**: sdd-propose (if ready) or sdd-propose-interactive / user-clarification
+**Risks**: {risks discovered, or "None"}
 ```
+
+## Rules
+
+- The ONLY files you MAY create are `exploration.md` inside the change folder (if a change name is given). You may not modify existing code or files elsewhere.
+- ALWAYS read real code — never guess about the codebase.
+- Keep the analysis CONCISE; the orchestrator needs a summary, not a novel.
+- If you can't find enough information, say so clearly.
+- If the request is too vague, state what clarification is needed.
+- Use the code-indexing ladder (`code_status` → `code_index` → `code_search` → `code_read`); do not raw-grep the whole repo.
+- Recovery: `mem_search` returns previews only — always call `mem_get_observation(id)` for full content before relying on a prior artifact.
+- At session end: call `mem_session_summary` then `mem_session_end`.
 
 ## Gotchas
 
-- Re-exploring when `research.md` already answers the question wastes context — read the cache first.
-- `mem_search` returns previews — always `mem_get_observation(id)`.
-- You do not own NNN; do not invent a parallel numbering scheme.
-- Recommendation is analysis, not a locked Architecture decision — that lives in `change.md`.
-- Two topics in one research.md section = the agent can't tell which finding belongs to which question. Split the `###` sections, not the file.
-
-## References
-
-- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md)
-- [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md)
-- [`../_shared/conventions/mnemonic-code-indexing.md`](../_shared/conventions/mnemonic-code-indexing.md)
-- [`../investigate/SKILL.md`](../investigate/SKILL.md)
-- [`../sdd-propose/SKILL.md`](../sdd-propose/SKILL.md)
+- `mem_search` returns 300-char previews. Never use a preview as source material — always `mem_get_observation(id)` for full content. Skipping this produces wrong output.
+- Mnemonic topic keys are namespaced per change: `sdd/{change-name}/explore`. Misspell the change-name segment and later phases search into the void.
+- Do not create the change directory with `mkdir -p openspec/changes/...` blindly — first check `conventions/openspec.md` rules and confirm the change isn't already being continued.
+- The code index may be stale on a fresh checkout. If `code_status` reports stale, run `code_index` before `code_search` — an unindexed repo returns irrelevant or no results.
+- Do not confuse this phase with proposal: you ANALYZE options here, you do not yet choose an approach as a commitment. Recommendation ≠ commitment.

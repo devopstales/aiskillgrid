@@ -1,166 +1,204 @@
 ---
 name: sdd-propose
-description: Reserve NNN and write change.md (WHY + HOW, Architecture decisions, Research:/Prototype: links) from template-change.md; stop before code. Use when starting an SDD change, after optional sdd-explore / design-spike, or when use-skillgrid routes to propose.
+description: "Create an SDD change proposal with intent, scope, and approach from an exploration analysis. Use when the orchestrator needs a proposal.md before design/spec phases."
 disable-model-invocation: true
+user-invocable: false
 license: MIT
 metadata:
   author: devopstales
-  version: "4.1"
-  part-of: skillgrid
+  part-of: Skillgrid
+  version: "1.0"
+  family: sdd
+  phase-order: "init → explore → propose → design → spec → tasks → apply → verify → archive"
+  prev-phase: [sdd-explore]
+  next-phase: [sdd-design, sdd-spec]
+  artifact: proposal
+  delegate_only: true
 ---
 
-# SDD Propose
+# sdd-propose
 
-> **For agentic workers:** REQUIRED SUB-SKILL: use `questioning` after concrete inputs; `sdd-explore` / `design-spike` via gate only. Do not write production code.
+## Execution Role
 
-Stage owner (v4). Reserve `NNN`, write **`change.md`**, stop before code. Architecture decisions live **in** `change.md` — promote to ADR later only when they outlive this change.
+Confirm your role before acting. You are the dedicated `sdd-propose` sub-agent **unless** you loaded this skill directly through the `skill()` tool.
 
-Layout: [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md).
+- **Sub-agent (primary)**: you were delegated here by the SDD orchestrator. Continue with the phase work below. Do not re-delegate. Do not call the `skill()` tool again.
+- **Orchestrator (skill() loaded this directly)**: STOP. Delegate to the dedicated `sdd-propose` sub-agent using your platform's delegation primitive (e.g. `task(...)`) instead of doing the work inline.
 
-## Hard Rules
+## Purpose
 
-- Instantiate [`../_shared/templates/template-change.md`](../_shared/templates/template-change.md) — do not invent a parallel structure.
-- Reserve NNN **before** creating the change folder.
-- If hard research or taste/UI/unknown API shape remains → **STOP** and require `sdd-explore` / `design-spike` first.
-- Run **`questioning`** after concrete inputs (research/spike when used) — not before empty air.
-- List `Research:` and `Prototype:` header paths when those artifacts exist.
-- No production code. No default ADR write under `docs/adr/`.
-- Hybrid: disk + Mnemonic `sdd/<NNN-slug>/change`.
-- `force_ticket_creation` → invoke `issue-creation` for the change artifact; Backlog tickets must pass the **Backlog completeness gate** (type, references, DoD, Implementation Plan) — no thin stubs.
+You are the PROPOSAL phase. Your job is to take the exploration analysis (from `sdd-explore`) — or direct user input — and produce a structured `proposal.md` document inside the change folder. You shape the scope, capabilities, approach, risks, and rollback before anyone designs or specs.
 
-## Workflow
+## What You Receive
 
-```
-[ ] 1. Classify path (spike / bounded / architectural) — announce
-[ ] 2. Decompose check (>1 subsystem → N changes, not one)
-[ ] 3. Gate: explore / spike required?
-[ ] 4. Reserve NNN
-[ ] 5. Questioning (after concrete inputs)
-[ ] 6. Read code (code-index ladder)
-[ ] 7. Design checkpoint — present direction, get nod before full change.md
-[ ] 8. Write change.md from template
-[ ] 9. Glossary + persist + envelope
-```
+From the orchestrator:
 
-```dot
-digraph process {
-  rankdir=LR;
-  classify [label="1\nClassify path", shape=box, style=filled, fillcolor="#ccffcc"];
-  decompose [label="2\nDecompose check", shape=box];
-  gate [label="3\nExplore/spike gate?", shape=diamond];
-  reserve [label="4\nReserve NNN", shape=box];
-  question [label="5\nQuestioning", shape=box];
-  read [label="6\nRead code", shape=box];
-  checkpoint [label="7\nDesign checkpoint", shape=box, style=filled, fillcolor="#ffcccc"];
-  write [label="8\nWrite change.md", shape=box];
-  persist [label="9\nPersist + envelope", shape=box, style=filled, fillcolor="#ccccff"];
-  classify -> decompose -> gate -> reserve -> question -> read -> checkpoint -> write -> persist;
-}
-```
+- **Change name** (kebab-case, e.g. `add-dark-mode`)
+- **Exploration analysis** (from `sdd-explore`) OR a direct user description
+- **Artifact store mode** is `hybrid` — the only mode for this phase. Every run does BOTH: writes `openspec/changes/{change-name}/proposal.md` **and** persists to Mnemonic under `sdd/{change-name}/proposal`. A mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
 
-### 1. Classify path — announce it
+## Skill Loading
 
-Before the first question, classify how much process this change needs and **say the classification out loud** so the user can override:
+1. If the orchestrator injected a `## Skills to load before work` block, read those exact skill `SKILL.md` paths first.
+2. Otherwise, recover context: `mem_search(query: "sdd/{change-name}/explore")` + `mem_get_observation(id)`, then `mem_search(query: "sdd-init/{project}")` + `mem_get_observation(id)` for detected project facts (stack, testing, tracker).
+3. Read `openspec/config.yaml` if present — it carries `rules` (including `rules.proposal`).
+4. Read the relevant existing specs from `openspec/specs/{domain}/spec.md` when filling the **Capabilities** section — you need real capability names.
 
-| Path | Signal | Process |
-|---|---|---|
-| **Spike** | Feasibility question ("can we…", "is it possible…"), output is an answer not kept code | Route to `design-spike`. No `change.md`. |
-| **Bounded** | Well-scoped change to code that *already exists* — a flag, a small endpoint, a one-file fix | Short `change.md`: Goal, Non-Goals, 1-step Blueprint, Architecture (1 decision). Full ceremony is overkill. |
-| **Architectural** | New subsystem, restructures how components fit, alters interfaces others depend on | Full `change.md`: all sections, Step Blueprint, Threat matrix, multiple Architecture decisions. |
+## What to Do
 
-**The ratchet is one-way.** Hidden complexity discovered mid-propose *upgrades* the path — stop, say so, and step up. Nothing downgrades. When in doubt, take the heavier path. "I understand this kind of app, so it's bounded" is the doubt — bounded measures the *repo*, not your familiarity.
+### Step 0: Shape the Proposal (interactive mode only)
 
-### 2. Decompose check
+In interactive SDD mode, do not let the executor silently decide if the input is "clear enough." Run a **proposal question round** before finalizing — focus on business/product/PRD, **not** harness mechanics (test commands, PR shape, line budgets):
 
-If the request describes **more than one independent subsystem** (e.g. "build chat + file storage + billing"), flag it immediately. Do not write one bloated `change.md` — reserve **N NNNs** and write N `change.md` files, one per subsystem. Each gets its own spec → apply → verify cycle. Decompose first, then propose the first.
+1. **Business problem** — pain, opportunity, or cost that justifies this change now
+2. **Target users & situations** — who is affected, in which workflow, urgency
+3. **Business rules** — policies, permissions, thresholds, compliance/domain invariants
+4. **Product outcome** — what should feel/work/possible after
+5. **Current-state gap** — what is wrong, missing, or inconsistent today
+6. **Implications & impact** — teams, data, UX, support/operational processes
+7. **Edge cases** — empty states, partial data, failures, migrations, conflicting needs
+8. **Decision gaps** — unknowns that make the proposal ambiguous or over-broad
+9. **Scope boundaries & non-goals** — what's in the first slice vs deferred
+10. **Business risk / tradeoff** — downside that matters if the direction is wrong
 
-### 3. Gate — explore / spike first?
+Prefer 3–5 concrete questions per round. After answers, summarize resulting assumptions and ask: *correct anything, or another round?*
 
-| Signal | Action |
-|---|---|
-| External/rare docs, costly rediscovery, missing/stale research | STOP → **`sdd-explore`** → `research.md` |
-| UI taste, unknown API shape, throwaway smoke needed | STOP → **`design-spike`** → list path as `Prototype:` |
-| Bounded in-repo change with clear shape | Continue |
+The reusable `questioning` skill implements the shared clarification primitive (classify + design tree, frontier, rounds, recommendations, approval gate); invoke it when you need a deeper requirement-stress session before writing the proposal. If you cannot ask the user directly, embed a `## Proposal question round` section in the result with the questions and assumptions needing review.
 
-Announce the gate decision. Do not lock `change.md` while the gate is open.
+### Step 1: Acquire Context
 
-### 4. Reserve NNN
+- Recover any prior exploration: `mem_search(query: "sdd/{change-name}/explore")` → `mem_get_observation(id)` for full content. (Do not rely on search previews.)
+- Read `openspec/config.yaml` and `openspec/specs/{domain}/spec.md` if they exist — needed for the **Capabilities** contract.
+- Check the code index for affected modules if the exploration analysis is thin.
 
-Scan `docs/skillgrid/changes/`, `archive/`, Mnemonic `sdd/{project}/changelog`. Next = `max+1`, zero-pad 3. Id = `<NNN>-<slug>`. Append changelog line. Never reuse.
+### Step 2: Create the Change Directory
 
-### 5. Questioning
-
-Load **`questioning`**. Cover problem, users, rules, outcome, non-goals, edges, risks. Optional log: `interview.md`. **Propose 2–3 approaches with trade-offs and name your recommendation** — lead with the one you'd pick and why. Prefer revise later via user gate over guessing.
-
-### 6. Read code
-
-`code_status` → `code_index` if stale → `code_search` → `code_read` for every module you will touch. Load `codebase-design` when restructuring. Apply `rules.propose` from `config.yaml`.
-
-### 7. Design checkpoint — approve the direction before the full file
-
-Before writing the full `change.md`, present the **direction** in chat and get a nod:
+Create the change folder (hybrid mode always writes the file):
 
 ```
-Direction checkpoint for <NNN-slug> (<path classification>):
-- Goal: <one sentence>
-- Approach: <the one you recommended, one sentence why>
-- Impacted modules: <list>
-- Non-goals: <what is explicitly out>
-- Open risks: <top 1–2>
-
-Does this look right before I write the full change.md?
+openspec/changes/{change-name}/
+└── proposal.md
 ```
 
-**STOP and wait for an explicit yes.** Presenting the direction and starting to write in the same breath is skipping the gate. This is cheap — it catches mis-scoped changes *before* you pay for the full template, Step Blueprint, and Threat matrix. If the user redirects, go back to step 5 (questioning) and re-present.
-
-- **Bounded path:** this checkpoint *is* the approval. The `change.md` that follows is short (Goal, Non-Goals, 1-step Blueprint, 1 Architecture decision).
-- **Architectural path:** this checkpoint confirms direction; the full `change.md` + the later user gate (after `sdd-spec`) are the deeper approvals.
-
-### 8. Write change.md
-
-1. READ the template; copy outline; fill placeholders.
-2. Write `docs/skillgrid/changes/<NNN-slug>/change.md` (READ then UPDATE if exists).
-3. Header: set **`Research:`** and **`Prototype:`** when present (else `none`).
-4. Required: Goal, Out of scope/Non-Goals, Definition of Done, Problem, Testing strategy, Error handling, rollback, **Step Blueprint**, Technical approach, **Architecture decisions** (Choice / Alternatives / Rationale), Impacted files, per-step WHAT, **Threat matrix** ([references/threat-matrix.md](references/threat-matrix.md) — Applicable → owning step), Glossary footer.
-
-**The Architecture decision picks a winner.** Choice / Alternatives / Rationale is not a comparison you hedge — you are *choosing*. State the chosen approach first, then the alternatives you rejected and why. "Recommendation ≠ commitment" applies to `research.md`, not to `change.md` — this is where the choice is locked.
-
-Threat Applicable rows must propagate to `sdd-spec` as `[RED]` tasks.
-
-### 9. Glossary + persist + envelope
-
-- Fold terms into `## Glossary`; upsert `docs/skillgrid/glossary/{business,technical}.md` via **`glossary`**. No companion `*-glossary-reference.md`.
-- `mem_session_start` → `mem_save` topic `sdd/<NNN-slug>/change` (full file). File must exist on disk.
+### Step 3: Write proposal.md
 
 ```markdown
-## Change Proposed
-**Change**: {NNN-slug}
-**Location**: docs/skillgrid/changes/<NNN-slug>/change.md
-**Research / Prototype**: {paths or none}
-**Status**: success | partial | blocked
-**Step blueprint**: {N} · **Threat rows**: {K applicable}
-**Next**: sdd-spec
+# Proposal: {Change Title}
+
+## Intent
+{What problem are we solving? Why now? Be specific about the user need or tech debt.}
+
+## Scope
+
+### In Scope
+- {Concrete deliverable 1}
+- {Concrete deliverable 2}
+- {Concrete deliverable 3}
+
+### Out of Scope
+- {What we are explicitly NOT doing}
+- {Related future work, deferred}
+
+## Capabilities
+> CONTRACT with the sdd-spec phase: these names tell spec exactly which spec files to create or update. Research `openspec/specs/` first.
+
+### New Capabilities
+<!-- Each becomes a new `openspec/specs/<name>/spec.md`. Use kebab-case. Leave empty if none. -->
+- `<capability-name>`: <brief description>
+
+### Modified Capabilities
+<!-- Existing capabilities whose REQUIREMENTS change. Use existing spec names. Leave empty if none. -->
+- `<existing-capability-name>`: <what requirement is changing>
+
+## Approach
+{High-level technical approach. Reference the recommended approach from exploration if available.}
+
+## Affected Areas
+
+| Area | Impact | Description |
+|------|--------|-------------|
+| `path/to/area` | New/Modified/Removed | {What changes}
+
+## Risks
+
+| Risk | Likelihood | Mitigation |
+|------|------------|------------|
+| {Risk description} | Low/Med/High | {How we mitigate}
+
+## Rollback Plan
+{How to revert if something goes wrong. Be specific.}
+
+## Dependencies
+- {External dependency or prerequisite, if any}
+
+## Success Criteria
+- [ ] {How do we know this change succeeded?}
+- [ ] {Measurable outcome}
 ```
 
-## Red flags
+If a `proposal.md` already exists in the change folder, READ it first and UPDATE it — do not overwrite blindly.
 
-| Thought | Reality |
-|---|---|
-| "This is too simple to need a path classification" | Classification is one sentence. Simple means a *short* `change.md`, not no classification. Announce it. |
-| "I'll call it bounded and skip the Step Blueprint" | Reaching for a label to skip work IS the doubt. Bounded measures the *repo*, not your familiarity. A new project has no existing flow — it is architectural. |
-| "The direction is obvious — I'll start writing change.md while they read" | The checkpoint is the approval, not the design's length. Present, then stop until you hear yes. |
-| "I understand this kind of app, so it's bounded" | Bounded means the flow you're changing is *already in this repo*. A new subsystem has no existing flow — it is architectural. |
-| "The research said the approach was fine, so it's decided" | `research.md` recommends; `change.md` decides. The Architecture section must name a winner, not hedge. |
-| "One change.md can hold all of this" | Multiple independent subsystems = N changes, not one bloated file. Decompose before proposing. |
-| "I'll fill the Threat matrix later, it's boilerplate" | An empty or hand-waved Threat matrix becomes a handoff gap for `sdd-spec` — Applicable rows must propagate as `[RED]` tasks. |
-| "I'll skip the decompose check, the user knows what they want" | The decompose check is one question. An oversized `change.md` produces an oversized `tasks.md` that's hard to execute. |
-| "mem_search preview is enough to confirm prior art" | Previews are truncated. `mem_get_observation(id)` is the only full-content path. |
-| "I'll archive this as an ADR while I'm here" | Architecture lives in `change.md` only. Archive does not auto-promote ADRs. |
+### Step 4: Persist Artifact
 
-## References
+This step is **MANDATORY** — do not skip it.
 
-- [`../_shared/templates/template-change.md`](../_shared/templates/template-change.md)
-- [references/threat-matrix.md](references/threat-matrix.md)
-- [`../questioning/SKILL.md`](../questioning/SKILL.md) · [`../sdd-explore/SKILL.md`](../sdd-explore/SKILL.md) · [`../design-spike/SKILL.md`](../design-spike/SKILL.md)
-- [`../codebase-design/SKILL.md`](../codebase-design/SKILL.md) · [`../glossary/SKILL.md`](../glossary/SKILL.md)
-- [`../sdd-spec/SKILL.md`](../sdd-spec/SKILL.md)
+**Filesystem path** (follow [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md)):
+
+```
+openspec/changes/{change-name}/proposal.md
+```
+
+- Always create the change folder before writing.
+- If the file already exists, READ then UPDATE (merge, preserve valid prior content).
+
+**Mnemonic** (follow [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md)):
+
+```
+skillgrid-mnemonic_mem_save(
+  title:        "sdd/{change-name}/proposal",
+  topic_key:    "sdd/{change-name}/proposal",
+  type:         "architecture",
+  scope:        "project",
+  session_id:   "{sid}",   // from skillgrid-mnemonic_mem_session_start
+  content:      "{full markdown content}"
+)
+```
+
+- Start a session once: `sid = skillgrid-mnemonic_mem_session_start(title: "sdd/{change-name}/proposal")`.
+- `topic_key` enables upsert — saving again updates in place; do not create near-duplicates.
+- Hybrid is the only mode for this phase: do the filesystem write (Step 2/3) and the Mnemonic save; do not branch on `openspec` / `engram-compat` / `none`.
+
+### Step 5: Return Summary
+
+Return to the orchestrator:
+
+```markdown
+**Status**: success | partial | blocked
+**Summary**: 1-2 sentence summary of the proposal
+**Location**: `openspec/changes/{change-name}/proposal.md` | Mnemonic `sdd/{change-name}/proposal`
+**Intent**: {one-line intent}
+**Scope**: {N in, M out}
+**Approach**: {one-line approach}
+**Risk Level**: Low/Medium/High
+**Next**: sdd-design
+```
+
+## Rules
+
+- ALWAYS create `proposal.md` (hybrid mode — the only mode for this phase).
+- Every proposal MUST have a rollback plan.
+- Every proposal MUST have success criteria.
+- The **Capabilities** section is the contract with `sdd-spec` — always fill it. Research `openspec/specs/` for real capability names. If nothing changes at the spec level, write "None" under both sub-sections — do not leave template placeholders.
+- Use concrete file paths in **Affected Areas** when possible.
+- Apply any `rules.proposal` from `openspec/config.yaml`.
+- **Size budget**: the proposal artifact MUST be under 450 words. Use bullets and tables over prose.
+- Recovery: `mem_search` returns 300-char previews only — always `mem_get_observation(id)` for full content before relying on it.
+- At session end: call `mem_session_summary` then `mem_session_end`.
+
+## Gotchas
+
+- `mem_search` returns 300-char previews. Never use a preview as source material — always call `mem_get_observation(id)` for full content. Skipping this produces wrong proposals.
+- The **Capabilities** section is what drives `sdd-spec` file creation. Leaving it as a template placeholder causes spec files to be misnamed or missed entirely.
+- "Out of Scope" is as important as "In Scope" — it prevents scope creep in later phases.
+- In interactive mode, the question round must stay on business/product questions, not delivery mechanics. The user is the domain expert, not the delivery configurator.
+- If a prior proposal exists and you UPDATE it, preserve any content the user hand-approved in earlier rounds — only revise the sections the new input affects.
