@@ -205,6 +205,9 @@ func runSetup(version string, args []string) {
 
 // newMnemonicService builds a Mnemonic service from a data dir (env or default).
 func newMnemonicService(dir string) (*service.Service, error) {
+	if cliService != nil {
+		return cliService, nil
+	}
 	if dir == "" {
 		var err error
 		dir, err = service.DefaultDataDir()
@@ -212,8 +215,15 @@ func newMnemonicService(dir string) (*service.Service, error) {
 			return nil, err
 		}
 	}
-	return service.New(dir), nil
+	s := service.New(dir)
+	cliService = s
+	return s, nil
 }
+
+// cliService pins the service built by the first newMnemonicService call so
+// every later handler in the same CLI invocation shares that data dir (the
+// env var may be set after the first construction, e.g. by a test harness).
+var cliService *service.Service
 
 func envOr(key, def string) string {
 	if v := os.Getenv(key); v != "" {
@@ -221,3 +231,5 @@ func envOr(key, def string) string {
 	}
 	return def
 }
+
+

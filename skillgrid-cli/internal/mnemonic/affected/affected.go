@@ -7,6 +7,7 @@
 package affected
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"path/filepath"
@@ -112,9 +113,14 @@ func Affected(ctx context.Context, db *sql.DB, opts Options) (Result, error) {
 	if depth <= 0 {
 		depth = DefaultDepth
 	}
-	res := Result{Changed: opts.Changed, Depth: depth, Filter: opts.Filter,
+	res := Result{Depth: depth, Filter: opts.Filter,
 		TestFiles: []string{}, Relationships: []Relationship{}}
-	changed := dedupeSorted(opts.Changed)
+	normalized := make([]string, len(opts.Changed))
+	for i, p := range opts.Changed {
+		normalized[i] = normPath(p)
+	}
+	changed := dedupeSorted(normalized)
+	res.Changed = changed
 	if len(changed) == 0 {
 		res.Message = "no changed files: nothing to analyze (pass a file list, --stdin, or --base)"
 		return res, nil
@@ -141,7 +147,9 @@ func Affected(ctx context.Context, db *sql.DB, opts Options) (Result, error) {
 	if err != nil {
 		return res, err
 	}
+	var seeded int
 	for rows.Next() {
+		seeded++
 		var id int64
 		if err := rows.Scan(&id); err != nil {
 			rows.Close()
@@ -158,6 +166,10 @@ func Affected(ctx context.Context, db *sql.DB, opts Options) (Result, error) {
 		return res, err
 	}
 	rows.Close()
+	if seeded == 0 && len(changed) > 0 {
+		res.Message = "changed files are not indexed (run code_index first): " + strings.Join(changed, ", ")
+		return res, nil
+	}
 
 	testSeen := map[string]bool{}
 	for len(queue) > 0 {
@@ -214,6 +226,37 @@ func Affected(ctx context.Context, db *sql.DB, opts Options) (Result, error) {
 		res.Message = "no affected test files found for the changed set"
 	}
 	return res, nil
+}
+
+// AffectedFromStdin reads a git-diff --name-only-style file list (one path per
+// line) from r and runs the same traversal. An empty list is an empty result
+// with a clear message (not an error).
+func AffectedFromStdin(ctx context.Context, db *sql.DB, stdin string, opts Options) (Result, error) {
+	changed, err := ParseFileList(stdin)
+	if err != nil {
+		return Result{}, err
+	}
+	opts.Changed = changed
+	return Affected(ctx, db, opts)
+}
+
+// ParseFileList parses a newline-separated file list (git diff --name-only
+// style), trimming blank lines and CR. Never errors on empty input.
+func ParseFileList(s string) ([]string, error) {
+	var out []string
+	sc := bufio.NewScanner(strings.NewReader(s))
+	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" {
+			continue
+		}
+		out = append(out, line)
+	}
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 type hop struct {
@@ -294,4 +337,11 @@ func dedupeSorted(in []string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// normPath strips a single leading "./" so a git-diff path ("src/base.go")
+// matches the indexed files.path ("src/base.go") even when the input is
+// "./src/base.go" (git diff emits both forms depending on invocation).
+func normPath(p string) string {
+	return strings.TrimPrefix(strings.TrimSpace(p), "./")
 }

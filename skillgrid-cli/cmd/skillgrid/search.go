@@ -85,9 +85,24 @@ func runSearch(version string, args []string) {
 	fs.IntVar(&limit, "limit", 20, "maximum hits")
 	fs.Usage = func() {
 		fmt.Fprintln(fs.Output(), "usage: skillgrid search QUERY [--json] [--fts] [--semantic] [--limit N]")
+		fmt.Fprintln(fs.Output(), "       skillgrid search affected [--stdin | FILES...] [--base REF] [--depth N] [--filter F] [--json] [--quiet]")
+		fmt.Fprintln(fs.Output(), "       skillgrid search rename OLD NEW [--file F] [--uid U] [--kind K] [--apply] [--json]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+	// `search affected` / `search rename` are PR commands (010 step 02): the
+	// first bare argument selects the mode, not a query. Run BEFORE flag
+	// parsing so affected's own flags (--stdin/--base/...) don't leak into
+	// the shared search flag set.
+	if len(args) >= 1 && args[0] == "affected" {
+		runSearchAffected(version, args)
+		return
+	}
+	if len(args) >= 1 && args[0] == "rename" {
+		_ = version
+		fmt.Fprintln(os.Stderr, "usage: skillgrid search rename OLD NEW [--file F] [--uid U] [--kind K] [--apply] [--json]")
 		os.Exit(2)
 	}
 	if fs.NArg() != 1 {
