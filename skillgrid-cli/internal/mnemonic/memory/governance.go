@@ -31,6 +31,15 @@ const (
 // to 'private'. It surfaces a data problem, not a read denial.
 var ErrVisibilityNotSet = errors.New("observation visibility not set")
 
+// legacyOwnerID is the owner identity assigned to legacy (pre-017)
+// observations whose owner column is empty. The save path guarantees a new
+// observation always has an owner (falling back to the session id); the read
+// path mirrors that default so a legacy row's visibility is enforced
+// consistently with visibilityFilter. It is a sentinel value — a real
+// session/agent id will never match it — so a legacy row is private to every
+// live reader until it is re-owned via the save path.
+const legacyOwnerID = "legacy"
+
 // ErrRestrictedNoGrants is the condition a `restricted` observation with no
 // ACL grants presents to a non-owner reader: it is owner-only. It is surfaced
 // (not raised as a failure) by governance queries; read paths treat it as
@@ -310,8 +319,14 @@ func (s *Service) canRead(ctx context.Context, obsID int64, owner, readerOwner, 
 		}
 		return false, fmt.Errorf("load visibility: %w", err)
 	}
+	// Legacy (pre-017) rows have an empty owner. The save path falls back to
+	// the session id so an asset is never unowned; the read path mirrors that
+	// default here so a legacy row's visibility is enforced consistently with
+	// visibilityFilter (which COALESCEs empty owner to "private"). Without this
+	// a legacy row was readable via search (treated private) but errored via
+	// ReadAs — the two read paths must agree.
 	if !oOwner.Valid || oOwner.String == "" {
-		return false, ErrVisibilityNotSet
+		oOwner = sql.NullString{String: legacyOwnerID, Valid: true}
 	}
 	_ = status
 	// The creating owner/agent always sees their own.

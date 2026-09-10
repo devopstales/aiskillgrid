@@ -273,6 +273,53 @@ func TestVisibility(t *testing.T) {
 	}
 }
 
+// TestLegacyEmptyOwnerConsistency covers the review finding: a legacy
+// (pre-017) row whose owner column is empty must read identically via search
+// (visibilityFilter) and via ReadAs (canRead). Both treat an empty owner as
+// the default (private, owner "legacy") so no live reader can see it — and
+// ReadAs does NOT surface ErrVisibilityNotSet (the two read paths agree).
+func TestLegacyEmptyOwnerConsistency(t *testing.T) {
+	fx := newOwnerFixture(t, "legacyempty")
+	ctx := context.Background()
+
+	// Simulate a legacy (pre-017) observation: the row exists with an empty
+	// owner and the default visibility. The FTS trigger indexes it on insert.
+	var legacyID int64
+	if err := fx.st.DB.QueryRow(`
+		INSERT INTO observations (session_id, type, title, content, project, scope, normalized_hash, created_at, updated_at, source)
+		VALUES ('s1', 'decision', 'legacyempty note', 'legacyempty note body', 'legacyempty', 'project', 'h-legacy',
+		        '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 'agent')
+		RETURNING id`).Scan(&legacyID); err != nil {
+		t.Fatalf("insert legacy row: %v", err)
+	}
+
+	// Both read paths must agree: the row is private (COALESCE default) and its
+	// owner falls back to the sentinel, so NO live reader (owner A or B) can see
+	// it via search.
+	for _, reader := range []string{fx.ownerA, fx.ownerB} {
+		hits, err := fx.svc.SearchOwner(ctx, reader, "legacyempty", "any", 10)
+		if err != nil {
+			t.Fatalf("search as %s: %v", reader, err)
+		}
+		if containsID(hits, legacyID) {
+			t.Errorf("legacy empty-owner row leaked to reader %s via search", reader)
+		}
+	}
+
+	// ReadAs must agree with search: gated as absent (not-found), NOT
+	// ErrVisibilityNotSet, for every live reader.
+	for _, reader := range []string{fx.ownerA, fx.ownerB} {
+		if _, err := fx.svc.ReadAs(ctx, reader, legacyID, reader); err != nil {
+			if errors.Is(err, ErrVisibilityNotSet) {
+				t.Errorf("ReadAs must not surface ErrVisibilityNotSet for a legacy empty-owner row (reader %s)", reader)
+			}
+			if !errors.Is(err, ErrNotFoundForReader) {
+				t.Errorf("ReadAs for legacy empty-owner row must be absent for reader %s, got %v", reader, err)
+			}
+		}
+	}
+}
+
 func containsID(obs []Observation, id int64) bool {
 	for _, o := range obs {
 		if o.ID == id {
