@@ -56,6 +56,8 @@ func TestAllToolsRegistered(t *testing.T) {
 		"code_taint",
 		// Asset-governance tools (013 step 01).
 		"mem_share", "mem_governance",
+		// Layered-distill inspector (013 step 02).
+		"mem_layers",
 	}
 	if len(tools) != len(want) {
 		t.Errorf("expected %d tools, got %d (%v)", len(want), len(tools), tools)
