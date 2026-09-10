@@ -267,6 +267,10 @@ type Indexer struct {
 	// the --lsp tier resolves member calls through it (hermetic) instead of
 	// spawning the real server. Nil = real server on PATH.
 	lspResolver pdg.ResolveMemberCall
+	// lspTimeout bounds a single LSP server round-trip. 0 = the adapter's 30s
+	// default. A test sets a tiny value to exercise the hang/timeout path
+	// without waiting 30s.
+	lspTimeout time.Duration
 }
 
 // New creates an Indexer backed by st.
@@ -302,6 +306,13 @@ func (idx *Indexer) EnableLSP() *Indexer {
 // language server (hermetic; no gopls required).
 func (idx *Indexer) WithLSPResolver(fn pdg.ResolveMemberCall) *Indexer {
 	idx.lspResolver = fn
+	return idx
+}
+
+// WithLSPTiming bounds a single LSP server round-trip. 0 = the adapter's 30s
+// default. Tests set a tiny value to exercise the hang/timeout path fast.
+func (idx *Indexer) WithLSPTiming(d time.Duration) *Indexer {
+	idx.lspTimeout = d
 	return idx
 }
 

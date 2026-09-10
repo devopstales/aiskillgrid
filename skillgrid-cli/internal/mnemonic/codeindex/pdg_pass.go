@@ -189,15 +189,17 @@ func (idx *Indexer) lspPass(ctx context.Context, passDB *sql.DB, scanned []Scann
 		return out
 	}
 	resolver := idx.lspResolver
+	timeout := idx.lspTimeout // 0 -> adapter default (30s)
 	var client *pdg.LSPClient
 	if resolver != nil {
 		// Hermetic resolver: construct the client directly (no PATH lookup) and
 		// attach the resolver seam.
-		client = pdg.NewLSPClientForTest(pdg.LSPClientOptions{Root: scanRoot, Files: files}, resolver)
+		client = pdg.NewLSPClientForTest(pdg.LSPClientOptions{Root: scanRoot, Files: files, Timeout: timeout}, resolver)
 	} else {
 		c, err := pdg.NewLSPClient(pdg.LSPClientOptions{
-			Root: scanRoot,
-			Files: files,
+			Root:    scanRoot,
+			Files:   files,
+			Timeout: timeout,
 		})
 		if err != nil {
 			// No resolvable server for the scanned languages: warn + continue,
@@ -207,9 +209,16 @@ func (idx *Indexer) lspPass(ctx context.Context, passDB *sql.DB, scanned []Scann
 		}
 		client = c
 	}
-	edges, err := client.ResolveMemberCalls(ctx)
+	// Bound the round-trip by the configured timeout so BOTH the hermetic seam
+	// path and the real-server path are bounded the same way (fix #1: a
+	// hanging/failing server is a best-effort no-op, not an indefinite block).
+	// timeout=0 keeps the caller ctx (the default hermetic path is unbounded).
+	bctx, cancel := pdg.BoundedCtx(ctx, timeout)
+	defer cancel()
+	edges, err := client.ResolveMemberCalls(bctx)
 	if err != nil {
-		// Best-effort: a failing server is a no-op (static index unchanged).
+		// Best-effort: a failing/timing-out server is a no-op (static index
+		// unchanged, no partial edge set) (01.10).
 		fmt.Fprintf(os.Stderr, "warn: lsp tier: %v (static index unchanged)\n", err)
 		return nil
 	}

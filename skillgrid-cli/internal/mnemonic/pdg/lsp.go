@@ -178,6 +178,26 @@ func (c *LSPClient) resolveBin(bin string) string {
 // implements — no real gopls required.
 type ResolveMemberCall func(ctx context.Context, filePath string, line int, receiver, callee string) (resolvedCallee string, ok bool)
 
+// resolveWith3 adapts the 2-value ResolveMemberCall seam to a 3-value
+// (callee, ok, err) call: the legacy seam never errors, so err is always nil.
+// Keeping the public seam 2-value preserves the hermetic test API (01.3/01.4/
+// 01.5 tests set a `func(...) (string, bool)`); error+timeout behavior is
+// exercised by a resolver that blocks/inspects ctx (the seam receives the
+// bounded ctx) or by the real-server path (fix #1).
+func (c *LSPClient) resolveWith3(ctx context.Context, filePath string, line int, receiver, callee string) (string, bool, error) {
+	if c.resolveWith == nil {
+		return "", false, nil
+	}
+	if ctx.Err() != nil {
+		return "", false, ctx.Err()
+	}
+	res, ok := c.resolveWith(ctx, filePath, line, receiver, callee)
+	if ctx.Err() != nil {
+		return "", false, ctx.Err()
+	}
+	return res, ok, nil
+}
+
 // WithResolveWith sets the per-call resolution seam (test hook). When set,
 // ResolveMemberCalls resolves each member call through it instead of spawning
 // the real server, making the LSP tier hermetic-testable.
@@ -202,12 +222,22 @@ func (c *LSPClient) Close() error {
 // warns + continues); it never returns a partial edge set on error.
 func (c *LSPClient) ResolveMemberCalls(ctx context.Context) ([]LSPResolvedEdge, error) {
 	files := c.opts.Files()
-	// When a hermetic resolver is injected, use it for every member call.
+	// When a hermetic resolver is injected, use it for every member call. A
+	// hanging resolver seam is bounded by the same timeout as a real server
+	// (the ctx is already bounded by the caller's round-trip timeout when
+	// timeout>0; otherwise unbounded). On ctx.Done mid-resolve we return an
+	// error (best-effort no-op) rather than a partial edge set.
 	if c.resolveWith != nil {
 		var edges []LSPResolvedEdge
 		for _, f := range sortedLSPFiles(files) {
 			for _, site := range MemberCallSites(f.Path, f.Contents) {
-				callee, ok := c.resolveWith(ctx, f.Path, site.Line, site.Receiver, site.Callee)
+				if err := ctx.Err(); err != nil {
+					return nil, err // timed out mid-run: no partial set
+				}
+				callee, ok, err := c.resolveWith3(ctx, f.Path, site.Line, site.Receiver, site.Callee)
+				if err != nil {
+					return nil, err // resolver failed: no partial set
+				}
 				if ok && callee != "" {
 					edges = append(edges, LSPResolvedEdge{
 						FilePath: f.Path, Line: site.Line, Receiver: site.Receiver, Callee: callee,
@@ -400,9 +430,15 @@ func (c *LSPClient) resolveWithServer(ctx context.Context, lang, bin string, fil
 // It is the external-process boundary (a separate binary on PATH, JSON-RPC
 // over stdio). Deterministic: files are processed in sorted order.
 func resolveLSPServer(ctx context.Context, lang, bin, root string, files []LSPFile, timeout time.Duration) ([]LSPResolvedEdge, error) {
+	// Bound the round-trip by the configured timeout so a hung server times
+	// out (best-effort no-op) rather than blocking readAll indefinitely. The
+	// cancel fires when we return so the context (and its timer) are released.
+	// timeout<=0 keeps the caller ctx (used by the hermetic resolver path).
+	ctx, cancel := ctxWithTimeout(ctx, timeout)
+	defer cancel()
 	// Spawn the server. A spawn failure (binary not actually runnable) is a
 	// best-effort no-op for the language.
-	cmd := exec.CommandContext(ctxWithTimeout(ctx, timeout), bin, "--stdio")
+	cmd := exec.CommandContext(ctx, bin, "--stdio")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -451,7 +487,13 @@ func resolveLSPServer(ctx context.Context, lang, bin, root string, files []LSPFi
 	// the whole stdout and parse JSON-RPC lines). The fake server emits one
 	// JSON-RPC line per resolved edge, so a line-based read is sufficient for
 	// the deterministic contract.
-	resp, _ := readAll(stdout)
+	resp, rerr := readAllCtx(ctx, stdout)
+	if rerr != nil {
+		// A timeout (or other read failure) is a best-effort no-op for the
+		// language: surface the error so the caller warns + continues and the
+		// static index stays unchanged (no partial edge set).
+		return nil, rerr
+	}
 	return parseLSPResponse(resp, lang)
 }
 
@@ -484,9 +526,28 @@ func parseLSPResponse(resp []byte, lang string) ([]LSPResolvedEdge, error) {
 	return edges, nil
 }
 
-// ctxWithTimeout derives a context bounded by timeout.
-func ctxWithTimeout(ctx context.Context, timeout time.Duration) context.Context {
-	return ctx // (timeout enforced by the JSON-RPC read; kept simple + CGo-free)
+// BoundedCtx derives a context bounded by timeout using the package's
+// injectable ctxWithTimeout (fix #1). It is the public accessor the indexer's
+// --lsp pass uses to bound BOTH the hermetic seam path and the real-server
+// path the same way. timeout<=0 returns ctx unchanged (unbounded default
+// hermetic path).
+func BoundedCtx(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	return ctxWithTimeout(ctx, timeout)
+}
+
+// ctxWithTimeout derives a context bounded by timeout. The cancel func is
+// invoked when the returned context is no longer needed (the caller defers
+// cancel) so a hung server's readAll unblocks on the wall-clock timeout and the
+// best-effort no-op (warn+continue) fires. timeout<=0 falls back to the caller
+// ctx unchanged (no artificial bound).
+//
+// It is a package-level var so a test can inject a faster/cancelled derivation
+// without waiting 30s. The default is context.WithTimeout.
+var ctxWithTimeout = func(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if timeout <= 0 {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, timeout)
 }
 
 // splitLines splits a byte slice on newlines (non-empty lines).
@@ -507,17 +568,38 @@ func splitLines(b []byte) []string {
 	return out
 }
 
-// readAll reads all of r (best-effort).
-func readAll(r interface{ Read([]byte) (int, error) }) ([]byte, error) {
+// readAllCtx reads all of r, returning an error when ctx is done (e.g. the
+// round-trip timed out) so the caller's best-effort no-op fires instead of
+// blocking indefinitely on a hung server. The blocking Read runs in a helper
+// goroutine sharing the loop buffer, so a server that never writes (a hung
+// Read) still unblocks when the deadline fires — a bare `select`/`default`
+// before Read cannot wake a Read already blocked in the syscall.
+func readAllCtx(ctx context.Context, r interface{ Read([]byte) (int, error) }) ([]byte, error) {
+	type result struct {
+		n   int
+		err error
+	}
 	buf := make([]byte, 0, 4096)
-	tmp := make([]byte, 4096)
 	for {
-		n, err := r.Read(tmp)
-		if n > 0 {
-			buf = append(buf, tmp[:n]...)
+		// If the deadline already fired, stop before issuing another read.
+		if err := ctx.Err(); err != nil {
+			return buf, err
 		}
-		if err != nil {
-			return buf, nil
+		res := make(chan result, 1)
+		go func() {
+			n, err := r.Read(buf[len(buf):len(buf)+4096])
+			res <- result{n: n, err: err}
+		}()
+		select {
+		case <-ctx.Done():
+			return buf, ctx.Err() // timed out while the read was in flight
+		case rr := <-res:
+			if rr.n > 0 {
+				buf = buf[:len(buf)+rr.n]
+			}
+			if rr.err != nil {
+				return buf, nil // EOF / read done
+			}
 		}
 	}
 }

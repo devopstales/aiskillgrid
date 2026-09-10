@@ -26,6 +26,11 @@ const (
 	maxPDGSteps  = 4000
 )
 
+// MaxPDGBlocksForTest exposes maxPDGBlocks so a test can generate an over-cap
+// function (maxPDGBlocks+delta blocks) and assert truncation without coupling
+// to the literal. It is a read-only accessor, not a knob.
+const MaxPDGBlocksForTest = maxPDGBlocks
+
 // EdgeRow is one PDG edge row to persist.
 type EdgeRow struct {
 	SymbolID  int64

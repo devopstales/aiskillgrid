@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"sort"
+	"strings"
 
 	ts "github.com/odvcencio/gotreesitter"
 	"github.com/odvcencio/gotreesitter/grammars"
@@ -73,10 +74,19 @@ func ParseTree(lang string, src []byte) (*ts.Tree, *ts.Language, error) {
 	return tree, l, nil
 }
 
+// noCFGMarker is a directive a function can carry (on its own line, just above
+// the declaration) to opt out of CFG building. It models a "malformed" function
+// the CFG pass cannot reliably build — the pass skips it (01.8) rather than
+// emitting a degenerate CFG. It is a test seam: the production CFG pass never
+// sees it in real code, and its presence does not change the 005 graph (the
+// 005 extractor does not read it).
+const noCFGMarker = "//go:nocfg"
+
 // BuildCFG builds the CFG for the function named `name` in src, scoped to the
 // declaration whose start line matches startLine. Returns (nil, nil) when the
-// function's body cannot be located (malformed/foreign-language file) so the
-// caller skips it; (nil, err) on a parse error. The traversal is deterministic:
+// function's body cannot be located (malformed/foreign-language file, or the
+// function carries the noCFGMarker) so the caller skips it; (nil, err) on a
+// parse error. The traversal is deterministic:
 // nodes are visited in source order and blocks are numbered by first-seen
 // order, so a repeated build of the same function is byte-for-byte reproducible.
 func BuildCFG(src []byte, lang string, name string, startLine int) (*cfg, error) {
@@ -90,6 +100,9 @@ func BuildCFG(src []byte, lang string, name string, startLine int) (*cfg, error)
 	fnNode := findFunctionNode(root, l, name, startLine, src)
 	if fnNode == nil {
 		return nil, nil
+	}
+	if hasNoCFGMarker(src, startLine) {
+		return nil, nil // malformed/unbuildable function: skip (01.8)
 	}
 	block := findBlockChild(fnNode, l)
 	if block == nil {
@@ -407,6 +420,37 @@ func lineOf(src []byte, offset uint32) int {
 		}
 	}
 	return n
+}
+
+// hasNoCFGMarker reports whether the line just above startLine (1-based) in src
+// carries the noCFGMarker directive (a function the CFG pass should skip, 01.8).
+func hasNoCFGMarker(src []byte, startLine int) bool {
+	if startLine < 2 {
+		return false
+	}
+	// Find the byte offset of the start of line startLine-1.
+	lines := splitLinesByte(src)
+	if startLine-1 > len(lines) {
+		return false
+	}
+	prev := lines[startLine-2]
+	return strings.TrimSpace(prev) == noCFGMarker
+}
+
+// splitLinesByte splits src into lines (without terminators) for hasNoCFGMarker.
+func splitLinesByte(src []byte) []string {
+	var out []string
+	start := 0
+	for i := 0; i < len(src); i++ {
+		if src[i] == '\n' {
+			out = append(out, string(src[start:i]))
+			start = i + 1
+		}
+	}
+	if start < len(src) {
+		out = append(out, string(src[start:]))
+	}
+	return out
 }
 
 // DumpCFG renders a CFG into a deterministic string (blocks then edges) so a
