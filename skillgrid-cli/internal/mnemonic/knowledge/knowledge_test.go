@@ -46,8 +46,15 @@ func seedFile(t *testing.T, db *sql.DB, path string) int64 {
 
 func seedSymbol(t *testing.T, db *sql.DB, fileID int64, name, kind string, line int) int64 {
 	t.Helper()
+	return seedSymbolUID(t, db, fileID, name, kind, name+kind, line)
+}
+
+// seedSymbolUID is seedSymbol with an explicit uid, for fixtures that need
+// two same-named symbols (a cross-package collision) with distinct uids.
+func seedSymbolUID(t *testing.T, db *sql.DB, fileID int64, name, kind, uid string, line int) int64 {
+	t.Helper()
 	res, err := db.Exec(`INSERT INTO symbols (file_id, name, kind, start_line, end_line, content_hash, uid) VALUES (?, ?, ?, ?, ?, 'h', ?)`,
-		fileID, name, kind, line, line, name+kind)
+		fileID, name, kind, line, line, uid)
 	if err != nil {
 		t.Fatalf("seed symbol %s: %v", name, err)
 	}
@@ -286,6 +293,66 @@ func TestAmbiguousConfigRef(t *testing.T) {
 	}
 }
 
+// TestAmbiguousConfigRefMultipleSymbols covers the cross-package name
+// collision: a config reference whose name matches MORE THAN ONE symbol is
+// stored AMBIGUOUS (to_id null), not silently bound to the lowest-id symbol as
+// EXTRACTED. A name match of exactly one symbol stays EXTRACTED.
+func TestAmbiguousConfigRefMultipleSymbols(t *testing.T) {
+	db := openKnowledgeStore(t)
+	ctx := context.Background()
+	store := &Store{db: db}
+
+	// Two distinct symbols in distinct packages share the name `loadUsers` —
+	// a cross-package collision (different uid, same name). seedSymbol derives
+	// uid from name+kind (which would collide), so insert directly with
+	// distinct uids.
+	fA := seedFile(t, db, "pkgA/load.go")
+	fB := seedFile(t, db, "pkgB/load.go")
+	seedSymbolUID(t, db, fA, "loadUsers", "function", "pkgA.loadUsers", 3)
+	seedSymbolUID(t, db, fB, "loadUsers", "function", "pkgB.loadUsers", 7)
+
+	seedFile(t, db, "config/app.yaml")
+	res := ExtractConfig("config/app.yaml", []byte("service:\n  handler: loadUsers\n"))
+	if len(res.Refs) != 1 || res.Refs[0].Value != "loadUsers" {
+		t.Fatalf("expected 1 ref to loadUsers, got %+v", res.Refs)
+	}
+	if _, err := store.SaveConfig(ctx, "config/app.yaml", res); err != nil {
+		t.Fatalf("SaveConfig: %v", err)
+	}
+
+	// The ref matched >1 symbol → AMBIGUOUS (to_id null), NOT EXTRACTED bound
+	// to the lowest-id loadUsers.
+	var ambiguous, extracted int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'configures' AND to_name = 'loadUsers' AND confidence = 'AMBIGUOUS' AND to_id IS NULL`).Scan(&ambiguous); err != nil {
+		t.Fatalf("count ambiguous: %v", err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'configures' AND to_name = 'loadUsers' AND confidence = 'EXTRACTED' AND to_id IS NOT NULL`).Scan(&extracted); err != nil {
+		t.Fatalf("count extracted: %v", err)
+	}
+	if ambiguous != 1 {
+		t.Errorf("expected 1 AMBIGUOUS configures edge for the colliding name (not bound to the lowest id), got %d", ambiguous)
+	}
+	if extracted != 0 {
+		t.Errorf("expected 0 EXTRACTED configures edges for the colliding name, got %d", extracted)
+	}
+
+	// Contrast: a ref matching exactly one symbol stays EXTRACTED (bound by id).
+	fC := seedFile(t, db, "pkgC/single.go")
+	sole := seedSymbol(t, db, fC, "uniqueHandler", "function", 2)
+	seedFile(t, db, "config/one.yaml")
+	res2 := ExtractConfig("config/one.yaml", []byte("service:\n  handler: uniqueHandler\n"))
+	if _, err := store.SaveConfig(ctx, "config/one.yaml", res2); err != nil {
+		t.Fatalf("SaveConfig one: %v", err)
+	}
+	var soleExtracted int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'configures' AND to_id = ? AND confidence = 'EXTRACTED'`, sole).Scan(&soleExtracted); err != nil {
+		t.Fatalf("count sole extracted: %v", err)
+	}
+	if soleExtracted != 1 {
+		t.Errorf("expected 1 EXTRACTED configures edge for the unique ref, got %d", soleExtracted)
+	}
+}
+
 // TestSqlSchema covers @step-03 (Scenario: SQL DDL becomes table and column
 // nodes with reads and writes): .sql DDL produces sql_schema_nodes (tables +
 // columns) and code that references them gets reads/writes edges,
@@ -431,4 +498,67 @@ INSERT INTO good1 (id) VALUES (1);
 	if writes != 1 {
 		t.Errorf("expected the valid INSERT to be indexed as a writes edge (the index did not abort), got %d", writes)
 	}
+}
+
+// TestSQLOnlyForSQLFiles covers @step-03 (isSQL false positives): only .sql
+// files are parsed for SQL DDL/DML. A .go (or other non-.sql) file whose
+// contents merely contain the words SELECT / INSERT / UPDATE / DELETE FROM
+// must NOT be parsed into spurious table nodes.
+func TestSQLOnlyForSQLFiles(t *testing.T) {
+	// Unit: isSQL is true only for .sql / .SQL, regardless of contents.
+	cases := []struct {
+		path string
+		want bool
+	}{
+		{"db/schema.sql", true},
+		{"db/SCHEMA.SQL", true},
+		{"app/users.go", false},
+		{"docs/a.md", false},
+		{"config/app.yaml", false},
+	}
+	for _, c := range cases {
+		// Contents contain SQL keywords to prove the extension (not the
+		// contents) drives the decision.
+		got := isSQL(c.path, []byte("SELECT id FROM users; INSERT INTO x;"))
+		if got != c.want {
+			t.Errorf("isSQL(%q) = %v, want %v", c.path, got, c.want)
+		}
+	}
+
+	// Integration: a .go file containing SELECT in a string/comment produces
+	// no table nodes (whereas a .sql file with the same DDL does).
+	db := openKnowledgeStore(t)
+	ctx := context.Background()
+	store := &Store{db: db}
+	fGo := seedFile(t, db, "app/users.go")
+	seedSymbol(t, db, fGo, "loadUsers", "function", 10)
+	// A .go file with SELECT in a string and a comment — SQL keywords but not
+	// a .sql file.
+	goSrc := "package app\n\nvar q = `SELECT id, name FROM users;`\n\n// UPDATE the users table via SELECT\nfunc loadUsers() {}\n"
+	files := []FileInput{{Path: "app/users.go", Contents: []byte(goSrc)}}
+	if _, err := RunPasses(ctx, store, files); err != nil {
+		t.Fatalf("RunPasses: %v", err)
+	}
+	if n := countTable(t, db, "sql_schema_nodes"); n != 0 {
+		t.Errorf("expected 0 sql_schema_nodes from a .go file with SELECT keywords, got %d", n)
+	}
+	var reads int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM edges WHERE kind = 'reads'`).Scan(&reads); err != nil {
+		t.Fatalf("count reads: %v", err)
+	}
+	if reads != 0 {
+		t.Errorf("expected 0 reads edges from a .go file with SELECT keywords, got %d", reads)
+	}
+
+	// Contrast: the SAME DDL in a .sql file IS parsed (the .sql behavior is
+	// kept).
+	fSQL := seedFile(t, db, "db/schema.sql")
+	sqlFiles := []FileInput{{Path: "db/schema.sql", Contents: []byte("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);\n")}}
+	if _, err := RunPasses(ctx, store, sqlFiles); err != nil {
+		t.Fatalf("RunPasses sql: %v", err)
+	}
+	if n := countTable(t, db, "sql_schema_nodes"); n == 0 {
+		t.Errorf("expected the .sql file to produce sql_schema_nodes, got 0")
+	}
+	_ = fSQL
 }

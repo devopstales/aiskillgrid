@@ -33,11 +33,13 @@ func writeHookFixture(t *testing.T) string {
 }
 
 // TestIndexerHook covers @step-03 (Scenario: Indexer hook runs community,
-// process, and knowledge in one transaction): after an index run, the
-// community + process + knowledge passes all ran (in the same incremental
-// index), so communities, processes, doc_nodes, config_nodes, and
-// sql_schema_nodes all exist — proving the three passes ran at index time in
-// one tx.
+// process, and knowledge in one transaction): after an index run, the 005+route
+// extraction committed in one tx, then the community + process + knowledge
+// passes ran (in the same index run, on a reopened DB after that tx commits —
+// the store's single-connection pool cannot share the committed 005 tx, and the
+// passes are advisory, so they do not roll back 005). The end state proves the
+// three passes ran at index time: communities, processes, doc_nodes,
+// config_nodes, and sql_schema_nodes all exist.
 func TestIndexerHook(t *testing.T) {
 	ResetFileFirstSymbol()
 	idx, clean := newTestIndexer(t)

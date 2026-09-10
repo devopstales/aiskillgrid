@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"path/filepath"
-	"strings"
 )
 
 // FileInput is one scanned file for the knowledge pass: its index-relative
@@ -64,45 +63,14 @@ func RunPasses(ctx context.Context, st *Store, files []FileInput) (PassResult, e
 	return res, nil
 }
 
-// isSQL reports whether a file should be parsed for SQL: a .sql file, or any
-// file whose contents contain a SQL keyword (code-embedded SQL). A .sql file
-// is always parsed (even with no DDL/DML, so it is a known schema source); a
-// non-.sql file is parsed only when it contains SQL (so the Go extractor's
-// code files that embed SQL are covered, and pure code files are not).
+// isSQL reports whether a file should be parsed for SQL DDL/DML. Only .sql
+// files are parsed: scanning every file for SQL keywords (SELECT / INSERT /
+// UPDATE / DELETE FROM) produced false positives on Go code or prose that
+// merely contains those words, yielding spurious table references. A .sql file
+// is always parsed (even with no DDL/DML, so it is a known schema source);
+// non-.sql files are not parsed for SQL at all.
 func isSQL(path string, contents []byte) bool {
-	if filepath.Ext(path) == ".sql" || filepath.Ext(path) == ".SQL" {
-		return true
-	}
-	s := string(contents)
-	for _, kw := range []string{"SELECT", "INSERT", "CREATE TABLE", "UPDATE ", "DELETE FROM"} {
-		if containsWord(s, kw) {
-			return true
-		}
-	}
-	return false
-}
-
-// containsWord reports whether s contains the keyword as a whole word
-// (case-sensitive, to avoid matching inside identifiers).
-func containsWord(s, kw string) bool {
-	if kw == "" {
-		return false
-	}
-	i := strings.Index(s, kw)
-	for i >= 0 {
-		if (i == 0 || !isIdentByte(s[i-1])) && (i+len(kw) == len(s) || !isIdentByte(s[i+len(kw)])) {
-			return true
-		}
-		i = strings.Index(s[i+1:], kw)
-		if i >= 0 {
-			i += 1
-		}
-	}
-	return false
-}
-
-func isIdentByte(c byte) bool {
-	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
+	return filepath.Ext(path) == ".sql" || filepath.Ext(path) == ".SQL"
 }
 
 var _ = sql.ErrNoRows

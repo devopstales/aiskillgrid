@@ -9,15 +9,17 @@ import (
 
 // Store is the knowledge pass's persistence seam: it upserts knowledge nodes
 // (doc/config/sql) and their confidence-labeled edges into the 005 graph. The
-// indexer's same-transaction hook passes a Store backed by the open index tx,
-// so a knowledge node is always resolvable and a single rollback undoes the
-// whole pass (matching the 010 route-hook pattern).
+// indexer passes a Store backed by the pass DB (a fresh *sql.DB opened after
+// the 005 tx commits — the store's single-connection pool deadlocks once the
+// committed 005 tx holds the write lock, so the pass runs after, not in, that
+// tx). A knowledge node is always resolvable because the 005 symbols it points
+// at are already committed; the pass is advisory and does not roll back 005.
 type Store struct {
 	db *sql.DB
 }
 
-// NewStore wraps a *sql.DB (the indexer's open transaction in production, a
-// scratch store in tests).
+// NewStore wraps a *sql.DB (the indexer's pass DB in production — a fresh
+// *sql.DB opened after the 005 tx commits — or a scratch store in tests).
 func NewStore(db *sql.DB) *Store { return &Store{db: db} }
 
 // docNodeID resolves (or lazily creates) the doc node id for a file path.
@@ -172,7 +174,11 @@ func (s *Store) SaveConfig(ctx context.Context, path string, cfg *ConfigResult) 
 		}
 		conf := ref.Confidence
 		if !toID.Valid {
-			// Unresolvable config ref → AMBIGUOUS (kept, not dropped, 03.5).
+			// Unresolvable OR ambiguous config ref → AMBIGUOUS (kept, not
+			// dropped, 03.5). matches > 1 is a cross-package name collision:
+			// picking the lowest id would silently bind the ref to the wrong
+			// symbol as EXTRACTED, so the ref is surfaced AMBIGUOUS (to_id null)
+			// rather than guessing.
 			conf = ConfidenceAmbiguous
 		}
 		if _, err := s.db.Exec(`

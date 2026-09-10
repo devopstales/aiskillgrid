@@ -429,19 +429,23 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 	if err := tx.Commit(); err != nil {
 		return stats, err
 	}
-	// The store's single-connection *sql.DB (MaxOpenConns=1) holds the WAL
-	// write lock even after the tx commits (modernc.org/sqlite keeps the
-	// connection open). Close it so a fresh *sql.DB can acquire the lock
-	// for the passes. The store's DB is replaced with the pass DB so the
-	// indexer (and any caller using idx.store.DB) keeps working.
+	// The 005 + route extraction (above) ran in one transaction, now committed.
+	// The community + process + knowledge passes run AFTER that commit, NOT in
+	// the same tx: the store's single-connection *sql.DB (MaxOpenConns=1)
+	// deadlocks a second connection once the committed tx's write lock is held
+	// (a modernc.org/sqlite constraint), so the passes cannot share the 005
+	// tx. Close the store's DB and reopen a fresh one (with foreign_keys=1 via
+	// DSN, since that pragma is per-connection not persistent) so the passes
+	// have a clean single-connection pool. The store's DB is replaced with the
+	// pass DB so the indexer (and any caller using idx.store.DB) keeps working.
+	//
+	// The passes are advisory, not transactional with 005: they do not roll
+	// back the committed 005 extraction, and a pass failure only warns and
+	// continues (the 005 graph + FTS floor are already committed).
 	dbPath := idx.store.Path()
 	if err := idx.store.DB.Close(); err != nil {
 		return stats, fmt.Errorf("close store db: %w", err)
 	}
-	// Re-apply per-connection pragmas via DSN (foreign_keys is not
-	// persistent; journal_mode and busy_timeout ARE persistent in the WAL
-	// file). No SetMaxOpenConns(1) — the modernc.org/sqlite driver deadlocks
-	// a single-connection pool after a committed tx.
 	passDB, err := sql.Open("sqlite", dbPath+"?_pragma=foreign_keys(1)")
 	if err != nil {
 		return stats, fmt.Errorf("open pass db: %w", err)
@@ -464,10 +468,12 @@ func (idx *Indexer) Run(ctx context.Context, root string, cfg Config) (Stats, er
 }
 
 // communityPass runs the 01 community-detection pass over the indexed graph,
-// on the pass DB (opened before the main tx, so its sub-txs do not deadlock
-// the store's single-connection pool). The community rows land in the same
-// WAL database as the 005 extraction; the main tx's Commit finalizes the
-// incremental index. Advisory, never load-bearing.
+// on the pass DB (a fresh *sql.DB opened after the 005 tx commits — the store's
+// single-connection pool deadlocks once the committed tx holds the write lock,
+// so the passes cannot share that tx). The community rows land in the same WAL
+// database as the 005 extraction, but are committed independently: the pass is
+// advisory and does not roll back the 005 extraction. Advisory, never
+// load-bearing.
 func (idx *Indexer) communityPass(ctx context.Context, passDB *sql.DB) error {
 	if tableMissing(passDB, "communities") {
 		return nil // table absent (pre-012 store) — nothing to do

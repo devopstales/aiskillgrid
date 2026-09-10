@@ -225,11 +225,11 @@ func (r *SQLResult) processStatement(stmt string, line int, excludeTable string)
 	}
 }
 
-// selectIsRead reports whether a SELECT statement is a read (not a
-// CREATE/ALTER containing a SELECT subquery). A top-level SELECT is a read.
+// selectIsRead reports whether a statement contains a SELECT (a read). Contains
+// subsumes the prefix case, so a top-level or embedded SELECT both count.
 func selectIsRead(stmt string) bool {
 	upper := strings.ToUpper(strings.TrimSpace(stmt))
-	return strings.HasPrefix(upper, "SELECT") || strings.Contains(upper, "SELECT")
+	return strings.Contains(upper, "SELECT")
 }
 
 // columnBody extracts the column-definition body of a CREATE TABLE statement
