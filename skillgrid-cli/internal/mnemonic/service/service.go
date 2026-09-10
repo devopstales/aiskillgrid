@@ -254,6 +254,15 @@ func (s *Service) openProject(projectID, configRoot string) (*ProjectHandle, fun
 	}
 	cfg := config.Load(root)
 	mem := memory.New(st, projectID)
+	// Budget (change 013, step 03): tune the mem_* read budget from config
+	// (mnemonic.retrieval_budget). Zero fields fall back to the memory package
+	// defaults, so a config without the section is the default budget.
+	rb := cfg.RetrievalBudget
+	mem.SetBudget(memory.BudgetConfig{
+		Items:     rb.Items,
+		Chars:     rb.Chars,
+		TimeoutNs: rb.TimeoutNs,
+	})
 	h := &ProjectHandle{
 		store:          st,
 		projectID:      projectID,

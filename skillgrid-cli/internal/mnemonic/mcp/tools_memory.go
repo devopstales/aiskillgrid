@@ -298,12 +298,19 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 		if err != nil {
 			return toolError(err)
 		}
-		return JSONResult(map[string]any{
+		// Budget (013 step 03) applies to the cross-project read too.
+		res := h.Memory().Budget().Apply(ctx, hits)
+		out := map[string]any{
 			"project":      "all",
 			"all_projects": true,
-			"count":        len(hits),
-			"observations": observationDTOs(hits),
-		})
+			"count":        len(res.Hits),
+			"observations": budgetedObservationDTOs(h.Memory().Budget(), res.Hits),
+		}
+		if res.Truncated {
+			out["truncated"] = true
+			out["truncation_reason"] = res.Reason
+		}
+		return JSONResult(out)
 	}
 
 	explicitProject := strings.TrimSpace(req.GetString("project", ""))
@@ -326,8 +333,20 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 	if err != nil {
 		return toolError(err)
 	}
-
-	out := map[string]any{"project": projectID, "observations": observationDTOs(hits)}
+	// Budget (change 013, step 03): the in-list read is item-capped and
+	// char-truncated (explicit "N chars omitted"), with a context timeout. The
+	// full content is pulled on demand via mem_get_observation (the only
+	// full-content path) using each hit's id.
+	res := h.Memory().Budget().Apply(ctx, hits)
+	out := map[string]any{
+		"project":      projectID,
+		"observations": budgetedObservationDTOs(h.Memory().Budget(), res.Hits),
+		"count":        len(res.Hits),
+	}
+	if res.Truncated {
+		out["truncated"] = true
+		out["truncation_reason"] = res.Reason
+	}
 	if drift != nil {
 		out["project_drift"] = drift
 	}
@@ -346,7 +365,26 @@ func handleMemContext(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 	if err != nil {
 		return toolError(err)
 	}
-	return JSONResult(map[string]any{"sessions": sessionDTOs(sessions)})
+	// Budget (013 step 03): the context read is item-capped and its summaries
+	// are char-truncated (explicit "N chars omitted").
+	b := h.Memory().Budget()
+	truncated := false
+	reason := ""
+	for i := range sessions {
+		if len(sessions[i].Summary) > b.Config().Chars {
+			sessions[i].Summary = memory.TruncateWithMarker(sessions[i].Summary, b.Config().Chars)
+			truncated = true
+			if reason == "" {
+				reason = "char-budget"
+			}
+		}
+	}
+	out := map[string]any{"sessions": sessionDTOs(sessions)}
+	if truncated {
+		out["truncated"] = true
+		out["truncation_reason"] = reason
+	}
+	return JSONResult(out)
 }
 
 func handleMemGetObservation(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
@@ -537,11 +575,41 @@ func handleMemTimeline(ctx context.Context, req mcplib.CallToolRequest) (*mcplib
 	if err != nil {
 		return toolError(err)
 	}
-	return JSONResult(map[string]any{
+	// Budget (013 step 03): the timeline read is item-capped (limit) and its
+	// in-list snippets are char-truncated (explicit "N chars omitted"). Every
+	// entry carries its id (the full-content fetch via mem_get_observation).
+	b := h.Memory().Budget()
+	truncated := false
+	reason := ""
+	chars := b.Config().Chars
+	for i := range tl.Before {
+		if len(tl.Before[i].Content) > chars {
+			tl.Before[i].Content = memory.TruncateWithMarker(tl.Before[i].Content, chars)
+			truncated = true
+			if reason == "" {
+				reason = "char-budget"
+			}
+		}
+	}
+	for i := range tl.After {
+		if len(tl.After[i].Content) > chars {
+			tl.After[i].Content = memory.TruncateWithMarker(tl.After[i].Content, chars)
+			truncated = true
+			if reason == "" {
+				reason = "char-budget"
+			}
+		}
+	}
+	out := map[string]any{
 		"anchor_id": int64(id),
 		"before":    tl.Before,
 		"after":     tl.After,
-	})
+	}
+	if truncated {
+		out["truncated"] = true
+		out["truncation_reason"] = reason
+	}
+	return JSONResult(out)
 }
 
 // ────────────────────────────── Mem: update / delete ───────────────────────
@@ -1098,6 +1166,15 @@ func observationDTOs(obs []memory.Observation) []map[string]any {
 	return out
 }
 
+// inListContent projects an in-list observation's content for a budgeted read
+// (mem_search / mem_context / mem_timeline). It applies the char budget with an
+// explicit "N chars omitted" marker (never silent). mem_get_observation uses
+// the raw observationDTO (no char budget) so it stays the ONLY full-content
+// path.
+func inListContent(b *memory.Budget, content string) string {
+	return memory.TruncateWithMarker(content, b.Config().Chars)
+}
+
 func observationDTO(o memory.Observation) map[string]any {
 	m := map[string]any{
 		"id":              o.ID,
@@ -1129,6 +1206,19 @@ func observationDTO(o memory.Observation) map[string]any {
 		m["prompt_id"] = *o.PromptID
 	}
 	return m
+}
+
+// budgetedObservationDTOs shapes in-list results for a budgeted read: the char
+// budget is applied to each snippet (explicit "N chars omitted"), and every
+// result carries its full-content fetch id (mem_get_observation is the only
+// full-content path).
+func budgetedObservationDTOs(b *memory.Budget, obs []memory.Observation) []map[string]any {
+	out := make([]map[string]any, len(obs))
+	for i, o := range obs {
+		o.Content = inListContent(b, o.Content)
+		out[i] = observationDTO(o)
+	}
+	return out
 }
 
 func sessionDTOs(sessions []memory.Session) []map[string]any {

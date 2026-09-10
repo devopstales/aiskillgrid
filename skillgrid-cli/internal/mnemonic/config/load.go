@@ -43,6 +43,15 @@ type EmbedderParams struct {
 	MaxTokens    int
 }
 
+// RetrievalBudget is the tunable read budget (change 013, step 03): the
+// item-count cap, the per-snippet char budget, and the context timeout. A
+// zero field falls back to its default in memory.DefaultBudget.
+type RetrievalBudget struct {
+	Items     int
+	Chars     int
+	TimeoutNs int64
+}
+
 // Indexing holds code index settings from indexing.yaml mnemonic section.
 type Indexing struct {
 	Include      []string
@@ -52,6 +61,9 @@ type Indexing struct {
 	MaxFileSize  int
 	WebCache     WebCache
 	Embedder     EmbedderConfig
+	// RetrievalBudget is the tunable mem_* read budget (change 013, step 03).
+	// Zero fields fall back to the memory package defaults.
+	RetrievalBudget RetrievalBudget
 }
 
 type indexingFile struct {
@@ -67,6 +79,15 @@ type mnemonicSection struct {
 	MaxFileSize  int             `yaml:"max_file_size"`
 	WebCache     webCacheSection `yaml:"web_cache"`
 	Embedder     embedderSection `yaml:"embedder"`
+	// RetrievalBudget is the mnemonic.retrieval_budget section (change 013,
+	// step 03): item/char/timeout caps for every mem_* read path.
+	RetrievalBudget retrievalBudgetSection `yaml:"retrieval_budget"`
+}
+
+type retrievalBudgetSection struct {
+	Items     int    `yaml:"items"`
+	Chars     int    `yaml:"chars"`
+	Timeout   string `yaml:"timeout"` // Go duration string, e.g. "3s"
 }
 
 type embedderSection struct {
@@ -205,6 +226,26 @@ func mergeIndexing(defaults Indexing, section mnemonicSection) Indexing {
 	}
 	out.WebCache = mergeWebCache(defaults.WebCache, section.WebCache)
 	out.Embedder = mergeEmbedder(defaults.Embedder, section.Embedder)
+	out.RetrievalBudget = mergeRetrievalBudget(defaults.RetrievalBudget, section.RetrievalBudget)
+	return out
+}
+
+// mergeRetrievalBudget merges the mnemonic.retrieval_budget section over the
+// defaults. Each field is applied independently when present (a partial budget
+// only overrides the knobs it sets).
+func mergeRetrievalBudget(defaults RetrievalBudget, section retrievalBudgetSection) RetrievalBudget {
+	out := defaults
+	if section.Items > 0 {
+		out.Items = section.Items
+	}
+	if section.Chars > 0 {
+		out.Chars = section.Chars
+	}
+	if section.Timeout != "" {
+		if d, err := time.ParseDuration(section.Timeout); err == nil {
+			out.TimeoutNs = int64(d)
+		}
+	}
 	return out
 }
 

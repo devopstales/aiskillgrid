@@ -146,6 +146,45 @@ func (s *Service) SemanticSearch(ctx context.Context, projectID, query, corpus s
 	return &SemanticSearchResult{Results: results, TrailID: trailID}, nil
 }
 
+// BudgetedRetrieval is the change-013 step-03 layered + budgeted read seam:
+// it runs layered retrieval (L2/L3-first bootstrap, or the L1/L0 RRF fallback
+// for a specific fact) and then applies the uniform read budget (item cap +
+// char budget + context timeout). It is the facade the MCP/CLI read paths use
+// so every mem_* read is budgeted. mem_get_observation is NOT budgeted — it
+// stays the only full-content path (the in-list hits here are the truncated
+// snippets; the full content is fetched by the hit's get_observation_id).
+func (s *Service) BudgetedRetrieval(ctx context.Context, projectID, mode, query string, limit int) (memory.BudgetResult, error) {
+	h, cleanup, err := s.openProject(projectID, ".")
+	if err != nil {
+		return memory.BudgetResult{}, err
+	}
+	defer cleanup()
+	hits, err := h.Memory().Retrieve(ctx, memory.RetrieveOpts{
+		Mode:  mode,
+		Query: query,
+		Limit: limit,
+	})
+	if err != nil {
+		return memory.BudgetResult{}, err
+	}
+	// Convert the layered hits into in-list observations so the uniform read
+	// budget (item cap + char budget + context timeout) applies identically to
+	// search/context/timeline. Each in-list result keeps its full-content
+	// fetch id (GetObservationID → Observation.ID) so the agent can pull full
+	// content via mem_get_observation.
+	var obs []memory.Observation
+	for _, h := range hits {
+		obs = append(obs, memory.Observation{
+			ID:      h.GetObservationID,
+			Type:    h.Layer,
+			Title:   h.Title,
+			Content: h.Content,
+			Project: h.TargetKind,
+		})
+	}
+	return h.Memory().Budget().Apply(ctx, obs), nil
+}
+
 // LoadFullDetails returns L2 markdown for a registered path.
 func (s *Service) LoadFullDetails(ctx context.Context, projectID, path string) (string, error) {
 	h, cleanup, err := s.openProject(projectID, ".")
