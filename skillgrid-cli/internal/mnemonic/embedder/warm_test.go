@@ -124,6 +124,45 @@ func TestWarmFallback(t *testing.T) {
 	}
 }
 
+// TestWarmFailedFactoryDegradesToFTS covers the "failed model degrades to FTS"
+// branch: a Factory that returns a nil embedder (the observable form of a
+// failed model load) makes the warm cache degrade to the Null Adapter (FTS
+// floor) — it does not crash, holds no RAM, and a subsequent reuse is
+// transparent. This branch is distinct from the healthy-factory path in
+// TestWarmFallback (which loads a real embedder) and from the nil-Factory path.
+func TestWarmFailedFactoryDegradesToFTS(t *testing.T) {
+	// A factory that "fails" by returning a nil embedder (model load failed).
+	failed := NewWarm(WarmConfig{
+		Factory:     func() Embedder { return nil },
+		IdleTimeout: DefaultIdleTimeout,
+	})
+	// First Get degrades to the Null Adapter (FTS floor), no crash.
+	e := failed.Get(context.Background())
+	if e.Dimension() != 0 {
+		t.Fatalf("a failed factory (nil embedder) should degrade to a Null Adapter (dim 0), got dim %d", e.Dimension())
+	}
+	if failed.IsLoaded() {
+		t.Fatalf("a degraded (Null) warm embedder holds no RAM and must not count as resident")
+	}
+	// The degraded embed still embeds (empty vector, no error) — the FTS floor.
+	vec, err := e.Embed(context.Background(), "some text")
+	if err != nil {
+		t.Fatalf("degraded embed must not error (FTS floor), got %v", err)
+	}
+	if len(vec.Data) != 0 {
+		t.Fatalf("degraded embed must return an empty vector (FTS floor), got dim %d", len(vec.Data))
+	}
+	// Reuse after the failure is transparent (no error surfaced).
+	if e2 := failed.Get(context.Background()); e2.Dimension() != 0 {
+		t.Fatalf("reuse of a failed-factory warm embedder must stay degraded (dim 0), got dim %d", e2.Dimension())
+	}
+	// And it is never reported resident (a Null Adapter holds no RAM).
+	failed.CheckIdle(time.Now().Add(time.Minute), 0)
+	if failed.IsLoaded() {
+		t.Fatalf("a failed-factory (Null) warm embedder must never be reported resident")
+	}
+}
+
 // TestWarmReload covers 03.13 (Scenario: Evicted embedder reloads on reuse):
 // an evicted-then-reused embedder reloads transparently on next use; the
 // one-time load cost is not surfaced as an error.
