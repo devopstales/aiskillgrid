@@ -66,7 +66,7 @@ Change is done only when **all** of the following are true:
 ## State
 
 ```yaml
-phase: apply          # spec | apply | verify | archive
+phase: verify          # spec | apply | verify | archive
 current_step: 03-layered-retrieval-budgets
 status: in_progress  # in_progress | blocked | done
 updated: 2026-09-10
@@ -297,39 +297,43 @@ This step is done only when:
 
 <!-- [RED] items are the applicable threat-matrix rows (Mnemonic tool surface + Context-window flood), ordered BEFORE the production [AFK] tasks. Each uses the TDD micro-cycle a–e. Scenario names are the referenceable strings from acceptance.feature @step-03. -->
 
-- [ ] 03.1 `[RED]` Threat "Context-window flood" — 20-hit search budgeted (truncated in-list + `mem_get_observation` id present + timeout honored with `truncated: true` partial) (Scenarios: `twenty-hit-search-is-budgeted`, `char-budget-truncates-with-explicit-omitted-count`, `context-timeout-returns-truncated-partial`)
-  - [ ] 03.1.a Write failing test
-  - [ ] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... -run Budget -count=1` — Expected: FAIL
-  - [ ] 03.1.c Minimal implementation
-  - [ ] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... -run Budget -count=1` — Expected: PASS
-  - [ ] 03.1.e Commit — `feat(memory): item+char+timeout budget wrapper on mem_* reads`
-- [ ] 03.2 `[RED]` Threat "Mnemonic tool surface" — layered retrieval + `mem_get_observation` only-full-content + 005 tools still stable + bad args rejected (Scenarios: `layered-retrieval-l2-l3-first-with-l1-l0-rrf-fallback`, `mem-get-observation-is-only-full-content-path`, `budgeted-reads-005-stable`)
-  - [ ] 03.2.a Write failing test
-  - [ ] 03.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Retrieve -count=1` — Expected: FAIL
-  - [ ] 03.2.c Minimal implementation
-  - [ ] 03.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Retrieve -count=1` — Expected: PASS
-  - [ ] 03.2.e Commit — `feat(memory): layered L2/L3-first retrieval + mem_get_observation full-content path`
-- [ ] 03.3 `[AFK]` `mem_context` / `mem_search` return L2/L3 first; specific-fact query falls back to L1/L0 via the existing RRF (Scenario: `layered-retrieval-l2-l3-first-with-l1-l0-rrf-fallback`) — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/retrieve_test.go -run Layered -count=1` — Expected: PASS
-- [ ] 03.4 `[AFK]` Every `mem_*` read enforces the item-count cap, char budget (explicit "N chars omitted"), and context timeout (`truncated: true` partial + reason, never hangs) (Scenarios: `twenty-hit-search-is-budgeted`, `char-budget-truncates-with-explicit-omitted-count`, `context-timeout-returns-truncated-partial`) — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... -run Budget -count=1` — Expected: PASS
-- [ ] 03.5 `[AFK]` A 20-hit search returns 20 budgeted snippets (not 20× full JSON); every in-list result carries its `mem_get_observation` id (Scenarios: `twenty-hit-search-is-budgeted`, `every-inlist-result-carries-get-observation-id`) — `Run: go test ./skillgrid-cli/internal/mnemonic/service/... -run BudgetedSearch -count=1` — Expected: PASS
-- [ ] 03.6 `[AFK]` `mem_get_observation` remains the only full-content path; the budget is tunable (config); truncation never silent (Scenarios: `mem-get-observation-is-only-full-content-path`, `budget-is-tunable-via-config`) — `Run: go test ./skillgrid-cli/internal/mnemonic/service/... -run FullContent -count=1` — Expected: PASS
-- [ ] 03.7 `[AFK]` Route `mem_context`/`mem_search`/`mem_timeline` through the layered + budgeted path; `mem_get_observation` stays the only full-content path (Scenario: `mem-context-search-timeline-budgeted`) — `Run: go test ./skillgrid-cli/internal/mnemonic/service/... -run RouteReads -count=1` — Expected: PASS
-- [ ] 03.8 `[AFK]` CLI parity for `mem_layers`/`mem_governance`/`mem_share` (Scenario: `cli-parity-for-layer-governance-share`) — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
-- [ ] 03.9 `[AFK]` 005 `mem_*` names + required params unchanged; bad args rejected clearly (Scenarios: `budgeted-reads-005-stable`, `bad-retrieval-args-rejected`) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` — Expected: PASS
+- [x] 03.1 `[RED]` Threat "Context-window flood" — 20-hit search budgeted (truncated in-list + `mem_get_observation` id present + timeout honored with `truncated: true` partial) (Scenarios: `twenty-hit-search-is-budgeted`, `char-budget-truncates-with-explicit-omitted-count`, `context-timeout-returns-truncated-partial`)
+  - [x] 03.1.a Write failing test
+  - [x] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... -run Budget -count=1` — Expected: FAIL
+  - [x] 03.1.c Minimal implementation
+  - [x] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... -run Budget -count=1` — Expected: PASS
+  - [x] 03.1.e Commit — `feat(memory): item+char+timeout budget wrapper on mem_* reads`
+- [x] 03.2 `[RED]` Threat "Mnemonic tool surface" — layered retrieval + `mem_get_observation` only-full-content + 005 tools still stable + bad args rejected (Scenarios: `layered-retrieval-l2-l3-first-with-l1-l0-rrf-fallback`, `mem-get-observation-is-only-full-content-path`, `budgeted-reads-005-stable`)
+  - [x] 03.2.a Write failing test
+  - [x] 03.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Retrieve -count=1` — Expected: FAIL
+  - [x] 03.2.c Minimal implementation
+  - [x] 03.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... ./skillgrid-cli/internal/mnemonic/mcp/... -run Retrieve -count=1` — Expected: PASS
+  - [x] 03.2.e Commit — `feat(memory): layered L2/L3-first retrieval + mem_get_observation full-content path`
+- [x] 03.3 `[AFK]` `mem_context` / `mem_search` return L2/L3 first; specific-fact query falls back to L1/L0 via the existing RRF (Scenario: `layered-retrieval-l2-l3-first-with-l1-l0-rrf-fallback`) — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/retrieve_test.go -run Layered -count=1` — Expected: PASS
+- [x] 03.4 `[AFK]` Every `mem_*` read enforces the item-count cap, char budget (explicit "N chars omitted"), and context timeout (`truncated: true` partial + reason, never hangs) (Scenarios: `twenty-hit-search-is-budgeted`, `char-budget-truncates-with-explicit-omitted-count`, `context-timeout-returns-truncated-partial`) — `Run: go test ./skillgrid-cli/internal/mnemonic/memory/... -run Budget -count=1` — Expected: PASS
+- [x] 03.5 `[AFK]` A 20-hit search returns 20 budgeted snippets (not 20× full JSON); every in-list result carries its `mem_get_observation` id (Scenarios: `twenty-hit-search-is-budgeted`, `every-inlist-result-carries-get-observation-id`) — `Run: go test ./skillgrid-cli/internal/mnemonic/service/... -run BudgetedSearch -count=1` — Expected: PASS
+- [x] 03.6 `[AFK]` `mem_get_observation` remains the only full-content path; the budget is tunable (config); truncation never silent (Scenarios: `mem-get-observation-is-only-full-content-path`, `budget-is-tunable-via-config`) — `Run: go test ./skillgrid-cli/internal/mnemonic/service/... -run FullContent -count=1` — Expected: PASS
+- [x] 03.7 `[AFK]` Route `mem_context`/`mem_search`/`mem_timeline` through the layered + budgeted path; `mem_get_observation` stays the only full-content path (Scenario: `mem-context-search-timeline-budgeted`) — `Run: go test ./skillgrid-cli/internal/mnemonic/service/... -run RouteReads -count=1` — Expected: PASS
+- [x] 03.8 `[AFK]` CLI parity for `mem_layers`/`mem_governance`/`mem_share` (Scenario: `cli-parity-for-layer-governance-share`) — `Run: go test ./skillgrid-cli/cmd/skillgrid/... -count=1` — Expected: PASS
+- [x] 03.9 `[AFK]` 005 `mem_*` names + required params unchanged; bad args rejected clearly (Scenarios: `budgeted-reads-005-stable`, `bad-retrieval-args-rejected`) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/service/... -count=1` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/memory/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` | PASS | | |
-| Acceptance `@step-03` / `@p0` | `go test ./skillgrid-cli/internal/mnemonic/service/... ./skillgrid-cli/cmd/skillgrid/... -count=1` + BDD `@step-03 @p0` | PASS | | |
-| Runtime harness | `go test ./... -count=1` (from `skillgrid-cli` / repo root per module layout) | PASS | | |
-| Rollback boundary | drop `memory/budget` + `memory/retrieve` + budget wiring + CLI additions; 005 read path + 01/02 additive fields intact (unused) | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/memory/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` | PASS | PASS | budget (item+char+timeout, enforced via Bound+ApplyRead), retrieve (L2/L3-first + RRF fallback), mcp (budgeted in-list + only-full-content + bad-args) |
+| Acceptance `@step-03` / `@p0` | `go test ./skillgrid-cli/internal/mnemonic/service/... ./skillgrid-cli/cmd/skillgrid/... -count=1` + BDD `@step-03 @p0` | PASS | PASS | Layered, BudgetedSearch, FullContent, RouteReads, CLI parity (search/context/timeline budget flags), config-driven tunability |
+| Runtime harness | `go test ./skillgrid-cli/internal/mnemonic/... ./skillgrid-cli/cmd/skillgrid/... -count=1` (+ `-race`) | PASS | PASS | all mnemonic pkgs + cmd green incl. `-race` |
+| Rollback boundary | drop `memory/budget` + `memory/retrieve` + budget wiring + CLI additions; 005 read path + 01/02 additive fields intact (unused) | PASS | PASS | 017 (step-01) + 018 (step-02) untouched; budget/retrieve + wiring + CLI flags are the additive surface |
+| Global Constraints | — | held | held | every mem_* read budgeted (item+char+timeout, enforced, never hangs); mem_get_observation is the ONLY full-content path; layered L2/L3-first + existing-RRF L1/L0 fallback (real production caller, owner-gated); 005 mem_* names+params unchanged (78-tool lock); step-01 per-owner visibility gate preserved on the budgeted path |
+
+Review: task reviewer `approved with fixes`. Fix commits c25e122, 0cfa827, c19789a: (1) the budget timeout was a no-op (`TimeoutNs` stored but never consulted by `Apply`) — now `Budget.Bound` derives a deadline-bound ctx before the query and `ApplyRead` cuts a slow read to a `truncated:true`/`reason:timeout` partial (injectable, fast test); (2) `BudgetedRetrieval` had no production caller — now CLI `mem search` → `BudgetedRetrievalAs(AsRoot)` → `SearchOwnerScopedRetrieve` (the existing BlendedSearch RRF leg + step-01 `canRead` gate), with an end-to-end test asserting L2/L3-first + the gate; (3) CLI `mem context`/`timeline` now honor `--item/--char/--timeout` (uniform budget across all three reads). Scoped re-review: `TestMemSearchGetOwnerEnforcedWiring` still passes through the budgeted path; `-race` clean; 005/008/010/011 baselines green.
+
+Commits (step 03): 6fce689 (budget wrapper), 91fd4a4 (layered retrieve), 9142064 (route reads), 7508faa (budgeted in-list + only-full-content + bad-args), 7e29c3d (CLI parity), c25e122 (enforce timeout), 0cfa827 (owner-gated layered + production entry point), c19789a (uniform CLI budget).
 
 ### Commit
 
