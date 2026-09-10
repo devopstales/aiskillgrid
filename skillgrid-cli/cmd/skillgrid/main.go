@@ -164,6 +164,9 @@ func main() {
 	case "mem":
 		runMem(version, rest[1:])
 		return
+	case "session":
+		runSession(version, rest[1:])
+		return
 	case "embedding-status":
 		runSearchEmbeddingStatus(version, rest[1:])
 		return
