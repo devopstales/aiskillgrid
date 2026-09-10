@@ -146,6 +146,65 @@ func gitBlameOwners(ctx context.Context, repo, path string) ([]string, error) {
 	return owners, nil
 }
 
+// isDigits reports whether s is non-empty and all ASCII digits (the line
+// number field of a `git blame` metadata group).
+func isDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// isEpoch reports whether s is exactly 10 digits (a unix epoch timestamp).
+func isEpoch(s string) bool {
+	if len(s) != 10 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// isTz reports whether s is a git timestamp timezone offset: a 5-char signed
+// offset like "+0200" or "-0700" (the " <tz>" field of regular `git blame`).
+func isTz(s string) bool {
+	if len(s) != 5 || (s[0] != '+' && s[0] != '-') {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// isDateOrTime reports whether s is a "YYYY-MM-DD" date or an "H:MM[:SS]"
+// time — the date/time fields of regular `git blame` metadata.
+func isDateOrTime(s string) bool {
+	if len(s) >= 5 && s[4] == '-' && s[0] >= '0' && s[0] <= '9' {
+		return true // date-like (YYYY-MM-...)
+	}
+	dot := strings.IndexByte(s, ':')
+	if dot > 0 && dot < len(s)-1 {
+		for i := 0; i < len(s); i++ {
+			if s[i] != ':' && (s[i] < '0' || s[i] > '9') {
+				return false
+			}
+		}
+		return true // time-like (H:MM or HH:MM:SS)
+	}
+	return false
+}
+
 func hasString(list []string, s string) bool {
 	for _, v := range list {
 		if v == s {
@@ -190,21 +249,31 @@ func parseBlameAuthor(line string) string {
 		return ""
 	}
 	inner := line[open+1 : closeIdx]
-	// Inner is "<author> <timestamp> <linenum>". The timestamp starts at the
-	// first space after the author; take everything up to the first digit
-	// run (the date) — author names may contain spaces.
+	// The metadata group is "<author> <date> <tz> <linenum>" (regular `git
+	// blame`) or "<author> <epoch> <linenum>" (epoch form). The line number
+	// is the final group (always digits); the author is everything before
+	// the date field — so author names containing digits ("Dev2") are
+	// preserved.
 	rest := inner
-	for i := 0; i < len(rest); i++ {
-		if rest[i] == ' ' {
-			rest = rest[i+1:]
-			break
-		}
+	if j := strings.LastIndex(rest, " "); j >= 0 && isDigits(rest[j+1:]) {
+		rest = rest[:j] // drop the line number (always all-digits)
 	}
-	for i := 0; i < len(rest); i++ {
-		if rest[i] >= '0' && rest[i] <= '9' {
-			rest = rest[:i]
+	if i := strings.LastIndex(rest, " "); i >= 0 && isEpoch(rest[i+1:]) {
+		rest = rest[:i] // drop the epoch date
+		return strings.TrimSpace(rest)
+	}
+	// Regular form: "<author> <YYYY-MM-DD HH:MM:SS> <tz>". The tz is a
+	// 5-char signed offset (e.g. +0200, -0700) — drop it.
+	if i := strings.LastIndex(rest, " "); i >= 0 && isTz(rest[i+1:]) {
+		rest = rest[:i]
+	}
+	// Drop the time (HH:MM:SS, 1:20) and date (YYYY-MM-DD) fields.
+	for i := strings.LastIndex(rest, " "); i >= 0; i = strings.LastIndex(rest, " ") {
+		field := rest[i+1:]
+		if !isDateOrTime(field) {
 			break
 		}
+		rest = rest[:i]
 	}
 	return strings.TrimSpace(rest)
 }

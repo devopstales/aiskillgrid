@@ -142,4 +142,114 @@ func TestCodeAffectedBaseBadRef(t *testing.T) {
 	}
 }
 
+// TestParseBlameAuthor covers @step-02 (review fix): the author name is
+// everything between the metadata open paren and the " <10-digit epoch>"
+// timestamp — author names containing digits ("Dev2") must NOT be truncated
+// at their first digit run, and the timestamp must not leak into the name.
+func TestParseBlameAuthor(t *testing.T) {
+	cases := []struct {
+		line string
+		want string
+	}{
+		{
+			line: "3b729a55 (Dev2 2026-09-10 10:21:08 +0200 1) one1",
+			want: "Dev2",
+		},
+		{
+			line: "3b729a55 (Dev2 1789028468 1) one1",
+			want: "Dev2",
+		},
+		{
+			line: "3b729a55 (Fixture 1789028468 2) two2",
+			want: "Fixture",
+		},
+		{
+			line: "3b729a55 (John Smith Jr 1789028468 2) two2",
+			want: "John Smith Jr",
+		},
+		{
+			line: "3b729a55 (Fixture 2025-01-02 03:04:05 -0700 42) x",
+			want: "Fixture",
+		},
+		{
+			line: "3b729a55 (no trailing metadata) ",
+			want: "no trailing metadata",
+		},
+		{
+			line: "no parens at all",
+			want: "",
+		},
+	}
+	for _, c := range cases {
+		if got := parseBlameAuthor(c.line); got != c.want {
+			t.Errorf("parseBlameAuthor(%q) = %q, want %q", c.line, got, c.want)
+		}
+	}
+}
+
+// TestCodeAffectedBaseDigitAuthor covers @step-02 (review fix): a git author
+// whose name contains a digit ("Dev2") survives `git blame` parsing end to
+// end (owner is "Dev2", not "Dev").
+func TestCodeAffectedBaseDigitAuthor(t *testing.T) {
+	st := fixtureGraph(t)
+	root := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = root
+		cmd.Env = append(os.Environ(),
+			"GIT_CONFIG_GLOBAL="+filepath.Join(root, "noconfig"),
+			"GIT_CONFIG_SYSTEM="+filepath.Join(root, "noconfig"))
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	run("init", "-b", "main")
+	run("config", "user.name", "Dev2")
+	run("config", "user.email", "dev2@example.com")
+	commit := func(files map[string]string, msg string) {
+		t.Helper()
+		for name, content := range files {
+			p := filepath.Join(root, name)
+			if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+				t.Fatalf("mkdir %s: %v", name, err)
+			}
+			if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+				t.Fatalf("write %s: %v", name, err)
+			}
+		}
+		run("add", "-A")
+		run("commit", "-m", msg)
+	}
+	commit(map[string]string{
+		"src/base.go":     "package p\n\nfunc base() int {\n\treturn 1\n}\n",
+		"src/base_test.go": "package p\n\nfunc TestBase() {\n\t_ = base()\n}\n",
+	}, "base")
+	run("checkout", "-b", "feat")
+	commit(map[string]string{
+		"src/base.go": "package p\n\nfunc base() int {\n\treturn 2\n}\n",
+	}, "feature")
+
+	res, err := AffectedBase(context.Background(), st.DB, root, "main", Options{})
+	if err != nil {
+		t.Fatalf("affected --base (digit author): %v", err)
+	}
+	var baseArea *Area
+	for i := range res.Areas {
+		if res.Areas[i].Name == "src/base.go" {
+			baseArea = &res.Areas[i]
+		}
+	}
+	if baseArea == nil {
+		t.Fatalf("expected an area for changed file src/base.go, got %+v", res.Areas)
+	}
+	if !contains(baseArea.Owners, "Dev2") {
+		t.Fatalf("owner must be parsed as \"Dev2\" (digit in name preserved), got %v", baseArea.Owners)
+	}
+	if contains(baseArea.Owners, "Dev") {
+		t.Errorf("owner must not be truncated to \"Dev\", got %v", baseArea.Owners)
+	}
+}
+
 var _ = sort.Strings
