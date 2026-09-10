@@ -51,6 +51,10 @@ type SaveInput struct {
 	// ToolName is optional provenance for which agent tool produced the save
 	// (e.g. "mem_save"). Empty leaves the column NULL.
 	ToolName string
+	// Owner is the creating user/agent identity. A new observation always has
+	// an owner (private-by-default governance, change 013 step 01). Empty
+	// falls back to the session identity so the asset is never unowned.
+	Owner string
 }
 
 // PassiveInput is a raw block of text (assistant reply, Task output, etc.)
@@ -88,6 +92,14 @@ type Observation struct {
 	Source         string `json:"source,omitempty"`
 	NormalizedHash string `json:"normalized_hash,omitempty"`
 	RevisionCount  int    `json:"revision_count"`
+	// Owner, Visibility, Status, RetrievalUsage are additive governance fields
+	// (change 013 step 01). Private-by-default: a new observation is `private`
+	// and owned by the creating identity. They are never required and are
+	// additive on existing mem_* responses.
+	Owner          string `json:"owner,omitempty"`
+	Visibility     string `json:"visibility,omitempty"`
+	Status         string `json:"status,omitempty"`
+	RetrievalUsage int    `json:"retrieval_usage,omitempty"`
 	PromptID       *int64 `json:"prompt_id,omitempty"`
 	CreatedAt      string `json:"created_at"`
 	UpdatedAt      string `json:"updated_at"`
@@ -141,6 +153,14 @@ func (s *Service) Save(ctx context.Context, in SaveInput) (int64, error) {
 	if source == "" {
 		source = "agent"
 	}
+	// Governance (change 013 step 01): private-by-default + an owner on every
+	// new observation. owner falls back to the session identity so the asset
+	// is never unowned; visibility/status come from column defaults (private/
+	// active) and are not inferred.
+	owner := strings.TrimSpace(in.Owner)
+	if owner == "" {
+		owner = in.SessionID
+	}
 	hash := normalizedHash(in.Title, in.Content, in.Type)
 	now := time.Now().UTC().Format(time.RFC3339)
 
@@ -169,6 +189,14 @@ func (s *Service) Save(ctx context.Context, in SaveInput) (int64, error) {
 			s.projectID, in.Scope, in.TopicKey,
 		).Scan(&topicID)
 		if err == nil {
+			// Governance (013): a topic-key upsert that changes the content is
+			// an append, not a silent overwrite — capture the prior state into
+			// observation_versions before rewriting (best-effort, never blocks).
+			// revision 1 = the pre-update state; the upsert below advances
+			// revision_count to 1, so the history row matches.
+			if appErr := s.AppendVersion(ctx, topicID, 1); appErr == nil {
+				// recorded
+			}
 			// last_seen_at mirrors Engram's last_seen_at semantics here: any
 			// save that matches an existing topic_key refreshes "last seen".
 			_, err = s.store.DB.ExecContext(ctx, `
@@ -198,10 +226,11 @@ func (s *Service) Save(ctx context.Context, in SaveInput) (int64, error) {
 	res, err := s.store.DB.ExecContext(ctx, `
 		INSERT INTO observations (
 			session_id, type, title, content, project, scope, topic_key,
-			normalized_hash, revision_count, created_at, updated_at, source, prompt_id, tool_name
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+			normalized_hash, revision_count, created_at, updated_at, source, prompt_id, tool_name,
+			owner, visibility, status, retrieval_usage
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, 'private', 'active', 0)`,
 		in.SessionID, in.Type, in.Title, in.Content, s.projectID, in.Scope, nullString(in.TopicKey),
-		hash, now, now, source, nullableInt(promptID), nullString(in.ToolName),
+		hash, now, now, source, nullableInt(promptID), nullString(in.ToolName), owner,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("insert observation: %w", err)
@@ -272,7 +301,8 @@ func (s *Service) SearchWithScope(ctx context.Context, query, matchMode, scope s
 	rows, err := s.store.DB.QueryContext(ctx, `
 		SELECT o.id, o.session_id, o.type, o.title, o.content, o.project, o.scope,
 		       o.topic_key, o.source, o.normalized_hash, o.revision_count, o.prompt_id, o.created_at, o.updated_at,
-		       COALESCE(o.pinned, 0), COALESCE(o.duplicate_count, 0), o.last_seen_at, o.expires_at, o.tool_name
+		       COALESCE(o.pinned, 0), COALESCE(o.duplicate_count, 0), o.last_seen_at, o.expires_at, o.tool_name,
+		       o.owner, COALESCE(o.visibility, 'private'), COALESCE(o.status, 'active'), COALESCE(o.retrieval_usage, 0)
 		FROM observations o
 		INNER JOIN observations_fts ON observations_fts.rowid = o.id
 		WHERE observations_fts MATCH ? AND o.deleted_at IS NULL AND o.project = ?`+scopeClause+`
@@ -285,7 +315,16 @@ func (s *Service) SearchWithScope(ctx context.Context, query, matchMode, scope s
 		return nil, fmt.Errorf("search observations: %w", err)
 	}
 	defer rows.Close()
-	return scanObservations(rows)
+	out, err := scanObservations(rows)
+	if err != nil {
+		return nil, err
+	}
+	// Governance (013 step 01): a search hit increments retrieval-usage
+	// (distinct from duplicate_count, which counts re-saves). Best-effort.
+	for _, o := range out {
+		s.BumpRetrievalUsage(ctx, o.ID)
+	}
+	return out, nil
 }
 
 // Recent returns stored observations, newest first, without FTS.
@@ -325,12 +364,12 @@ func (s *Service) Get(ctx context.Context, id int64) (Observation, error) {
 	var obs Observation
 	var topicKey sql.NullString
 	var promptID sql.NullInt64
-	var lastSeen, expires, toolName sql.NullString
-	var pinned, dups int
+	var lastSeen, expires, toolName, owner sql.NullString
+	var pinned, dups, usage int
 	err := row.Scan(
 		&obs.ID, &obs.SessionID, &obs.Type, &obs.Title, &obs.Content, &obs.Project, &obs.Scope,
 		&topicKey, &obs.Source, &obs.NormalizedHash, &obs.RevisionCount, &promptID, &obs.CreatedAt, &obs.UpdatedAt,
-		&pinned, &dups, &lastSeen, &expires, &toolName,
+		&pinned, &dups, &lastSeen, &expires, &toolName, &owner, &obs.Visibility, &obs.Status, &usage,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -347,6 +386,7 @@ func (s *Service) Get(ctx context.Context, id int64) (Observation, error) {
 	}
 	obs.Pinned = pinned == 1
 	obs.DuplicateCount = dups
+	obs.RetrievalUsage = usage
 	if lastSeen.Valid {
 		obs.LastSeenAt = lastSeen.String
 	}
@@ -355,6 +395,9 @@ func (s *Service) Get(ctx context.Context, id int64) (Observation, error) {
 	}
 	if toolName.Valid {
 		obs.ToolName = toolName.String
+	}
+	if owner.Valid {
+		obs.Owner = owner.String
 	}
 	return obs, nil
 }
@@ -1247,11 +1290,14 @@ func nullString(s string) sql.NullString {
 }
 
 // obsSelectCols is the shared column list every observation SELECT uses, so that
-// the SELECT and the Scan in scanObservations cannot drift apart.
+// the SELECT and the Scan in scanObservations cannot drift apart. The trailing
+// governance columns (owner/visibility/status/retrieval_usage) are additive
+// (change 013 step 01); COALESCE gives the pre-migration defaults.
 const obsSelectCols = `
 	id, session_id, type, title, content, project, scope,
 	topic_key, source, normalized_hash, revision_count, prompt_id, created_at, updated_at,
-	COALESCE(pinned, 0), COALESCE(duplicate_count, 0), last_seen_at, expires_at, tool_name`
+	COALESCE(pinned, 0), COALESCE(duplicate_count, 0), last_seen_at, expires_at, tool_name,
+	owner, COALESCE(visibility, 'private'), COALESCE(status, 'active'), COALESCE(retrieval_usage, 0)`
 
 func scanObservations(rows *sql.Rows) ([]Observation, error) {
 	var out []Observation
@@ -1259,12 +1305,12 @@ func scanObservations(rows *sql.Rows) ([]Observation, error) {
 		var obs Observation
 		var topicKey sql.NullString
 		var promptID sql.NullInt64
-		var lastSeen, expires, toolName sql.NullString
-		var pinned, dups int
+		var lastSeen, expires, toolName, owner sql.NullString
+		var pinned, dups, usage int
 		if err := rows.Scan(
 			&obs.ID, &obs.SessionID, &obs.Type, &obs.Title, &obs.Content, &obs.Project, &obs.Scope,
 			&topicKey, &obs.Source, &obs.NormalizedHash, &obs.RevisionCount, &promptID, &obs.CreatedAt, &obs.UpdatedAt,
-			&pinned, &dups, &lastSeen, &expires, &toolName,
+			&pinned, &dups, &lastSeen, &expires, &toolName, &owner, &obs.Visibility, &obs.Status, &usage,
 		); err != nil {
 			return nil, fmt.Errorf("scan observation: %w", err)
 		}
@@ -1277,6 +1323,7 @@ func scanObservations(rows *sql.Rows) ([]Observation, error) {
 		}
 		obs.Pinned = pinned == 1
 		obs.DuplicateCount = dups
+		obs.RetrievalUsage = usage
 		if lastSeen.Valid {
 			obs.LastSeenAt = lastSeen.String
 		}
@@ -1285,6 +1332,9 @@ func scanObservations(rows *sql.Rows) ([]Observation, error) {
 		}
 		if toolName.Valid {
 			obs.ToolName = toolName.String
+		}
+		if owner.Valid {
+			obs.Owner = owner.String
 		}
 		out = append(out, obs)
 	}

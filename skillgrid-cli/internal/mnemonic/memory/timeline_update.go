@@ -76,12 +76,28 @@ func (s *Service) Update(ctx context.Context, id int64, in UpdateInput) error {
 		return errors.New("no fields to update")
 	}
 
-	sets := make([]string, 0, len(kvs)+1)
-	args := make([]any, 0, len(kvs)+1)
+	// Governance (013 step 01): a mem_update appends a version, it does not
+	// silently overwrite. Capture the pre-update state (tagged with the
+	// revision about to be reached) before the UPDATE below rewrites content
+	// and advances revision_count. Best-effort: never blocks the update.
+	if hasContent {
+		var curRev int
+		if err := s.store.DB.QueryRowContext(ctx, `
+			SELECT COALESCE(revision_count,0) FROM observations
+			WHERE id = ? AND project = ? AND deleted_at IS NULL`, id, s.projectID).Scan(&curRev); err == nil {
+			if appErr := s.AppendVersion(ctx, id, curRev+1); appErr == nil {
+				// recorded
+			}
+		}
+	}
+
+	sets := make([]string, 0, len(kvs)+2)
+	args := make([]any, 0, len(kvs)+2)
 	for _, pair := range kvs {
 		sets = append(sets, pair.col+" = ?")
 		args = append(args, pair.val)
 	}
+	sets = append(sets, "revision_count = COALESCE(revision_count,0) + 1")
 	sets = append(sets, "updated_at = ?")
 	args = append(args, time.Now().UTC().Format(time.RFC3339), id, s.projectID)
 	res, err := s.store.DB.ExecContext(ctx, `
