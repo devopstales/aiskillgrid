@@ -1,0 +1,189 @@
+package memory
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
+)
+
+// LayerHit is one result of layered retrieval (change 013, step 03). It
+// carries the provenance layer (L2/L3 from the step-02 bootstrap, L1/L0 from
+// the RRF fallback) and the full-content fetch id so the agent can pull the
+// untruncated content on demand (mem_get_observation is the only full-content
+// path — in-list hits are truncated).
+type LayerHit struct {
+	Layer       string `json:"layer"` // L3 | L2 | L1 | L0
+	TargetKind  string `json:"target_kind"`
+	TargetID    int64  `json:"target_id"`
+	Title       string `json:"title,omitempty"`
+	Content     string `json:"content"`
+	SourceTopic string `json:"source_topic,omitempty"`
+	// GetObservationID is the id the agent uses to fetch the full, untruncated
+	// content via mem_get_observation. For an L1 atom it is the observation id;
+	// for an L2/L3 persona it is the persona id (surfaced as the stable handle).
+	// 0 only when the target is not directly fetchable by id.
+	GetObservationID int64 `json:"get_observation_id"`
+}
+
+// RetrieveOpts tunes layered retrieval. Mode is "bootstrap" (L2/L3-first) or
+// "fact" (RRF fallback for a specific fact). Limit bounds how many hits are
+// returned before the read budget is applied.
+type RetrieveOpts struct {
+	Mode  string // "bootstrap" | "fact"
+	Query string
+	Limit int
+}
+
+// Retrieve is the layered retrieval read path (change 013, step 03): it
+// bootstraps from L2/L3 (the step-02 observation_layers/personas store) and,
+// for a specific fact, falls back to L1/L0 via the EXISTING 005 RRF read path
+// (BlendedSearch — FTS + vector + ReciprocalRankFusion). It does NOT
+// re-implement RRF: it routes through BlendedSearch for the L1/L0 leg.
+//
+// The result is the in-list projection: L2/L3 first (cheap, stable), L1/L0
+// after. In-list content is NOT truncated here (that is the read budget's job,
+// applied at the MCP boundary) — Retrieve returns the full ranked hit list and
+// the caller budgets it. mem_get_observation remains the only full-content
+// path: every hit carries its GetObservationID.
+func (s *Service) Retrieve(ctx context.Context, opts RetrieveOpts) ([]LayerHit, error) {
+	if s == nil || s.store == nil || s.store.DB == nil {
+		return nil, errors.New("memory service not initialized")
+	}
+	mode := strings.ToLower(strings.TrimSpace(opts.Mode))
+	if mode == "" {
+		mode = "bootstrap"
+	}
+	limit := opts.Limit
+	if limit <= 0 {
+		limit = defaultSearchLimit
+	}
+
+	var out []LayerHit
+	switch mode {
+	case "bootstrap":
+		l2l3, err := s.layerBootstrap(ctx, limit)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, l2l3...)
+		// Bootstrap returns L2/L3 first; a specific fact is a separate "fact"
+		// query that falls back to RRF.
+	case "fact":
+		rrf, err := s.rrfFallback(ctx, opts.Query, limit)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, rrf...)
+	default:
+		return nil, fmt.Errorf("unknown retrieve mode %q (valid: bootstrap, fact)", mode)
+	}
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
+// layerBootstrap returns the L2/L3 bootstrap hits: the step-02 personas records
+// (L3 persona-delta before L2 scenario — the most stable, cheapest first), each
+// provenance-linked to its resolvable L0 source. A project with no distilled
+// layers returns an empty list (not an error) — bootstrap degrades gracefully.
+func (s *Service) layerBootstrap(ctx context.Context, limit int) ([]LayerHit, error) {
+	rows, err := s.store.DB.QueryContext(ctx, `
+		SELECT p.id, p.kind, p.title, p.content, l.source_topic
+		FROM observation_layers l
+		INNER JOIN personas p ON p.id = l.target_id AND p.project = l.project
+		WHERE l.project = ? AND l.target_kind = 'persona' AND l.layer IN ('L2','L3')
+		ORDER BY CASE l.layer WHEN 'L3' THEN 0 ELSE 1 END, p.id ASC
+		LIMIT ?`,
+		s.projectID, limit*2,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("bootstrap layers: %w", err)
+	}
+	defer rows.Close()
+	var out []LayerHit
+	for rows.Next() {
+		var (
+			personaID int64
+			kind      string
+			title, content, topic sql.NullString
+		)
+		if err := rows.Scan(&personaID, &kind, &title, &content, &topic); err != nil {
+			return nil, fmt.Errorf("scan bootstrap: %w", err)
+		}
+		h := LayerHit{
+			Layer:          layerForKind(kind),
+			TargetKind:     "persona",
+			TargetID:       personaID,
+			GetObservationID: personaID,
+		}
+		if title.Valid {
+			h.Title = title.String
+		}
+		if content.Valid {
+			h.Content = content.String
+		}
+		if topic.Valid {
+			h.SourceTopic = topic.String
+		}
+		out = append(out, h)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
+// layerForKind maps a personas kind to its layer label.
+func layerForKind(kind string) string {
+	switch kind {
+	case "persona_delta":
+		return "L3"
+	default: // scenario
+		return "L2"
+	}
+}
+
+// rrfFallback is the L1/L0 leg: it routes through the EXISTING 005 RRF read
+// path (BlendedSearch: FTS + vector + ReciprocalRankFusion) so a specific fact
+// falls back to ranked fusion. L1 atoms are observations (reachable via FTS);
+// the L0 raw record is the session summary (the RRF floor). We do NOT
+// re-implement RRF here — we call BlendedSearch.
+func (s *Service) rrfFallback(ctx context.Context, query string, limit int) ([]LayerHit, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		// No fact to look up: an empty query returns nothing (not an error) —
+		// a specific-fact query with no fact is a no-op, not a hang.
+		return nil, nil
+	}
+	hits, err := s.BlendedSearch(ctx, query, "any", "", Vector{}, limit)
+	if err != nil {
+		return nil, err
+	}
+	var out []LayerHit
+	for _, o := range hits {
+		out = append(out, LayerHit{
+			Layer:            "L1",
+			TargetKind:       "observation",
+			TargetID:         o.ID,
+			Title:            o.Title,
+			Content:          o.Content,
+			GetObservationID: o.ID,
+		})
+	}
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
+// ErrRetrievalEmpty is returned (not raised as a failure) when a layered
+// retrieval returns no hits — e.g. a bootstrap with no distilled layers or a
+// fact query that matches nothing. It is a condition to be surfaced, not an
+// error; callers may ignore it and treat the result as an empty list.
+var ErrRetrievalEmpty = errors.New("no retrieval hits")
