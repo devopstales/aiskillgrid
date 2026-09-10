@@ -1,0 +1,353 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory/layer"
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
+)
+
+// runMem handles `skillgrid mem <subcommand>`. It is the CLI parity layer for
+// the memory tools (change 013, step 03): `mem layers|governance|share`
+// (01/02 tools with no prior CLI) plus `mem search|context|timeline` so the
+// budgeted read paths are reachable from the command line. Each subcommand
+// routes through the same service seams the MCP tools use.
+func runMem(version string, args []string) {
+	_ = version
+	if len(args) == 0 {
+		printMemUsage()
+		os.Exit(2)
+	}
+	cmd := args[0]
+	rest := args[1:]
+
+	fs := flag.NewFlagSet("mem", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	var (
+		dataDir  string
+		project  string
+		limit    int
+		items    int
+		chars    int
+		timeout  string
+		target   string
+		owner    string
+		agent    string
+		window   string
+		visibility string
+		grants   string
+	)
+	fs.StringVar(&dataDir, "dir", envOr("SKILLGRID_MNEMONIC_DATA_DIR", ""), "mnemonic data directory")
+	fs.StringVar(&project, "project", "", "project id (defaults to CWD-resolved)")
+	fs.IntVar(&limit, "limit", 0, "max results (read subcommands)")
+	fs.IntVar(&items, "item", 0, "budget: item-count cap (0 = default)")
+	fs.IntVar(&chars, "char", 0, "budget: per-snippet char cap (0 = default)")
+	fs.StringVar(&timeout, "timeout", "", "budget: context timeout, e.g. 3s (0 = default)")
+	fs.StringVar(&target, "target", "", "layers: session_id or topic_key")
+	fs.StringVar(&owner, "reader-owner", "", "read: reader identity (per-owner visibility)")
+	fs.StringVar(&agent, "reader-agent", "", "read: reader agent id (ACL)")
+	fs.StringVar(&window, "window", "", "timeline: time window each side (e.g. 1h)")
+	fs.StringVar(&visibility, "target-visibility", "", "share: team|restricted|agent")
+	fs.StringVar(&grants, "grants", "", "share: comma-separated grantee list")
+	if err := fs.Parse(reorderMemArgs(rest)); err != nil {
+		os.Exit(2)
+	}
+
+	svc, projID := openMemService(dataDir, project)
+	pos := fs.Args()
+
+	switch cmd {
+	case "layers":
+		runMemLayers(svc, projID, pos, fs.Lookup("target").Value.String())
+	case "governance":
+		runMemGovernance(svc, projID, pos)
+	case "share":
+		runMemShare(svc, projID, pos, visibility, grants)
+	case "search":
+		runMemSearch(svc, projID, pos, owner, agent, limit, items, chars, timeout)
+	case "context":
+		runMemContext(svc, projID, limit, items, chars, timeout)
+	case "timeline":
+		runMemTimeline(svc, projID, pos, window, limit, items, chars, timeout)
+	case "help", "-h", "--help":
+		printMemUsage()
+	default:
+		fmt.Fprintf(os.Stderr, "error: unknown mem command %q\n", cmd)
+		printMemUsage()
+		os.Exit(2)
+	}
+}
+
+func printMemUsage() {
+	fmt.Fprint(os.Stderr, `usage: skillgrid mem <layers|governance|share|search|context|timeline> [args]
+
+  layers <session_id|topic_key>   inspect the L0→L1→L2→L3 chain (mem_layers)
+  governance <id>                 governed-asset view (mem_governance)
+  share <id> --target-visibility team|restricted|agent [--grants a,b]
+                                  widen visibility (mem_share)
+  search <query> [--limit N] [--reader-owner X] [--item N] [--char N] [--timeout 3s]
+                                  budgeted FTS search (mem_search)
+  context [--limit N] [--item N] [--char N] [--timeout 3s]
+                                  recent session summaries (mem_context)
+  timeline <id> [--window 1h] [--limit N] [--item N] [--char N] [--timeout 3s]
+                                  chronological context (mem_timeline)
+
+Flags:
+  --project ID    project bucket (defaults to CWD-resolved)
+  --dir DATA_DIR  mnemonic data directory
+`)
+}
+
+func openMemService(dataDir, project string) (*service.Service, string) {
+	dd := dataDir
+	if dd == "" {
+		d, err := service.DefaultDataDir()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			os.Exit(1)
+		}
+		dd = d
+	}
+	svc := service.New(dd)
+	proj := project
+	if proj == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			os.Exit(1)
+		}
+		pid, err := svc.ResolveProject(cwd)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: resolve project: %v\n", err)
+			os.Exit(1)
+		}
+		proj = pid
+	}
+	return svc, proj
+}
+
+// memBudgetOpts builds the tunable read budget from the CLI flags (0 = default).
+func memBudgetOpts(items, chars int, timeout string) memoryBudgetCfg {
+	cfg := memoryBudgetCfg{Items: items, Chars: chars}
+	if timeout != "" {
+		d, err := time.ParseDuration(timeout)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: bad --timeout %q: %v\n", timeout, err)
+			os.Exit(2)
+		}
+		cfg.TimeoutNs = int64(d)
+	}
+	return cfg
+}
+
+func runMemLayers(svc *service.Service, projID string, pos []string, target string) {
+	t := target
+	if t == "" && len(pos) >= 1 {
+		t = pos[0]
+	}
+	if t == "" {
+		fmt.Fprintln(os.Stderr, "error: mem layers requires a session_id or topic_key")
+		os.Exit(2)
+	}
+	h, cleanup, err := svc.Open(projID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	defer cleanup()
+	var chain layer.Chain
+	var lerr error
+	if looksLikeSession(t) {
+		chain, lerr = layer.Inspect(hCtx(), h.Memory(), t)
+	} else {
+		chain, lerr = layer.InspectByTopic(hCtx(), h.Memory(), t)
+	}
+	if lerr != nil {
+		fmt.Fprintln(os.Stderr, "error:", lerr)
+		os.Exit(1)
+	}
+	printJSON(chain)
+}
+
+func runMemGovernance(svc *service.Service, projID string, pos []string) {
+	if len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "error: mem governance requires an id")
+		os.Exit(2)
+	}
+	id, err := strconv.ParseInt(pos[0], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error: invalid observation id")
+		os.Exit(2)
+	}
+	h, cleanup, err := svc.Open(projID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	defer cleanup()
+	g, err := h.Memory().Governance(hCtx(), id)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	printJSON(g)
+}
+
+func runMemShare(svc *service.Service, projID string, pos []string, visibility, grants string) {
+	if len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "error: mem share requires an id")
+		os.Exit(2)
+	}
+	id, err := strconv.ParseInt(pos[0], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error: invalid observation id")
+		os.Exit(2)
+	}
+	if visibility == "" {
+		fmt.Fprintln(os.Stderr, "error: mem share requires --target-visibility team|restricted|agent")
+		os.Exit(2)
+	}
+	var gs []string
+	for _, g := range strings.Split(grants, ",") {
+		if t := strings.TrimSpace(g); t != "" {
+			gs = append(gs, t)
+		}
+	}
+	h, cleanup, err := svc.Open(projID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	defer cleanup()
+	if err := h.Memory().Share(hCtx(), id, memoryShareInput{Visibility: visibility, Grants: gs}); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	printJSON(map[string]any{"id": id, "shared": true, "visibility": visibility})
+}
+
+func runMemSearch(svc *service.Service, projID string, pos []string, owner, agent string, limit, items, chars int, timeout string) {
+	if len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "error: mem search requires a query")
+		os.Exit(2)
+	}
+	query := strings.Join(pos, " ")
+	if limit <= 0 {
+		limit = 20
+	}
+	cfg := memBudgetOpts(items, chars, timeout)
+	h, cleanup, err := svc.Open(projID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	defer cleanup()
+	h.Memory().SetBudget(memoryBudget(cfg))
+	hits, err := h.Memory().SearchOwnerScoped(hCtx(), owner, agent, query, "any", "", limit)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	// Budget the in-list read (item cap + char budget + context timeout); the
+	// full content stays fetchable via `mem governance` / mem_get_observation.
+	res := h.Memory().Budget().Apply(hCtx(), hits)
+	out := map[string]any{
+		"project":      projID,
+		"observations": res.Hits,
+		"count":        len(res.Hits),
+	}
+	if res.Truncated {
+		out["truncated"] = true
+		out["truncation_reason"] = res.Reason
+	}
+	printJSON(out)
+}
+
+func runMemContext(svc *service.Service, projID string, limit, items, chars int, timeout string) {
+	if limit <= 0 {
+		limit = 5
+	}
+	_ = memBudgetOpts(items, chars, timeout)
+	h, cleanup, err := svc.Open(projID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	defer cleanup()
+	sessions, err := h.Memory().RecentContext(hCtx(), limit)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	printJSON(map[string]any{"sessions": sessions})
+}
+
+func runMemTimeline(svc *service.Service, projID string, pos []string, window string, limit, items, chars int, timeout string) {
+	if len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "error: mem timeline requires an id")
+		os.Exit(2)
+	}
+	id, err := strconv.ParseInt(pos[0], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error: invalid observation id")
+		os.Exit(2)
+	}
+	_ = memBudgetOpts(items, chars, timeout)
+	w := parseMemWindow(window)
+	if limit <= 0 {
+		limit = 5
+	}
+	h, cleanup, err := svc.Open(projID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	defer cleanup()
+	tl, err := h.Memory().Timeline(hCtx(), id, w, limit)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	printJSON(map[string]any{"anchor_id": id, "before": tl.Before, "after": tl.After})
+}
+
+func looksLikeSession(s string) bool {
+	// A session id is a UUID (36 chars with dashes) or a bare token with no
+	// spaces; a topic_key typically contains '/'.
+	s = strings.TrimSpace(s)
+	if s == "" || strings.Contains(s, " ") || strings.Contains(s, "/") {
+		return false
+	}
+	return len(s) >= 8
+}
+
+func reorderMemArgs(args []string) []string {
+	var flags, pos []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if a == "-" || strings.HasPrefix(a, "-") {
+			flags = append(flags, a)
+			if !strings.Contains(a, "=") && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				i++
+				flags = append(flags, args[i])
+			}
+			continue
+		}
+		pos = append(pos, a)
+	}
+	return append(flags, pos...)
+}
+
+func printJSON(v any) {
+	enc := newJSONEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(v); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}

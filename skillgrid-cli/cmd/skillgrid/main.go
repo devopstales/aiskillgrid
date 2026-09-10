@@ -66,6 +66,7 @@ func main() {
 		fmt.Fprintln(w, `  migrate       Backfill mnemonic tier sidecars (--tier)`)
 		fmt.Fprintln(w, `  trail         Inspect retrieval trails (recent|show)`)
 		fmt.Fprintln(w, `  search        Hybrid code search (FTS + signals + semantic, per-signal provenance)`)
+		fmt.Fprintln(w, `  mem           Memory tools (layers|governance|share|search|context|timeline)`)
 		fmt.Fprintln(w, `  embedding-status  Report active embedder provider/model and embedded counts`)
 		fmt.Fprintln(w, `  doctor        Functional health check (embed round-trip, capabilities; --strict for CI)`)
 		fmt.Fprintln(w, `  eval          Retrieval-eval ablation (--corpus self | name=path; leak-free git queries)`)
@@ -159,6 +160,9 @@ func main() {
 		return
 	case "search":
 		runSearch(version, rest[1:])
+		return
+	case "mem":
+		runMem(version, rest[1:])
 		return
 	case "embedding-status":
 		runSearchEmbeddingStatus(version, rest[1:])
