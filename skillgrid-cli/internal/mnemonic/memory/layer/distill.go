@@ -52,6 +52,9 @@ type DistillResult struct {
 	SourceHash string
 	// LLMUsed is true when the optional LLM pass ran (false on the no-LLM floor).
 	LLMUsed bool
+	// Err captures a best-effort distill error (set by the session-close hook
+	// so a failure is surfaced but never breaks the caller). Empty on success.
+	Err error `json:"-"`
 }
 
 // Distill refines the L0 record of sessionID into L1 atoms + an L2 scenario +
