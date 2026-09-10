@@ -1190,6 +1190,23 @@ type Status struct {
 	LastIndexed string `json:"last_indexed,omitempty"`
 }
 
+// WatchStatus reports the auto-sync watcher state for the index status section.
+type WatchStatus struct {
+	Enabled bool     `json:"enabled"`
+	Pending []string `json:"pending,omitempty"`
+}
+
+// GetWatchStatus reports whether the watcher is disabled (manual index) and the
+// set of pending (unsynced) source files. pending is empty when the watcher is
+// off or nothing is pending.
+func GetWatchStatus(w *Watcher) WatchStatus {
+	ws := WatchStatus{Enabled: !WatchDisabled()}
+	if w != nil {
+		ws.Pending = w.Pending()
+	}
+	return ws
+}
+
 // GetStatus returns current index stats from the store.
 func GetStatus(st *store.Store) (Status, error) {
 	var status Status
