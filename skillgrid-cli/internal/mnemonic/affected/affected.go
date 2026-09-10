@@ -172,6 +172,7 @@ func Affected(ctx context.Context, db *sql.DB, opts Options) (Result, error) {
 	}
 
 	testSeen := map[string]bool{}
+	pathCache := map[int64]string{}
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
@@ -193,7 +194,7 @@ func Affected(ctx context.Context, db *sql.DB, opts Options) (Result, error) {
 				continue
 			}
 			rel := Relationship{
-				From: curPathCache(ctx, db, cur.id),
+				From: curPathCache(ctx, db, cur.id, pathCache),
 				To:   sym.Name,
 				Kind: h.kind, Confidence: h.conf,
 				Depth: cur.depth + 1, Via: sym.UID, DepPath: sym.Path,
@@ -310,10 +311,11 @@ type sym struct {
 	Path string
 }
 
-// pathCache memoizes symbol->path lookups for the relationship report.
-var pathCache = map[int64]string{}
-
-func curPathCache(ctx context.Context, db *sql.DB, id int64) string {
+// curPathCache memoizes symbol->path lookups for the relationship report. The
+// cache is scoped to the calling Affected invocation (passed in), so
+// concurrent calls over different stores cannot collide on a symbol id or
+// read a stale path from another call.
+func curPathCache(ctx context.Context, db *sql.DB, id int64, pathCache map[int64]string) string {
 	if p, ok := pathCache[id]; ok {
 		return p
 	}
