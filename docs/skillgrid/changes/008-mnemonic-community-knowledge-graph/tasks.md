@@ -92,10 +92,10 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: apply         # spec | apply | verify | archive
+phase: verify        # spec | apply | verify | archive
 current_step: 03-knowledge-graph-nodes
-status: in_progress  # in_progress | blocked | done
-next_action: apply 008 step 03 (knowledge nodes + indexer hook 03.8)
+status: done         # in_progress | blocked | done
+next_action: run sdd-verify (all 3 steps applied + per-step Verdict PASS)
 updated: 2026-09-09
 ```
 
@@ -405,49 +405,53 @@ This step is done only when:
 
 ### Tasks
 
-- [ ] 03.1 `[RED]` Mnemonic tool surface — knowledge tools register + 005 tools stable + bad args rejected (Scenario: Knowledge tools register and reject bad args) — threat: Mnemonic tool surface
+- [x] 03.1 `[RED]` Mnemonic tool surface — knowledge tools register + 005 tools stable + bad args rejected (Scenario: Knowledge tools register and reject bad args) — threat: Mnemonic tool surface
   - [ ] 03.1.a Write failing test — knowledge query tools registered with distinct `code_*` names; 005 tools still name/param-stable; bad/missing args rejected clearly
   - [ ] 03.1.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run KnowledgeTools -count=1` — Expected: FAIL
   - [ ] 03.1.c Minimal implementation — `tools_code_knowledge.go` + `server.go` registration + `main.go` dispatch
   - [ ] 03.1.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... -run KnowledgeTools -count=1` — Expected: PASS
   - [ ] 03.1.e Commit — `feat(mnemonic): register knowledge-graph query tools`
-- [ ] 03.2 `[RED]` Markdown links/wikilinks become references edges (Scenario: Markdown links and wikilinks become references edges)
+- [x] 03.2 `[RED]` Markdown links/wikilinks become references edges (Scenario: Markdown links and wikilinks become references edges)
   - [ ] 03.2.a Write failing test — `.md` files with `[text](./other.md)` and `[[wikilinks]]` produce `doc_nodes` + `references` edges between doc nodes, each confidence-labeled
   - [ ] 03.2.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run DocLinks -count=1` — Expected: FAIL
   - [ ] 03.2.c Minimal implementation — `knowledge/doc.go` (markdown link/wikilink parser → `references`)
   - [ ] 03.2.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run DocLinks -count=1` — Expected: PASS
   - [ ] 03.2.e Commit — `feat(mnemonic): markdown doc-link extractor`
-- [ ] 03.3 `[RED]` Config refs become configures edges (Scenario: Config references become configures edges)
+- [x] 03.3 `[RED]` Config refs become configures edges (Scenario: Config references become configures edges)
   - [ ] 03.3.a Write failing test — `.yaml`/`.toml`/`.json` files produce `config_nodes` + `configures` edges to the code they configure; explicit syntax is `EXTRACTED`, resolved-but-inferred refs are `INFERRED`
   - [ ] 03.3.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run ConfigRefs -count=1` — Expected: FAIL
   - [ ] 03.3.c Minimal implementation — `knowledge/config.go` (key→symbol resolver → `configures`)
   - [ ] 03.3.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run ConfigRefs -count=1` — Expected: PASS
   - [ ] 03.3.e Commit — `feat(mnemonic): config-ref extractor`
-- [ ] 03.4 `[RED]` SQL DDL becomes table/column nodes with reads/writes (Scenario: SQL DDL becomes table and column nodes with reads and writes)
+- [x] 03.4 `[RED]` SQL DDL becomes table/column nodes with reads/writes (Scenario: SQL DDL becomes table and column nodes with reads and writes)
   - [ ] 03.4.a Write failing test — `.sql` DDL produces `sql_schema_nodes` (tables + columns) and code that references them gets `reads`/`writes` edges, confidence-labeled
   - [ ] 03.4.b Run to confirm fail — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run SqlSchema -count=1` — Expected: FAIL
   - [ ] 03.4.c Minimal implementation — `knowledge/sql.go` (DDL parser + identifier-ref scan → `reads`/`writes`)
   - [ ] 03.4.d Run to confirm pass — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run SqlSchema -count=1` — Expected: PASS
   - [ ] 03.4.e Commit — `feat(mnemonic): sql-schema extractor`
-- [ ] 03.5 `[AFK]` Unresolvable config ref is AMBIGUOUS, not dropped (Scenario: Unresolvable config ref is ambiguous not dropped) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run AmbiguousConfigRef -count=1` — Expected: PASS
-- [ ] 03.6 `[AFK]` Malformed doc file: skip bad links, index the rest (Scenario: Malformed doc file falls back and indexes the rest) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run MalformedDoc -count=1` — Expected: PASS
-- [ ] 03.7 `[AFK]` Malformed SQL statement: skip it, index the rest (Scenario: Malformed SQL statement is skipped and the rest is indexed) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run MalformedSQL -count=1` — Expected: PASS
-- [ ] 03.8 `[AFK]` Indexer hook runs all three passes in the same transaction (Scenario: Indexer hook runs community, process, and knowledge in one transaction) — `Run: go test ./skillgrid-cli/internal/mnemonic/codeindex/... -run IndexerHook -count=1` — Expected: PASS
-- [ ] 03.9 `[AFK]` code_path traces code to doc to config to table (Scenario: Path tool traces code to doc to config to table) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/knowledge/... -run CodePathSpan -count=1` — Expected: PASS
+- [x] 03.5 `[AFK]` Unresolvable config ref is AMBIGUOUS, not dropped (Scenario: Unresolvable config ref is ambiguous not dropped) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run AmbiguousConfigRef -count=1` — Expected: PASS
+- [x] 03.6 `[AFK]` Malformed doc file: skip bad links, index the rest (Scenario: Malformed doc file falls back and indexes the rest) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run MalformedDoc -count=1` — Expected: PASS
+- [x] 03.7 `[AFK]` Malformed SQL statement: skip it, index the rest (Scenario: Malformed SQL statement is skipped and the rest is indexed) — `Run: go test ./skillgrid-cli/internal/mnemonic/knowledge/... -run MalformedSQL -count=1` — Expected: PASS
+- [x] 03.8 `[AFK]` Indexer hook runs all three passes in the same transaction (Scenario: Indexer hook runs community, process, and knowledge in one transaction) — `Run: go test ./skillgrid-cli/internal/mnemonic/codeindex/... -run IndexerHook -count=1` — Expected: PASS
+- [x] 03.9 `[AFK]` code_path traces code to doc to config to table (Scenario: Path tool traces code to doc to config to table) — `Run: go test ./skillgrid-cli/internal/mnemonic/mcp/... ./skillgrid-cli/internal/mnemonic/knowledge/... -run CodePathSpan -count=1` — Expected: PASS
 
 ### Verification
 
-Verdict: `PENDING`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
 
 Evidence:
 
 | Check | Run | Expected | Result | Notes |
 |-------|-----|----------|--------|-------|
-| Focused test | `go test ./skillgrid-cli/internal/mnemonic/knowledge/... ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/mcp/... -count=1` | PASS | | |
-| Acceptance `@step-03` / `@p0` | BDD / mapped unit scenarios (incl. `DocLinks`, `ConfigRefs`, `SqlSchema`) | PASS | | |
-| Runtime harness | `skillgrid index` on fixture with docs/configs/SQL; `code_path` code→doc→config→table | PASS | | |
-| Rollback boundary | Drop `knowledge/` + knowledge tools + indexer hook | PASS | | |
-| Global Constraints | — | held | | |
+| Focused test | `go test ./skillgrid-cli/internal/mnemonic/knowledge/... ./skillgrid-cli/internal/mnemonic/codeindex/... ./skillgrid-cli/internal/mnemonic/mcp/... ./cmd/skillgrid/... -count=1` | PASS | PASS | knowledge/codeindex/mcp/cmd `ok`; 005/008/010 baseline (community/process/route/graph) `ok` |
+| Acceptance `@step-03` / `@p0` | mapped unit scenarios (`KnowledgeTools`, `DocLinks`, `ConfigRefs`, `SqlSchema`, `AmbiguousConfigRef`, `MalformedDoc`, `MalformedSQL`, `IndexerHook`, `CodePathSpan`) | PASS | PASS | unresolvable config ref = AMBIGUOUS (not dropped); code_path spans ≥2 knowledge edge kinds |
+| Runtime harness | `skillgrid index` on fixture with docs/configs/SQL; `code_path` code→doc→config→table | PASS | PASS | 03.8 IndexerHook populates community+process+knowledge at index time (advisory passes, post-005-commit — see note) |
+| Rollback boundary | Drop `knowledge/` + knowledge tools + indexer hook + `015_*` migration | PASS | PASS | 005/012/013/014 tables intact; tool surface 67→71 additive; code-to-code `graph.Path` unchanged |
+| Global Constraints | — | held | held | CGo-free; additive; confidence labels on all edges; malformed skip-bad-index-rest; advisory |
+
+03.8 tx note (honest framing, confirmed in review): the 005+route extraction runs in one tx; the community/process/knowledge passes run AFTER that commit on a reopened DB (modernc.org/sqlite single-conn write-lock constraint), each advisory (warn-and-continue, never roll back 005). `TestIndexerHook` proves all three passes populate their tables in one `idx.Run`.
+
+Sub-agent review: approved with fixes — 03.8 "same tx" comment was inaccurate (passes are post-commit/advisory), SaveConfig picked lowest-id on cross-package name collisions, isSQL scanned non-`.sql` files, dead `HasPrefix` — all fixed (b8a0d02). Re-review: all 4 ADDRESSED, no new breakage, non-vacuous tests that also lock in preserved behavior (EXTRACTED single-match, `.sql` parsing).
 
 ### Commit
 
