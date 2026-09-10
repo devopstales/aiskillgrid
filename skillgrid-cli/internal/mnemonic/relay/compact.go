@@ -34,12 +34,11 @@ type CompactResult struct {
 // empty or minimal KNOWLEDGE.md and reports CompactResult.Empty=true. It
 // returns the absolute path of the refreshed file.
 func CompactKnowledge(ctx context.Context, db Store, projectID, projectRoot string) (CompactResult, error) {
-	_ = ctx
 	if strings.TrimSpace(projectRoot) == "" {
 		return CompactResult{}, fmt.Errorf("relay: project root is required")
 	}
 
-	body, empty := gatherKnowledge(db, projectID, projectRoot)
+	body, empty := gatherKnowledge(ctx, db, projectID, projectRoot)
 
 	dir := BundleDir(projectRoot)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -54,8 +53,9 @@ func CompactKnowledge(ctx context.Context, db Store, projectID, projectRoot stri
 
 // gatherKnowledge assembles the KNOWLEDGE.md body from the handoff inputs /
 // session notes only (no Fact Memory). It returns the body and whether the
-// inputs were empty/missing (warn + continue → minimal file).
-func gatherKnowledge(db Store, projectID, projectRoot string) (string, bool) {
+// inputs were empty/missing (warn + continue → minimal file). The caller's ctx
+// is forwarded to the store query so a deadline/cancellation reaches it.
+func gatherKnowledge(ctx context.Context, db Store, projectID, projectRoot string) (string, bool) {
 	// 1. The existing .cleave/KNOWLEDGE.md (the bundle's knowledge section).
 	if b, err := os.ReadFile(filepath.Join(BundleDir(projectRoot), FileKnowledge)); err == nil {
 		if s := strings.TrimSpace(string(b)); s != "" {
@@ -65,7 +65,7 @@ func gatherKnowledge(db Store, projectID, projectRoot string) (string, bool) {
 
 	// 2. The session handoffs' context_summary notes (session notes), joined.
 	if db != nil && strings.TrimSpace(projectID) != "" {
-		if notes := contextNotes(db, projectID); len(notes) > 0 {
+		if notes := contextNotes(ctx, db, projectID); len(notes) > 0 {
 			return strings.Join(notes, "\n"), false
 		}
 	}
@@ -75,9 +75,9 @@ func gatherKnowledge(db Store, projectID, projectRoot string) (string, bool) {
 }
 
 // contextNotes reads the non-empty context_summary notes of the project's
-// session handoffs, newest first.
-func contextNotes(db Store, projectID string) []string {
-	rows, err := db.QueryContext(context.Background(), `
+// session handoffs, newest first. It forwards the caller's ctx to the query.
+func contextNotes(ctx context.Context, db Store, projectID string) []string {
+	rows, err := db.QueryContext(ctx, `
 		SELECT context_summary FROM session_handoffs
 		WHERE project = ? AND context_summary IS NOT NULL
 		ORDER BY created_at DESC, id DESC`, projectID)
