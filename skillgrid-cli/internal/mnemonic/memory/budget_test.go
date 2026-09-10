@@ -101,4 +101,71 @@ func TestBudget(t *testing.T) {
 	})
 }
 
+// TestBudgetTimeoutEnforced is the finding-03.1 proof: the budget's context
+// timeout is ENFORCED on the read (not just reported post-hoc). A genuinely
+// slow read (its QueryContext returns context.DeadlineExceeded) is cut at the
+// budget deadline and surfaced as a truncated:true partial with reason "timeout"
+// — it does NOT run the slow read to completion. The slow read is injectable (a
+// stub query that respects the context deadline), so the test is fast (no real
+// wall-clock wait beyond a tiny injected delay).
+func TestBudgetTimeoutEnforced(t *testing.T) {
+	fx := newFixture(t, "budget-timeout-proj")
+	ctx := context.Background()
+
+	// An injectable slow read: it honors the context deadline (as a real
+	// QueryContext would) and returns a partial on cancellation, taking long
+	// enough that a short budget timeout always cuts it first.
+	slowRead := func(bctx context.Context) ([]Observation, error) {
+		select {
+		case <-bctx.Done():
+			// Cut by the deadline: return a partial (not the full result).
+			return []Observation{
+				{ID: 1, Title: "partial", Content: "partial result " + strings.Repeat("p", 200)},
+			}, context.DeadlineExceeded
+		case <-time.After(20 * time.Millisecond):
+			// The full (slow) read would complete: this must NOT happen with a
+			// short budget timeout.
+			return make([]Observation, 20), nil
+		}
+	}
+
+	// A short budget timeout (1ms) is well under the 20ms slow read.
+	fx.svc.SetBudget(BudgetConfig{Items: 10, Chars: 1200, TimeoutNs: int64(time.Millisecond)})
+	b := fx.svc.Budget()
+
+	res, err := b.ApplyRead(ctx, slowRead)
+	if err != nil {
+		t.Fatalf("slow read under budget must be cut as a partial, not an error: %v", err)
+	}
+	// The slow read was CUT, not run to completion: a partial (1 hit) is
+	// returned, not the full 20-hit result.
+	if len(res.Hits) != 1 {
+		t.Fatalf("expected a truncated partial (1 hit), got %d (the full slow read ran to completion)", len(res.Hits))
+	}
+	// It is marked truncated with reason "timeout" (the budget deadline lapsed
+	// before the slow read could finish).
+	if !res.Truncated {
+		t.Fatalf("expected truncated=true on a deadline-cut slow read, got %+v", res)
+	}
+	if res.Reason != "timeout" {
+		t.Fatalf("expected reason 'timeout', got %q", res.Reason)
+	}
+
+	// Control: with no timeout (a huge budget timeout), the slow read runs to
+	// completion and is NOT marked truncated-by-timeout.
+	fx.svc.SetBudget(BudgetConfig{Items: 10, Chars: 1200, TimeoutNs: int64(2 * time.Second)})
+	res2, err := fx.svc.Budget().ApplyRead(ctx, slowRead)
+	if err != nil {
+		t.Fatalf("slow read with a generous timeout: %v", err)
+	}
+	// The full slow read completed (20 gathered), item-capped to 10 — distinct
+	// from the 1-hit partial of the deadline cut.
+	if len(res2.Hits) != defaultBudgetItems {
+		t.Fatalf("a generous timeout must let the full slow read complete (capped to %d), got %d", defaultBudgetItems, len(res2.Hits))
+	}
+	if res2.Reason == "timeout" {
+		t.Fatalf("a generous timeout must not mark reason 'timeout', got %+v", res2)
+	}
+}
+
 func itoaStr(n int) string { return strconv.Itoa(n) }

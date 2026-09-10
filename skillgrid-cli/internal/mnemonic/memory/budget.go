@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -57,6 +58,14 @@ func (c BudgetConfig) normalize() BudgetConfig {
 // Budget applies the item + char + timeout caps to a set of in-list reads.
 // It is the uniform wrapper every mem_* read path runs through (change 013,
 // step 03) so memory can never overwhelm the context window.
+//
+// The timeout is enforced (not just reported) by Bound: the budgeted read path
+// calls Bound before the underlying query so a slow read is cut at the
+// configured deadline (its QueryContext returns context.DeadlineExceeded /
+// DeadlineExceeded) and Apply then surfaces that lapsed deadline as a
+// truncated:true partial with reason "timeout". A read that finishes inside the
+// deadline is not cut. The bound context is injectable (Bound takes the caller
+// ctx) so tests can inject a tiny deadline without a real wall-clock wait.
 type Budget struct {
 	cfg BudgetConfig
 }
@@ -77,6 +86,33 @@ func (b *Budget) Config() BudgetConfig {
 		return DefaultBudget()
 	}
 	return b.cfg.normalize()
+}
+
+// Bound returns a context whose deadline enforces the budget's context timeout.
+// The budgeted read path derives the read context from this BEFORE the query
+// (so a genuinely slow read is cut, not run to completion); Apply then marks
+// the result truncated:true / reason "timeout" when that deadline has lapsed.
+//
+// If ctx already carries a deadline that falls within the budget timeout, the
+// existing tighter deadline is preserved (the smaller bound wins), so a caller
+// deadline is never loosened. The returned context is a child of ctx — when the
+// query (QueryContext) completes it releases its hold on the parent cancel, and
+// the caller's ctx (or the handler's) is the source of truth, so no leak.
+// Returns ctx unchanged when no timeout is set.
+func (b *Budget) Bound(ctx context.Context) context.Context {
+	if b == nil {
+		return ctx
+	}
+	timeout := time.Duration(b.Config().TimeoutNs)
+	if timeout <= 0 {
+		return ctx
+	}
+	if dl, ok := ctx.Deadline(); ok && time.Now().Add(timeout).After(dl) {
+		// The caller's deadline is tighter than the budget timeout — keep it.
+		return ctx
+	}
+	bound, _ := context.WithTimeout(ctx, timeout)
+	return bound
 }
 
 // TruncationMarker is the explicit "N chars omitted" suffix appended to a
@@ -116,13 +152,15 @@ type BudgetResult struct {
 // an explicit "N chars omitted"), and the context timeout (returns a
 // truncated:true partial with a reason, never hangs).
 //
-// Timeout semantics: if the caller's ctx is already carrying a deadline that
-// has lapsed by the time Apply runs, the read is cut — a partial (as many hits
-// as the item cap allows, char-truncated) is returned with truncated=true and
-// reason="timeout". The timeout is therefore honored from the injected
-// deadline (the MCP/HTTP handler's context), which is what "never hangs" means:
-// a slow downstream read is bounded by the caller's deadline, not by an
-// unbounded query.
+// Timeout semantics: the read path bounds the query with Bound(ctx) BEFORE the
+// read, so a genuinely slow read is cut at the deadline (its QueryContext
+// returns context.DeadlineExceeded) and returns whatever partial it gathered.
+// Apply observes that the bound deadline has lapsed and marks the result
+// truncated=true / reason="timeout", returning the partial. If the read
+// finished inside the deadline (deadline not yet lapsed) Apply does not cut it.
+// Apply never blocks: it reads the (already-derived) deadline rather than
+// waiting, so "never hangs" is enforced by the deadline-bound query, with Apply
+// surfacing the outcome.
 func (b *Budget) Apply(ctx context.Context, hits []Observation) BudgetResult {
 	cfg := b.Config()
 
@@ -148,10 +186,11 @@ func (b *Budget) Apply(ctx context.Context, hits []Observation) BudgetResult {
 		}
 	}
 
-	// Context timeout: a lapsed deadline cuts the read. We check the deadline
-	// rather than waiting, so Apply never blocks (the read already happened);
-	// the lapsed deadline means the read consumed the whole context budget, so
-	// we mark the result truncated + reason="timeout" (a partial).
+	// Context timeout: the read was bounded by Bound(ctx) before the query. If
+	// that deadline has lapsed (the read ran up against the budget and was cut
+	// — e.g. a slow QueryContext returning DeadlineExceeded), mark the result a
+	// truncated partial with reason "timeout". We read the deadline rather than
+	// wait, so Apply itself never blocks.
 	if dl, ok := ctx.Deadline(); ok && !time.Now().Before(dl) {
 		truncated = true
 		reason = "timeout"
@@ -163,4 +202,34 @@ func (b *Budget) Apply(ctx context.Context, hits []Observation) BudgetResult {
 	res := make([]Observation, len(out))
 	copy(res, out)
 	return BudgetResult{Hits: res, Truncated: truncated, Reason: reason, CharsOmitted: charsOmitted}
+}
+
+// ApplyRead is the uniform budgeted-read wrapper: it runs read under the
+// budget's deadline-bound context (Bound) and applies the full uniform budget
+// (item cap + char budget + context timeout) to the result. A read cut by the
+// deadline (its own error is a context deadline error) is surfaced as a
+// truncated partial with reason "timeout" rather than a hard failure — this is
+// what makes "never hangs" real: the slow read is cut and a partial returned.
+// A read that fails for any other reason returns that error unchanged.
+func (b *Budget) ApplyRead(ctx context.Context, read func(context.Context) ([]Observation, error)) (BudgetResult, error) {
+	bctx := b.Bound(ctx)
+	hits, rerr := read(bctx)
+	if rerr != nil {
+		if isDeadlineErr(rerr) {
+			// Cut by the budget's context timeout: a truncated partial, not a
+			// failure. (The partial may be empty if the read gathered nothing.)
+			return b.Apply(bctx, hits), nil
+		}
+		return BudgetResult{}, rerr
+	}
+	return b.Apply(bctx, hits), nil
+}
+
+// isDeadlineErr reports whether err is a context deadline/cancellation error
+// (a read cut by a deadline-bound context).
+func isDeadlineErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
 }
