@@ -78,7 +78,10 @@ func Open(dataDir, projectID string) (*Store, error) {
 	for _, pragma := range []string{
 		"PRAGMA journal_mode=WAL",
 		"PRAGMA foreign_keys=ON",
-		"PRAGMA busy_timeout=5000",
+		// 10s busy timeout: the session-close distill hook (change 013 step 02)
+		// reopens the store in a detached goroutine a beat after the handler's
+		// store closes; a longer timeout absorbs that transient WAL lock.
+		"PRAGMA busy_timeout=10000",
 	} {
 		if _, err := db.Exec(pragma); err != nil {
 			db.Close()

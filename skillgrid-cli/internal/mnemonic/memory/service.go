@@ -25,9 +25,32 @@ const (
 )
 
 // Service provides save and search over project-scoped observations.
+// distillHookProvider supplies the session-close distillation hook (change 013,
+// step 02). It is satisfied by *service.ProjectHandle; the memory package
+// depends on the interface (not the service package) to avoid an import cycle.
+// The hook takes the project id because a close may target a store opened
+// under a different resolution than the one the hook reopens.
+type distillHookProvider interface {
+	DistillHook() func(ctx context.Context, projectID, sessionID, summary string)
+}
+
 type Service struct {
 	store     *store.Store
 	projectID string
+	// hookProvider carries the opt-in session-close distillation hook (set by
+	// the service layer in openProject). When nil (a memory.Service built
+	// directly, e.g. in unit tests) session close has no hook — the current
+	// default-off behavior.
+	hookProvider distillHookProvider
+}
+
+// SetDistillHookProvider attaches the owning handle (which carries the opt-in
+// session-close distill hook). The service layer sets it in openProject so a
+// session close with distillation enabled fires the detached goroutine.
+func (s *Service) SetDistillHookProvider(p distillHookProvider) {
+	if s != nil {
+		s.hookProvider = p
+	}
 }
 
 // SaveInput holds fields for a new or updated observation.
@@ -762,6 +785,20 @@ func (s *Service) SessionEnd(ctx context.Context, sessionID, summary string) err
 	}
 	if n == 0 {
 		return fmt.Errorf("session %s not found", sessionID)
+	}
+	// Session-close distillation hook (change 013, step 02). Opt-in: nil by
+	// default, so it is a no-op unless distillation is enabled (the hook is read
+	// at close time, honoring the opt-in state). Async + best-effort: it runs in
+	// a DETACHED goroutine that does NOT block session close, and the hook body
+	// swallows the distill error (it captures it in DistillResult.Err) — the
+	// error is never propagated back to the caller as a close failure. The
+	// session is already 'ended' here, so the goroutine works on a stable L0
+	// record. It receives the close summary (the argument to SessionEnd) as the
+	// L0 text, since the close path may carry no summary in the session row.
+	if p := s.hookProvider; p != nil {
+		if hook := p.DistillHook(); hook != nil {
+			go hook(context.WithoutCancel(ctx), s.projectID, sessionID, summary)
+		}
 	}
 	return nil
 }

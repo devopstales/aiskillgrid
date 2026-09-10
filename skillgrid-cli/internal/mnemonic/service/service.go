@@ -40,6 +40,66 @@ type Service struct {
 	distillEnabled bool
 	// distillLLM is the optional LLM for the distill pass (nil = no-LLM floor).
 	distillLLM layer.LLM
+	// distillHook, when non-nil, is the opt-in session-close distillation hook.
+	// It is armed by EnableDistill (the runtime opt-in switch) and fired by
+	// memory.SessionEnd in a detached goroutine. Because the hook is a pointer
+	// field read at close time (not captured at store-open time), a close fires
+	// the hook iff distillation is enabled AT THAT MOMENT — preserving the
+	// default-off behavior (nil → no hook) even for stores opened before the
+	// operator enabled distillation.
+	distillHook func(ctx context.Context, projectID, sessionID, summary string)
+	// distillTestMu guards the two test-only fields below. The hook closure runs
+	// in a detached goroutine (session close) and the accessors are called from
+	// the test's main goroutine, so the counter and last-result are written and
+	// read concurrently.
+	distillTestMu sync.Mutex
+	// distillHookFired is a test-only signal counting how many times the
+	// session-close distill hook actually ran (set by the hook closure).
+	distillHookFired int
+	// distillLastResult is a test-only record of the most recent hook result.
+	distillLastResult layer.DistillResult
+}
+
+// DistillHookFired returns how many times the session-close distill hook ran.
+// Test-only: lets an end-to-end close test assert the detached goroutine fired.
+func (s *Service) DistillHookFired() int {
+	if s == nil {
+		return 0
+	}
+	s.distillTestMu.Lock()
+	defer s.distillTestMu.Unlock()
+	return s.distillHookFired
+}
+
+// DistillLastResult returns the most recent hook distill result. Test-only.
+func (s *Service) DistillLastResult() layer.DistillResult {
+	if s == nil {
+		return layer.DistillResult{}
+	}
+	s.distillTestMu.Lock()
+	defer s.distillTestMu.Unlock()
+	return s.distillLastResult
+}
+
+// SetDistillHookForTest replaces the session-close distill hook. Test-only: it
+// lets an end-to-end close test inject a hook that records the opt-in firing
+// and returns a captured best-effort error (so the test can prove a distill
+// error is surfaced in DistillResult.Err yet never breaks session close).
+func (s *Service) SetDistillHookForTest(fn func(ctx context.Context, projectID, sessionID, summary string)) {
+	if s == nil {
+		return
+	}
+	s.distillHook = fn
+}
+
+// RecordDistillTestResult records a test hook's distill result so an
+// end-to-end close test can assert the captured best-effort error. Test-only.
+func (s *Service) RecordDistillTestResult(res layer.DistillResult) {
+	if s != nil {
+		s.distillTestMu.Lock()
+		s.distillLastResult = res
+		s.distillTestMu.Unlock()
+	}
 }
 
 // New creates a service using dataDir for per-project SQLite stores.
@@ -49,20 +109,30 @@ func New(dataDir string) *Service {
 
 // EnableDistill turns on the opt-in session-close distillation pass. It is a no
 // operation on the rest of the facade: it only arms the async best-effort hook
-// that runs at session end.
+// that runs at session end. The hook is stored on the service (not the handle)
+// so it is read at close time, honoring the opt-in state regardless of when the
+// store was opened; memory.SessionEnd reads it and, when non-nil, runs it in a
+// detached goroutine (the production fire-and-forget path).
 func (s *Service) EnableDistill() error {
 	if s == nil {
 		return errors.New("service not initialized")
 	}
 	s.distillEnabled = true
+	s.distillHook = func(ctx context.Context, projectID, sessionID, summary string) {
+		res, _ := s.DistillSession(ctx, projectID, sessionID, summary, nil)
+		s.distillTestMu.Lock()
+		s.distillHookFired++
+		s.distillLastResult = res // test-only: last hook result
+		s.distillTestMu.Unlock()
+	}
 	return nil
 }
 
-// DistillSession runs the session-close distillation for sessionID (L0 → L1
-// atoms → L2 scenario → L3 persona delta, provenance-linked). It is the
-// best-effort seam: when distillation is not enabled the pass is a no-op, and a
-// distill error is captured in DistillResult.Err (not returned) so it never
-// breaks session close.
+// DistillSession runs the session-close distillation for projectID/sessionID
+// (L0 → L1 atoms → L2 scenario → L3 persona delta, provenance-linked). It is
+// the best-effort seam: when distillation is not enabled the pass is a no-op,
+// and a distill error is captured in DistillResult.Err (not returned) so it
+// never breaks session close.
 //
 // The method itself is synchronous and returns the populated result (so the
 // hook's effect is observable and testable); the session-close hook is async
@@ -70,31 +140,56 @@ func (s *Service) EnableDistill() error {
 // the result, which is what "async, never breaks close" means in production.
 // The wg parameter (nil for fire-and-forget) is signaled when the pass has
 // run, so a caller can await completion in tests.
-func (s *Service) DistillSession(ctx context.Context, projectID, sessionID string, wg *sync.WaitGroup) (layer.DistillResult, error) {
-	res := layer.DistillResult{}
+//
+// summary is the L0 text distilled. When non-empty it is persisted into the
+// session row (as the L0 record the distill reads) so a summary-less close
+// still distills from the close summary; when empty the pass falls back to the
+// session row's existing summary.
+func (s *Service) DistillSession(ctx context.Context, projectID, sessionID, summary string, wg *sync.WaitGroup) (layer.DistillResult, error) {
 	if s == nil {
-		return res, errors.New("service not initialized")
+		return layer.DistillResult{}, errors.New("service not initialized")
 	}
 	if !s.distillEnabled {
-		// Opt-in: when distillation is not enabled the pass is a no-op.
 		if wg != nil {
 			wg.Add(1)
 			wg.Done()
 		}
-		return res, nil
+		return layer.DistillResult{}, nil
 	}
 	if wg != nil {
 		wg.Add(1)
+		defer wg.Done()
 	}
-	h, cleanup, err := s.openProject(projectID, ".")
-	if wg != nil {
-		wg.Done()
+	// Reopen the store, retrying on a transient lock: the session-close hook
+	// runs in a detached goroutine a beat after the handler's store closes, so
+	// the open can race the handler's WAL close. The best-effort nature of the
+	// hook (a distill error is captured, never propagated) means we just retry
+	// a few times rather than fail close.
+	var (
+		h       *ProjectHandle
+		cleanup func()
+		err     error
+	)
+	for i := 0; i < 5; i++ {
+		h, cleanup, err = s.openProject(projectID, ".")
+		if err == nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 	if err != nil {
-		res.Err = err
-		return res, nil
+		return layer.DistillResult{Err: err}, nil
 	}
 	defer cleanup()
+	res := layer.DistillResult{}
+	// A summary-less close carries the L0 in `summary`; persist it so the
+	// distill (which reads the session row) has the L0 text to work on.
+	if strings.TrimSpace(summary) != "" {
+		if err := h.Memory().SessionSummary(ctx, sessionID, summary); err != nil {
+			res.Err = err
+			return res, nil
+		}
+	}
 	// Best-effort: the distill error is captured, not propagated, so it never
 	// breaks the caller (session close).
 	res, _ = layer.Distill(ctx, h.Memory(), sessionID, layer.DistillOptions{LLM: s.distillLLM})
@@ -135,6 +230,11 @@ type ProjectHandle struct {
 	memory    *memory.Service
 	web       *webcache.Service
 	content   *files.ContentPlane
+	// distillService is the owning *Service (change 013, step 02). The handle
+	// exposes it to memory.SessionEnd via DistillHook so a session close reads
+	// the opt-in hook at close time (the hook itself is armed on the service by
+	// EnableDistill). Non-nil for handles opened through the service.
+	distillService *Service
 }
 
 func (s *Service) openProject(projectID, configRoot string) (*ProjectHandle, func(), error) {
@@ -153,15 +253,36 @@ func (s *Service) openProject(projectID, configRoot string) (*ProjectHandle, fun
 		root = abs
 	}
 	cfg := config.Load(root)
+	mem := memory.New(st, projectID)
 	h := &ProjectHandle{
-		store:     st,
-		projectID: projectID,
-		root:      root,
-		memory:    memory.New(st, projectID),
-		web:       webcache.New(st, projectID, cfg.WebCache),
-		content:   files.NewContentPlane(root),
+		store:          st,
+		projectID:      projectID,
+		root:           root,
+		memory:         mem,
+		web:            webcache.New(st, projectID, cfg.WebCache),
+		content:        files.NewContentPlane(root),
+		distillService: s,
 	}
+	// Attach the handle as the memory service's hook provider so SessionEnd can
+	// fire the opt-in distill hook at close time. The hook itself lives on the
+	// service (armed by EnableDistill), so this does NOT capture the opt-in
+	// state at open time — a close fires the hook iff distillation is enabled
+	// when it happens, and every real close path (MCP mem_session_end + HTTP)
+	// fires it through memory.SessionEnd.
+	mem.SetDistillHookProvider(h)
 	return h, func() { st.Close() }, nil
+}
+
+// DistillHook returns the opt-in session-close distill hook for this handle, or
+// nil when distillation is not enabled. It reads the hook from the owning
+// service at close time (not at open time) so the opt-in state is honored
+// whenever a close happens. It satisfies memory.distillHookProvider (the
+// exported method is required to cross the package boundary).
+func (h *ProjectHandle) DistillHook() func(ctx context.Context, projectID, sessionID, summary string) {
+	if h == nil || h.distillService == nil {
+		return nil
+	}
+	return h.distillService.distillHook
 }
 
 func (s *Service) openProjectForDirectory(directory string) (*ProjectHandle, func(), error) {

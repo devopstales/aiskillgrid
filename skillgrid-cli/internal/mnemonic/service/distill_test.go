@@ -61,7 +61,7 @@ func TestDistillHook(t *testing.T) {
 	// wg signals the hook ran (the async seam); the method returns the result
 	// so the hook's effect is observable here.
 	var wg sync.WaitGroup
-	out, err := svc.DistillSession(context.Background(), project, sessionID, &wg)
+	out, err := svc.DistillSession(context.Background(), project, sessionID, "", &wg)
 	if err != nil {
 		t.Fatalf("distill session: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestDistillHookDisabled(t *testing.T) {
 	svc := service.New(dataDir)
 
 	var wg sync.WaitGroup
-	out, err := svc.DistillSession(context.Background(), project, sessionID, &wg)
+	out, err := svc.DistillSession(context.Background(), project, sessionID, "", &wg)
 	if err != nil {
 		t.Fatalf("distill session (disabled): %v", err)
 	}
@@ -120,8 +120,10 @@ func TestDistillHookBestEffort(t *testing.T) {
 
 	// Distill a session id that is not a resolvable source: the pass is a
 	// no-op (unresolvable), and even a best-effort error would not break close.
+	// A non-empty summary exercises the persist path (it errors for the missing
+	// session, captured best-effort) before the unresolvable distill no-ops.
 	var wg sync.WaitGroup
-	out, err := svc.DistillSession(context.Background(), project, "ghost-not-a-session", &wg)
+	out, err := svc.DistillSession(context.Background(), project, "ghost-not-a-session", "## Key Learnings:\n1. a ghost learning to persist\n", &wg)
 	if err != nil {
 		t.Fatalf("distill hook must not break session close: %v", err)
 	}
@@ -153,7 +155,7 @@ func TestAtomCorrectable(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	out, err := svc.DistillSession(context.Background(), project, sessionID, &wg)
+	out, err := svc.DistillSession(context.Background(), project, sessionID, "", &wg)
 	if err != nil {
 		t.Fatalf("distill: %v", err)
 	}
@@ -226,7 +228,7 @@ func TestMemLayers(t *testing.T) {
 		t.Fatal(err)
 	}
 	var wg sync.WaitGroup
-	if _, err := svc.DistillSession(context.Background(), project, sessionID, &wg); err != nil {
+	if _, err := svc.DistillSession(context.Background(), project, sessionID, "", &wg); err != nil {
 		t.Fatalf("distill: %v", err)
 	}
 
