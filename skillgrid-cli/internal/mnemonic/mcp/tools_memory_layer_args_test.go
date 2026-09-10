@@ -51,9 +51,9 @@ func TestMemLayersRegisteredAndStable(t *testing.T) {
 	if _, ok := tools["mem_layers"]; !ok {
 		t.Fatal("mem_layers is not registered")
 	}
-	// The additive surface count: 78 (77 after step 01 + 1 mem_layers).
-	if len(tools) != 80 {
-		t.Errorf("expected 80 tools, got %d", len(tools))
+	// The additive surface count: 82 (78 step-02 baseline + 2 status/compact).
+	if len(tools) != 82 {
+		t.Errorf("expected 82 tools, got %d", len(tools))
 	}
 	for name, wantRequired := range expectedMemToolSurface {
 		st, ok := tools[name]

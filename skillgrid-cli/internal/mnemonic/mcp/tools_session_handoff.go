@@ -20,6 +20,9 @@ func registerSessionTools(s *server.MCPServer) {
 	}{
 		{sessionHandoffTool(), handleSessionHandoff},
 		{sessionResumeTool(), handleSessionResume},
+		// Step 03: session status + thin knowledge compact (additive).
+		{sessionStatusTool(), handleSessionStatus},
+		{knowledgeCompactTool(), handleKnowledgeCompact},
 	}
 	for _, entry := range tools {
 		s.AddTool(entry.tool, entry.handler)

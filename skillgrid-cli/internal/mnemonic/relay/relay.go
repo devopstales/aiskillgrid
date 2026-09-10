@@ -15,6 +15,9 @@ import (
 type Store interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	// QueryContext is used by the thin compact (step 03) to fold the session
+	// handoffs' context_summary notes into KNOWLEDGE.md. *sql.DB satisfies it.
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 }
 
 // Handoff writes the cleave bundle under projectRoot/.skillgrid/.cleave/ and
