@@ -141,7 +141,11 @@ func handleCodeSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 		return toolError(err)
 	}
 
-	return JSONResult(map[string]any{"hits": codeHitDTOs(h.Store().DB, query, hits)})
+	res, err := JSONResult(map[string]any{"hits": codeHitDTOs(h.Store().DB, query, hits)})
+	if err != nil {
+		return nil, err
+	}
+	return applyFreshness(res, hitPaths(hits)), nil
 }
 
 func handleCodeRead(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
@@ -175,7 +179,11 @@ func handleCodeRead(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Ca
 	} else {
 		result["redacted"] = false
 	}
-	return JSONResult(result)
+	res, err := JSONResult(result)
+	if err != nil {
+		return nil, err
+	}
+	return applyFreshness(res, []string{path}), nil
 }
 
 // mcpReadIndexedCode is the single-open backing for code_read: fetch indexed
