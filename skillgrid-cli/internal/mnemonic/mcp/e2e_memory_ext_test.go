@@ -322,7 +322,7 @@ func TestE2EMemoryExtTools(t *testing.T) {
 	}
 
 	// Search finds the updated content
-	sr := parseToolJSON(t, callTool(t, h, 18, "mem_search", map[string]any{"query": "updated anchor content"}))
+	sr := parseToolJSON(t, callTool(t, h, 18, "mem_search", map[string]any{"query": "updated anchor content", "reader_owner": sid}))
 	obs, _ := sr["observations"].([]any)
 	if len(obs) == 0 {
 		t.Fatalf("expected the updated entry to be findable, got 0: %s", sr)
@@ -408,7 +408,7 @@ func TestE2EMemoryExtTools(t *testing.T) {
 	}
 
 	// After soft-delete, search should not find it anymore.
-	srAfter := parseToolJSON(t, callTool(t, h, 21, "mem_search", map[string]any{"query": "updated anchor content"}))
+	srAfter := parseToolJSON(t, callTool(t, h, 21, "mem_search", map[string]any{"query": "updated anchor content", "reader_owner": sid}))
 	if obsAfter, _ := srAfter["observations"].([]any); len(obsAfter) != 0 {
 		t.Fatalf("expected 0 hits after soft-delete, got %d: %s", len(obsAfter), srAfter)
 	}
@@ -467,7 +467,7 @@ func TestE2EEngramParityGaps(t *testing.T) {
 	idOn := extractID(t, savedWith)
 
 	// Retrieve and confirm prompt_id is linked to the recorded prompt.
-	got := parseToolJSON(t, callTool(t, h, 32, "mem_get_observation", map[string]any{"id": idOn}))
+	got := parseToolJSON(t, callTool(t, h, 32, "mem_get_observation", map[string]any{"id": idOn, "reader_owner": sid}))
 	gotPid, _ := got["prompt_id"].(float64)
 	if gotPid != pid {
 		t.Fatalf("expected prompt_id %v to be linked on capture, got %v: %s", pid, got["prompt_id"], got)
@@ -480,7 +480,7 @@ func TestE2EEngramParityGaps(t *testing.T) {
 		"session_id": sid, "capture_prompt": false,
 	})
 	idOff := extractID(t, savedOff)
-	gotOff := parseToolJSON(t, callTool(t, h, 34, "mem_get_observation", map[string]any{"id": idOff}))
+	gotOff := parseToolJSON(t, callTool(t, h, 34, "mem_get_observation", map[string]any{"id": idOff, "reader_owner": sid}))
 	if _, has := gotOff["prompt_id"]; has {
 		t.Fatalf("expected no prompt_id when capture_prompt=false, got %v: %s", gotOff["prompt_id"], gotOff)
 	}

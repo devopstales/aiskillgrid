@@ -148,7 +148,10 @@ func TestMemSearchContractShape(t *testing.T) {
 		SessionID: sid,
 	})
 
-	req := newCallTool("mem_search", map[string]any{"query": "contract shape check"})
+	// The seeded observation is private and owned by its session id (the
+	// mem_save / save-path fallback, 013 step 01). Read as that owner so the
+	// per-owner filter returns it — a different owner would be gated out.
+	req := newCallTool("mem_search", map[string]any{"query": "contract shape check", "reader_owner": sid})
 	res, err := handleMemSearch(context.Background(), req)
 	if err != nil {
 		t.Fatalf("handleMemSearch: %v", err)
@@ -201,7 +204,9 @@ func TestMemSearchSingleOpen(t *testing.T) {
 	})
 
 	store.ResetOpenCount()
-	req := newCallTool("mem_search", map[string]any{"query": "scoped search once"})
+	// Same as TestMemSearchContractShape: the seeded row is private and owned
+	// by its session id (save-path fallback, 013 step 01). Read as that owner.
+	req := newCallTool("mem_search", map[string]any{"query": "scoped search once", "reader_owner": sid})
 	res, err := handleMemSearch(context.Background(), req)
 	if err != nil {
 		t.Fatalf("handleMemSearch: %v", err)

@@ -66,6 +66,7 @@ func memSaveTool() mcplib.Tool {
 		mcplib.WithString("project", mcplib.Description("Optional explicit project name to record under (defaults to the CWD-resolved project). Surfaced as a drift warning if a prior mem_merge_projects retired it.")),
 		mcplib.WithBoolean("capture_prompt", mcplib.Description("Link the session's latest user prompt to this observation (default true). Pass false for SDD artifacts / automated saves that should not carry prompt context.")),
 		mcplib.WithString("tool_name", mcplib.Description("Optional provenance for which tool produced the save (e.g. mem_save).")),
+		mcplib.WithString("owner", mcplib.Description("Optional creating user/agent identity. Blank falls back to the session_id, so the same session that saved can read it back and a different owner is gated by mem_search / mem_get_observation.")),
 	)
 }
 
@@ -78,6 +79,8 @@ func memSearchTool() mcplib.Tool {
 		mcplib.WithString("project", mcplib.Description("Optional project name to search under (defaults to the CWD-resolved project). If a prior mem_merge_projects retired it, a drift warning is returned alongside the hits.")),
 		mcplib.WithString("scope", mcplib.Description("Optional visibility scope filter (project|user|global).")),
 		mcplib.WithBoolean("all_projects", mcplib.Description("Span every project store and merge results by cross-project rank (default false). Useful when the CWD is a parent of several repositories or when you don't know which bucket the memory is in.")),
+		mcplib.WithString("reader_owner", mcplib.Description("Optional reader identity for per-owner visibility enforcement. Blank means the current session's owner. A private observation is invisible to a different owner until shared via mem_share.")),
+		mcplib.WithString("reader_agent", mcplib.Description("Optional reader agent id for restricted/agent ACL grants.")),
 	)
 }
 
@@ -92,6 +95,8 @@ func memGetObservationTool() mcplib.Tool {
 	return mcplib.NewTool("mem_get_observation",
 		mcplib.WithDescription("Fetch full untruncated observation content by ID."),
 		mcplib.WithNumber("id", mcplib.Required(), mcplib.Description("Observation ID from mem_search")),
+		mcplib.WithString("reader_owner", mcplib.Description("Optional reader identity for per-owner visibility enforcement. Blank means the current session's owner. A private observation the reader can't see returns not-found (no visibility error leak).")),
+		mcplib.WithString("reader_agent", mcplib.Description("Optional reader agent id for restricted/agent ACL grants.")),
 	)
 }
 
@@ -226,6 +231,16 @@ func handleMemSave(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Cal
 	if scope == "personal" {
 		scope = "user"
 	}
+	// Owner (change 013 step 01): the creating user/agent identity. The MCP
+	// tool surfaces an optional `owner`; blank falls back to the session id
+	// (the save path's own fallback), so the SAME session that saved can read
+	// back and a DIFFERENT owner is gated. This is the read-side mirror that
+	// makes per-owner enforcement meaningful end-to-end at the tool boundary.
+	owner := strings.TrimSpace(req.GetString("owner", ""))
+	if owner == "" {
+		owner = sessionID
+	}
+
 	id, err := h.Memory().Save(ctx, memory.SaveInput{
 		Title:         title,
 		Type:          typ,
@@ -236,6 +251,7 @@ func handleMemSave(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.Cal
 		CapturePrompt: capturePrompt,
 		ProjectName:   projectName,
 		ToolName:      req.GetString("tool_name", ""),
+		Owner:         owner,
 	})
 	if err != nil {
 		return toolError(err)
@@ -264,6 +280,18 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 	limit := int(req.GetFloat("limit", 20))
 	scope := strings.TrimSpace(req.GetString("scope", ""))
 	allProjects := req.GetBool("all_projects", false)
+	// Reader identity (change 013 step 01). The per-owner read-enforcement seam
+	// (canRead/visibilityFilter) is wired here so a live reader is gated by
+	// owner/visibility end-to-end, not just at the service layer. It mirrors
+	// the owner the save path uses (session_id fallback): the SAME owner who
+	// saved can read; a DIFFERENT owner is gated. Optional `reader_owner` /
+	// `reader_agent` name the caller; blank means "this session" (the owner of
+	// the session id, resolved from the row).
+	readerOwner := strings.TrimSpace(req.GetString("reader_owner", ""))
+	readerAgent := strings.TrimSpace(req.GetString("reader_agent", ""))
+	if readerOwner == "" {
+		readerOwner = req.GetString("session_id", "")
+	}
 
 	if allProjects {
 		hits, err := svc.SearchAllProjects(ctx, query, matchMode, scope, limit)
@@ -291,9 +319,10 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 		}
 	}
 
-	// Scoped search through the handle (no second open). SearchObservationsScoped
-	// is a thin open+delegate wrapper over Memory().SearchWithScope.
-	hits, err := h.Memory().SearchWithScope(ctx, query, matchMode, scope, limit)
+	// Scoped + owner-enforced search through the handle (no second open).
+	// SearchOwnerScoped applies the visibilityFilter for the current reader, so
+	// a private observation is invisible to a different owner until shared.
+	hits, err := h.Memory().SearchOwnerScoped(ctx, readerOwner, readerAgent, query, matchMode, scope, limit)
 	if err != nil {
 		return toolError(err)
 	}
@@ -331,9 +360,30 @@ func handleMemGetObservation(ctx context.Context, req mcplib.CallToolRequest) (*
 	if err != nil {
 		return toolError(err)
 	}
+	// Reader identity (change 013 step 01). The per-owner read-enforcement seam
+	// (canRead) is wired here so a live reader is gated by owner/visibility
+	// end-to-end. It mirrors the owner the save path uses (session_id fallback):
+	// the SAME owner who saved can read; a DIFFERENT owner is gated. Optional
+	// `reader_owner` / `reader_agent` name the caller; blank means "this
+	// session" (the owner of the session id, resolved from the row).
+	readerOwner := strings.TrimSpace(req.GetString("reader_owner", ""))
+	readerAgent := strings.TrimSpace(req.GetString("reader_agent", ""))
+	if readerOwner == "" {
+		readerOwner = req.GetString("session_id", "")
+	}
 
-	obs, err := h.Memory().Get(ctx, int64(id))
+	// ReadAs enforces canRead for the reader. A reader that can't see the
+	// observation gets an "absent" result (not-found shape), not a visibility
+	// error leak — consistent with ErrNotFoundForReader.
+	obs, err := h.Memory().ReadAs(ctx, readerOwner, int64(id), readerAgent)
 	if err != nil {
+		if errors.Is(err, memory.ErrNotFoundForReader) {
+			return JSONResult(map[string]any{
+				"id":            int64(id),
+				"not_found":     true,
+				"not_found_for_reader": true,
+			})
+		}
 		return toolError(err)
 	}
 	return JSONResult(observationDTO(obs))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
@@ -192,6 +193,133 @@ func TestMemGovernanceRoundTrip(t *testing.T) {
 	}
 	if govOut.Owner == "" {
 		t.Errorf("governance owner must be set")
+	}
+}
+
+// TestMemSearchGetOwnerEnforcedWiring is the end-to-end assertion the reviewer
+// flagged as missing: the per-owner read-enforcement seam is proven at the TOOL
+// handler boundary, not just the service seam. Owner A saves (owner A's
+// session), then the ACTUAL mem_search and mem_get_observation handlers are
+// driven as owner B and must NOT see owner A's private observation; after a
+// mem_share to team, owner B DOES see it. This goes through handleMemSearch /
+// handleMemGetObservation (openService → handle → scoped read), not SearchOwner
+// directly.
+func TestMemSearchGetOwnerEnforcedWiring(t *testing.T) {
+	memGovernanceFixture(t)
+
+	startRes, err := handleMemSessionStart(context.Background(), newCallTool("mem_session_start", map[string]any{}))
+	if err != nil {
+		t.Fatalf("handleMemSessionStart dispatch: %v", err)
+	}
+	if startRes.IsError {
+		t.Fatalf("mem_session_start errored: %s", callResultText(t, startRes))
+	}
+	var startOut struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal([]byte(callResultText(t, startRes)), &startOut); err != nil {
+		t.Fatalf("unmarshal session start: %v (text %s)", err, callResultText(t, startRes))
+	}
+	// Owner A's session id is owner A's identity (the save path falls back to
+	// it). A distinct reader identity models owner B in the shared bucket.
+	ownerB := "owner-b-reader"
+
+	saveRes, err := handleMemSave(context.Background(), newCallTool("mem_save", map[string]any{
+		"title":      "owner a probe",
+		"type":       "decision",
+		"content":    "owner a private probe body",
+		"session_id": startOut.SessionID,
+	}))
+	if err != nil {
+		t.Fatalf("handleMemSave: %v", err)
+	}
+	if saveRes.IsError {
+		t.Fatalf("mem_save errored: %s", callResultText(t, saveRes))
+	}
+	var saveOut struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal([]byte(callResultText(t, saveRes)), &saveOut); err != nil {
+		t.Fatalf("unmarshal save: %v (text %s)", err, callResultText(t, saveRes))
+	}
+
+	searchAs := func(reader string) (bool, string) {
+		res, err := handleMemSearch(context.Background(), newCallTool("mem_search", map[string]any{
+			"query": "owner a probe", "reader_owner": reader,
+		}))
+		if err != nil {
+			t.Fatalf("handleMemSearch dispatch (%s): %v", reader, err)
+		}
+		if res.IsError {
+			t.Fatalf("mem_search errored (%s): %s", reader, callResultText(t, res))
+		}
+		var out struct {
+			Observations []struct {
+				ID int64 `json:"id"`
+			} `json:"observations"`
+		}
+		if err := json.Unmarshal([]byte(callResultText(t, res)), &out); err != nil {
+			t.Fatalf("unmarshal search (%s): %v", reader, err)
+		}
+		seen := false
+		for _, o := range out.Observations {
+			if o.ID == saveOut.ID {
+				seen = true
+			}
+		}
+		return seen, callResultText(t, res)
+	}
+
+	getAs := func(reader string) (visible bool, notFound bool, text string) {
+		res, err := handleMemGetObservation(context.Background(), newCallTool("mem_get_observation", map[string]any{
+			"id": float64(saveOut.ID), "reader_owner": reader,
+		}))
+		if err != nil {
+			t.Fatalf("handleMemGetObservation dispatch (%s): %v", reader, err)
+		}
+		text = callResultText(t, res)
+		var out struct {
+			ID      int64  `json:"id"`
+			Content string `json:"content"`
+			NotFor  bool   `json:"not_found_for_reader"`
+		}
+		if uerr := json.Unmarshal([]byte(text), &out); uerr != nil {
+			t.Fatalf("unmarshal get (%s): %v (text %s)", reader, uerr, text)
+		}
+		if out.NotFor || strings.Contains(text, "not_found") {
+			return false, true, text
+		}
+		return out.ID == saveOut.ID && out.Content != "", false, text
+	}
+
+	// Before share: owner B must NOT see owner A's private observation.
+	if seen, text := searchAs(ownerB); seen {
+		t.Errorf("owner B saw owner A's private observation in mem_search before share: %s", text)
+	}
+	if visible, _, text := getAs(ownerB); visible {
+		t.Errorf("owner B read owner A's private observation via mem_get_observation before share: %s", text)
+	}
+	// The get must be an absent (not-found) result, not an error, and not a
+	// visibility-error leak.
+	if _, notFound, text := getAs(ownerB); !notFound {
+		t.Errorf("owner B's mem_get_observation of owner A's private obs must be absent/not-found, got: %s", text)
+	}
+
+	// After a team share, owner B must see it through both tool handlers.
+	shareRes, err := handleMemShare(context.Background(), newCallTool("mem_share", map[string]any{
+		"id": float64(saveOut.ID), "target": "team",
+	}))
+	if err != nil {
+		t.Fatalf("handleMemShare dispatch: %v", err)
+	}
+	if shareRes.IsError {
+		t.Fatalf("mem_share errored: %s", callResultText(t, shareRes))
+	}
+	if seen, text := searchAs(ownerB); !seen {
+		t.Errorf("after team share, owner B must see the observation in mem_search: %s", text)
+	}
+	if visible, _, text := getAs(ownerB); !visible {
+		t.Errorf("after team share, owner B must read the observation via mem_get_observation: %s", text)
 	}
 }
 
