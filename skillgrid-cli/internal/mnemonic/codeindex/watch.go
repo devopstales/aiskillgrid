@@ -232,6 +232,26 @@ func (w *Watcher) drainPending() []string {
 	return out
 }
 
+// MarkPending records a file as pending (unsynced) without an fsnotify event.
+// The staleness banner reads the pending set; the serve wiring calls this for
+// files edited since the last sync. It is a no-op for non-source files.
+func (w *Watcher) MarkPending(rel string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	rel = filepath.ToSlash(rel)
+	if w.IsSource(rel) {
+		w.pending[rel] = struct{}{}
+	}
+}
+
+// ClearPending clears the pending set (called after a sync completes).
+func (w *Watcher) ClearPending() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.pending = map[string]struct{}{}
+	w.wasWrite = false
+}
+
 // Pending returns the current set of pending (unsynced) source files.
 func (w *Watcher) Pending() []string {
 	w.mu.Lock()
