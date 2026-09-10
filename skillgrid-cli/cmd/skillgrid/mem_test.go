@@ -98,6 +98,36 @@ func TestMemCLIParity(t *testing.T) {
 	}
 }
 
+// TestMemCLIBudgetedContext is the finding-03.3 proof: the CLI `mem context`
+// honors its --char budget flag (previously ignored). A session with a long
+// summary is char-truncated with an explicit "N chars omitted" marker when a
+// small --char cap is passed.
+func TestMemCLIBudgetedContext(t *testing.T) {
+	dataDir := t.TempDir()
+	project := "memcli-budgeted-ctx"
+	st, err := store.Open(dataDir, project)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	longSummary := "## Goal\nmem context budget probe\n\n## Key Learnings:\n- " + strings.Repeat("learn", 300)
+	if _, err := st.DB.Exec(`
+		INSERT INTO sessions (id, project, directory, started_at, status, title, summary)
+		VALUES ('sess-ctx', ?, '/tmp', '2026-01-01T00:00:00Z', 'ended', 'ctx budget session', ?)`,
+		project, longSummary); err != nil {
+		t.Fatalf("insert session: %v", err)
+	}
+	st.Close()
+
+	// A small --char cap must truncate the long summary (explicit marker).
+	out := runMemCLI(t, dataDir, "context", "--project", project, "--char", "40", "--dir", dataDir)
+	if !strings.Contains(out, "chars omitted") {
+		t.Fatalf("mem context with --char 40 must char-truncate the summary (explicit 'chars omitted'), got: %s", out)
+	}
+	if !strings.Contains(out, `"truncated": true`) {
+		t.Fatalf("mem context with a truncating --char must report truncated:true, got: %s", out)
+	}
+}
+
 // TestMemCLIBadArgs proves the CLI rejects bad mem args clearly (parity with
 // the MCP bad-args behavior).
 func TestMemCLIBadArgs(t *testing.T) {

@@ -294,12 +294,14 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 	}
 
 	if allProjects {
-		hits, err := svc.SearchAllProjects(ctx, query, matchMode, scope, limit)
+		// Budget (013 step 03) applies to the cross-project read too (uniform
+		// item cap + char budget + context timeout).
+		res, err := applyBudget(h.Memory().Budget(), ctx, func(bctx context.Context) ([]memory.Observation, error) {
+			return svc.SearchAllProjects(bctx, query, matchMode, scope, limit)
+		})
 		if err != nil {
 			return toolError(err)
 		}
-		// Budget (013 step 03) applies to the cross-project read too.
-		res := h.Memory().Budget().Apply(ctx, hits)
 		out := map[string]any{
 			"project":      "all",
 			"all_projects": true,
@@ -329,15 +331,18 @@ func handleMemSearch(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.C
 	// Scoped + owner-enforced search through the handle (no second open).
 	// SearchOwnerScoped applies the visibilityFilter for the current reader, so
 	// a private observation is invisible to a different owner until shared.
-	hits, err := h.Memory().SearchOwnerScoped(ctx, readerOwner, readerAgent, query, matchMode, scope, limit)
+	//
+	// Budget (change 013, step 03): the in-list read is uniformly budgeted —
+	// item cap + char budget (explicit "N chars omitted") + context timeout
+	// (enforced by a deadline-bound read context, so a slow read is cut, never
+	// hung). The full content is pulled on demand via mem_get_observation (the
+	// only full-content path) using each hit's id.
+	res, err := applyBudget(h.Memory().Budget(), ctx, func(bctx context.Context) ([]memory.Observation, error) {
+		return h.Memory().SearchOwnerScoped(bctx, readerOwner, readerAgent, query, matchMode, scope, limit)
+	})
 	if err != nil {
 		return toolError(err)
 	}
-	// Budget (change 013, step 03): the in-list read is item-capped and
-	// char-truncated (explicit "N chars omitted"), with a context timeout. The
-	// full content is pulled on demand via mem_get_observation (the only
-	// full-content path) using each hit's id.
-	res := h.Memory().Budget().Apply(ctx, hits)
 	out := map[string]any{
 		"project":      projectID,
 		"observations": budgetedObservationDTOs(h.Memory().Budget(), res.Hits),
@@ -361,25 +366,27 @@ func handleMemContext(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.
 	defer cleanup()
 
 	limit := int(req.GetFloat("limit", 5))
-	sessions, err := h.Memory().RecentContext(ctx, limit)
-	if err != nil {
+	b := h.Memory().Budget()
+	// Budget (013 step 03): the context read is uniformly budgeted — item cap
+	// (how many sessions are in-list) + char budget (summaries truncated with an
+	// explicit "N chars omitted") + context timeout (enforced by the
+	// deadline-bound read context, so a slow read is cut, never hung). The item
+	// cap + char budget are the same uniform Apply mem_search uses (finding
+	// 03.4); the timeout is enforced on the query via Bound.
+	bctx := enforceContextTimeout(b, ctx)
+	sessions, err := h.Memory().RecentContext(bctx, limit)
+	if err != nil && contextTimedOut(bctx) {
+		// A deadline cut surfaces as a truncated partial, not a hard failure.
+		sessions = sessions[:0]
+	} else if err != nil {
 		return toolError(err)
 	}
-	// Budget (013 step 03): the context read is item-capped and its summaries
-	// are char-truncated (explicit "N chars omitted").
-	b := h.Memory().Budget()
-	truncated := false
-	reason := ""
-	for i := range sessions {
-		if len(sessions[i].Summary) > b.Config().Chars {
-			sessions[i].Summary = memory.TruncateWithMarker(sessions[i].Summary, b.Config().Chars)
-			truncated = true
-			if reason == "" {
-				reason = "char-budget"
-			}
-		}
+	budgeted, truncated, reason := budgetedSessions(b, sessions)
+	if contextTimedOut(bctx) {
+		truncated = true
+		reason = "timeout"
 	}
-	out := map[string]any{"sessions": sessionDTOs(sessions)}
+	out := map[string]any{"sessions": sessionDTOs(budgeted)}
 	if truncated {
 		out["truncated"] = true
 		out["truncation_reason"] = reason
@@ -570,35 +577,40 @@ func handleMemTimeline(ctx context.Context, req mcplib.CallToolRequest) (*mcplib
 	}
 	window := parseTimelineWindow(req.GetString("window", ""))
 	limit := int(req.GetFloat("limit", 5))
-
-	tl, err := h.Memory().Timeline(ctx, int64(id), window, limit)
-	if err != nil {
+	b := h.Memory().Budget()
+	// Budget (013 step 03): the timeline read is uniformly budgeted — the item
+	// cap is the per-direction `limit` (already applied by Timeline), the char
+	// budget truncates each in-list snippet (explicit "N chars omitted"), and
+	// the context timeout is enforced by the deadline-bound read context (a slow
+	// read is cut, never hung). Same uniform Apply as mem_search/mem_context
+	// (finding 03.4).
+	bctx := enforceContextTimeout(b, ctx)
+	tl, err := h.Memory().Timeline(bctx, int64(id), window, limit)
+	if err != nil && contextTimedOut(bctx) {
+		// A deadline cut surfaces as a truncated partial, not a hard failure.
+		tl = memory.Timeline{}
+	} else if err != nil {
 		return toolError(err)
 	}
-	// Budget (013 step 03): the timeline read is item-capped (limit) and its
-	// in-list snippets are char-truncated (explicit "N chars omitted"). Every
-	// entry carries its id (the full-content fetch via mem_get_observation).
-	b := h.Memory().Budget()
 	truncated := false
 	reason := ""
 	chars := b.Config().Chars
-	for i := range tl.Before {
-		if len(tl.Before[i].Content) > chars {
-			tl.Before[i].Content = memory.TruncateWithMarker(tl.Before[i].Content, chars)
-			truncated = true
-			if reason == "" {
-				reason = "char-budget"
+	truncTimeline := func(e []memory.TimelineEntry) {
+		for i := range e {
+			if len(e[i].Content) > chars {
+				e[i].Content = memory.TruncateWithMarker(e[i].Content, chars)
+				truncated = true
+				if reason == "" {
+					reason = "char-budget"
+				}
 			}
 		}
 	}
-	for i := range tl.After {
-		if len(tl.After[i].Content) > chars {
-			tl.After[i].Content = memory.TruncateWithMarker(tl.After[i].Content, chars)
-			truncated = true
-			if reason == "" {
-				reason = "char-budget"
-			}
-		}
+	truncTimeline(tl.Before)
+	truncTimeline(tl.After)
+	if contextTimedOut(bctx) {
+		truncated = true
+		reason = "timeout"
 	}
 	out := map[string]any{
 		"anchor_id": int64(id),
@@ -1173,6 +1185,62 @@ func observationDTOs(obs []memory.Observation) []map[string]any {
 // path.
 func inListContent(b *memory.Budget, content string) string {
 	return memory.TruncateWithMarker(content, b.Config().Chars)
+}
+
+// applyBudget runs a budgeted read uniformly (change 013, step 03): it derives
+// a deadline-bound context from the budget (so the context timeout is ENFORCED
+// on the query — a slow read is cut, never hung) and applies the full uniform
+// budget (item cap + char budget + context timeout) to the result. If the read
+// was cut by the deadline, the partial it returned is surfaced with
+// truncated:true / reason "timeout". Delegates to memory.Budget.ApplyRead so
+// the timeout enforcement is identical to the layered CLI path.
+func applyBudget(b *memory.Budget, ctx context.Context, read func(context.Context) ([]memory.Observation, error)) (memory.BudgetResult, error) {
+	return b.ApplyRead(ctx, read)
+}
+
+// budgetedSessions applies the uniform read budget to a session list: the item
+// cap bounds how many sessions are in-list, the char budget truncates each
+// summary (explicit "N chars omitted"), and the context timeout is enforced by
+// the deadline-bound read context (see enforceContextTimeout). This is the
+// uniform Apply for mem_context — the same three caps as mem_search (finding
+// 03.4). It returns the budgeted session list plus the truncation flags.
+func budgetedSessions(b *memory.Budget, sessions []memory.Session) ([]memory.Session, bool, string) {
+	capped := sessions
+	if len(capped) > b.Config().Items {
+		capped = capped[:b.Config().Items]
+	}
+	truncated := len(sessions) > b.Config().Items
+	reason := ""
+	if truncated {
+		reason = "item-cap"
+	}
+	out := make([]memory.Session, len(capped))
+	copy(out, capped)
+	for i := range out {
+		if len(out[i].Summary) > b.Config().Chars {
+			out[i].Summary = memory.TruncateWithMarker(out[i].Summary, b.Config().Chars)
+			truncated = true
+			if reason == "" {
+				reason = "char-budget"
+			}
+		}
+	}
+	return out, truncated, reason
+}
+
+// enforceContextTimeout derives the budget's deadline-bound context for a
+// non-observation read (mem_context / mem_timeline) so the context timeout is
+// enforced on the query (a slow read is cut, never hung). The returned context
+// is the same one the char/truncation logic below inspects for the timeout flag.
+func enforceContextTimeout(b *memory.Budget, ctx context.Context) context.Context {
+	return b.Bound(ctx)
+}
+
+// contextTimedOut reports whether a deadline-bound context has lapsed (the read
+// ran up against the budget's context timeout and was cut).
+func contextTimedOut(ctx context.Context) bool {
+	dl, ok := ctx.Deadline()
+	return ok && !time.Now().Before(dl)
 }
 
 func observationDTO(o memory.Observation) map[string]any {

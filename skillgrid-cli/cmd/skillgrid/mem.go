@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/memory/layer"
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/service"
 )
@@ -69,7 +70,7 @@ func runMem(version string, args []string) {
 	case "share":
 		runMemShare(svc, projID, pos, visibility, grants)
 	case "search":
-		runMemSearch(svc, projID, pos, owner, agent, limit, items, chars, timeout)
+		runMemSearch(svc, projID, dataDir, pos, owner, agent, limit, items, chars, timeout)
 	case "context":
 		runMemContext(svc, projID, limit, items, chars, timeout)
 	case "timeline":
@@ -231,7 +232,7 @@ func runMemShare(svc *service.Service, projID string, pos []string, visibility, 
 	printJSON(map[string]any{"id": id, "shared": true, "visibility": visibility})
 }
 
-func runMemSearch(svc *service.Service, projID string, pos []string, owner, agent string, limit, items, chars int, timeout string) {
+func runMemSearch(svc *service.Service, projID, dataDir string, pos []string, owner, agent string, limit, items, chars int, timeout string) {
 	if len(pos) < 1 {
 		fmt.Fprintln(os.Stderr, "error: mem search requires a query")
 		os.Exit(2)
@@ -240,22 +241,23 @@ func runMemSearch(svc *service.Service, projID string, pos []string, owner, agen
 	if limit <= 0 {
 		limit = 20
 	}
-	cfg := memBudgetOpts(items, chars, timeout)
-	h, cleanup, err := svc.Open(projID)
+	// The CLI `mem search` is the REAL production entry point for the layered
+	// read path (change 013, step 03): a specific fact routes through
+	// BudgetedRetrievalAsRoot (L2/L3-first + L1/L0 RRF-fallback), owner-gated
+	// by --reader-owner so the step-01 per-owner visibility gate holds, and
+	// uniformly budgeted (item cap + char budget + context timeout). The
+	// --item/--char/--timeout flags become a per-project budget override that
+	// takes precedence over config; the full content stays fetchable via
+	// mem_get_observation (the only full-content path) using each hit's id.
+	svc.SetBudgetOverride(projID, memoryBudget(memBudgetOpts(items, chars, timeout)))
+	if owner == "" {
+		owner = agent
+	}
+	res, err := svc.BudgetedRetrievalAsRoot(hCtx(), projID, dataDir, owner, "fact", query, limit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
-	defer cleanup()
-	h.Memory().SetBudget(memoryBudget(cfg))
-	hits, err := h.Memory().SearchOwnerScoped(hCtx(), owner, agent, query, "any", "", limit)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
-	}
-	// Budget the in-list read (item cap + char budget + context timeout); the
-	// full content stays fetchable via `mem governance` / mem_get_observation.
-	res := h.Memory().Budget().Apply(hCtx(), hits)
 	out := map[string]any{
 		"project":      projID,
 		"observations": res.Hits,
@@ -272,19 +274,35 @@ func runMemContext(svc *service.Service, projID string, limit, items, chars int,
 	if limit <= 0 {
 		limit = 5
 	}
-	_ = memBudgetOpts(items, chars, timeout)
+	cfg := memBudgetOpts(items, chars, timeout)
 	h, cleanup, err := svc.Open(projID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
 	defer cleanup()
-	sessions, err := h.Memory().RecentContext(hCtx(), limit)
-	if err != nil {
+	// Budget (013 step 03): the context read honors --item/--char/--timeout.
+	h.Memory().SetBudget(memoryBudget(cfg))
+	b := h.Memory().Budget()
+	bctx := b.Bound(hCtx())
+	sessions, err := h.Memory().RecentContext(bctx, limit)
+	if err != nil && budgetDeadlineLapsed(bctx) {
+		sessions = nil
+	} else if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
-	printJSON(map[string]any{"sessions": sessions})
+	budgeted, truncated, reason := budgetSessionsCLI(b, sessions)
+	if budgetDeadlineLapsed(bctx) {
+		truncated = true
+		reason = "timeout"
+	}
+	out := map[string]any{"sessions": budgeted}
+	if truncated {
+		out["truncated"] = true
+		out["truncation_reason"] = reason
+	}
+	printJSON(out)
 }
 
 func runMemTimeline(svc *service.Service, projID string, pos []string, window string, limit, items, chars int, timeout string) {
@@ -297,7 +315,7 @@ func runMemTimeline(svc *service.Service, projID string, pos []string, window st
 		fmt.Fprintln(os.Stderr, "error: invalid observation id")
 		os.Exit(2)
 	}
-	_ = memBudgetOpts(items, chars, timeout)
+	cfg := memBudgetOpts(items, chars, timeout)
 	w := parseMemWindow(window)
 	if limit <= 0 {
 		limit = 5
@@ -308,12 +326,45 @@ func runMemTimeline(svc *service.Service, projID string, pos []string, window st
 		os.Exit(1)
 	}
 	defer cleanup()
-	tl, err := h.Memory().Timeline(hCtx(), id, w, limit)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+	// Budget (013 step 03): the timeline read honors --item/--char/--timeout.
+	h.Memory().SetBudget(memoryBudget(cfg))
+	b := h.Memory().Budget()
+	bctx := b.Bound(hCtx())
+	tl, tErr := h.Memory().Timeline(bctx, id, w, limit)
+	if tErr != nil && budgetDeadlineLapsed(bctx) {
+		tl = memory.Timeline{}
+	} else if tErr != nil {
+		fmt.Fprintln(os.Stderr, "error:", tErr)
 		os.Exit(1)
 	}
-	printJSON(map[string]any{"anchor_id": id, "before": tl.Before, "after": tl.After})
+	// Item cap is the per-direction `limit` (Timeline already applies it); the
+	// char budget truncates each in-list snippet (explicit "N chars omitted").
+	truncated := false
+	reason := ""
+	maxChars := b.Config().Chars
+	trunc := func(e []memory.TimelineEntry) {
+		for i := range e {
+			if len(e[i].Content) > maxChars {
+				e[i].Content = memory.TruncateWithMarker(e[i].Content, maxChars)
+				truncated = true
+				if reason == "" {
+					reason = "char-budget"
+				}
+			}
+		}
+	}
+	trunc(tl.Before)
+	trunc(tl.After)
+	if budgetDeadlineLapsed(bctx) {
+		truncated = true
+		reason = "timeout"
+	}
+	out := map[string]any{"anchor_id": id, "before": tl.Before, "after": tl.After}
+	if truncated {
+		out["truncated"] = true
+		out["truncation_reason"] = reason
+	}
+	printJSON(out)
 }
 
 func looksLikeSession(s string) bool {
