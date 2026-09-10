@@ -70,9 +70,25 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 phase: verify        # spec | apply | verify | archive
 current_step: 03-autosync-watcher
 status: done         # in_progress | blocked | done
-next_action: run sdd-verify (all 3 steps applied + per-step Verdict PASS)
+next_action: sdd-archive (verify gate PASS; human QA to accept or waive)
 updated: 2026-09-09
 ```
+
+## Verification (change-level, sdd-verify)
+
+**Per-step verdicts:** 01 `PASS` · 02 `PASS` · 03 `PASS` (all sub-tasks `[x]`; all `@step-01/02/03` scenarios COMPLIANT at runtime — covering tests pass).
+
+**Change verdict: `PASS`.**
+
+**Evidence:**
+- Runtime proof: `go test ./internal/mnemonic/{codeindex,route,affected,embedder,mcp,service}/... ./cmd/skillgrid/... -count=1` → all `ok`. `go build ./...` exit 0 (the parallel-session `setup`/`install` refactor has landed; no warning).
+- 005/008/010 baseline preserved: tool surface → 73 purely additive (route/navigates, affected/rename, knowledge [008], watcher adds none); `code_search` name + required `query` param unchanged; code-to-code `graph.Path` unchanged; migrations 013 (routes) + 015 (knowledge, 008) additive; CGo-free (fsnotify pure-Go, git via os/exec).
+- 29 `@step-NN` scenarios in `acceptance.feature`, all mapped to passing runtime tests.
+- Load-bearing properties verified: drop-not-guess (unresolvable refs dropped, excluded from blast radius); `code_affected` query-only + resolved-edges-only; fingerprint gate structural-only + embedder-free (counting-spy counterfactual + `ReindexStructural`); copy-and-swap (reader never torn); single-writer lock.
+
+**QA plan:** `qa-plan.md` (happy/edge/failure + pass-fail + waiver).
+**Ticket:** none (change-level `Ticket:` not set).
+**Next:** sdd-archive — eligible when human QA is accepted or explicitly waived.
 
 ## Step map
 
