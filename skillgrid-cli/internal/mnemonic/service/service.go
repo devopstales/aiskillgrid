@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/mnemonic/codeindex"
@@ -1150,7 +1151,7 @@ func (s *Service) CodeHybridSearch(ctx context.Context, projectID, query string,
 		return nil, err
 	}
 	defer cleanup()
-	emb := resolveEmbedder(h.root)
+	emb := s.warmSearchEmbedder(h.root)
 	return hybrid.Search(ctx, h.store.DB, query, hybrid.Options{
 		Limit:    limit,
 		Embedder: emb,
@@ -1167,12 +1168,27 @@ func (s *Service) CodeSemanticSearch(ctx context.Context, projectID, query strin
 		return nil, err
 	}
 	defer cleanup()
-	emb := resolveEmbedder(h.root)
+	emb := s.warmSearchEmbedder(h.root)
 	return hybrid.Search(ctx, h.store.DB, query, hybrid.Options{
 		Limit:    limit,
 		Semantic: true,
 		Embedder: emb,
 	})
+}
+
+// warmSearchEmbedder returns the warm embedder (load-once, heartbeat-kept) for
+// the search path, or nil when the provider is off (the FTS+signals floor). It
+// is the response-path hook that keeps the ONNX model warm across search calls
+// without a per-call model load.
+func (s *Service) warmSearchEmbedder(configRoot string) embedder.Embedder {
+	cfg := config.Load(configRoot)
+	if cfg.Embedder.Provider == "" || cfg.Embedder.Provider == "off" {
+		return nil // off → FTS floor (no vector leg, no RAM)
+	}
+	we := warmFor(cfg.Embedder.Provider)
+	// Get is the heartbeat: it records the access (resets the idle-evict window)
+	// and returns the resident embedder (loading once on first use).
+	return we.Get(context.Background())
 }
 
 // CodeEmbeddingStatus reports the active provider/model, vector dimension,
@@ -1214,6 +1230,65 @@ func toAsym(p config.EmbedderParams) embedder.AsymParams {
 		InputType:    p.InputType,
 		MaxTokens:    p.MaxTokens,
 	}
+}
+
+// warmEmbedder is the process-wide warm embedder cache (load-once, idle-evict,
+// heartbeat-kept). It wraps the configured embedder so the ONNX model loads
+// once and is reused across search calls (no per-call model load). It is
+// created lazily on the first search and keyed by the resolved provider.
+var (
+	warmMu       sync.Mutex
+	warmEmb      *embedder.WarmEmbedder
+	warmProvider string
+)
+
+// warmFor returns the process-wide warm embedder for the given provider,
+// building it on first use. The warm cache loads the model once and reuses it;
+// an idle-evict timer (external to this function) calls warmEmb.CheckIdle, and
+// each search call's Get is the heartbeat that keeps it alive while connected.
+func warmFor(provider string) *embedder.WarmEmbedder {
+	warmMu.Lock()
+	defer warmMu.Unlock()
+	if warmEmb == nil || warmProvider != provider {
+		warmEmb = embedder.NewWarm(embedder.WarmConfig{
+			Factory:     func() embedder.Embedder { return buildEmbedderFromProvider(provider) },
+			IdleTimeout: embedder.DefaultIdleTimeout,
+		})
+		warmProvider = provider
+	}
+	return warmEmb
+}
+
+// buildEmbedderFromProvider builds a concrete embedder from a provider name
+// (the warm cache's factory). It re-reads config at load time so a model swap
+// is picked up on reload.
+func buildEmbedderFromProvider(provider string) embedder.Embedder {
+	if provider == "" || provider == "off" {
+		return nil // Null Adapter (FTS floor)
+	}
+	cfg := config.Load(".")
+	if provider != cfg.Embedder.Provider {
+		// A config provider different from the requested one: honor the config
+		// (the warm cache is keyed by the config's actual provider).
+		provider = cfg.Embedder.Provider
+	}
+	return resolveEmbedder(".")
+}
+
+// WarmEmbedderHandle returns the process-wide warm embedder (for the idle-evict
+// timer + MCP heartbeat wiring). It is nil until the first search.
+func WarmEmbedderHandle() *embedder.WarmEmbedder {
+	warmMu.Lock()
+	defer warmMu.Unlock()
+	return warmEmb
+}
+
+// resetWarmCache clears the process-wide warm cache (test hook).
+func resetWarmCache() {
+	warmMu.Lock()
+	warmEmb = nil
+	warmProvider = ""
+	warmMu.Unlock()
 }
 
 // resolveEmbedder builds the process embedder from config. An empty/nil
