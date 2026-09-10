@@ -341,7 +341,73 @@ When step DoD is met: `feat(memory): layered retrieval (L2/L3-first) + item/char
 
 ---
 
-## Archive gate checklist
+## Verification (change-level)
+
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
+
+**Change**: 013-mnemonic-layered-memory-governance
+**Per-step verdicts**: 01-governance-fields PASS · 02-layered-distill PASS · 03-layered-retrieval-budgets PASS
+**Runtime proof** (all run at verify time, `-count=1`, exit 0):
+- Full 013 suite: `go test ./internal/mnemonic/memory/... ./internal/mnemonic/store/... ./internal/mnemonic/mcp/... ./internal/mnemonic/service/... ./cmd/skillgrid/... -count=1` → all `ok` (also `-race` clean on memory/mcp/service/cmd)
+- 005/008/010/011 baselines intact: `go test ./internal/mnemonic/route/... ./internal/mnemonic/affected/... ./internal/mnemonic/community/... ./internal/mnemonic/pdg/... ./internal/mnemonic/codeindex/... -count=1` → all `ok`
+
+### Scenario traceability (34 scenarios; @step-01 = 12, @step-02 = 11, @step-03 = 11)
+
+Every scenario is COMPLIANT — a covering test passed at runtime in the suite above.
+
+| @step-01 Scenario | Covering test | Result |
+|---|---|---|
+| governance-tools-and-existing-schema-stable | `mcp.TestMemGovernanceTools` (+ 77→78 surface lock) | COMPLIANT |
+| bad-governance-args-rejected | `mcp.TestBadGovernanceArgs` | COMPLIANT |
+| new-observation-private-by-default-with-owner | `service.PrivateDefault` + `memory.governance` | COMPLIANT |
+| private-observation-invisible-to-second-owner-until-share | `memory.TestVisibility` + `mcp.TestMemSearchGetOwnerEnforcedWiring` (end-to-end) | COMPLIANT |
+| restricted-acl-grant-enforced | `memory.TestVisibility` (acl_grants) | COMPLIANT |
+| restricted-with-no-grants-is-owner-only | `memory.TestVisibility` (RestrictedNoGrants) | COMPLIANT |
+| private-observation-absent-from-admin-cross-owner-list | `memory.AdminCrossOwnerList` clause test | COMPLIANT |
+| mem-share-unknown-target-rejected | `service.MemShare` (unknown target → rejected, unchanged) | COMPLIANT |
+| mem-update-appends-recoverable-version | `service.UpdateVersion` (prior content recoverable, latest=read path) | COMPLIANT |
+| superseded-status-set-explicitly | `service.StatusExplicit` | COMPLIANT |
+| retrieval-usage-count-increments-on-search | `service.UsageCount` (distinct from duplicate_count) | COMPLIANT |
+| mem-governance-surfaces-asset-fields | `service.GovernanceQuery` + `mcp.TestMemGovernanceRoundTrip` | COMPLIANT |
+
+| @step-02 Scenario | Covering test | Result |
+|---|---|---|
+| distilled-layer-carries-resolvable-l0-provenance | `layer.TestDistillProvenance` (L0 link resolves) | COMPLIANT |
+| layer-with-unresolvable-source-not-created | `layer.TestDistillUnresolvableSourceNotCreated` (zero rows) | COMPLIANT |
+| mem-layers-inspects-l0-to-l3-chain | `layer.TestInspectChain` + `service.TestMemLayers` | COMPLIANT |
+| no-llm-floor-produces-provenance-ladder-offline | `layer.TestDistillNoLLMFloor` | COMPLIANT |
+| mem-layers-registered-005-stable | `mcp.TestMemLayersRegistered` + 78-tool lock | COMPLIANT |
+| bad-layer-args-rejected | `mcp` bad-layer-args test | COMPLIANT |
+| session-close-distill-l0-to-l1-l2-l3 | `service.DistillHook` + `mcp` session-close wiring (Wired/BestEffort/Disabled) | COMPLIANT |
+| distill-llm-cached-by-content-hash | `layer.TestDistillCacheHash` (both directions) | COMPLIANT |
+| no-llm-floor-produces-l1-atoms | `layer.NoLLMFloor` (reuses 005 CapturePassive) | COMPLIANT |
+| session-with-no-l1-content-is-noop | `layer.TestDistillNoOp` (zero rows) | COMPLIANT |
+| l1-atom-correctable-with-traceable-provenance | `service.TestAtomCorrectable` (version-append + L0 trace) | COMPLIANT |
+
+| @step-03 Scenario | Covering test | Result |
+|---|---|---|
+| twenty-hit-search-is-budgeted | `memory.Budget` + `service.BudgetedSearch` (10 budgeted, not 20 full) | COMPLIANT |
+| char-budget-truncates-with-explicit-omitted-count | `memory.Budget` (marker + count) | COMPLIANT |
+| context-timeout-returns-truncated-partial | `memory.TestBudgetTimeoutEnforced` (Bound+ApplyRead, injectable slow read) | COMPLIANT |
+| layered-retrieval-l2-l3-first-with-l1-l0-rrf-fallback | `memory/retrieve` + `service.TestBudgetedRetrievalProductionEntryPoint` (CLI mem search, owner-gated) | COMPLIANT |
+| mem-get-observation-is-only-full-content-path | `mcp` only-full-content test (in-list truncated, get full) | COMPLIANT |
+| budgeted-reads-005-stable | `mcp` 78-tool lock + required-param map | COMPLIANT |
+| bad-retrieval-args-rejected | `mcp` bad-args + `cmd` CLI bad-args | COMPLIANT |
+| mem-context-search-timeline-budgeted | `mcp` RouteReads + uniform budget across 3 reads | COMPLIANT |
+| every-inlist-result-carries-get-observation-id | `mcp`/`service` in-list id assertion | COMPLIANT |
+| budget-is-tunable-via-config | `service.TestBudgetConfigDrivenTunability` (loads retrieval_budget YAML) | COMPLIANT |
+| cli-parity-for-layer-governance-share | `cmd` mem layers/governance/share + search/context/timeline budget flags | COMPLIANT |
+
+### Global Constraints — held
+- Private-by-default + per-owner read enforcement (wired into mem_search/mem_get_observation end-to-end); restricted ACL; mem_share is the only widen.
+- Append-versioning (latest = read path; revision_count advances; status explicit, never inferred); retrieval_usage distinct from duplicate_count.
+- Provenance-linked layering (no orphan layers; no-op on empty); no-LLM floor reuses 005 CapturePassive; LLM cached by content-hash.
+- Budgeted reads (item+char+timeout enforced, never hangs); mem_get_observation is the ONLY full-content path; layered L2/L3-first + existing-RRF L1/L0 fallback (real production caller, owner-gated).
+- Additive: 005 mem_* names + required params unchanged (75→78 tool surface, name+required-param lock); 017/018 migrations additive; no CGo boundary added (pure Go over the existing store).
+
+### Review
+- Per-step task reviews: 01 `approved with fixes` (c93b87d+8563453 — wire read enforcement), 02 `approved with fixes` (c86414c — wire session-close hook), 03 `approved with fixes` (c25e122+0cfa827+c19789a — enforce timeout, production layered caller, uniform CLI budget). All re-reviewed clean; step-01 visibility gate preserved through the step-03 budgeted path.
+- Non-blocking follow-ups (do not gate archive): (a) the in-list "N chars omitted" marker is asserted but the exact omitted count is not pinned in every path; (b) mem_context/mem_timeline item-cap is via their own `limit` param (char+timeout uniform) — documented divergence, not a constraint violation.
 
 - [ ] Change-level **Definition of Done** fully checked
 - [ ] No unchecked `- [ ]` under any `### Tasks`
