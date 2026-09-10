@@ -49,10 +49,10 @@ func TestNpmInstallGlobalArgs(t *testing.T) {
 
 func TestNormalizeNPMPackage(t *testing.T) {
 	cases := map[string]string{
-		"@upstash/context7-mcp":      "@upstash/context7-mcp",
-		"vercel-labs/agent-browser":  "github:vercel-labs/agent-browser",
-		"github:foo/bar":             "github:foo/bar",
-		"@playwright/mcp@latest":     "@playwright/mcp@latest",
+		"@upstash/context7-mcp":     "@upstash/context7-mcp",
+		"vercel-labs/agent-browser": "github:vercel-labs/agent-browser",
+		"github:foo/bar":            "github:foo/bar",
+		"@playwright/mcp@latest":    "@playwright/mcp@latest",
 	}
 	for in, want := range cases {
 		if got := normalizeNPMPackage(in); got != want {
@@ -131,6 +131,96 @@ func TestSetupAgentsUnknown(t *testing.T) {
 	cfg := Config{Agents: []string{"unknown"}}
 	if err := setupAgents(&cfg); err == nil {
 		t.Fatal("expected error for unknown agent")
+	}
+}
+
+// TestMemoryAndPersonasBoundary proves the split: the memory writer registers
+// MCP, and the installer distributes personas, both from the same Run-shaped
+// sequence, without either package reaching into the other's concern.
+func TestMemoryAndPersonasBoundary(t *testing.T) {
+	home := t.TempDir()
+	repo := t.TempDir()
+
+	// Memory assets the setup writers need.
+	for _, f := range []string{
+		"plugins/opencode/mnemonic.ts",
+		"plugins/kilo/mnemonic.ts",
+		"plugins/opencode/memory-protocol.md",
+		"plugins/kilo/memory-protocol.md",
+		"plugins/cursor/mnemonic.mdc",
+		"plugins/opencode/skillgrid-logo.tsx",
+		"plugins/kilo/skillgrid-logo.tsx",
+	} {
+		p := filepath.Join(repo, f)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte("mock content"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mcpYAML := `servers:
+  skillgrid-mnemonic:
+    type: local
+    command:
+      - skillgrid
+      - mcp
+`
+	if err := os.MkdirAll(filepath.Join(repo, "config.d"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "config.d", "mcp.yaml"), []byte(mcpYAML), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Persona source in the synced repo.
+	personaSrc := filepath.Join(repo, "agents", "opencode")
+	if err := os.MkdirAll(personaSrc, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(personaSrc, "explorer.md"), []byte("persona"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("HOME", home)
+	cfg := Config{
+		HomeDir: home,
+		RepoDir: repo,
+		Agents:  []string{"opencode"},
+	}
+
+	// Memory: setupAgents (MCP + plugin + protocol).
+	if err := setupAgents(&cfg); err != nil {
+		t.Fatalf("setupAgents: %v", err)
+	}
+	// Harness: backup + config + personas (the installer's lane).
+	if err := backupAgentConfigs(&cfg); err != nil {
+		t.Fatalf("backupAgentConfigs: %v", err)
+	}
+	if err := installAgentConfig(&cfg, "opencode"); err != nil {
+		t.Fatalf("installAgentConfig: %v", err)
+	}
+	if err := installPersonas(&cfg, "opencode"); err != nil {
+		t.Fatalf("installPersonas: %v", err)
+	}
+
+	// Memory side: MCP registered.
+	opencodeCfg, err := os.ReadFile(filepath.Join(home, ".config", "opencode", "opencode.jsonc"))
+	if err != nil {
+		t.Fatalf("read opencode config: %v", err)
+	}
+	if !strings.Contains(string(opencodeCfg), "skillgrid-mnemonic") {
+		t.Errorf("memory setup did not register MCP: %s", opencodeCfg)
+	}
+
+	// Harness side: persona flattened into the global agent dir.
+	got := filepath.Join(home, ".config", "opencode", "agents", "explorer.md")
+	if b, err := os.ReadFile(got); err != nil || string(b) != "persona" {
+		t.Errorf("persona not installed at %s: %q, %v", got, b, err)
+	}
+	// It must NOT be nested under a redundant opencode/ segment.
+	if _, err := os.Stat(filepath.Join(home, ".config", "opencode", "agents", "opencode", "explorer.md")); err == nil {
+		t.Errorf("persona should be flattened, not nested under agents/opencode/")
 	}
 }
 
