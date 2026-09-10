@@ -442,6 +442,35 @@ When step DoD is met: `feat(mnemonic): optional handoff watchdog`
 
 ---
 
+## Change-level Verification
+
+Verdict: `PASS`  <!-- PASS | PASS WITH WARNINGS | FAIL -->
+
+**All 16 `@step-NN` scenarios COMPLIANT at runtime** (step-01: 3, step-02: 4, step-03: 3, step-04: 3, step-05: 3). No CRITICAL findings. All Global Constraints held. No unchecked tasks.
+
+| Step | Verdict | Scenarios (COMPLIANT at runtime) | Runtime proof |
+|------|---------|----------------------------------|---------------|
+| 01 relay-schema | PASS | Store open creates handoff tables; Re-open idempotent; Prior rows survive migration | `store` `TestSessionRelayMigration` — ok (-race) |
+| 02 handoff-resume | PASS | Handoff writes cleave bundle and row; Resume with optional archive; Missing cleave or unknown handoff id; Fail closed and mem tools remain | `relay` (Handoff/Resume/FailClosedNoOrphan/SoftOptionalL0/ResumeMissing/ResumeUnknown/ResumeArchive) + `mcp` (session tools + mem_save) — ok (-race) |
+| 03 status-compact | PASS | Status and compact without facts; No handoffs yet; New tools leave mem_save intact | `relay` (Status/StatusEmpty/Compact/CompactEmpty) + `mcp` (session_status/knowledge_compact + mem_save) — ok (-race) |
+| 04 session-cli | PASS | CLI mirrors MCP on the same store; Bad flags or missing id; CLI fails closed without a store | `cmd/skillgrid` (subprocess CLI + in-process MCP on one shared store; exit codes + stderr + no partial bundle) — ok (-race) |
+| 05 handoff-watchdog | PASS | Enabled watchdog past threshold; Disabled or below threshold is no-op; Invalid watchdog config fails closed | `relay` (Watchdog / Disabled+Default+Below / Invalid) — ok (-race) |
+
+Runtime suite (change-affected packages, `-race`):
+
+| Package | Command | Result |
+|---------|---------|--------|
+| store | `go test -race ./internal/mnemonic/store/ -count=1` | ok (24.5s) |
+| relay | `go test -race ./internal/mnemonic/relay/ -count=1` | ok (21.3s) |
+| mcp | `go test -race ./internal/mnemonic/mcp/ -count=1` | ok (204.2s) |
+| cmd/skillgrid | `go test -race ./cmd/skillgrid/ -count=1` | ok (89.2s) |
+
+Additive regression (005/008/010/011/013 baselines, `-race`): memory, route, affected, community, codeindex `ok`. `pdg` had ONE pre-existing flaky failure — `TestResolveMemberCallsHonorsBoundedCtx` (an 011 wall-clock 40ms LSP-timeout test) timed out under `-race` in the batch run but PASSES cleanly when re-run alone (0.30s / 0.04s) and in the no-race full pdg suite (`ok`). It is an 011 artifact, NOT touched by 006 (006 only ADDs migration 019 + the `relay` package + session MCP tools + `session` CLI). Additive migrations 017/018/019 and the 78→82 tool surface do not regress any baseline.
+
+Global Constraints held across all 5 steps (verified per-step + at runtime): session-relay-only (no 002/003/004/005/Fact-Memory deps); additive SQL (019 `CREATE TABLE IF NOT EXISTS` only, prior rows survive); fail-closed (no orphan handoff row without files; bad CLI input / no store → non-zero exit + stderr + no partial bundle; resume missing `.cleave/`/unknown id → clear error, no invented prompt); `.cleave/` gitignored; soft-optional L0 degrades; thin `knowledge_compact` (no Fact Memory); status zero-counts on empty; watchdog off-by-default (never always-on, fail-closed on invalid config); additive 82-tool surface (all `mem_*` names + required params pinned).
+
+Review: per-step task reviewers (01 approved, 02 approved-with-fixes→fixed, 03 approved→fixed, 04 approved, 05 approved→doc-fix). All findings closed.
+
 ## Archive gate checklist
 
 - [ ] Change-level **Definition of Done** fully checked
