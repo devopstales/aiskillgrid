@@ -95,9 +95,26 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 phase: verify        # spec | apply | verify | archive
 current_step: 03-knowledge-graph-nodes
 status: done         # in_progress | blocked | done
-next_action: run sdd-verify (all 3 steps applied + per-step Verdict PASS)
+next_action: sdd-archive (verify gate PASS WITH WARNINGS; human QA to accept or waive)
 updated: 2026-09-09
 ```
+
+## Verification (change-level, sdd-verify)
+
+**Per-step verdicts:** 01 `PASS` · 02 `PASS` · 03 `PASS` (all sub-tasks `[x]`; all `@step-01/02/03` scenarios COMPLIANT at runtime — covering tests pass).
+
+**Change verdict: `PASS WITH WARNINGS`.**
+
+**Evidence:**
+- Runtime proof: `go test ./internal/mnemonic/{community,eval,hybrid,store,mcp,service,route,process,knowledge,codeindex,graph}/... -count=1` → all `ok` (mcp `ok` except 2 `go build`-e2e tests blocked by the WARNING below). `go build ./...` fails ONLY in `internal/mnemonic/setup` (see warning); every 008 package builds + passes.
+- 005/008/010 baseline preserved: tool surface 63→71 purely additive; `code_search` name + required `query` param unchanged (additive response gains only); 005 code-to-code `graph.Path` unchanged; migrations 012–015 additive; CGo-free.
+- 36 `@step-NN` scenarios in `acceptance.feature`, all mapped to passing runtime tests.
+
+**WARNING (not a 008 defect):** a parallel session is mid-refactor of `internal/mnemonic/setup` (helpers moved to new untracked `internal/install/agents.go`; `opencode.go` still mid-edit, `"path/filepath" imported and not used`). This breaks the `setup` package build, which transitively fails `mcp`'s `TestE2EMemoryExtTools`/`TestE2EEngramParityGaps` (go-build e2e) and `cmd/skillgrid`'s `TestTrail*`. NOT 008's code, NOT a 008 global-constraint violation. Re-run those e2e tests once the parallel session lands `setup`/`install`.
+
+**QA plan:** `qa-plan.md` (happy/edge/failure + pass-fail + waiver).
+**Ticket:** none (change-level `Ticket:` not set).
+**Next:** sdd-archive — eligible when human QA is accepted or explicitly waived (archive only; sdd-verify does not close a ticket).
 
 ## Step map
 
