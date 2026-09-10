@@ -76,12 +76,26 @@ func Run(c *Config) error {
 		if err := installMCPServers(c); err != nil {
 			return err
 		}
-		if err := setup.BackupAgentConfigs(c.Agents, c.DryRun); err != nil {
-			return fmt.Errorf("backup agent configs: %w", err)
-		}
-		info("configuring agents: " + strings.Join(c.Agents, ", "))
+		info("configuring agents (memory): " + strings.Join(c.Agents, ", "))
 		if err := setupAgents(c); err != nil {
 			return err
+		}
+		if err := backupAgentConfigs(c); err != nil {
+			return fmt.Errorf("backup agent configs: %w", err)
+		}
+		info("configuring agents (harness): " + strings.Join(c.Agents, ", "))
+		for _, key := range c.Agents {
+			if err := installAgentConfig(c, key); err != nil {
+				return fmt.Errorf("harness config %s: %w", key, err)
+			}
+		}
+		if !c.SkipAgentsCopy {
+			info("installing personas: " + strings.Join(c.Agents, ", "))
+			for _, key := range c.Agents {
+				if err := installPersonas(c, key); err != nil {
+					return fmt.Errorf("install personas %s: %w", key, err)
+				}
+			}
 		}
 	}
 

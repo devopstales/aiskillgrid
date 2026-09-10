@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"gopkg.in/yaml.v3"
 
@@ -21,8 +20,6 @@ const (
 	opencodePluginRel = "plugins/opencode/mnemonic.ts"
 	kiloPluginRel     = "plugins/kilo/mnemonic.ts"
 	cursorTemplateRel = "plugins/cursor/mnemonic.mdc"
-	opencodeLogoRel   = "plugins/opencode/skillgrid-logo.tsx"
-	kiloLogoRel       = "plugins/kilo/skillgrid-logo.tsx"
 
 	kiloBeginMarker = "<!-- BEGIN SKILLGRID MNEMONIC — managed by skillgrid setup kilocode -->"
 	kiloEndMarker   = "<!-- END SKILLGRID MNEMONIC -->"
@@ -80,10 +77,10 @@ func LoadMCPConfig(repoRoot string) ([]MCPServerConfig, error) {
 	var entries []MCPServerConfig
 	for name, srv := range raw.Servers {
 		entries = append(entries, MCPServerConfig{
-			Name:     name,
-			Type:     srv.Type,
-			URL:      srv.URL,
-			Command:  srv.Command,
+			Name:    name,
+			Type:    srv.Type,
+			URL:     srv.URL,
+			Command: srv.Command,
 		})
 	}
 	return entries, nil
@@ -135,13 +132,6 @@ func cursorMCPEntry() map[string]interface{} {
 		"command": "skillgrid",
 		"args":    []interface{}{"skillgrid", "mcp"},
 	}
-}
-
-func tildePath(home, absPath string) string {
-	if home != "" && strings.HasPrefix(absPath, home) {
-		return "~" + strings.TrimPrefix(absPath, home)
-	}
-	return absPath
 }
 
 func copyFromRepo(repoRoot, relPath, dst string, dryRun bool) error {
@@ -215,70 +205,6 @@ func backupConfigFile(home, agent, path string, dryRun bool) error {
 	return nil
 }
 
-// BackupAgentConfigs backs up the agent config files (kilo.jsonc/opencode.json,
-// AGENTS.md, cursor mcp.json) before setup mutates them, so a failed or
-// unwanted install run can be reverted from ~/.skillgrid/backup/<agent>/.
-func BackupAgentConfigs(agents []string, dryRun bool) error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-	for _, agent := range agents {
-		var paths []string
-		switch agent {
-		case "opencode":
-			dir := filepath.Join(home, ".config", "opencode")
-			paths = []string{filepath.Join(dir, "opencode.jsonc"), filepath.Join(dir, "opencode.json")}
-		case "kilocode", "kilo":
-			dir := filepath.Join(home, ".config", "kilo")
-			paths = []string{
-				filepath.Join(dir, "kilo.jsonc"),
-				filepath.Join(dir, "opencode.json"),
-				filepath.Join(dir, "opencode.jsonc"),
-				filepath.Join(dir, "AGENTS.md"),
-			}
-		case "cursor":
-			paths = []string{filepath.Join(home, ".cursor", "mcp.json")}
-		default:
-			continue
-		}
-		for _, p := range paths {
-			if _, err := os.Stat(p); err != nil {
-				continue
-			}
-			if err := backupConfigFile(home, agent, p, dryRun); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func agentConfigPath(home, agent string) string {
-	switch agent {
-	case "opencode":
-		dir := filepath.Join(home, ".config", "opencode")
-		for _, name := range []string{"opencode.jsonc", "opencode.json"} {
-			p := filepath.Join(dir, name)
-			if _, err := os.Stat(p); err == nil {
-				return p
-			}
-		}
-		return filepath.Join(dir, "opencode.jsonc")
-	case "kilo":
-		dir := filepath.Join(home, ".config", "kilo")
-		for _, name := range []string{"kilo.jsonc", "opencode.json", "opencode.jsonc"} {
-			p := filepath.Join(dir, name)
-			if _, err := os.Stat(p); err == nil {
-				return p
-			}
-		}
-		return filepath.Join(dir, "kilo.jsonc")
-	default:
-		return ""
-	}
-}
-
 func ensureConfigFile(path string, dryRun bool) error {
 	if _, err := os.Stat(path); err == nil {
 		return nil
@@ -339,49 +265,30 @@ func upsertOpenCodeMCP(cfgPath string, entry MCPServerConfig, dryRun bool) error
 	return os.WriteFile(cfgPath, []byte(updated), 0o644)
 }
 
-// appendPluginPath appends path to a "plugin" array in the given JSONC config,
-// skipping the write when the value is already present. Used by the kilo
-// installer to register the mnemonic plugin under the user's home.
-func appendPluginPath(cfgPath, path string, dryRun bool) error {
-	data, err := os.ReadFile(cfgPath)
-	if err != nil {
-		return fmt.Errorf("read config %s: %w", cfgPath, err)
-	}
-	arr := gjson.Get(string(data), "plugin").Array()
-	strs := make([]string, 0, len(arr)+1)
-	exists := false
-	for _, v := range arr {
-		s := jsonArrayString(v)
-		if s == "" {
-			continue
-		}
-		if s == path {
-			exists = true
-		}
-		strs = append(strs, s)
-	}
-	if exists {
-		if arrayNeedsRewrite(arr, strs) {
-			updated, err := sjson.Set(string(data), "plugin", strs)
-			if err != nil {
-				return fmt.Errorf("set plugin: %w", err)
+// AgentConfigPath returns the harness's primary JSONC config path, preferring
+// an existing file and defaulting to the canonical name. Shared by the memory
+// writers (MCP registration) and the installer (harness config).
+func AgentConfigPath(home, agent string) string {
+	switch agent {
+	case "opencode":
+		dir := filepath.Join(home, ".config", "opencode")
+		for _, name := range []string{"opencode.jsonc", "opencode.json"} {
+			p := filepath.Join(dir, name)
+			if _, err := os.Stat(p); err == nil {
+				return p
 			}
-			if dryRun {
-				logging.Info("[dry-run] heal plugin[] in " + cfgPath)
-				return nil
-			}
-			return os.WriteFile(cfgPath, []byte(updated), 0o644)
 		}
-		return nil
+		return filepath.Join(dir, "opencode.jsonc")
+	case "kilo":
+		dir := filepath.Join(home, ".config", "kilo")
+		for _, name := range []string{"kilo.jsonc", "opencode.json", "opencode.jsonc"} {
+			p := filepath.Join(dir, name)
+			if _, err := os.Stat(p); err == nil {
+				return p
+			}
+		}
+		return filepath.Join(dir, "kilo.jsonc")
+	default:
+		return ""
 	}
-	strs = append(strs, path)
-	updated, err := sjson.Set(string(data), "plugin", strs)
-	if err != nil {
-		return fmt.Errorf("set plugin: %w", err)
-	}
-	if dryRun {
-		logging.Info("[dry-run] append " + path + " to plugin[] in " + cfgPath)
-		return nil
-	}
-	return os.WriteFile(cfgPath, []byte(updated), 0o644)
 }

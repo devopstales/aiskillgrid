@@ -8,13 +8,16 @@ import (
 	"github.com/devopstales/skillgrid/skillgrid-cli/internal/logging"
 )
 
-// SetupKiloCode registers MCP, writes the AGENTS.md protocol block, and installs the HTTP plugin.
+// SetupKiloCode registers Mnemonic for Kilo: the MCP servers, the AGENTS.md
+// memory-protocol block, and the mnemonic.ts plugin. Harness config (TUI
+// logo/theme, plugin-path append, kilo→opencode bridges) is owned by
+// internal/install (installAgentConfig), not the memory component.
 func SetupKiloCode(home, repoRoot string, mcpEntries []MCPServerConfig, dryRun bool) error {
 	if repoRoot == "" {
 		return fmt.Errorf("repo root not found (run from skillgrid checkout or sync repo)")
 	}
 
-	cfgPath := agentConfigPath(home, "kilo")
+	cfgPath := AgentConfigPath(home, "kilo")
 	if err := ensureConfigFile(cfgPath, dryRun); err != nil {
 		return err
 	}
@@ -59,46 +62,5 @@ func SetupKiloCode(home, repoRoot string, mcpEntries []MCPServerConfig, dryRun b
 	if err := copyFromRepo(repoRoot, kiloPluginRel, pluginDst, dryRun); err != nil {
 		return err
 	}
-	if err := copyFromRepo(repoRoot, opencodePluginRel, sharedDst, dryRun); err != nil {
-		return err
-	}
-
-	tuiJsonPath := filepath.Join(kiloDir, "tui.json")
-	if err := ensureConfigFile(tuiJsonPath, dryRun); err != nil {
-		return err
-	}
-	logoDst := filepath.Join(kiloDir, "tui-plugins", "skillgrid-logo.tsx")
-	if err := copyFromRepo(repoRoot, kiloLogoRel, logoDst, dryRun); err != nil {
-		return err
-	}
-	if err := setJSON(tuiJsonPath, "theme", "tokyonight", dryRun); err != nil {
-		return err
-	}
-	if err := appendJSONArrayUnique(tuiJsonPath, "plugin", logoDst, dryRun); err != nil {
-		return err
-	}
-
-	opencodeDir := filepath.Join(home, ".config", "opencode")
-	bridges := []struct{ src, dst string }{
-		{
-			filepath.Join(opencodeDir, "plugins", "mnemonic.ts"),
-			pluginDst,
-		},
-		{
-			filepath.Join(opencodeDir, "shared", "http-client.ts"),
-			sharedDst,
-		},
-		{
-			filepath.Join(opencodeDir, "tui.json"),
-			filepath.Join(kiloDir, "tui.json"),
-		},
-	}
-	for _, b := range bridges {
-		if err := copyFirstWriteWins(b.src, b.dst, dryRun); err != nil {
-			return err
-		}
-	}
-
-	pluginRef := tildePath(home, pluginDst)
-	return appendPluginPath(cfgPath, pluginRef, dryRun)
+	return copyFromRepo(repoRoot, opencodePluginRel, sharedDst, dryRun)
 }
