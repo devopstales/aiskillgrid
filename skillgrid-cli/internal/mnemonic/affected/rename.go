@@ -10,6 +10,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 )
@@ -214,9 +215,14 @@ func Rename(ctx context.Context, db *sql.DB, opts RenameOptions) (RenamePlan, er
 
 	if !plan.DryRun {
 		// Apply: write exactly the planned files (string replace of the old
-		// name with the new one). No commit, no push.
+		// name with the new one). No commit, no push. A planned file that is
+		// absent on disk (indexed but deleted) is skipped, not an error —
+		// the apply path only writes files that exist.
 		var edited []string
 		for p := range files {
+			if _, err := os.Stat(p); err != nil {
+				continue
+			}
 			if err := applyEdit(ctx, db, p, opts.Old, opts.New); err != nil {
 				return plan, err
 			}
