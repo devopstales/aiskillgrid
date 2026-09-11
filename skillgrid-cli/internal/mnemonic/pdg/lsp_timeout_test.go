@@ -75,7 +75,10 @@ func TestResolveMemberCallsHonorsBoundedCtx(t *testing.T) {
 	start := time.Now()
 	edges, err := client.ResolveMemberCalls(bctx)
 	elapsed := time.Since(start)
-	if elapsed >= 2*time.Second {
+	// Ceiling is -race-tolerant: it must stay far under the 30s default the
+	// test guards against (proof the injected bound is honored), but wide
+	// enough that a 40ms deadline under -race CPU contention cannot flake.
+	if elapsed >= time.Second {
 		t.Errorf("resolver under a 40ms timeout took %v — the injected timeout was not honored", elapsed)
 	}
 	if err != nil {
