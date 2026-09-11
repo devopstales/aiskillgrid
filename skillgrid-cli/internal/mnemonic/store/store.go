@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +15,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 //go:embed migrations/*.sql
@@ -147,18 +149,24 @@ func openWithWALRetry(dbPath string) (*sql.DB, error) {
 	return nil, lastErr
 }
 
-// isWALBusy reports whether err is a transient SQLite busy/locked error
+// isWALBusy reports whether err is a transient SQLite busy error
 // (SQLITE_BUSY, code 5) caused by a concurrent writer holding the WAL lock.
-// The modernc/sqlite driver renders that as "database is locked (5)
-// (SQLITE_BUSY)"; both spellings are matched so the retry triggers on any
-// busy variant without a new module dependency.
+// It prefers the driver's typed error (*sqlite.Error with
+// Code() == sqlite3.SQLITE_BUSY); the text fallback matches the driver's
+// rendered busy messages, e.g. "database is locked (5) (SQLITE_BUSY)"
+// (verified against modernc.org/sqlite v1.45.0, error.go / conn.go).
 func isWALBusy(err error) bool {
 	if err == nil {
 		return false
 	}
+	var typed *sqlite.Error
+	if errors.As(err, &typed) {
+		return typed.Code() == sqlite3.SQLITE_BUSY
+	}
 	msg := err.Error()
-	return strings.Contains(msg, "database is locked") ||
-		strings.Contains(msg, "SQLITE_BUSY") ||
+	return strings.Contains(msg, "SQLITE_BUSY") ||
+		strings.Contains(msg, "The database file is locked") ||
+		strings.Contains(msg, "database is locked") ||
 		strings.Contains(msg, "database table is locked")
 }
 

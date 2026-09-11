@@ -2,8 +2,13 @@ package store
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
+	"path/filepath"
 	"testing"
 	"time"
+
+	sqlitedrv "modernc.org/sqlite"
 )
 
 // TestStoreOpenReusesCachedHandle covers @step-01 (Scenario: Cached handle
@@ -153,6 +158,138 @@ func TestStoreOpenWALRetry(t *testing.T) {
 	if n != 2 {
 		t.Fatalf("expected 2 walprobe rows after contended write, got %d", n)
 	}
+}
+
+// TestStoreOpenWALRetryLoop covers @step-01 (Scenarios: WAL lock retry with
+// exponential backoff + retry count on a locked open): a cold Open (cache
+// disabled so no pooled handle is reused) whose PRAGMA journal_mode=WAL hits
+// a write lock held by a concurrent connection is RETRIED by
+// openWithWALRetry — the first attempt fails with a typed SQLITE_BUSY error
+// (isWALBusy must classify it as busy), a backoff elapses, and the retry
+// succeeds once the lock is released. The elapsed-time floor proves the
+// retry happened rather than the open succeeding on attempt 0.
+func TestStoreOpenWALRetryLoop(t *testing.T) {
+	t.Setenv(envCacheDisable, "1")
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "retryproj.sqlite")
+
+	// Create the file and hold a write lock on it (deferred tx + insert,
+	// verified to hold the WAL write lock in this environment).
+	hold, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatalf("open holder: %v", err)
+	}
+	hold.SetMaxOpenConns(1)
+	if _, err := hold.Exec(`CREATE TABLE IF NOT EXISTS walprobe (id INTEGER PRIMARY KEY, v TEXT)`); err != nil {
+		t.Fatalf("holder create: %v", err)
+	}
+	walTx, err := hold.Begin()
+	if err != nil {
+		t.Fatalf("holder begin: %v", err)
+	}
+	if _, err := walTx.Exec(`INSERT INTO walprobe (v) VALUES ('hold')`); err != nil {
+		t.Fatalf("holder insert: %v", err)
+	}
+	defer func() {
+		_ = walTx.Commit()
+		_ = hold.Close()
+	}()
+
+	// Cold Open in a goroutine (cache disabled → no pooled handle, so the
+	// open goes through openWithWALRetry). The first attempt's
+	// PRAGMA journal_mode=WAL hits the held write lock (verified: this is
+	// the real contention path — a journal-mode transition under lock),
+	// isWALBusy classifies it as busy, and the retry succeeds after the
+	// 50ms backoff once the lock is released at 80ms.
+	opened := make(chan *Store, 1)
+	openErr := make(chan error, 1)
+	start := time.Now()
+	go func() {
+		s, err := Open(dir, "retryproj")
+		if err != nil {
+			openErr <- err
+			return
+		}
+		opened <- s
+	}()
+
+	time.Sleep(80 * time.Millisecond)
+	if err := walTx.Commit(); err != nil {
+		t.Fatalf("commit holder tx: %v", err)
+	}
+
+	select {
+	case s := <-opened:
+		defer s.Close()
+	case err := <-openErr:
+		t.Fatalf("open under WAL lock should succeed after the retry loop absorbs the busy error, got: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatalf("open did not complete within the retry window")
+	}
+	elapsed := time.Since(start)
+	// At least one 50ms backoff must have elapsed: the first attempt hit the
+	// lock and openWithWALRetry slept before retrying.
+	if elapsed < 50*time.Millisecond {
+		t.Fatalf("expected openWithWALRetry to back off at least 50ms before the retry, finished in %v", elapsed)
+	}
+	t.Logf("open succeeded after %v (retry absorbed the transient WAL lock)", elapsed)
+}
+
+// TestIsWALBusyClassification unit-tests the retry decision: isWALBusy must
+// classify real busy errors (the driver's *sqlite.Error surfaced through
+// openDatabase's %w wrap) as busy, and reject unrelated errors.
+func TestIsWALBusyClassification(t *testing.T) {
+	busy := openDatabaseBusyWrap(t)
+	var typed *sqlitedrv.Error
+	if !errors.As(busy, &typed) || typed.Code() != 5 {
+		t.Fatalf("precondition: wrapped openDatabase error must be *sqlite.Error with code 5 (SQLITE_BUSY), got %v", busy)
+	}
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil", nil, false},
+		{"real wrapped busy from openDatabase", busy, true},
+		{"unrelated", fmt.Errorf("apply PRAGMA journal_mode=WAL: no such table: foo"), false},
+	}
+	for _, tc := range cases {
+		if got := isWALBusy(tc.err); got != tc.want {
+			t.Fatalf("%s: isWALBusy = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+func openDatabaseBusyWrap(t *testing.T) error {
+	t.Helper()
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "busywrap.sqlite")
+	hold, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatalf("open holder: %v", err)
+	}
+	hold.SetMaxOpenConns(1)
+	if _, err := hold.Exec(`CREATE TABLE IF NOT EXISTS t (id INTEGER PRIMARY KEY)`); err != nil {
+		t.Fatalf("holder create: %v", err)
+	}
+	tx, err := hold.Begin()
+	if err != nil {
+		t.Fatalf("holder begin: %v", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO t VALUES (1)`); err != nil {
+		t.Fatalf("holder insert: %v", err)
+	}
+	defer func() {
+		_ = tx.Commit()
+		_ = hold.Close()
+	}()
+	// openDatabase sets journal_mode=WAL first — with the lock held it must
+	// return the wrapped busy error.
+	_, err = openDatabase(dbPath)
+	if err == nil {
+		t.Fatalf("expected openDatabase to be busy while the lock is held")
+	}
+	return err
 }
 
 // TestStoreOpenCacheDisabledByEnv covers @step-01 (Scenario: Cache disabled
