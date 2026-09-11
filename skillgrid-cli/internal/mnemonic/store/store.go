@@ -2,6 +2,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -21,6 +24,37 @@ var migrationsFS embed.FS
 type Store struct {
 	DB   *sql.DB
 	path string
+	// cacheKey is the pool key (store path) when this Store wraps a pooled
+	// handle, or "" when it owns its database outright (cache disabled).
+	cacheKey string
+}
+
+// cachedEntry is a pooled *sql.DB shared by every live Store for the same
+// store path. The pool eliminates N+1 store opens: repeated Open calls for
+// the same dataDir+projectID return the same underlying database handle.
+type cachedEntry struct {
+	db   *sql.DB
+	refs atomic.Int64
+}
+
+// handleCache is the process-global store handle pool. Keyed by store path
+// (dataDir + projectID). SKILLGRID_MNEMONIC_DISABLE_CACHE=1 bypasses it
+// (rollback boundary — every Open creates a fresh connection).
+var (
+	handleCache sync.Map
+	cacheMu     sync.Mutex // serializes evict-and-close against live refs
+)
+
+const (
+	envCacheDisable = "SKILLGRID_MNEMONIC_DISABLE_CACHE"
+	maxOpenAttempts = 3
+)
+
+// walBackoffs are the retry delays after a WAL-locked open attempt.
+var walBackoffs = []time.Duration{50 * time.Millisecond, 100 * time.Millisecond, 200 * time.Millisecond}
+
+func cacheDisabled() bool {
+	return strings.EqualFold(os.Getenv(envCacheDisable), "1")
 }
 
 // openCount records every call to Open (successful or not). It is a process-
@@ -55,6 +89,11 @@ func ResetOpenCount() {
 }
 
 // Open opens or creates the SQLite database for projectID under dataDir.
+// Open is refcounted: a second Open for the same store path returns the
+// cached handle (same underlying *sql.DB) instead of re-opening the
+// database. Close releases one reference; the database is only closed once
+// every reference has been returned. Set SKILLGRID_MNEMONIC_DISABLE_CACHE=1
+// to bypass the cache (every Open creates a fresh connection).
 func Open(dataDir, projectID string) (*Store, error) {
 	RecordOpen()
 	if strings.TrimSpace(projectID) == "" {
@@ -70,6 +109,60 @@ func Open(dataDir, projectID string) (*Store, error) {
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
 		return nil, fmt.Errorf("create db dir: %w", err)
 	}
+	if !cacheDisabled() {
+		if s, ok := acquireCached(dbPath); ok {
+			return s, nil
+		}
+	}
+	db, err := openWithWALRetry(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	if err := migrate(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrate: %w", err)
+	}
+	if cacheDisabled() {
+		return &Store{DB: db, path: dbPath}, nil
+	}
+	return cacheNewHandle(db, dbPath)
+}
+
+// openWithWALRetry opens the SQLite database, retrying with exponential
+// backoff (50ms, 100ms, 200ms) when a concurrent writer holds the WAL lock.
+// It fails after maxOpenAttempts (3) total attempts.
+func openWithWALRetry(dbPath string) (*sql.DB, error) {
+	var lastErr error
+	for attempt := 0; attempt < maxOpenAttempts; attempt++ {
+		db, err := openDatabase(dbPath)
+		if err == nil {
+			return db, nil
+		}
+		lastErr = err
+		if !isWALBusy(err) || attempt+1 >= maxOpenAttempts {
+			break
+		}
+		time.Sleep(walBackoffs[attempt])
+	}
+	return nil, lastErr
+}
+
+// isWALBusy reports whether err is a transient SQLite busy/locked error
+// (SQLITE_BUSY, code 5) caused by a concurrent writer holding the WAL lock.
+// The modernc/sqlite driver renders that as "database is locked (5)
+// (SQLITE_BUSY)"; both spellings are matched so the retry triggers on any
+// busy variant without a new module dependency.
+func isWALBusy(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "database is locked") ||
+		strings.Contains(msg, "SQLITE_BUSY") ||
+		strings.Contains(msg, "database table is locked")
+}
+
+func openDatabase(dbPath string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
@@ -88,11 +181,60 @@ func Open(dataDir, projectID string) (*Store, error) {
 			return nil, fmt.Errorf("apply %s: %w", pragma, err)
 		}
 	}
-	if err := migrate(db); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("migrate: %w", err)
+	return db, nil
+}
+
+// acquireCached returns the pooled handle for dbPath, or a fresh one. A
+// ping before return is the health-check on reuse (change 014): a dead or
+// closed pooled handle is evicted and replaced instead of handed out.
+func acquireCached(dbPath string) (*Store, bool) {
+	v, ok := handleCache.Load(dbPath)
+	if !ok {
+		return nil, false
 	}
-	return &Store{DB: db, path: dbPath}, nil
+	entry := v.(*cachedEntry)
+	entry.refs.Add(1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err := entry.db.PingContext(ctx)
+	cancel()
+	if err == nil {
+		return &Store{DB: entry.db, path: dbPath, cacheKey: dbPath}, true
+	}
+	// Unhealthy pooled handle: drop the pool reference; evict only if this
+	// was the last one holding the database.
+	if remaining := entry.refs.Add(-1); remaining <= 0 {
+		evictCached(dbPath, entry)
+	}
+	return nil, false
+}
+
+// cacheNewHandle registers a freshly opened database in the pool and returns
+// the Store wrapping it.
+func cacheNewHandle(db *sql.DB, dbPath string) (*Store, error) {
+	entry := &cachedEntry{db: db}
+	entry.refs.Store(1)
+	actual, loaded := handleCache.LoadOrStore(dbPath, entry)
+	e := actual.(*cachedEntry)
+	if loaded {
+		// Lost the race: release the db we just opened and reuse the winner.
+		db.Close()
+		e.refs.Add(1)
+	}
+	return &Store{DB: e.db, path: dbPath, cacheKey: dbPath}, nil
+}
+
+// evictCached closes the pooled database and removes dbPath from the pool.
+// The mutex serializes the load-compare-swap so a database that still has
+// live references is never closed underneath them.
+func evictCached(dbPath string, entry *cachedEntry) {
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	if v, ok := handleCache.Load(dbPath); ok && v == entry {
+		handleCache.Delete(dbPath)
+	} else {
+		return
+	}
+	entry.db.Close()
 }
 
 // Path returns the on-disk path of the SQLite file.
@@ -103,12 +245,34 @@ func (s *Store) Path() string {
 	return s.path
 }
 
-// Close releases the database handle.
+// Close releases one reference to the database handle. Pooled handles are
+// only closed once every reference has been returned; a handle that owns
+// its database outright (cache disabled) is closed immediately.
 func (s *Store) Close() error {
 	if s == nil || s.DB == nil {
 		return nil
 	}
+	if s.cacheKey != "" {
+		return s.releasePooled()
+	}
 	return s.DB.Close()
+}
+
+// releasePooled decrements the pool reference count for s.cacheKey. When the
+// count reaches zero the pooled database is closed and evicted from the
+// cache.
+func (s *Store) releasePooled() error {
+	v, ok := handleCache.Load(s.cacheKey)
+	if !ok {
+		// Already evicted (concurrent final Close); nothing to release.
+		return nil
+	}
+	entry := v.(*cachedEntry)
+	if remaining := entry.refs.Add(-1); remaining <= 0 {
+		evictCached(s.cacheKey, entry)
+		return nil
+	}
+	return nil
 }
 
 func migrate(db *sql.DB) error {
