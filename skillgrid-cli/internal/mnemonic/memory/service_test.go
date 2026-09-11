@@ -355,6 +355,54 @@ func TestSaveRequiresContent(t *testing.T) {
 	}
 }
 
+func TestBuildFTSQueryTrigramMode(t *testing.T) {
+	got := buildFTSQuery("hello", "trigram")
+	for _, tg := range []string{`"hel"`, `"ell"`, `"llo"`} {
+		if !strings.Contains(got, tg) {
+			t.Errorf("trigram mode missing trigram %s in %q", tg, got)
+		}
+	}
+	if !strings.Contains(got, " OR ") {
+		t.Errorf("trigram fragments must be OR-joined, got %q", got)
+	}
+	// Default mode is unchanged: a single term stays a single quoted phrase.
+	if got := buildFTSQuery("hello", ""); got != `"hello"` {
+		t.Errorf("default mode = %q, want %q", got, `"hello"`)
+	}
+	// A term shorter than 3 chars uses the whole term as a single "trigram".
+	if got := buildFTSQuery("hi", "trigram"); got != `"hi"` {
+		t.Errorf("short-term trigram = %q, want %q", got, `"hi"`)
+	}
+	// Empty query falls back to the default behavior (empty query string).
+	if got := buildFTSQuery("", "trigram"); got != "" {
+		t.Errorf("empty-query trigram fallback = %q, want empty", got)
+	}
+	// Prefix mode appends * to the quoted term.
+	if got := buildFTSQuery("fun", "prefix"); got != `"fun*"` {
+		t.Errorf("prefix mode = %q, want %q", got, `"fun*"`)
+	}
+	// Multi-term prefix: each term gets the wildcard, OR-joined.
+	if got := buildFTSQuery("fun bar", "prefix"); got != `"fun*" OR "bar*"` {
+		t.Errorf("multi-term prefix = %q, want %q", got, `"fun*" OR "bar*"`)
+	}
+}
+
+func TestFTSPhraseModeUnchanged(t *testing.T) {
+	// Empty mode (default) is byte-identical to the pre-change behavior:
+	// OR-joined double-quoted terms, no trigram/prefix transformation.
+	if got := buildFTSQuery("exact phrase match", ""); got != `"exact" OR "phrase" OR "match"` {
+		t.Errorf("default mode = %q, want OR-joined quoted terms", got)
+	}
+	// "all" mode keeps AND-joined quoted terms.
+	if got := buildFTSQuery("exact phrase match", "all"); got != `"exact" AND "phrase" AND "match"` {
+		t.Errorf("all mode = %q, want AND-joined quoted terms", got)
+	}
+	// Quoting/escaping is preserved.
+	if got := buildFTSQuery(`say "hi"`, ""); got != `"say" OR """hi"""` {
+		t.Errorf("escaped quotes = %q", got)
+	}
+}
+
 func TestSearchMatchMode(t *testing.T) {
 	fx := newFixture(t, "mem-test")
 	ctx := context.Background()

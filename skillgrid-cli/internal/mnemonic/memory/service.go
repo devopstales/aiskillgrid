@@ -1399,6 +1399,38 @@ var validTypes = map[string]struct{}{
 	"session_log":  {},
 }
 
+// validMatchModes are the accepted FTS match modes: "" (default phrase OR),
+// "any" (alias of the default OR), "all" (AND-joined phrases), "trigram"
+// (3-char substring OR-union), and "prefix" (wildcard prefix per term).
+var validMatchModes = map[string]struct{}{
+	"":        {},
+	"any":     {},
+	"all":     {},
+	"trigram": {},
+	"prefix":  {},
+}
+
+// ValidateMatchMode reports whether matchMode is an accepted FTS match mode.
+// The mode is the FTS query-construction mode (see buildFTSQuery), distinct
+// from the layered-retrieval mode ("bootstrap"/"fact").
+func ValidateMatchMode(matchMode string) error {
+	if _, ok := validMatchModes[matchMode]; ok {
+		return nil
+	}
+	return fmt.Errorf("invalid match mode %q (valid: , any, all, trigram, prefix)", matchMode)
+}
+
+// NormalizeMatchMode maps the CLI-facing alias "phrase" to the default mode
+// ("" = phrase-only, OR-joined) and passes every other value through. It does
+// NOT validate: pair it with ValidateMatchMode when the value comes from an
+// untrusted input.
+func NormalizeMatchMode(mode string) string {
+	if mode == "phrase" {
+		return ""
+	}
+	return mode
+}
+
 // IsValidType reports whether typ is one of the allowed observation types.
 // Case-insensitive. Includes the skill taxonomy plus the MCP tool's advertised
 // aliases (pattern, config, learning, lesson).
@@ -1417,6 +1449,12 @@ func buildFTSQuery(query string, matchMode string) string {
 	if len(terms) == 0 {
 		return ""
 	}
+	switch matchMode {
+	case "trigram":
+		return trigramFTSQuery(terms)
+	case "prefix":
+		return prefixFTSQuery(terms)
+	}
 	escaped := make([]string, len(terms))
 	for i, term := range terms {
 		term = strings.ReplaceAll(term, `"`, `""`)
@@ -1427,6 +1465,56 @@ func buildFTSQuery(query string, matchMode string) string {
 		sep = " AND "
 	}
 	return strings.Join(escaped, sep)
+}
+
+// quoteFTSTerm double-quotes a single FTS5 phrase term (embedding quotes are
+// escaped by doubling), matching the default phrase-mode encoding.
+func quoteFTSTerm(term string) string {
+	return `"` + strings.ReplaceAll(term, `"`, `""`) + `"`
+}
+
+// trigramFTSQuery builds the trigram-mode FTS query: each term expands to its
+// 3-character substrings (terms shorter than 3 chars use the whole term as a
+// single "trigram"), and each term's trigrams are OR-joined into a group.
+// Multi-term queries OR the groups together (deliberate: OR-union of all
+// trigrams is the broadest partial-match net, and keeps the step-02 behavior
+// simple and predictable). Empty result (no usable fragments) falls back to
+// the default phrase behavior.
+func trigramFTSQuery(terms []string) string {
+	groups := make([]string, len(terms))
+	for i, term := range terms {
+		trimmed := strings.TrimSpace(term)
+		if len(trimmed) < 3 {
+			groups[i] = quoteFTSTerm(trimmed)
+			continue
+		}
+		fragments := make([]string, len(trimmed)-2)
+		for j := 0; j+3 <= len(trimmed); j++ {
+			fragments[j] = quoteFTSTerm(trimmed[j : j+3])
+		}
+		groups[i] = strings.Join(fragments, " OR ")
+	}
+	q := strings.Join(groups, " OR ")
+	if strings.TrimSpace(q) == "" {
+		return buildFTSQuery(strings.Join(terms, " "), "")
+	}
+	return q
+}
+
+// prefixFTSQuery builds the prefix-mode FTS query: each term becomes a
+// wildcard prefix ("fun" → "fun*"). Multi-term queries OR the prefixed terms
+// (prefix mode is its own mode; OR is the simple, predictable choice for this
+// step). Empty result falls back to the default phrase behavior.
+func prefixFTSQuery(terms []string) string {
+	prefixed := make([]string, len(terms))
+	for i, term := range terms {
+		prefixed[i] = quoteFTSTerm(strings.TrimSpace(term) + "*")
+	}
+	q := strings.Join(prefixed, " OR ")
+	if strings.TrimSpace(q) == "" {
+		return buildFTSQuery(strings.Join(terms, " "), "")
+	}
+	return q
 }
 
 func nullString(s string) sql.NullString {
