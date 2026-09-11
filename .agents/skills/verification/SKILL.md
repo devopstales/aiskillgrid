@@ -35,6 +35,7 @@ BEFORE claiming any status or expressing satisfaction:
 4. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
    - If YES: State claim WITH evidence
+   - Label every claim: `Verified` (fresh command output), `Inferred` (reasoning, no run), or `Unknown` (no evidence). Never upgrade without evidence.
 5. ONLY THEN: Make the claim
 
 Skip any step = lying, not verifying

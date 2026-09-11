@@ -100,6 +100,9 @@ Subagent (general-purpose):
     If you find issues with the plan itself rather than the implementation,
     say so.
 
+    If the code is solid, say so briefly and pass it — a short "ship it"
+    review is valid. Do not pad with filler to look thorough.
+
     ## Output Format
 
     ### Strengths
@@ -109,6 +112,7 @@ Subagent (general-purpose):
 
     #### Critical (Must Fix)
     [Bugs, security issues, data loss risks, broken functionality]
+    If there are none, omit this section entirely.
 
     #### Important (Should Fix)
     [Architecture problems, missing features, poor error handling, test gaps,
@@ -117,12 +121,14 @@ Subagent (general-purpose):
     #### Minor (Nice to Have)
     [Code style, optimization opportunities, documentation polish,
     new terms without glossary entries]
+    Keep to 3 max — pick the most impactful, drop the rest.
 
     For each issue:
     - File:line reference
     - What's wrong
     - Why it matters
-    - How to fix (if not obvious)
+    - Evidence: `Verified` (command output, test result, or quoted lines) or `Inferred` (reasoning only — needs verification before anyone acts on it)
+    - How to fix: show the corrected code in a fenced code block (if not obvious)
 
     ### Recommendations
     [Improvements for code quality, architecture, or process]
@@ -140,6 +146,7 @@ Subagent (general-purpose):
     - Be specific (file:line, not vague)
     - Explain WHY each issue matters
     - Acknowledge strengths
+    - Show each suggested fix as corrected code in a fenced block
     - Give a clear verdict
 
     **DON'T:**
@@ -147,6 +154,7 @@ Subagent (general-purpose):
     - Mark nitpicks as Critical
     - Give feedback on code you didn't actually read
     - Be vague ("improve error handling")
+    - Pad the review with filler — 2 real issues beat 15 trivial ones
     - Avoid giving a clear verdict
 ```
 

@@ -33,6 +33,7 @@ Idea scope: **feature | bug | refactor | greenfield app** — same pipeline; siz
 | Kanban + blockers | `sdd-spec` → `tasks.md` **with blocking edges** + acceptance |
 | Execute | `sdd-apply` (sequential default; parallel only unblocked) |
 | QA (+ human) | `sdd-verify` (agent proof + `qa-plan` + review) → findings → apply |
+| Review (Optional) | `sdd-review` |
 
 ---
 
