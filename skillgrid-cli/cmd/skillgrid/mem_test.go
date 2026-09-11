@@ -98,6 +98,63 @@ func TestMemCLIParity(t *testing.T) {
 	}
 }
 
+// runMemCLIExpectError runs the mem CLI and returns (output, non-nil error);
+// it does NOT t.Fatal on a non-zero exit (for negative-arg assertions).
+func runMemCLIExpectError(t *testing.T, dataDir string, args ...string) (string, error) {
+	t.Helper()
+	cmdArgs := append([]string{"run", ".", "mem"}, args...)
+	cmd := exec.Command("go", cmdArgs...)
+	cmd.Dir = mustWD(t)
+	cmd.Env = append(cmd.Environ(), "SKILLGRID_MNEMONIC_DATA_DIR="+dataDir)
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// TestMemSearchModeFlag is 02.3 [AFK] — the CLI `mem search --mode` accepts
+// trigram/prefix/phrase/all, routes trigram/prefix through the FTS match-mode
+// read path (BudgetedRetrievalAsRootFTS), and rejects invalid modes with a
+// clear error (exit 2, no store access).
+func TestMemSearchModeFlag(t *testing.T) {
+	dataDir := t.TempDir()
+	project := "memcli-mode-flag"
+	seedMemCLIPeriod(t, dataDir, project)
+
+	// --mode trigram: the FTS fact leg runs in trigram mode (no error,
+	// budgeted result shape).
+	out := runMemCLI(t, dataDir, "search", "mem", "--mode", "trigram", "--project", project, "--dir", dataDir)
+	if !strings.Contains(out, `"observations"`) {
+		t.Fatalf("mem search --mode trigram should return the budgeted search shape, got: %s", out)
+	}
+
+	// --mode prefix: same read path, prefix FTS expansion.
+	out = runMemCLI(t, dataDir, "search", "mem", "--mode", "prefix", "--project", project, "--dir", dataDir)
+	if !strings.Contains(out, `"observations"`) {
+		t.Fatalf("mem search --mode prefix should return the budgeted search shape, got: %s", out)
+	}
+
+	// --mode phrase: the default (phrase OR) alias.
+	out = runMemCLI(t, dataDir, "search", "mem", "--mode", "phrase", "--project", project, "--dir", dataDir)
+	if !strings.Contains(out, `"observations"`) {
+		t.Fatalf("mem search --mode phrase should return the budgeted search shape, got: %s", out)
+	}
+
+	// --mode all: AND-joined phrases.
+	out = runMemCLI(t, dataDir, "search", "mem", "--mode", "all", "--project", project, "--dir", dataDir)
+	if !strings.Contains(out, `"observations"`) {
+		t.Fatalf("mem search --mode all should return the budgeted search shape, got: %s", out)
+	}
+
+	// Invalid mode: rejected clearly with a non-zero exit, before any store
+	// access (the flag parsing layer validates, so the error is ours).
+	out, err := runMemCLIExpectError(t, dataDir, "search", "mem", "--mode", "bogus", "--project", project, "--dir", dataDir)
+	if err == nil {
+		t.Fatalf("mem search --mode bogus should fail, got: %s", out)
+	}
+	if !strings.Contains(out, "invalid match mode") {
+		t.Fatalf("invalid --mode should be rejected clearly, got: %s", out)
+	}
+}
+
 // TestMemCLIBudgetedContext is the finding-03.3 proof: the CLI `mem context`
 // honors its --char budget flag (previously ignored). A session with a long
 // summary is char-truncated with an explicit "N chars omitted" marker when a

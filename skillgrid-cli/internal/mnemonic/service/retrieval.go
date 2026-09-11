@@ -191,6 +191,35 @@ func (s *Service) BudgetedRetrievalAsRoot(ctx context.Context, projectID, config
 	if abs, absErr := filepath.Abs(root); absErr == nil {
 		root = abs
 	}
+	// Route through the layered read path with the per-owner gate held (step
+	// 01). For a specific fact the L1/L0 RRF leg is owner-scoped
+	// (SearchOwnerScoped); bootstrap (L2/L3) is project-scoped and unaffected
+	// by the gate. The bound context enforces the budget's context timeout on
+	// the query (a slow read is cut, never hung).
+	return s.budgetedRetrievalHits(ctx, root, projectID, readerOwner, mode, query, "", limit)
+}
+
+// BudgetedRetrievalAsRootFTS is BudgetedRetrievalAsRoot with an FTS match
+// mode for the L1/L0 fact leg (change 014, step 02): "trigram" / "prefix"
+// reshape the FTS query (buildFTSQuery); an empty matchMode is the existing
+// behavior. The CLI `mem search --mode` routes through this variant; the
+// MCP path keeps BudgetedRetrievalAsRoot so the tool contract is unchanged.
+func (s *Service) BudgetedRetrievalAsRootFTS(ctx context.Context, projectID, configRoot, readerOwner, mode, query, matchMode string, limit int) (memory.BudgetResult, error) {
+	root := configRoot
+	if root == "" {
+		root = "."
+	}
+	if abs, absErr := filepath.Abs(root); absErr == nil {
+		root = abs
+	}
+	return s.budgetedRetrievalHits(ctx, root, projectID, readerOwner, mode, query, matchMode, limit)
+}
+
+// budgetedRetrievalHits runs the layered read path with the per-owner gate
+// (step 01) and the budget tuned from config + per-project override, and
+// returns the budgeted result. It is the shared body of
+// BudgetedRetrievalAsRoot (matchMode "") and BudgetedRetrievalAsRootFTS.
+func (s *Service) budgetedRetrievalHits(ctx context.Context, root, projectID, readerOwner, mode, query, matchMode string, limit int) (memory.BudgetResult, error) {
 	st, err := store.Open(s.dataDir, projectID)
 	if err != nil {
 		return memory.BudgetResult{}, err
@@ -207,13 +236,7 @@ func (s *Service) BudgetedRetrievalAsRoot(ctx context.Context, projectID, config
 	if p, ok := s.budgetOverrideFor(projectID); ok {
 		mem.SetBudget(p)
 	}
-
-	// Route through the layered read path with the per-owner gate held (step
-	// 01). For a specific fact the L1/L0 RRF leg is owner-scoped
-	// (SearchOwnerScoped); bootstrap (L2/L3) is project-scoped and unaffected
-	// by the gate. The bound context enforces the budget's context timeout on
-	// the query (a slow read is cut, never hung).
-	hits, err := mem.SearchOwnerScopedRetrieve(mem.Budget().Bound(ctx), readerOwner, mode, query, limit)
+	hits, err := mem.SearchOwnerScopedRetrieveFTS(mem.Budget().Bound(ctx), readerOwner, mode, query, matchMode, limit)
 	if err != nil {
 		return memory.BudgetResult{}, err
 	}

@@ -55,6 +55,8 @@ func runMem(version string, args []string) {
 	fs.StringVar(&window, "window", "", "timeline: time window each side (e.g. 1h)")
 	fs.StringVar(&visibility, "target-visibility", "", "share: team|restricted|agent")
 	fs.StringVar(&grants, "grants", "", "share: comma-separated grantee list")
+	var searchMode string
+	fs.StringVar(&searchMode, "mode", "", "search: FTS match mode (trigram|prefix|phrase|all; default = phrase OR)")
 	if err := fs.Parse(reorderMemArgs(rest)); err != nil {
 		os.Exit(2)
 	}
@@ -70,7 +72,7 @@ func runMem(version string, args []string) {
 	case "share":
 		runMemShare(svc, projID, pos, visibility, grants)
 	case "search":
-		runMemSearch(svc, projID, dataDir, pos, owner, agent, limit, items, chars, timeout)
+		runMemSearch(svc, projID, dataDir, pos, owner, agent, limit, items, chars, timeout, searchMode)
 	case "context":
 		runMemContext(svc, projID, limit, items, chars, timeout)
 	case "timeline":
@@ -91,8 +93,9 @@ func printMemUsage() {
   governance <id>                 governed-asset view (mem_governance)
   share <id> --target-visibility team|restricted|agent [--grants a,b]
                                   widen visibility (mem_share)
-  search <query> [--limit N] [--reader-owner X] [--item N] [--char N] [--timeout 3s]
-                                  budgeted FTS search (mem_search)
+  search <query> [--mode trigram|prefix|phrase|all] [--limit N] [--reader-owner X]
+                 [--item N] [--char N] [--timeout 3s]
+                                   budgeted FTS search (mem_search; default mode = phrase OR)
   context [--limit N] [--item N] [--char N] [--timeout 3s]
                                   recent session summaries (mem_context)
   timeline <id> [--window 1h] [--limit N] [--item N] [--char N] [--timeout 3s]
@@ -232,9 +235,17 @@ func runMemShare(svc *service.Service, projID string, pos []string, visibility, 
 	printJSON(map[string]any{"id": id, "shared": true, "visibility": visibility})
 }
 
-func runMemSearch(svc *service.Service, projID, dataDir string, pos []string, owner, agent string, limit, items, chars int, timeout string) {
+func runMemSearch(svc *service.Service, projID, dataDir string, pos []string, owner, agent string, limit, items, chars int, timeout string, searchMode string) {
 	if len(pos) < 1 {
 		fmt.Fprintln(os.Stderr, "error: mem search requires a query")
+		os.Exit(2)
+	}
+	// --mode (014 step 02): FTS match mode for the fact leg. "phrase" is the
+	// alias for the default; trigram/prefix reshape the FTS query. Invalid
+	// values are rejected here, before any store is opened.
+	ftsMode := memory.NormalizeMatchMode(searchMode)
+	if err := memory.ValidateMatchMode(ftsMode); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(2)
 	}
 	query := strings.Join(pos, " ")
@@ -253,7 +264,7 @@ func runMemSearch(svc *service.Service, projID, dataDir string, pos []string, ow
 	if owner == "" {
 		owner = agent
 	}
-	res, err := svc.BudgetedRetrievalAsRoot(hCtx(), projID, dataDir, owner, "fact", query, limit)
+	res, err := svc.BudgetedRetrievalAsRootFTS(hCtx(), projID, dataDir, owner, "fact", query, ftsMode, limit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
