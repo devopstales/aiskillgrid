@@ -77,8 +77,10 @@ func TestResolveMemberCallsHonorsBoundedCtx(t *testing.T) {
 	elapsed := time.Since(start)
 	// Ceiling is -race-tolerant: it must stay far under the 30s default the
 	// test guards against (proof the injected bound is honored), but wide
-	// enough that a 40ms deadline under -race CPU contention cannot flake.
-	if elapsed >= time.Second {
+	// enough that a 40ms deadline under -race scheduler latency cannot flake.
+	// Observed -race latency for the 40ms deadline to fire is ~2s; 5s is 6x
+	// under the 30s default yet far above that latency.
+	if elapsed >= 5*time.Second {
 		t.Errorf("resolver under a 40ms timeout took %v — the injected timeout was not honored", elapsed)
 	}
 	if err != nil {
