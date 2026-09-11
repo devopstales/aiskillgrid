@@ -22,6 +22,11 @@ rules:
     - Include success criteria (measurable)
     - Document architecture decisions with rationale (Choice/Alternatives/Rationale)
     - Carry the threat matrix applicable rows forward into per-step WHAT
+    - Classify change (trivial | standard | risky; trivial may be one line) with verification floor L1-L4
+    - Name trust boundaries + stop-and-ask security assumptions, or one line when none
+    - Minimum secure design; label assumptions Verified / Inferred / Unknown
+    - State falsifiable hypothesis (right + wrong conditions) with thinnest MVP and door check
+    - Intent only in propose; engineering decisions belong to design/spec
   spec:
     - Own NN allocation; one ## section per Step Blueprint entry in tasks.md
     - Group tasks by step; keep each task completable in one sitting

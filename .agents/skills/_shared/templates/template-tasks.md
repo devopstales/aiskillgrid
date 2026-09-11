@@ -121,6 +121,7 @@ This step is done only when:
   - [ ] 01.1.e Commit — `feat(<scope>): <subject>`
 - [ ] 01.2 `[AFK]` <edge / failure coverage mapped to Scenario> — `Run: <command>` — Expected: PASS
 <!-- Applicable threat-matrix rows MUST appear as [RED] tasks before production tasks. -->
+<!-- Every task MUST carry `SATISFIES: <AC #n or @step-NN scenario>` so each task traces to an acceptance criterion. -->
 
 ### Verification
 

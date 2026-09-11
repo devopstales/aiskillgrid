@@ -3,6 +3,8 @@
 > **STATUS:** `draft` | `approved` | `in-progress` | `complete` (<YYYY-MM-DD>)
 >
 > **For agentic workers:** REQUIRED: follow `.agents/skills/_shared/conventions/sdd-structure.md`. This file is WHY + HOW (former intent + plan). Spec phase instantiates `tasks.md` + `acceptance.feature` from the Step Blueprint and per-step WHAT below.
+>
+> Intent only — never decide engineering here (stack/versions, data model, security boundaries, testing arch, error handling, project structure); those belong to design/spec. Flag any such text as deferred to design.
 
 **Goal:** <one sentence — must match `## Goal` below>
 
@@ -17,6 +19,10 @@
 **Ticket:** `<tracker-id or none>`
 
 **Depends on:** <other NNN-slugs or none>
+
+**Classification:** `trivial | standard | risky` (optional for trivial — one line suffices; see `_shared/conventions/task-classification.md`)
+
+**Verification floor:** `L1–L4` (trivial→L1 or omit, standard→L2, risky→L3/L4; see `_shared/conventions/verification-ladder.md`)
 
 ---
 
@@ -48,6 +54,22 @@ This change is done only when **all** of the following are true:
 ## Problem / why
 
 <What is wrong or missing, who is affected, and why it matters now.>
+
+<!-- Reframe test: if only one solution could fit this statement, it's a spec, not intent — rewrite until more than one answer fits. -->
+
+## Hypothesis
+
+We believe [change] will cause [these users] to [do Y], resulting in [outcome].
+We'll know we're RIGHT if [leading signal] within [timeframe].
+We'll know we're WRONG if [counter-signal / guardrail moves].
+
+## MVP
+
+<Thinnest end-to-end slice proving the hypothesis right or wrong — not "build the product." Holds → full spec; doesn't → a slice was thrown away, not months.>
+
+## Door check
+
+<Two-way (reversible) → just build it. One-way (expensive to undo) → spike first via `design-spike`, with decision rule: go with [X] if [signal] / [Y] if [counter-signal].>
 
 ## Target users
 
@@ -156,6 +178,20 @@ Observable behavior each step must deliver (feeds Gherkin). Not implementation H
 **Definition of Done:** <…>
 
 - <WHAT bullet>
+
+## Trust boundaries
+
+| Actors / privileges | Untrusted inputs | External systems / secrets / sensitive data |
+|---------------------|------------------|---------------------------------------------|
+| <who + what they can do> | <what enters untrusted> | <systems, secrets, data involved> |
+
+Or one line: `No new trust boundary`.
+
+## Security assumptions
+
+- <Stop-and-ask ambiguity (auth model, trust boundary, retention, secret handling) — or none. Never silently pick.>
+
+Minimum secure design: simplest approach with secure defaults; no extra configurability, fallback paths, or optional insecure modes unless explicitly required.
 
 ## Threat matrix
 
