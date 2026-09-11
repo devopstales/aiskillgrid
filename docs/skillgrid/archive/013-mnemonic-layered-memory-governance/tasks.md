@@ -66,9 +66,9 @@ Change is done only when **all** of the following are true:
 ## State
 
 ```yaml
-phase: verify          # spec | apply | verify | archive
+phase: archive          # spec | apply | verify | archive
 current_step: 03-layered-retrieval-budgets
-status: in_progress  # in_progress | blocked | done
+status: done  # in_progress | blocked | done
 updated: 2026-09-10
 ```
 
