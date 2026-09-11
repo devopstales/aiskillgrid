@@ -1,165 +1,137 @@
 ---
 name: questioning
-description: "Stress-test a plan, decision, or idea branch by branch before implementation, using a design tree, frontier, and rounds with recommendations. Use when you need to clarify intent, the orchestrator delegates a clarification round (explore/propose/init), or a request must be classified before design."
+description: "Stress-test a plan, decision, or idea branch by branch before implementation. Use when a request is ambiguous, scope is unclear, or you need to clarify intent before designing or coding."
 license: MIT
 metadata:
   author: devopstales
   part-of: Skillgrid
-  version: "1.0"
+  version: "2.0"
 ---
 
-# questioning
+# Questioning
 
-## Purpose
+Clarify intent before acting. Map decisions as a tree, ask them in frontier order, stop only on user approval.
 
-`questioning` is the reusable **questioning / intent-resolution primitive** for Skillgrid SDD. It stress-tests a plan, decision, or idea *before* anyone writes code, by mapping the subject as a design tree and interrogating it branch by branch until nothing is left silently assumed.
-
-It merges two proven techniques:
-
-- **Design tree + frontier + rounds** (Matt Pocock *grilling*): ask the whole frontier per round, ship every question with a recommendation, and separate *facts* (agent's job) from *decisions* (user's job).
-- **Classify + approval gate** (superpowers *brainstorming*): classify the request by complexity, enforce a hard "no implementation until approved" gate, and propose 2–3 approaches with trade-offs.
-
-It is cross-cutting, not a pipeline phase. Phases invoke it:
-
-- `sdd-init` — to clarify project facts / tracker choice
-- `sdd-explore` — to resolve ambiguous requirements before reading code
-- `sdd-propose` (Step 0 shaping) — to resolve business rules before writing the proposal
-
-## Hard Gate
-
-**Do not invoke any implementation skill, write code, scaffold a project, or take implementation action until you have stated your intent and the user has approved it.** This applies to every path. The approval gate never scales down — a two-sentence design still needs a yes.
-
-## The Core Model
-
-Three ideas carry the technique.
-
-A **design tree** is the model of the subject: each decision branches into the decisions that hang off it.
-The **frontier** is the set of decisions whose prerequisites are all settled: the only questions that can honestly be asked *now*.
-A **round** is one frontier, asked in full and answered in full.
-
-Inside a round, every question ships in a fixed shape so the user can answer by number:
+## Iron Law
 
 ```
-Q1 — **<title>**: <body, may be multiple paragraphs, may include choices>
+NO IMPLEMENTATION UNTIL THE USER CONFIRMS SHARED UNDERSTANDING
+```
+
+**Violating the letter of this gate is violating its spirit.**
+
+Implementation means: writing or editing code, scaffolding, creating branches or worktrees, editing specs / proposals / tasks, dispatching implementer sub-agents, running any write-shaped command. Preparing to implement IS implementing.
+
+Allowed before approval: reading code, docs, specs, git history, searching memory or code index, asking questions. Reading ≠ implementing.
+
+## Core Model
+
+- **Design tree:** each decision branches into the decisions hanging off it.
+- **Frontier:** decisions whose prerequisites are settled — the only questions you can honestly ask now.
+- **Round:** one frontier, asked in full, answered in full.
+
+Every question ships with a recommendation so the user can answer by number:
+
+```
+Q1 — **<title>**: <body, may include choices>
 
   Recommendation: <your recommended answer>
 ```
 
-Rules: ask the whole frontier; never put two questions that depend on each other in the same round; end only when the user confirms **shared understanding**, never when questions run out.
+Rules: ask the whole frontier; never put two dependent questions in the same round.
 
 ## Classify First
 
-Announce the classification out loud — "this looks **bounded**, so I'll present a short design in chat" — so the user can override:
+State it out loud — "this looks **bounded**, so I'll present a short design in chat" — so the user can override:
 
-- **Spike** — feasibility question ("can we…", "is it possible…"). Output is an answer, not kept code. Present the question + probe (2–3 sentences), get a nod, investigate cheaply. Label anything built as throwaway.
-- **Bounded** — a well-scoped change to code that already exists: a new flag, a small endpoint, a one-file fix. The flow you're changing is already here to read. Ask the clarifying questions that matter, present a short design **in chat**, STOP, wait for approval. No spec file.
-- **Architectural** — new projects, new subsystems, interface-altering restructuring. Full process: questions → 2–3 approaches → sectioned design → written spec → planning.
+- **Spike** — feasibility question ("can we…"). Output is an answer, not kept code. State the probe (2–3 sentences), get a nod, investigate cheaply.
+- **Bounded** — small change to existing code (flag, endpoint, one-file fix). Ask what matters, present a short design in chat, STOP, wait for approval.
+- **Architectural** — new subsystem, new project, interface change. Questions → 2–3 approaches with trade-offs → sectioned design → approval.
 
-When in doubt, take the heavier path. Complexity discovered mid-task upgrades the path — stop, say so, step up. Nothing downgrades mid-task.
+When in doubt, take the heavier path. Complexity found mid-task upgrades the path — say so, step up. Never downgrade mid-task.
 
 ## Facts vs Decisions
 
-- **Decisions are the user's** — put each to them and wait. Answering your own decisions is a bug.
-- **Facts are your job.** When a frontier question needs something the environment settles (filesystem, git, tools), find it yourself — do not ask.
-  - In Skillgrid, use the **code-index ladder**: `code_status` → `code_index` (if stale) → `code_search` → `code_read`.
-  - If a fact needs non-trivial research, dispatch a sub-agent. Do not block the round: questions *downstream* of running research wait; the rest of the frontier asks now.
+- **Decisions are the user's.** Never answer your own decisions. Answering your own decision is a gate violation — stop, strike it, re-ask it as a Q with a recommendation.
+- **Facts are your job.** If the environment settles it (filesystem, git, docs, code), look it up yourself — don't ask.
 
 ## Workflow
 
-1. **Classify** the request, state it out loud, and confirm the subject + scope boundary (in/out).
-2. **Explore context** — recover project facts (`mem_search("sdd-init/{project}")` → `mem_get_observation`), check `docs/skillgrid/config.yaml` and specs, run the code-index ladder for repo facts. For multi-subsystem requests, flag if scope needs decomposition first.
-3. **Ask clarifying questions** in rounds by frontier. Each question gets a recommendation.
-4. **(Architectural only)** Propose 2–3 approaches with trade-offs; lead with your recommendation; apply YAGNI ruthlessly.
-5. **Present design** — scale sections to complexity (a few sentences for bounded; 200–300 words per section for architectural). Cover: architecture, components, data flow, error handling, testing. Ask after each section.
-6. **Confirmation gate** — when the frontier is empty, STOP. Do not build until the user confirms shared understanding.
-7. **(Architectural only) Spec self-review** — placeholder scan, internal consistency, scope check, ambiguity check. Fix inline.
+1. **Classify** and confirm scope boundary (in/out).
+2. **Ask in rounds** by frontier. Each question gets a recommendation.
+3. **(Architectural only)** Propose 2–3 approaches with trade-offs; lead with your recommendation; apply YAGNI.
+4. **Present design** — scale to complexity (sentences for bounded; ~200 words/section for architectural: architecture, components, data flow, errors, testing).
+5. **Confirmation gate** — frontier empty ≠ done. Done = explicit user yes to the presented design (`yes`, `approved`, `proceed`). Answering round questions is NOT approval. Silence, "looks good but…", or a partial nod is NOT approval. A two-sentence design still needs a yes.
 
 ## Round Format
 
 ```
-Subject: {plan / decision / idea being clarified}
-Classification: {spike | bounded | architectural} — say why
-Scope: {what's in / out}
+Subject: {plan / decision / idea}
+Classification: {spike | bounded | architectural} — why
+Scope: {in / out}
 
 ---
 
 Round 1 — frontier is {N} decisions:
 
-Q1 — **<title>**: <body, may include choices>
+Q1 — **<title>**: <body>
 
-  Recommendation: <recommended answer>
-
----
-
-Q2 — **<title>**: <body>
-
-  Recommendation: <recommended answer>
+  Recommendation: <answer>
 
 ---
 
-Reply by number (e.g. "1 yes, 2 the second option, 3 no — here's why").
+Reply by number (e.g. "1 yes, 2 second option").
 ```
 
-After the user answers, recompute the frontier and ask the next round.
+Recompute the frontier after each answer; ask the next round.
 
-## Worked Example
+## Example
 
-Input: *"We should let customers save checkout drafts so they can come back later."*
+Input: *"Let customers save checkout drafts."*
 
 ```
-Subject: Persist checkout drafts for later completion
-Classification: architectural — new subsystem (draft storage, lifecycle, conflict resolution)
-Scope: in — save/recover draft at any step; out — saved-cart sync, scheduled reminders
-
----
+Subject: Persist checkout drafts
+Classification: architectural — new storage, lifecycle, conflicts
+Scope: in — save/recover; out — reminders
 
 Round 1 — frontier is 2 decisions:
 
-Q1 — **Where does draft state live?**: local storage + backend, or backend-only?
-  Recommendation: backend-only. Local-only loses drafts on device switch and blocks recovery flows.
+Q1 — **Where does draft state live?**: backend-only or local + backend?
+  Recommendation: backend-only. Local-only loses drafts on device switch.
 
-Q2 — **When is a draft discarded?**: on completed checkout, on timeout, or manual delete only?
-  Recommendation: keep on completed checkout (re-entry), discard via explicit timeout (30 days), manual delete always.
-
----
-
-Reply by number.
+Q2 — **When is a draft discarded?**: on completion, timeout, or manual only?
+  Recommendation: timeout (30 days) + manual delete; keep after completion for re-entry.
 ```
 
-User answers `1 backend-only, 2 discard on timeout only`. Frontier advances: storage choice unblocks *conflict resolution*; discard rule does not. Round 2 asks only the unblocked branch.
+Answer `1 backend-only, 2 timeout only` unblocks conflict-resolution next round.
 
-## Red Flags (don't skip these gates)
+## Red Flags — STOP and return to questioning
 
 | Thought | Reality |
 |---|---|
-| "Too simple to need a design" | Simple means a short design, not no design. Present it, then stop. |
-| "I'll start while they read" | The gate is approval, not design length. Present, then wait. |
-| "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. No existing flow to change → architectural. |
-| "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
+| "Too simple for a design" | Simple = short design, not no design. Present it, then STOP and wait. |
+| "I'll start while they read" | Preparation is implementation. STOP. Wait for yes. |
+| "Questions answered, so I have approval" | Answers ≠ approval. Approval is a yes to the design. STOP. Present design, wait. |
+| "I'll set up the branch / spike while waiting" | Setup is implementation. STOP. |
+| "User is slow, they can revert" | Revert ≠ approval. STOP. Wait. |
+| "I know this domain, so it's bounded" | Bounded measures the repo, not your familiarity. STOP. Reclassify. |
+| "Spike works, I'll keep the code" | Spike output is an answer. Keeping code is a new request — STOP, reclassify. |
 
-## Persistence (SDD / Mnemonic mode)
+## Verification checklist
 
-If the orchestrator launches you with a change name:
+Before claiming shared understanding:
 
-```
-Mnemonic topic: sdd/{change-name}/grill
-Filesystem:     docs/skillgrid/changes/{change-name}/interview.md
-Mode:            hybrid (default) | filesystem | none
-```
+- [ ] Classification stated out loud with reason
+- [ ] Scope in/out confirmed
+- [ ] Every frontier question shipped a recommendation
+- [ ] Design presented at the right scale
+- [ ] Explicit yes to the design observed (not inferred from answers)
+- [ ] Zero implementation actions taken before that yes
 
-- Start once: `sid = skillgrid-mnemonic_mem_session_start(title: "sdd/{change-name}/grill")`.
-- After each round, append decisions + questions to `interview.md` and `mem_save` the transcript (upsert via `topic_key`).
-- Recovery: `mem_search(query: "sdd/{change-name}/grill")` → `mem_get_observation(id)` for full content. Never rely on search previews.
-- At session end: `mem_session_summary` then `mem_session_end`.
-
-In `none` mode, return the transcript inline only.
+Can't check all boxes? Not done. Keep questioning.
 
 ## Gotchas
 
-- **The frontier is judgment, not a computed graph.** You may put two questions in one round then discover one should have changed the other — say so and reopen that branch next round.
-- **Recommendation arguing against the question** — when your recommendation disputes how the question is framed, the user should answer the *recommendation*. Say so when it happens.
-- **No answer caps.** If a session runs very long, scope is the real cause — break it up and question the pieces.
-- **Don't answer your own decisions.** Under a "resolve-this-ticket" frame, the task reads as license to keep moving. Decisions stay the user's.
-- **Don't act on agreement without confirmation.** The session is not done when questions run out — it finishes when the user confirms shared understanding.
-- **One question at a time is supported for bounded work**, but batch the frontier for deeper sessions. Don't let the format choice mask a skipped gate.
-- **Mnemonic `mem_search` returns 300-char previews** — always `mem_get_observation(id)` before relying on a prior transcript.
+- The frontier is judgment, not a computed graph. If you batched two questions and one should have changed the other, say so and reopen next round.
+- If your recommendation disputes the question's framing, tell the user to answer the recommendation.
+- Long session = scope problem. Split it and question the pieces.
