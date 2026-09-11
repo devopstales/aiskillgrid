@@ -52,7 +52,7 @@ Copy verbatim from `change.md` (Error handling + Non-Goals + stack rules). Every
 ## State
 
 ```yaml
-phase: spec          # spec | apply | verify | archive
+phase: spec          # spec | apply | verify | review | archive
 current_step: 01-<name>
 status: in_progress  # in_progress | blocked | done
 updated: <ISO-8601>
@@ -207,11 +207,19 @@ When step DoD is met: `feat(<scope>): <step goal one-liner>`
 
 <!-- Duplicate ## NN-<name> sections for every Step Blueprint row. Never renumber after creation. -->
 
+## Review
+
+- [ ] `requesting-code-review` fired if workload risk High / chained PRs / threat row / last step (verdict recorded)
+- [ ] `quality-security-review` advisory ran after verify (warnings recorded, non-blocking)
+- [ ] Findings received via `review-reception` (one item at a time, pushback logged)
+- Owner: `sdd-review` (optional post-verify gate — orchestrator proposes, human decides; verdict REVIEW-PASS → archive, BACK-TO-APPLY → apply, waived → archive with waiver recorded)
+
 ## Archive gate checklist
 
 - [ ] Change-level **Definition of Done** fully checked
 - [ ] No unchecked `- [ ]` under any `### Tasks`
 - [ ] Every step Verdict is `PASS` or `PASS WITH WARNINGS`
+- [ ] `## Review` verdict is `REVIEW-PASS`, `waived (human)`, or BACK-TO-APPLY items resolved/waived
 - [ ] No Global Constraint violated
 - [ ] `## State` status is `done` and phase is `archive` (set by verify/archive)
 - [ ] STATUS banner updated to `complete`

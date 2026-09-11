@@ -45,14 +45,14 @@ From the orchestrator:
 - Optional: **ticket/issue id** — the apply commit close-token per `_shared/conventions/commits.md`.
 - Optional: a `## Skills to load before work` block.
 
-**Artifact store mode is `hybrid` — the only mode for this phase.** Every run does BOTH: updates `openspec/changes/{change-name}/tasks.md` with `[x]` marks **and** persists progress to Mnemonic under `sdd/{change-name}/apply-progress` (upserting the tasks observation for the `[x]` state). A mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
+**Artifact store mode is `hybrid` — the only mode for this phase.** Every run does BOTH: updates `docs/skillgrid/changes/{change-name}/tasks.md` with `[x]` marks **and** persists progress to Mnemonic under `sdd/{change-name}/apply-progress` (upserting the tasks observation for the `[x]` state). Any store-mode token from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
 
 ## Execution + Persistence Conventions
 
 Follow, on each save, rather than restating here:
 
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape (`title == topic_key`, `scope: "project"`, active `session_id`; **no** `project:` parameter, **no** `capture_prompt` field; `mem_search` returns previews — always `mem_get_observation(id)` for full content; upsert via same `topic_key`).
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout; `tasks.md` is the live artifact you mark `[x]`; `rules.apply` from `openspec/config.yaml`; the `state.yaml` DAG state.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout; `tasks.md` is the live artifact you mark `[x]`; `rules.apply` from `docs/skillgrid/config.yaml`; the `state.yaml` DAG state.
 - [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) — the apply commit is a checkpoint: Conventional Commits, ticket close-token footer, no AI trailers, one logical change per commit.
 - [`references/strict-tdd.md`](references/strict-tdd.md) — the Strict TDD module (RED → GREEN → TRIANGULATE → REFACTOR), loaded ONLY when Step 3 resolves Strict TDD as active.
 - [`../sdd-tasks/SKILL.md`](../sdd-tasks/SKILL.md) — upstream; its `Review Workload Forecast` and the work-unit rows are the guard you enforce in Step 2a.
@@ -67,8 +67,8 @@ Follow, on each save, rather than restating here:
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/tasks")` → `skillgrid-mnemonic_mem_get_observation(id)` — **required**; the assigned tasks (keep this observation id for the `[x]` upsert).
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/apply-progress")` → `..._mem_get_observation(id)` — prior progress (see Step 2b).
    - `skillgrid-mnemonic_mem_search(query: "sdd-init/{project}")` → `..._mem_get_observation(id)` — detected project facts (stack, testing, tracker).
-3. Read the filesystem primary copies in the change folder: `openspec/changes/{change-name}/tasks.md`, `design.md`, and `specs/{domain}/spec.md`.
-4. Read `openspec/config.yaml` if present — `context:`, `rules.apply`, and the `strict_tdd` flag bind this phase.
+3. Read the filesystem primary copies in the change folder: `docs/skillgrid/changes/{change-name}/tasks.md`, `design.md`, and `specs/{domain}/spec.md`.
+4. Read `docs/skillgrid/config.yaml` if present — `context:`, `rules.apply`, and the `strict_tdd` flag bind this phase.
 
 ## Status and Workspace Guard
 
@@ -91,7 +91,7 @@ Before writing ANY code:
 3. Read the specs — understand **WHAT** the code must do. These are your acceptance criteria.
 4. Read the design — understand **HOW** to structure the code. These constrain your approach.
 5. Read the existing code in affected files — understand current patterns.
-6. Check the project's coding conventions from `openspec/config.yaml` and the loaded skills.
+6. Check the project's coding conventions from `docs/skillgrid/config.yaml` and the loaded skills.
 
 Confirm the exact file paths you will touch against the code index — an apply that edits a file it has not read is an apply with a hole:
 
@@ -128,7 +128,7 @@ Before starting work, check for existing apply-progress and MERGE against it —
 
 1. `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/apply-progress")`
 2. If found: `skillgrid-mnemonic_mem_get_observation(id)` → read the full content.
-3. Also read `openspec/changes/{change-name}/tasks.md` and note which tasks are already `[x]`.
+3. Also read `docs/skillgrid/changes/{change-name}/tasks.md` and note which tasks are already `[x]`.
 4. Parse which tasks are already complete — **skip them**; start from the first incomplete assigned task.
 5. When saving your apply-progress in Step 6, MERGE: include ALL previously completed tasks (copy their status and evidence) PLUS your new completions in a single cumulative artifact.
 
@@ -141,7 +141,7 @@ Read the cached testing capabilities to determine implementation mode:
 ```
 Read testing capabilities from:
 ├── Mnemonic: skillgrid-mnemonic_mem_search("sdd/{project}/testing-capabilities") → mem_get_observation(id)
-├── openspec/config.yaml → rules.apply.strict_tdd + test_command
+├── docs/skillgrid/config.yaml → rules.apply.strict_tdd + test_command
 └── Fallback: detect from project files directly (package.json, go.mod, pyproject.toml, etc.)
 
 Resolve mode:
@@ -188,7 +188,7 @@ Keep each task completable in one sitting; match the project's actual patterns �
 
 ### Step 6: Mark Tasks Complete
 
-Update `openspec/changes/{change-name}/tasks.md` — change `- [ ]` to `- [x]` for each completed task **as you go**, not in one batch at the end:
+Update `docs/skillgrid/changes/{change-name}/tasks.md` — change `- [ ]` to `- [x]` for each completed task **as you go**, not in one batch at the end:
 
 ```markdown
 ## Phase 1: Foundation
@@ -273,7 +273,7 @@ Before returning, confirm each — fix any failure before returning `success`, e
 
 **Change**: {change-name}
 **Mode**: {Strict TDD | Standard}
-**Location**: `openspec/changes/{change-name}/tasks.md` (marked [x]) · Mnemonic `sdd/{change-name}/apply-progress` + `sdd/{change-name}/tasks`
+**Location**: `docs/skillgrid/changes/{change-name}/tasks.md` (marked [x]) · Mnemonic `sdd/{change-name}/apply-progress` + `sdd/{change-name}/tasks`
 **Status**: success | partial | blocked
 
 ### Completed Tasks (this batch)
@@ -337,9 +337,9 @@ Close the final message with a `## Key Learnings` section — 1–5 standalone f
 - If a task is blocked by something unexpected, STOP and report back — do not improvise around it.
 - When applying a chained/stacked PR slice, keep the batch autonomous: one deliverable scope, verification included, clear rollback boundary.
 - When applying `size:exception`, state it explicitly in apply-progress and the return summary.
-- Apply any `rules.apply` from `openspec/config.yaml`.
+- Apply any `rules.apply` from `docs/skillgrid/config.yaml`.
 - If Strict TDD is resolved active, load `references/strict-tdd.md` and follow its cycle INSTEAD of Step 5; its rules OVERRIDE Step 5 entirely.
-- **Hybrid is the only mode** — always mark the filesystem `tasks.md` AND persist to Mnemonic; never branch on `openspec` / `engram-compat` / `none`.
+- **Hybrid is the only mode** — always mark the filesystem `tasks.md` AND persist to Mnemonic; never branch on the mode.
 - No external binaries. Mnemonic (`mem_*`) and the code index (`code_*`) are the only knowledge sources; no `gentle-ai`, no `gentleman-ai`, no `sdd-phase-common.md`, no CLI status/validator binary.
 - Return envelope per Step 11 — final action is text, not a tool call.
 
@@ -362,6 +362,6 @@ Close the final message with a `## Key Learnings` section — 1–5 standalone f
 - [`../sdd-spec/SKILL.md`](../sdd-spec/SKILL.md) — upstream; its scenarios are your acceptance criteria in every task.
 - [`../sdd-design/SKILL.md`](../sdd-design/SKILL.md) — upstream; its decisions constrain your approach.
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape (`title == topic_key`, `scope: "project"`, active session), recovery ladder.
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout; `tasks.md` is the live artifact you mark `[x]`; `state.yaml`; `rules.apply`.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout; `tasks.md` is the live artifact you mark `[x]`; `state.yaml`; `rules.apply`.
 - [`../_shared/conventions/mnemonic-code-indexing.md`](../_shared/conventions/mnemonic-code-indexing.md) — the `code_status → code_index → code_search → code_read` ladder for confirming real paths before editing.
 - [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) — the apply commit contract: Conventional Commits, ticket close-token footer, no AI trailers, checkpoint boundaries.

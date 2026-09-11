@@ -35,14 +35,14 @@ From the orchestrator:
 
 - **Change name** (kebab-case, e.g. `add-dark-mode`)
 - **Exploration analysis** (from `sdd-explore`) OR a direct user description
-- **Artifact store mode** is `hybrid` — the only mode for this phase. Every run does BOTH: writes `openspec/changes/{change-name}/proposal.md` **and** persists to Mnemonic under `sdd/{change-name}/proposal`. A mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
+- **Artifact store mode** is `hybrid` — the only mode for this phase. Every run does BOTH: writes `docs/skillgrid/changes/{change-name}/proposal.md` **and** persists to Mnemonic under `sdd/{change-name}/proposal`. Any store-mode token from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
 
 ## Skill Loading
 
 1. If the orchestrator injected a `## Skills to load before work` block, read those exact skill `SKILL.md` paths first.
 2. Otherwise, recover context: `mem_search(query: "sdd/{change-name}/explore")` + `mem_get_observation(id)`, then `mem_search(query: "sdd-init/{project}")` + `mem_get_observation(id)` for detected project facts (stack, testing, tracker).
-3. Read `openspec/config.yaml` if present — it carries `rules` (including `rules.proposal`).
-4. Read the relevant existing specs from `openspec/specs/{domain}/spec.md` when filling the **Capabilities** section — you need real capability names.
+3. Read `docs/skillgrid/config.yaml` if present — it carries `rules` (including `rules.proposal`).
+4. Read the relevant existing specs from `docs/skillgrid/specs/{domain}/spec.md` when filling the **Capabilities** section — you need real capability names.
 
 ## What to Do
 
@@ -68,7 +68,7 @@ The reusable `questioning` skill implements the shared clarification primitive (
 ### Step 1: Acquire Context
 
 - Recover any prior exploration: `mem_search(query: "sdd/{change-name}/explore")` → `mem_get_observation(id)` for full content. (Do not rely on search previews.)
-- Read `openspec/config.yaml` and `openspec/specs/{domain}/spec.md` if they exist — needed for the **Capabilities** contract.
+- Read `docs/skillgrid/config.yaml` and `docs/skillgrid/specs/{domain}/spec.md` if they exist — needed for the **Capabilities** contract.
 - Check the code index for affected modules if the exploration analysis is thin.
 
 ### Step 2: Create the Change Directory
@@ -76,7 +76,7 @@ The reusable `questioning` skill implements the shared clarification primitive (
 Create the change folder (hybrid mode always writes the file):
 
 ```
-openspec/changes/{change-name}/
+docs/skillgrid/changes/{change-name}/
 └── proposal.md
 ```
 
@@ -100,10 +100,10 @@ openspec/changes/{change-name}/
 - {Related future work, deferred}
 
 ## Capabilities
-> CONTRACT with the sdd-spec phase: these names tell spec exactly which spec files to create or update. Research `openspec/specs/` first.
+> CONTRACT with the sdd-spec phase: these names tell spec exactly which spec files to create or update. Research `docs/skillgrid/specs/` first.
 
 ### New Capabilities
-<!-- Each becomes a new `openspec/specs/<name>/spec.md`. Use kebab-case. Leave empty if none. -->
+<!-- Each becomes a new `docs/skillgrid/specs/<name>/spec.md`. Use kebab-case. Leave empty if none. -->
 - `<capability-name>`: <brief description>
 
 ### Modified Capabilities
@@ -142,10 +142,10 @@ If a `proposal.md` already exists in the change folder, READ it first and UPDATE
 
 This step is **MANDATORY** — do not skip it.
 
-**Filesystem path** (follow [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md)):
+**Filesystem path** (follow [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md)):
 
 ```
-openspec/changes/{change-name}/proposal.md
+docs/skillgrid/changes/{change-name}/proposal.md
 ```
 
 - Always create the change folder before writing.
@@ -166,7 +166,7 @@ skillgrid-mnemonic_mem_save(
 
 - Start a session once: `sid = skillgrid-mnemonic_mem_session_start(title: "sdd/{change-name}/proposal")`.
 - `topic_key` enables upsert — saving again updates in place; do not create near-duplicates.
-- Hybrid is the only mode for this phase: do the filesystem write (Step 2/3) and the Mnemonic save; do not branch on `openspec` / `engram-compat` / `none`.
+- Hybrid is the only mode for this phase: do the filesystem write (Step 2/3) and the Mnemonic save; do not branch on the mode.
 
 ### Step 5: Return Summary
 
@@ -175,7 +175,7 @@ Return to the orchestrator:
 ```markdown
 **Status**: success | partial | blocked
 **Summary**: 1-2 sentence summary of the proposal
-**Location**: `openspec/changes/{change-name}/proposal.md` | Mnemonic `sdd/{change-name}/proposal`
+**Location**: `docs/skillgrid/changes/{change-name}/proposal.md` | Mnemonic `sdd/{change-name}/proposal`
 **Intent**: {one-line intent}
 **Scope**: {N in, M out}
 **Approach**: {one-line approach}
@@ -188,9 +188,9 @@ Return to the orchestrator:
 - ALWAYS create `proposal.md` (hybrid mode — the only mode for this phase).
 - Every proposal MUST have a rollback plan.
 - Every proposal MUST have success criteria.
-- The **Capabilities** section is the contract with `sdd-spec` — always fill it. Research `openspec/specs/` for real capability names. If nothing changes at the spec level, write "None" under both sub-sections — do not leave template placeholders.
+- The **Capabilities** section is the contract with `sdd-spec` — always fill it. Research `docs/skillgrid/specs/` for real capability names. If nothing changes at the spec level, write "None" under both sub-sections — do not leave template placeholders.
 - Use concrete file paths in **Affected Areas** when possible.
-- Apply any `rules.proposal` from `openspec/config.yaml`.
+- Apply any `rules.proposal` from `docs/skillgrid/config.yaml`.
 - **Size budget**: the proposal artifact MUST be under 450 words. Use bullets and tables over prose.
 - Recovery: `mem_search` returns 300-char previews only — always `mem_get_observation(id)` for full content before relying on it.
 - At session end: call `mem_session_summary` then `mem_session_end`.

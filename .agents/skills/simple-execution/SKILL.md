@@ -127,7 +127,7 @@ After each task complete, capture these rows — they feed the Step Evidence tab
 - [`../subagent-execution/SKILL.md`](../subagent-execution/SKILL.md) — the alternate route when the workload decision / step shape requires dispatch.
 - [`../tdd/SKILL.md`](../tdd/SKILL.md) — the general TDD discipline (applies when Strict TDD is not active).
 - [`../verification/SKILL.md`](../verification/SKILL.md) — before marking any task `[x]`, the evidence gate: fresh test run + output in the current message.
-- [`../review-reception/SKILL.md`](../review-reception/SKILL.md) — how to receive findings if a review pass surfaces them (from `sdd-verify` or `judgment-day`).
+- [`../review-reception/SKILL.md`](../review-reception/SKILL.md) — how to receive findings if a review pass surfaces them (from `sdd-verify`).
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape, session close, recovery ladder.
 - [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout, step sections in `tasks.md`, artifact paths.
 - [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) — commit contract; one checkpoint (or work-unit series) per completed step.

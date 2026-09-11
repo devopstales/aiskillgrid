@@ -1,6 +1,6 @@
 ---
 name: sdd-tasks
-description: "Break an SDD change into phased, dependency-ordered implementation tasks from the proposal, design, and spec. Use to launch task planning after sdd-spec and before sdd-apply. Inherits the design's applicable threat-matrix rows as RED-test tasks before their production code, forecasts review workload against the 400-line budget with chained-PR work units, and persists to both openspec and Mnemonic. Uses Mnemonic memory + code index; no external binaries."
+description: "Break an SDD change into phased, dependency-ordered implementation tasks from the proposal, design, and spec. Use to launch task planning after sdd-spec and before sdd-apply. Inherits the design's applicable threat-matrix rows as RED-test tasks before their production code, forecasts review workload against the 400-line budget with chained-PR work units, and persists to both docs/skillgrid and Mnemonic. Uses Mnemonic memory + code index; no external binaries."
 license: MIT
 metadata:
   author: devopstales
@@ -30,7 +30,7 @@ You are the TASKS phase. You take the proposal, design, and spec and produce a c
 Phase order is `propose → design → spec → tasks`. You run last in the planning chain and hand a `sdd-apply`-ready task list to the implementation phase. Two consequences that drive this phase:
 
 1. Every **design threat-matrix row marked `Applicable`** MUST become an explicit RED-test task, ordered before the production task it guards. This is the last planning checkpoint: a row that never becomes a task here is a handoff gap from design/spec, not a tasks defect.
-2. The **spec is your test contract.** Testing tasks MUST reference the concrete scenarios in the delta spec (`openspec/changes/{change-name}/specs/`), not generic "add tests" wishes.
+2. The **spec is your test contract.** Testing tasks MUST reference the concrete scenarios in the delta spec (`docs/skillgrid/changes/{change-name}/specs/`), not generic "add tests" wishes.
 
 ## What You Receive
 
@@ -41,14 +41,14 @@ From the orchestrator:
 - Optional: **ticket/issue id** (carry-through to `sdd-apply`'s commit close-token per `_shared/conventions/commits.md`; tasks itself does not use it)
 - Optional: a `## Skills to load before work` block
 
-**Artifact store mode is `hybrid` — the only mode for this phase.** Every run does BOTH: writes `openspec/changes/{change-name}/tasks.md` **and** persists to Mnemonic under `sdd/{change-name}/tasks`. There is no filesystem-only or memory-only mode here; a mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` for this phase. Do not branch your behavior on the mode.
+**Artifact store mode is `hybrid` — the only mode for this phase.** Every run does BOTH: writes `docs/skillgrid/changes/{change-name}/tasks.md` **and** persists to Mnemonic under `sdd/{change-name}/tasks`. There is no filesystem-only or memory-only mode here; any store-mode token from the orchestrator is honored as `hybrid` for this phase. Do not branch your behavior on the mode.
 
 ## Execution + Persistence Conventions
 
 Follow, on each save, rather than restating here:
 
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — Mnemonic save shape (`title == topic_key`, `scope: "project"`, active `session_id`; **no** `project:` parameter, **no** `capture_prompt` field; `mem_search` returns previews — always `mem_get_observation(id)` for full content).
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout, `rules.tasks` from `openspec/config.yaml`, and that `tasks.md` is later updated by `sdd-apply` (marks `[x]`).
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout, `rules.tasks` from `docs/skillgrid/config.yaml`, and that `tasks.md` is later updated by `sdd-apply` (marks `[x]`).
 - [`../_shared/conventions/mnemonic-code-indexing.md`](../_shared/conventions/mnemonic-code-indexing.md) — the `code_*` ladder, used when a task's concrete file path needs to be confirmed against real code (see Step 2).
 - [`references/threat-matrix.md`](references/threat-matrix.md) — the boundary rows the design filled in; the **applicable** ones feed this phase's RED-test tasks (local copy of `sdd-design`'s matrix for a self-contained skill).
 
@@ -60,8 +60,8 @@ Follow, on each save, rather than restating here:
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/design")` → `skillgrid-mnemonic_mem_get_observation(id)` — **required**; its threat-matrix applicable rows are your primary RED-test input.
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/spec")` → `skillgrid-mnemonic_mem_get_observation(id)` — **required**; your testing tasks reference its scenarios.
    - `skillgrid-mnemonic_mem_search(query: "sdd-init/{project}")` → `skillgrid-mnemonic_mem_get_observation(id)` — detected project facts (stack, testing, tracker).
-3. Read from the change folder (the filesystem is primary in hybrid mode): `openspec/changes/{change-name}/design.md` and every `openspec/changes/{change-name}/specs/{domain}/spec.md`.
-4. Read `openspec/config.yaml` if present — `context:` and `rules.tasks` bind this phase.
+3. Read from the change folder (the filesystem is primary in hybrid mode): `docs/skillgrid/changes/{change-name}/design.md` and every `docs/skillgrid/changes/{change-name}/specs/{domain}/spec.md`.
+4. Read `docs/skillgrid/config.yaml` if present — `context:` and `rules.tasks` bind this phase.
 
 ## What to Do
 
@@ -99,7 +99,7 @@ Search first, then read the slice — never read a whole file speculatively. If 
 Create / update the file in the change folder (hybrid mode always writes it):
 
 ```
-openspec/changes/{change-name}/
+docs/skillgrid/changes/{change-name}/
 ├── proposal.md
 ├── design.md
 ├── specs/
@@ -175,7 +175,7 @@ Each task MUST be all four of:
 Additional rules:
 
 - **RED before GREEN for threat rows.** For every applicable design threat-row, the RED-test task precedes the production task that guards it (Step 1).
-- **If the project uses TDD** (`rules.apply.tdd: true` in `openspec/config.yaml`), order each unit RED (failing test) → GREEN (make it pass) → REFACTOR (clean up).
+- **If the project uses TDD** (`rules.apply.tdd: true` in `docs/skillgrid/config.yaml`), order each unit RED (failing test) → GREEN (make it pass) → REFACTOR (clean up).
 - **Testing tasks name a spec scenario** — not "add tests".
 - Use hierarchical numbering (`1.1`, `1.2`, `2.1`, …).
 - NEVER vague tasks: "implement feature", "add tests", "wire it up".
@@ -240,7 +240,7 @@ In place of an admission validator, before you persist confirm each — fix any 
 
 Follow [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md). Hybrid = BOTH writes:
 
-1. **Filesystem** — `openspec/changes/{change-name}/tasks.md` (already written in Step 3; ensure the change folder and prior artifacts exist per `openspec.md`).
+1. **Filesystem** — `docs/skillgrid/changes/{change-name}/tasks.md` (already written in Step 3; ensure the change folder and prior artifacts exist per `sdd-structure.md`).
 2. **Mnemonic** — start one session, then save the same content:
 
 ```
@@ -265,7 +265,7 @@ skillgrid-mnemonic_mem_save(
 ```markdown
 ## Tasks Created
 **Change**: {change-name}
-**Location**: `openspec/changes/{change-name}/tasks.md` · Mnemonic `sdd/{change-name}/tasks` (hybrid)
+**Location**: `docs/skillgrid/changes/{change-name}/tasks.md` · Mnemonic `sdd/{change-name}/tasks` (hybrid)
 
 **Status**: success | partial | blocked
 **Executive summary**: 1–3 sentences.
@@ -306,11 +306,11 @@ Close the final message with a `## Key Learnings` section — 1–5 standalone f
 - Testing tasks MUST reference **specific spec scenarios**.
 - Each task completable in **one session**; if it feels too big, split it.
 - Use hierarchical numbering (`1.1`, `2.1`, …).
-- Apply any `rules.tasks` from `openspec/config.yaml`.
+- Apply any `rules.tasks` from `docs/skillgrid/config.yaml`.
 - **Size budget**: the tasks artifact MUST be **under 530 words**. Each task: 1–2 lines max. Checklist format, not paragraphs.
 - **Review workload guard**: ALWAYS include the forecast with the four plain-text guard lines. If likely above 400 changed lines, recommend chained PRs and honor the received delivery strategy for whether a decision/exception is needed before apply.
 - **Work-unit evidence**: every suggested work unit names a Focused test command, a Runtime harness (or explicit `N/A` + reason), and a Rollback boundary.
-- **Hybrid is the only mode** — always write the filesystem file AND save to Mnemonic; never branch on `openspec` / `none` for this phase.
+- **Hybrid is the only mode** — always write the filesystem file AND save to Mnemonic; never branch on the mode for this phase.
 - No external binaries. Mnemonic (`mem_*`) and the code index (`code_*`) are the only knowledge sources; no `gentle-ai`, no `gentleman-ai`, no `sdd-phase-common.md`, no CLI validator.
 - Return envelope per Step 6 — final action is text, not a tool call.
 
@@ -334,6 +334,6 @@ Close the final message with a `## Key Learnings` section — 1–5 standalone f
 - [`../sdd-propose/SKILL.md`](../sdd-propose/SKILL.md) — upstream; its scope/approach bounds what these tasks should cover.
 - [`references/threat-matrix.md`](references/threat-matrix.md) — the boundary rows the design may have marked applicable (local copy of `sdd-design`'s matrix).
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape, session protocol, recovery ladder.
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout, `rules.tasks`, and that `sdd-apply` updates this `tasks.md`.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout, `rules.tasks`, and that `sdd-apply` updates this `tasks.md`.
 - [`../_shared/conventions/mnemonic-code-indexing.md`](../_shared/conventions/mnemonic-code-indexing.md) — the `code_status → code_index → code_search → code_read` ladder for confirming real file paths.
 - [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) — commit contract (relevant to the downstream `sdd-apply` commit, not this phase).

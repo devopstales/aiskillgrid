@@ -67,7 +67,7 @@ When in doubt, take the heavier path. Complexity discovered mid-task upgrades th
 ## Workflow
 
 1. **Classify** the request, state it out loud, and confirm the subject + scope boundary (in/out).
-2. **Explore context** — recover project facts (`mem_search("sdd-init/{project}")` → `mem_get_observation`), check `openspec/config.yaml` and specs, run the code-index ladder for repo facts. For multi-subsystem requests, flag if scope needs decomposition first.
+2. **Explore context** — recover project facts (`mem_search("sdd-init/{project}")` → `mem_get_observation`), check `docs/skillgrid/config.yaml` and specs, run the code-index ladder for repo facts. For multi-subsystem requests, flag if scope needs decomposition first.
 3. **Ask clarifying questions** in rounds by frontier. Each question gets a recommendation.
 4. **(Architectural only)** Propose 2–3 approaches with trade-offs; lead with your recommendation; apply YAGNI ruthlessly.
 5. **Present design** — scale sections to complexity (a few sentences for bounded; 200–300 words per section for architectural). Cover: architecture, components, data flow, error handling, testing. Ask after each section.
@@ -143,8 +143,8 @@ If the orchestrator launches you with a change name:
 
 ```
 Mnemonic topic: sdd/{change-name}/grill
-Filesystem:     openspec/changes/{change-name}/interview.md
-Mode:            hybrid (default) | openspec | engram-compat | none
+Filesystem:     docs/skillgrid/changes/{change-name}/interview.md
+Mode:            hybrid (default) | filesystem | none
 ```
 
 - Start once: `sid = skillgrid-mnemonic_mem_session_start(title: "sdd/{change-name}/grill")`.

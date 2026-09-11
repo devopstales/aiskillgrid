@@ -34,7 +34,7 @@ Phase order is `propose → design → spec → tasks` — design runs **before*
 From the orchestrator:
 
 - **Change name** (kebab-case, e.g. `add-dark-mode`)
-- **Artifact store mode** is `hybrid` — the only mode for this phase. Every run does BOTH: writes `openspec/changes/{change-name}/design.md` **and** persists to Mnemonic under `sdd/{change-name}/design`. A mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
+- **Artifact store mode** is `hybrid` — the only mode for this phase. Every run does BOTH: writes `docs/skillgrid/changes/{change-name}/design.md` **and** persists to Mnemonic under `sdd/{change-name}/design`. Any store-mode token from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
 - Optional: **ticket/issue id** (for the eventual `sdd-apply` commit close-token per `_shared/conventions/commits.md`)
 - Optional: a `## Skills to load before work` block
 
@@ -43,7 +43,7 @@ From the orchestrator:
 This skill does not restate them. Follow, on each save:
 
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — Mnemonic save shape (`title == topic_key`, `scope: "project"`, active `session_id`; `mem_search` returns **previews only** — always `mem_get_observation(id)` for full content).
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout, write-before-reuse rule, `rules.design` from `openspec/config.yaml`.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout, write-before-reuse rule, `rules.design` from `docs/skillgrid/config.yaml`.
 - [`../_shared/conventions/mnemonic-code-indexing.md`](../_shared/conventions/mnemonic-code-indexing.md) — the `code_status → code_index → code_search → code_read` ladder you use to read the codebase. **No external binaries**: `gitnexus`, `gentle-ai`, `tree-sitter-cli`, and friends are not part of this phase.
 
 ## Skill Loading
@@ -54,8 +54,8 @@ This skill does not restate them. Follow, on each save:
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/spec")` → `..._mem_get_observation(id)` — **optional**; the spec may not exist yet if design runs first.
    - `skillgrid-mnemonic_mem_search(query: "sdd-init/{project}")` → `..._mem_get_observation(id)` — detected project facts (stack, testing, tracker).
    - `skillgrid-mnemonic_mem_search(query: "skill-registry")` → `..._mem_get_observation(id)` — the skill index; if it is missing, fall back to the disk file `docs/agents/skill-registry.md` at the repo root.
-3. Read `openspec/config.yaml` if present — `context:` and `rules.design` bind this phase.
-4. Read the relevant existing specs from `openspec/specs/{domain}/spec.md` where the design must not contradict them — the design is a *delta plan*, not a greenfield.
+3. Read `docs/skillgrid/config.yaml` if present — `context:` and `rules.design` bind this phase.
+4. Read the relevant existing specs from `docs/skillgrid/specs/{domain}/spec.md` where the design must not contradict them — the design is a *delta plan*, not a greenfield.
 
 ## What to Do
 
@@ -93,7 +93,7 @@ Read the applicability trigger list in [references/threat-matrix.md](references/
 Create the file in the change folder (hybrid mode always writes it):
 
 ```
-openspec/changes/{change-name}/
+docs/skillgrid/changes/{change-name}/
 ├── proposal.md
 ├── design.md              ← you create this
 └── (specs/ comes later, from sdd-spec)
@@ -158,7 +158,7 @@ If a `design.md` already exists in the change folder, **READ it first and UPDATE
 
 **MANDATORY — do not skip.** Follow [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md). Hybrid = BOTH writes:
 
-1. **Filesystem** — `openspec/changes/{change-name}/design.md` (already written in Step 3).
+1. **Filesystem** — `docs/skillgrid/changes/{change-name}/design.md` (already written in Step 3).
 2. **Mnemonic** — start one session, then save the same content:
 
   ```
@@ -199,7 +199,7 @@ If any check fails, fix it before returning `success`. Return `partial` with the
 ```markdown
 ## Design Created
 **Change**: {change-name}
-**Location**: `openspec/changes/{change-name}/design.md` · Mnemonic `sdd/{change-name}/design` (hybrid)
+**Location**: `docs/skillgrid/changes/{change-name}/design.md` · Mnemonic `sdd/{change-name}/design` (hybrid)
 
 **Status**: success | partial | blocked
 **Executive summary**: 1–3 sentences.
@@ -224,7 +224,7 @@ Close your final message with a `## Key Learnings` section — 1–5 standalone 
 - Use the project's ACTUAL patterns — if the codebase does it differently from what you'd recommend, follow the existing pattern unless this change specifically addresses it (and say so in the decision rationale).
 - Keep ASCII diagrams simple — clarity over beauty.
 - Applicable threat-matrix rows are requirements: they MUST propagate unchanged into `sdd-spec` (as scenarios) and then `sdd-tasks` (as RED tests). `N/A` rows MUST carry a reason.
-- Apply any `rules.design` from `openspec/config.yaml`.
+- Apply any `rules.design` from `docs/skillgrid/config.yaml`.
 - If a question BLOCKS the design, say so in `Open Questions` and return `partial` — a design that guesses is not a design.
 - **Size budget**: the design artifact body MUST be **under 800 words** (not counting fenced code diagrams). Architecture decisions as `Choice / Alternatives / Rationale` triples; code snippets only for non-obvious patterns.
 - No external binaries. Mnemonic (`mem_*`) and code index (`code_*`) are the only knowledge sources. `gitnexus`, `gentle-ai`, `tree-sitter`, `npx <pkg>`, and similar are out of scope for this phase.
@@ -246,6 +246,6 @@ Close your final message with a `## Key Learnings` section — 1–5 standalone 
 - [references/threat-matrix.md](references/threat-matrix.md) — applicability-driven threat matrix; load when the design touches routing, shell/subprocess, VCS/PR automation, executable-file classification, process integration, **or** Mnemonic tool contracts, **or** any `_shared/conventions/*` file.
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape, session protocol, recovery ladder.
 - [`../_shared/conventions/mnemonic-code-indexing.md`](../_shared/conventions/mnemonic-code-indexing.md) — the `code_status → code_index → code_search → code_read` ladder.
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout and phase order (`propose → design → spec → tasks`).
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout and phase order (`propose → design → spec → tasks`).
 - [`../_shared/conventions/commits.md`](../_shared/conventions/commits.md) — commit contract (relevant to the downstream `sdd-apply` commit, not this phase).
 - [`../sdd-propose/SKILL.md`](../sdd-propose/SKILL.md) — the upstream phase; read for the shape of the proposal this design is answering.

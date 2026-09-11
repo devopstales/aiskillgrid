@@ -37,7 +37,7 @@ Phase order is `propose → design → spec → tasks`. Design runs **before** s
 From the orchestrator:
 
 - **Change name** (kebab-case)
-- **Artifact store mode** is `hybrid` — the only mode for this phase. Every run does BOTH: writes `specs/` files to `openspec/changes/{change-name}/` **and** persists to Mnemonic under `sdd/{change-name}/spec`. A mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
+- **Artifact store mode** is `hybrid` — the only mode for this phase. Every run does BOTH: writes `specs/` files to `docs/skillgrid/changes/{change-name}/` **and** persists to Mnemonic under `sdd/{change-name}/spec`. Any store-mode token from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
 - Optional: **ticket/issue id** (carry-through to `sdd-apply`'s commit close-token per `_shared/conventions/commits.md`; spec itself does not use it)
 - Optional: a `## Skills to load before work` block
 
@@ -46,7 +46,7 @@ From the orchestrator:
 Follow, on each save, rather than restating here:
 
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — Mnemonic save shape (`title == topic_key`, `scope: "project"`, active `session_id`; **no** `project:` parameter, **no** `capture_prompt` field; `mem_search` returns previews — always `mem_get_observation(id)` for full content).
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout, delta-spec section semantics, `rules.specs` from `openspec/config.yaml`.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout, delta-spec section semantics, `rules.specs` from `docs/skillgrid/config.yaml`.
 - [`../_shared/conventions/mnemonic-code-indexing.md`](../_shared/conventions/mnemonic-code-indexing.md) — the `code_*` ladder, used only when you want to *verify* a scenario has code to test against (optional; a spec is a WHAT-document and does not require it).
 - [`references/threat-matrix.md`](references/threat-matrix.md) — the boundary rows the design filled in; the applicable ones feed this phase's Required RED scenarios (local copy of `sdd-design`'s matrix for a self-contained skill).
 
@@ -57,8 +57,8 @@ Follow, on each save, rather than restating here:
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/proposal")` → `skillgrid-mnemonic_mem_get_observation(id)` — **required**; the **Capabilities** section is your primary contract.
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/design")` → `skillgrid-mnemonic_mem_get_observation(id)` — **required**; the design's threat-matrix applicable rows feed this phase.
    - `skillgrid-mnemonic_mem_search(query: "sdd-init/{project}")` → `..._mem_get_observation(id)` — detected project facts (stack, testing, tracker).
-3. Read `openspec/config.yaml` if present — `context:` and `rules.specs` bind this phase.
-4. For every **Modified** capability, read the existing main spec `openspec/specs/{domain}/spec.md` — you cannot write a correct MODIFIED block against a requirement you have not read. For every **New** capability, confirm that file does NOT yet exist (a "New" capability whose spec already exists is a proposal bug — flag in `risks`).
+3. Read `docs/skillgrid/config.yaml` if present — `context:` and `rules.specs` bind this phase.
+4. For every **Modified** capability, read the existing main spec `docs/skillgrid/specs/{domain}/spec.md` — you cannot write a correct MODIFIED block against a requirement you have not read. For every **New** capability, confirm that file does NOT yet exist (a "New" capability whose spec already exists is a proposal bug — flag in `risks`).
 
 ## What to Do
 
@@ -68,13 +68,13 @@ Mechanically, no inference. From the proposal's **Capabilities** section:
 
 ```
 FOR EACH entry under "New Capabilities":
-  → write openspec/changes/{change-name}/specs/<capability>/spec.md
+  → write docs/skillgrid/changes/{change-name}/specs/<capability>/spec.md
     AS A FULL SPEC (## Purpose + ## Requirements), not a delta.
     Reason: there is no existing behavior to be a delta against.
 
 FOR EACH entry under "Modified Capabilities":
-  → read openspec/specs/<capability>/spec.md  (REQUIRED)
-  → write openspec/changes/{change-name}/specs/<capability>/spec.md
+  → read docs/skillgrid/specs/<capability>/spec.md  (REQUIRED)
+  → write docs/skillgrid/changes/{change-name}/specs/<capability>/spec.md
     AS A DELTA SPEC (## ADDED / ## MODIFIED / ## REMOVED / ## RENAMED).
 ```
 
@@ -85,7 +85,7 @@ Write **New** specs before **Modified** ones so ADDED blocks are unambiguous. If
 **Full spec** (New capability) and **delta spec** (Modified capability) formats are in [`references/delta-spec-format.md`](references/delta-spec-format.md). The one rule that matters most:
 
 > **MODIFIED is REPLACE semantics, not PATCH semantics.**
-> Copy the **ENTIRE** existing requirement block — name, body, and **every scenario** — from `openspec/specs/{domain}/spec.md`, paste it under `## MODIFIED Requirements`, then edit the copy. `sdd-archive` replaces the main-spec requirement with your MODIFIED block byte-for-byte; any scenario you did not copy is **gone** the moment archive runs.
+> Copy the **ENTIRE** existing requirement block — name, body, and **every scenario** — from `docs/skillgrid/specs/{domain}/spec.md`, paste it under `## MODIFIED Requirements`, then edit the copy. `sdd-archive` replaces the main-spec requirement with your MODIFIED block byte-for-byte; any scenario you did not copy is **gone** the moment archive runs.
 
 Requirements carry RFC 2119 keywords. Scenarios are Given/When/Then. Every requirement has at least one scenario, covering a happy path **and** an edge case (or failure state). Keep scenarios testable — someone should be able to write an automated test directly from one.
 
@@ -107,7 +107,7 @@ Read the design's `## Threat Matrix`. For **each row marked `Applicable`**, ensu
 
 **MANDATORY — do not skip.** Follow [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md). Hybrid = BOTH writes:
 
-1. **Filesystem** — write each domain file `openspec/changes/{change-name}/specs/{domain}/spec.md`.
+1. **Filesystem** — write each domain file `docs/skillgrid/changes/{change-name}/specs/{domain}/spec.md`.
 2. **Mnemonic** — start one session, then one save per change (concatenate domains so a single `mem_get_observation` id retrieves the whole spec):
 
   ```
@@ -175,9 +175,9 @@ Close the final message with a `## Key Learnings` section — 1–5 standalone f
 - Spec is WHAT, not HOW — no file paths, line numbers, or function names in requirement text.
 - Every applicable design threat-row maps to a spec scenario (Step 3).
 - REMOVED requires `(Reason: …)`; RENAMED requires the `{old} → {new}` heading.
-- Apply any `rules.specs` from `openspec/config.yaml`.
+- Apply any `rules.specs` from `docs/skillgrid/config.yaml`.
 - **Size budget**: spec artifact body **under 650 words** (not counting scenario bodies). Prefer requirement tables over narrative. A scenario is 3–5 lines max.
-- No external binaries. Mnemonic (`mem_*`) and, if you choose, the code index (`code_*`) are the only knowledge sources. No `openspec-cli`, no `gentle-ai` spec validator, no grammar binary.
+- No external binaries. Mnemonic (`mem_*`) and, if you choose, the code index (`code_*`) are the only knowledge sources. No external spec validator, no grammar binary.
 - Return envelope per Step 7 — final action is text, not a tool call.
 
 ## Gotchas
@@ -198,4 +198,4 @@ Close the final message with a `## Key Learnings` section — 1–5 standalone f
 - [`../sdd-propose/SKILL.md`](../sdd-propose/SKILL.md) — the proposal's Capabilities section is the contract this phase maps against.
 - [`references/threat-matrix.md`](references/threat-matrix.md) — the boundary rows the design may have marked applicable (local copy of `sdd-design`'s matrix).
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape, session protocol, recovery ladder.
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout and delta-spec section semantics.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout and delta-spec section semantics.

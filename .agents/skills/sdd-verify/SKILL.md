@@ -31,7 +31,7 @@ You are the VERIFY phase — an **independent quality gate**. You prove, with so
 
 **You are the one independent requirements/runtime verification.** Your job is to judge, not to fix or to re-derive: a spec scenario is compliant **only when a covering test passed at runtime** — static analysis alone is never verification. A contradiction or a new failing check returns `FAIL` and hands back to the orchestrator. You never start a remediation/correction cycle, a refutation pass, or another phase on your own; the orchestrator decides the next step.
 
-Phase order is `propose → design → spec → tasks → apply → verify → archive`. You run after `sdd-apply` and before `sdd-archive`.
+Phase order is `propose → spec → apply ⇄ verify → review → archive`. You run after `sdd-apply` and before `sdd-review`.
 
 ## What You Receive
 
@@ -42,14 +42,14 @@ From the orchestrator:
 - **Strict TDD mode** (`true` | `false`) — if the orchestrator declares `STRICT TDD MODE IS ACTIVE`, treat it as authoritative. If not provided, resolve it in Step 3.
 - Optional: a `## Skills to load before work` block.
 
-**Artifact store mode is `hybrid` — the only mode for this phase.** Every run does BOTH: writes `openspec/changes/{change-name}/verify-report.md` **and** persists the same report to Mnemonic under `sdd/{change-name}/verify-report`. A mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
+**Artifact store mode is `hybrid` — the only mode for this phase.** Every run does BOTH: writes `docs/skillgrid/changes/{change-name}/verify-report.md` **and** persists the same report to Mnemonic under `sdd/{change-name}/verify-report`. Any store-mode token from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
 
 ## Execution + Persistence Conventions
 
 Follow, on each save, rather than restating here:
 
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape (`title == topic_key`, `scope: "project"`, active `session_id`; **no** `project:` parameter, **no** `capture_prompt` field; `mem_search` returns previews — always `mem_get_observation(id)` for full content).
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout; `verify-report.md` lives in the change folder; `rules.verify` from `openspec/config.yaml`; the archive step later merges this into `openspec/specs/`.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout; `verify-report.md` lives in the change folder; `rules.verify` from `docs/skillgrid/config.yaml`; the archive step later merges this into `docs/skillgrid/specs/`.
 - [references/strict-tdd.md](references/strict-tdd.md) — the apply-phase TDD cycle and assertion-quality rules you audit in Step 5 (local copy for a self-contained verify skill).
 - [`references/report-format.md`](references/report-format.md) — the verify-report template, compliance statuses, and the self-check you run before persisting.
 - [`references/strict-tdd-verify.md`](references/strict-tdd-verify.md) — the Strict TDD verify module; loaded **only** when Step 3 resolves Strict TDD as active.
@@ -64,8 +64,8 @@ Follow, on each save, rather than restating here:
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/tasks")` → `skillgrid-mnemonic_mem_get_observation(id)` — **required**; you read the `[x]` state.
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/apply-progress")` → `..._mem_get_observation(id)` — the apply evidence (incl. the TDD Cycle Evidence table if Strict TDD was active).
    - `skillgrid-mnemonic_mem_search(query: "sdd-init/{project}")` → `..._mem_get_observation(id)` — detected project facts (stack, testing, tracker).
-3. Read the filesystem primary copies in `openspec/changes/{change-name}/`: `proposal.md`, `design.md`, `specs/{domain}/spec.md`, `tasks.md`, and any existing `verify-report.md`.
-4. Read `openspec/config.yaml` if present — `context:`, `rules.verify` (test/build commands, coverage threshold), and the `strict_tdd` flag bind this phase.
+3. Read the filesystem primary copies in `docs/skillgrid/changes/{change-name}/`: `proposal.md`, `design.md`, `specs/{domain}/spec.md`, `tasks.md`, and any existing `verify-report.md`.
+4. Read `docs/skillgrid/config.yaml` if present — `context:`, `rules.verify` (test/build commands, coverage threshold), and the `strict_tdd` flag bind this phase.
 
 ## Status Guard
 
@@ -82,7 +82,7 @@ Before running tests, confirm readiness from the structured state (orchestrator-
 ```
 Read testing capabilities from:
 ├── Mnemonic: skillgrid-mnemonic_mem_search("sdd/{project}/testing-capabilities") → mem_get_observation(id)
-├── openspec/config.yaml → rules.verify (test_command, build_command, coverage_threshold)
+├── docs/skillgrid/config.yaml → rules.verify (test_command, build_command, coverage_threshold)
 └── Fallback: detect from project files directly (package.json, go.mod, pyproject.toml, etc.)
 
 OR the orchestrator already declared it:
@@ -169,7 +169,7 @@ If any check fails, fix it before persisting; if you cannot, return `partial` an
 
 Follow [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md). Hybrid = BOTH writes:
 
-1. **Filesystem** — `openspec/changes/{change-name}/verify-report.md` (already assembled in Step 6). If a prior `verify-report.md` exists, it is replaced by the newly admitted bytes (a new verdict supersedes the old one; the prior report is not kept as a second file).
+1. **Filesystem** — `docs/skillgrid/changes/{change-name}/verify-report.md` (already assembled in Step 6). If a prior `verify-report.md` exists, it is replaced by the newly admitted bytes (a new verdict supersedes the old one; the prior report is not kept as a second file).
 2. **Mnemonic** — start one session, then save the same content:
 
 ```
@@ -196,7 +196,7 @@ Mnemonic save notes: `title == topic_key` exactly; `scope: "project"`; pass the 
 **Change**: {change-name}
 **Version**: {spec version or N/A}
 **Mode**: {Strict TDD | Standard}
-**Location**: `openspec/changes/{change-name}/verify-report.md` · Mnemonic `sdd/{change-name}/verify-report` (hybrid)
+**Location**: `docs/skillgrid/changes/{change-name}/verify-report.md` · Mnemonic `sdd/{change-name}/verify-report` (hybrid)
 **Status**: success (verified) | partial | blocked
 
 ### Verdict
@@ -232,7 +232,7 @@ Mnemonic save notes: `title == topic_key` exactly; `scope: "project"`; pass the 
 **Open questions**: {list, or "None"}
 **Skill resolution**: paths-injected | fallback-registry | none
 **Risks**: {list, or "None"}
-**Next**: sdd-archive (PASS) | orchestrator decides the remediation path (FAIL)
+**Next**: orchestrator proposes sdd-review (human decides) → sdd-review on approval, sdd-archive with recorded waiver on decline | remediation path on FAIL
 ```
 
 Close the final message with a `## Key Learnings` section — 1–5 standalone factual sentences (≥ 20 chars each). Mnemonic passive capture picks these up. Do not call `mem_session_summary` in a sub-agent context — the orchestrator owns session close.
@@ -259,7 +259,7 @@ Verification degrades as artifacts are missing — never invent a comparison you
 - Record the exact test/build commands, exit codes, and output in the envelope.
 - Persist a `fail` report just like a `pass` — a failed verdict is a result, not a reason to discard the artifact.
 - If Strict TDD is resolved active, load `references/strict-tdd-verify.md` and include its sections; if inactive, never load or reference it.
-- **Hybrid is the only mode** — always write the filesystem `verify-report.md` AND persist to Mnemonic; never branch on `openspec` / `engram-compat` / `none`.
+- **Hybrid is the only mode** — always write the filesystem `verify-report.md` AND persist to Mnemonic; never branch on the mode.
 - No external binaries. Mnemonic (`mem_*`), the code index (`code_*`), and the project's own test/build/coverage commands are the only tools; no `gentle-ai sdd-verify-validate`, no `gentleman-ai`, no `sdd-phase-common.md` dispatcher, no separate admission-attestation binary.
 - Model/provider/profile/effort selection stays user-owned; verification never changes them.
 - Return envelope per Step 9 — final action is text, not a tool call.
@@ -289,4 +289,4 @@ Verification degrades as artifacts are missing — never invent a comparison you
 - [`../sdd-spec/SKILL.md`](../sdd-spec/SKILL.md) — upstream; its scenarios are what the compliance matrix maps to.
 - [`../sdd-design/SKILL.md`](../sdd-design/SKILL.md) — upstream; its decisions are what the design-coherence table maps to.
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape (`title == topic_key`, `scope: "project"`, active session), recovery ladder.
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — change-folder layout; `verify-report.md` placement; `rules.verify`; the archive step that later consumes this report.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — change-folder layout; `verify-report.md` placement; `rules.verify`; the archive step that later consumes this report.

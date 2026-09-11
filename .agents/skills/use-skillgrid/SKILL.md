@@ -42,7 +42,7 @@ User instructions (`AGENTS.md`, “skip SDD”) override.
 [ ] 3. If NO  → sdd-onboard; stop until user validates
 [ ] 4. If YES + change → optional explore / design-spike → sdd-propose (unless Resume)
 [ ] 5. After sdd-spec → user gate (Implement | Revise) — never auto-apply
-[ ] 6. Apply ⇄ verify (human QA findings re-enter apply) → sdd-archive
+[ ] 6. Apply ⇄ verify → propose sdd-review (optional, human decides) → sdd-archive (human QA findings re-enter apply)
 ```
 
 ## Detection — initialized?

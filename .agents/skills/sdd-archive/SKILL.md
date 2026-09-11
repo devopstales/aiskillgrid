@@ -29,7 +29,7 @@ Confirm your role before acting. You are the dedicated `sdd-archive` sub-agent *
 
 You are the ARCHIVE phase — the terminal step of the SDD cycle. You close the change: merge its delta specs into the main specs (the source of truth), move the change folder to the date-prefixed archive, and record a final-state `archive-report`. You complete the cycle so the next change starts clean and the work is permanently auditable.
 
-Phase order is `propose → design → spec → tasks → apply → verify → archive`. You run last. **Two properties of a terminal phase drive everything here:**
+Phase order is `propose → spec → apply ⇄ verify → review → archive`. You run last, after `sdd-review`. **Two properties of a terminal phase drive everything here:**
 
 1. **The archive is the audit trail.** A future reader consults it to learn what actually shipped and when. A stale or truncated record sends them to redo finished work — or to believe something is still pending when it already closed. Archival is therefore a **mechanical, verifiable** filesystem operation (see the Mechanical Copy Contract), not a model paraphrase.
 2. **You are the completion checkpoint.** Your two gates — Verification and Task Completion — are the last chance to refuse to archive work that is not actually done. Both block with no silent override.
@@ -43,14 +43,14 @@ From the orchestrator:
 - **Explicit final-state facts for work completed after the intermediate artifacts were persisted** — e.g. "these verify warnings were fixed in later commits", "this blocker was resolved", "the final test count is N" — whenever the orchestrator has them.
 - **Any explicit intentional-archive override text** from the user/orchestrator (e.g. an approved non-critical partial archive, or an approved stale-checkbox reconciliation).
 
-**Artifact store mode is `hybrid` — the only mode for this phase.** Every run does BOTH: performs the filesystem spec-sync + archive-folder move **and** persists the `archive-report` to Mnemonic under `sdd/{change-name}/archive-report` (with the observation IDs of everything read, for traceability). A mode token of `openspec` / `engram-compat` / `none` from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
+**Artifact store mode is `hybrid` — the only mode for this phase.** Every run does BOTH: performs the filesystem spec-sync + archive-folder move **and** persists the `archive-report` to Mnemonic under `sdd/{change-name}/archive-report` (with the observation IDs of everything read, for traceability). Any store-mode token from the orchestrator is honored as `hybrid` here. Do not branch on the mode.
 
 ## Execution + Persistence Conventions
 
 Follow, on each save, rather than restating here:
 
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape (`title == topic_key`, `scope: "project"`, active `session_id`; **no** `project:` parameter, **no** `capture_prompt` field; `mem_search` returns previews — always `mem_get_observation(id)` for full content).
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — the archive layout (`openspec/changes/archive/YYYY-MM-DD-{change-name}/`), `rules.archive` from `openspec/config.yaml`, and the rule that the archive is an audit trail to never delete or modify.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — the archive layout (`docs/skillgrid/archive/YYYY-MM-DD-{change-name}/`), `rules.archive` from `docs/skillgrid/config.yaml`, and the rule that the archive is an audit trail to never delete or modify.
 - [references/delta-spec-format.md](references/delta-spec-format.md) — the ADDED / MODIFIED / REMOVED / RENAMED merge semantics (local copy of `sdd-spec`'s reference) that govern how you apply the delta to the main spec without dropping un-mentioned requirements.
 
 ## Final-State Authority
@@ -88,11 +88,19 @@ Before any spec sync or archive move, check the structured status:
 
 Archive closes only verified work:
 
-- **No `verify-report` exists** (neither `sdd/{change-name}/verify-report` in Mnemonic nor `openspec/changes/{change}/verify-report.md` in the change folder) → **`blocked`** with reason `no-verify-report`. You cannot close a change whose implementation was never verified.
+- **No `verify-report` exists** (neither `sdd/{change-name}/verify-report` in Mnemonic nor `docs/skillgrid/changes/{change}/verify-report.md` in the change folder) → **`blocked`** with reason `no-verify-report`. You cannot close a change whose implementation was never verified.
 - **`verify-report` verdict is `FAIL`** → **`blocked`** with reason `verify-failed`. No prompt override. A launch-prompt claim "the CRITICAL was fixed in a later commit" does not clear it — the gate requires a fresh passing `sdd-verify` run, not a prompt assertion.
 - **`verify-report` verdict is `PASS` or `PASS WITH WARNINGS`** → proceed. Warnings are reportable (they appear in the archive report), not blocking.
 
 The gate is **independent of the review-workload / chain-strategy decisions** — those are `sdd-apply` / `sdd-tasks` concerns. This gate is purely "is the final state verified?" and it never manufactures a pass.
+
+### Review Gate (advisory — never blocks on its own)
+
+Review is optional but proposed; the human owns the decision:
+
+- **No `## Review` verdict in `tasks.md`** → record `review-waived` (declined or never proposed) and proceed. Do not block.
+- **Verdict is `BACK-TO-APPLY` with unresolved items** → surface as WARNING with the item list and proceed. Do not block — the human already accepted this state by approving archive.
+- **Verdict is `REVIEW-PASS`** → proceed. Recorded advisory warnings are reportable, not blocking.
 
 ### Task Completion Gate
 
@@ -100,7 +108,7 @@ The gate is **independent of the review-workload / chain-strategy decisions** �
 
 Before syncing specs or moving the folder, inspect the tasks artifact:
 
-- **Filesystem** — read `openspec/changes/{change-name}/tasks.md`.
+- **Filesystem** — read `docs/skillgrid/changes/{change-name}/tasks.md`.
 - **Mnemonic (recovery / traceability)** — `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/tasks")` → `skillgrid-mnemonic_mem_get_observation(id)`.
 
 If **any implementation task remains unchecked** (`- [ ]`) in the tasks artifact:
@@ -140,8 +148,8 @@ Archival is a **mechanical filesystem operation**. File content MUST NEVER pass 
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/apply-progress")` → `..._mem_get_observation(id)` — the apply evidence (drives the gate reconciliation proofs).
    - `skillgrid-mnemonic_mem_search(query: "sdd/{change-name}/verify-report")` → `..._mem_get_observation(id)` — **required** (drives the Verification Gate).
    - `skillgrid-mnemonic_mem_search(query: "sdd-init/{project}")` → `..._mem_get_observation(id)` — detected project facts, if useful for the report.
-3. Read the filesystem primary copies: `openspec/changes/{change-name}/` (proposal.md, design.md, specs/, tasks.md, apply-progress.md, verify-report.md) and the main specs under `openspec/specs/{domain}/spec.md`.
-4. Read `openspec/config.yaml` if present — `rules.archive` bind this phase.
+3. Read the filesystem primary copies: `docs/skillgrid/changes/{change-name}/` (proposal.md, design.md, specs/, tasks.md, apply-progress.md, verify-report.md) and the main specs under `docs/skillgrid/specs/{domain}/spec.md`.
+4. Read `docs/skillgrid/config.yaml` if present — `rules.archive` bind this phase.
 
 ### Step 2: Pass the Gates (before ANY write)
 
@@ -149,15 +157,16 @@ Confirm, in order:
 
 1. **Status and Workspace Guard** — not in a read-only planning workspace; edit roots respected.
 2. **Verification Gate** — `verify-report` exists and verdict is `PASS` or `PASS WITH WARNINGS` (no CRITICAL, not `FAIL`).
-3. **Task Completion Gate** — no unchecked implementation tasks in the persisted tasks artifact (or explicit, proved reconciliation approved and recorded).
+3. **Review Gate** — advisory only: record review status (`REVIEW-PASS` / `waived` / `BACK-TO-APPLY` notes), never block.
+4. **Task Completion Gate** — no unchecked implementation tasks in the persisted tasks artifact (or explicit, proved reconciliation approved and recorded).
 
 If any gate fails, **STOP and return `blocked`** with the failing gate named and the reason. Do not proceed to Step 3.
 
 ### Step 3: Sync Delta Specs to Main Specs
 
-For each delta spec in `openspec/changes/{change-name}/specs/{domain}/spec.md`, apply it to the main spec per the semantics in [references/delta-spec-format.md](references/delta-spec-format.md):
+For each delta spec in `docs/skillgrid/changes/{change-name}/specs/{domain}/spec.md`, apply it to the main spec per the semantics in [references/delta-spec-format.md](references/delta-spec-format.md):
 
-**If the main spec exists** (`openspec/specs/{domain}/spec.md`):
+**If the main spec exists** (`docs/skillgrid/specs/{domain}/spec.md`):
 
 1. **READ the existing main spec** — you cannot merge into a requirement you have not read, and MODIFIED is replace-semantics.
 2. Apply each section of the delta:
@@ -180,9 +189,9 @@ For each delta spec in `openspec/changes/{change-name}/specs/{domain}/spec.md`, 
 
 ```bash
 # Mechanical copy (MANDATORY): never Read → Write artifact content.
-target_dir="openspec/specs/{domain}"
+target_dir="docs/skillgrid/specs/{domain}"
 target_path="$target_dir/spec.md"
-src="openspec/changes/{change-name}/specs/{domain}/spec.md"
+src="docs/skillgrid/changes/{change-name}/specs/{domain}/spec.md"
 mkdir -p "$target_dir"
 
 # Snapshot first, then copy, then readback — in one shell transaction.
@@ -200,28 +209,28 @@ diff_status=$?
 
 ### Step 4: Move to Archive
 
-Move the entire change folder to `openspec/changes/archive/YYYY-MM-DD-{change-name}/` using a **mechanical shell move** — NEVER Read each artifact and Write it into the archive:
+Move the entire change folder to `docs/skillgrid/archive/YYYY-MM-DD-{change-name}/` using a **mechanical shell move** — NEVER Read each artifact and Write it into the archive:
 
 ```bash
 # Run as ONE shell transaction so the EXIT trap stays active.
 # The snapshot is recursive and MUST be created BEFORE the move.
 snapshot_root="$(mktemp -d "${TMPDIR:-/tmp}/sdd-archive.move.XXXXXX")"
 trap 'rm -rf -- "$snapshot_root"' EXIT
-cp -R "openspec/changes/{change-name}" "$snapshot_root/source"
+cp -R "docs/skillgrid/changes/{change-name}" "$snapshot_root/source"
 
 # Mechanical move (MANDATORY): git mv when tracked, mv otherwise.
-mkdir -p openspec/changes/archive
-if ! git mv "openspec/changes/{change-name}" "openspec/changes/archive/YYYY-MM-DD-{change-name}"; then
-  mv "openspec/changes/{change-name}" "openspec/changes/archive/YYYY-MM-DD-{change-name}" || exit $?
+mkdir -p docs/skillgrid/changes/archive
+if ! git mv "docs/skillgrid/changes/{change-name}" "docs/skillgrid/archive/YYYY-MM-DD-{change-name}"; then
+  mv "docs/skillgrid/changes/{change-name}" "docs/skillgrid/archive/YYYY-MM-DD-{change-name}" || exit $?
 fi
 
 # The source must be gone before comparing the archived tree to its snapshot.
-if [ -e "openspec/changes/{change-name}" ] || [ -L "openspec/changes/{change-name}" ]; then
+if [ -e "docs/skillgrid/changes/{change-name}" ] || [ -L "docs/skillgrid/changes/{change-name}" ]; then
   printf 'archive move left the source directory in place\n' >&2; exit 1
 fi
 
 # MANDATORY readback: only an empty diff passes.
-diff -r "$snapshot_root/source" "openspec/changes/archive/YYYY-MM-DD-{change-name}"
+diff -r "$snapshot_root/source" "docs/skillgrid/archive/YYYY-MM-DD-{change-name}"
 diff_status=$?
 [ "$diff_status" -ne 0 ] && exit "$diff_status"
 ```
@@ -233,10 +242,10 @@ Use **today's date in ISO format** (e.g. `2026-09-01`) for the archive prefix. C
 The Mechanical Copy Contract above IS the verification: the verbatim `diff -r` outputs from Steps 3 and 4 MUST appear in the phase result, and an empty diff is the only passing evidence. In addition, confirm:
 
 - [ ] Main specs updated correctly (ADDED appended, MODIFIED replaced, REMOVED/RENAMED applied, **all un-mentioned requirements preserved**)
-- [ ] Change folder moved to `openspec/changes/archive/YYYY-MM-DD-{change-name}/`
+- [ ] Change folder moved to `docs/skillgrid/archive/YYYY-MM-DD-{change-name}/`
 - [ ] Archive contains all artifacts (proposal, specs/, design.md, tasks.md, apply-progress.md, verify-report.md)
 - [ ] Archived `tasks.md` has no unchecked implementation tasks (or the approved reconciliation is recorded)
-- [ ] Active `openspec/changes/` no longer contains this change
+- [ ] Active `docs/skillgrid/changes/` no longer contains this change
 - [ ] Verbatim `diff -r` readback output is included in the result and is **empty**
 
 A failed or skipped `diff -r` **FAILS** the phase regardless of the checkboxes above — agent self-report is never sufficient evidence of byte-identity.
@@ -268,7 +277,7 @@ Mnemonic save notes: `title == topic_key` exactly; `scope: "project"`; pass the 
 ## Change Archived
 
 **Change**: {change-name}
-**Location**: `openspec/changes/archive/{YYYY-MM-DD}-{change-name}/` · Mnemonic `sdd/{change-name}/archive-report` (hybrid)
+**Location**: `docs/skillgrid/archive/{YYYY-MM-DD}-{change-name}/` · Mnemonic `sdd/{change-name}/archive-report` (hybrid)
 **Status**: success | blocked
 
 ### Gates
@@ -276,6 +285,7 @@ Mnemonic save notes: `title == topic_key` exactly; `scope: "project"`; pass the 
 |------|--------|
 | Status/Workspace guard | ✅ / ⚠️ blocked: {reason} |
 | Verification gate | ✅ {PASS \| PASS WITH WARNINGS} |
+| Review gate (advisory) | ✅ {REVIEW-PASS \| waived \| BACK-TO-APPLY notes} |
 | Task completion | ✅ {N}/{N} complete (or: stale-box reconciliation — {reason + corroborating evidence}) |
 
 ### Specs Synced
@@ -297,7 +307,7 @@ Mnemonic save notes: `title == topic_key` exactly; `scope: "project"`; pass the 
 
 ### Source of Truth Updated
 The main specs now reflect the new behavior:
-- `openspec/specs/{domain}/spec.md`
+- `docs/skillgrid/specs/{domain}/spec.md`
 
 ### Overrides / Final-State Notes
 {Any intentional partial-archive, stale-checkbox reconciliation, or launch-prompt final-state facts — or "None"}
@@ -326,10 +336,10 @@ Close the final message with a `## Key Learnings` section — 1–5 standalone f
 - Use ISO date format (`YYYY-MM-DD`) for the archive folder prefix.
 - If a merge would be destructive, WARN and name exactly what is being removed before proceeding.
 - The archive is an AUDIT TRAIL — never delete or modify archived changes.
-- If `openspec/changes/archive/` does not exist, create it.
-- **Hybrid is the only mode** — always do the filesystem merge + move AND persist the archive report to Mnemonic; never branch on `openspec` / `engram-compat` / `none`.
+- If `docs/skillgrid/archive/` does not exist, create it.
+- **Hybrid is the only mode** — always do the filesystem merge + move AND persist the archive report to Mnemonic; never branch on the mode.
 - No external binaries. Mnemonic (`mem_*`) and the project's shell (`cp` / `mv` / `git mv` / `diff`) are the only tools. No `gentle-ai` native dispatcher/receipt, no `sdd-phase-common.md`, no `sdd-status-contract.md`, no admission/attestation binary.
-- Apply any `rules.archive` from `openspec/config.yaml`.
+- Apply any `rules.archive` from `docs/skillgrid/config.yaml`.
 - Return envelope per Step 7 — final action is text, not a tool call.
 
 ## Gotchas
@@ -353,4 +363,4 @@ Close the final message with a `## Key Learnings` section — 1–5 standalone f
 - [`../sdd-apply/SKILL.md`](../sdd-apply/SKILL.md) — upstream; its `apply-progress` and marked `tasks.md` drive the Task Completion Gate and the stale-checkbox reconciliation proofs.
 - [`../sdd-spec/SKILL.md`](../sdd-spec/SKILL.md) — upstream; its delta specs are what you merge into the main specs.
 - [`../_shared/conventions/mnemonic-memory.md`](../_shared/conventions/mnemonic-memory.md) — save shape (`title == topic_key`, `scope: "project"`, active session), recovery ladder, and the observation-ID lineage the archive report must carry.
-- [`../_shared/conventions/openspec.md`](../_shared/conventions/openspec.md) — the archive layout (`archive/YYYY-MM-DD-{change}/`), `rules.archive`, and the audit-trail rule.
+- [`../_shared/conventions/sdd-structure.md`](../_shared/conventions/sdd-structure.md) — the archive layout (`archive/YYYY-MM-DD-{change}/`), `rules.archive`, and the audit-trail rule.

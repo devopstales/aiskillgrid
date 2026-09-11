@@ -7,7 +7,7 @@ Plan: `docs/plan/01-workflow-new.md` (v4).
 ## Phase Order (v4)
 
 ```
-onboard → propose → spec → apply ⇄ verify → archive
+onboard → propose → spec → apply ⇄ verify → review → archive
 ```
 
 Optional before locking `change.md`:
@@ -26,6 +26,7 @@ Optional before locking `change.md`:
 | `sdd-spec` | Own NN; write `tasks.md` (blocking DAG) + `acceptance.feature` |
 | `sdd-apply` | Execute unblocked tasks; mark `[x]` + State |
 | `sdd-verify` | Verdicts + trace + human QA plan; findings → apply |
+| `sdd-review` | Optional post-verify gate (runs on human approval) — dispatch reviewers, triage findings, verdict REVIEW-PASS / BACK-TO-APPLY / waived |
 | `sdd-archive` | Pure move `changes/` → `archive/` |
 
 Onboard helpers (references under `sdd-onboard/references/`, not top-level stages): `map-codebase`, `agent-context`, `constraints`, `domain`.

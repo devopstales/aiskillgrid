@@ -32,7 +32,7 @@ Ask one cluster at a time:
 1. **Propose gates** — rollback, success criteria, ADR-style rationale, threat rows?
 2. **Spec gates** — NN ownership, task sizing, acceptance coverage (happy + edge + failure)?
 3. **Apply** — TDD on/off, `test_command`, "follow existing patterns", mark `[x]` as you go?
-4. **Verify** — `test_command`, `build_command`, `coverage_threshold`?
+4. **Verify** — `test_command` (required, detected runner), `build_command`, `coverage_threshold` (default 80)?
 5. **Archive** — require PASS / PASS WITH WARNINGS on every step?
 
 Reuse detected testing commands from config/`sdd-onboard` (init) as defaults.
@@ -53,11 +53,11 @@ rules:
       - Follow existing code patterns
       - Mark tasks [x] as you go (in tasks.md)
     tdd: false
-    test_command: ""
+    test_command: "<detected test command — required, never empty>"
   verify:
-    test_command: ""
+    test_command: "<detected test command — required, never empty>"
     build_command: ""
-    coverage_threshold: 0
+    coverage_threshold: 80
   archive:
     - Require every step in tasks.md to have PASS or PASS WITH WARNINGS before move
 ```
@@ -71,5 +71,5 @@ List `rules` keys updated. State explicitly: SoT is `config.yaml` — not root C
 ## Gotchas
 
 - Root `CONSTRAINTS.md` duplicates and drifts — do not create unless the user explicitly wants an export that *cites* `rules.*`.
-- Empty `test_command` is fine until the user supplies one — do not invent fake CI commands.
+- `test_command` must never be empty — fill it with the detected runner (e.g. `go test ./...`) and confirm with the user; do not invent commands for stacks you did not detect.
 - `tdd: true` without a real `test_command` is a footgun — confirm both together.

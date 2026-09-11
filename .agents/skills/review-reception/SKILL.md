@@ -69,7 +69,7 @@ You understand 1,2,3,6. Unclear on 4,5.
 - **No performative agreement**
 - **Skip to action** or technical acknowledgment
 
-### From External Reviewers (subagents, other humans, AI reviewers, judgment-day judges)
+### From External Reviewers (subagents, other humans, AI reviewers)
 ```
 BEFORE implementing:
   1. Check: Technically correct for THIS codebase?
@@ -224,9 +224,6 @@ This skill governs the **reception side** of any review the pipeline produces:
   path follows the same discipline. Do NOT reflexively implement a reviewer's
   suggestion if the review only reasoned from an inference the spec does not
   demand — grep the spec for the exact requirement BEFORE writing the fix.
-- `judgment-day` dual-review findings enter this same receipt loop: a finding
-  one judge made and the other did not is exactly the case that needs step 3
-  (VERIFY against the codebase) before touching code.
 - YAGNI pushback is the primary exit route for findings that ask for
   out-of-scope polish. Park them as deferred items and let the final review
   triage.

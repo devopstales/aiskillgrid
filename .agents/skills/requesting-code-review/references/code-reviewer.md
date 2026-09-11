@@ -81,6 +81,10 @@ Subagent (general-purpose):
     - No obvious bugs?
     - Commit hygiene per `_shared/conventions/commits.md`: Conventional Commits subject, no AI trailers, one logical change per commit.
 
+    **Quality + security (Go diffs — load `quality-security-review` checklist):**
+    - `go vet` clean, `gofmt` clean, no HIGH/CRITICAL deps?
+    - No shell-out of user input, no string-built SQL, no `0644` secrets, no followed symlinks in copies?
+
     **Glossary discipline (skillgrid-specific):**
     - Does the diff introduce new domain or technical terms not in `docs/skillgrid/glossary/{business,technical}.md`? If so, the change should have added a glossary reference. Flag as Minor.
     - Vocabulary drift: same concept called two different names? Flag as Important.
