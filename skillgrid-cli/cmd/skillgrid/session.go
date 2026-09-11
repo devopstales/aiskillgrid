@@ -41,6 +41,8 @@ func runSession(version string, args []string) {
 		archive     bool
 		ctxPct      string
 		costUSD     string
+		watchdog    bool
+		usage       string
 	)
 	fs.StringVar(&dataDir, "dir", envOr("SKILLGRID_MNEMONIC_DATA_DIR", ""), "mnemonic data directory")
 	fs.StringVar(&projectFlag, "project", "", "project id (defaults to CWD-resolved)")
@@ -53,6 +55,8 @@ func runSession(version string, args []string) {
 	fs.BoolVar(&archive, "archive", false, "resume: also archive this handoff")
 	fs.StringVar(&ctxPct, "context-usage-percent", "", "status: optional caller-supplied context usage percent (0-100)")
 	fs.StringVar(&costUSD, "cost-usd", "", "status: optional caller-supplied last known cost in USD")
+	fs.BoolVar(&watchdog, "watchdog", false, "handoff: gate this handoff behind the context-limit watchdog (SKILLGRID_HANDOFF_WATCHDOG)")
+	fs.StringVar(&usage, "usage", "", "handoff --watchdog: caller-supplied context-usage fraction (0.0-1.0)")
 	if err := fs.Parse(reorderSessionArgs(rest)); err != nil {
 		os.Exit(2)
 	}
@@ -67,7 +71,11 @@ func runSession(version string, args []string) {
 
 	switch cmd {
 	case "handoff":
-		runSessionHandoff(h, progress, knowledge, nextPrompt, handoffID, sessionID, ctxSummary)
+		if watchdog {
+			runSessionHandoffWatchdog(h, usage, progress, knowledge, nextPrompt, handoffID, sessionID, ctxSummary)
+		} else {
+			runSessionHandoff(h, progress, knowledge, nextPrompt, handoffID, sessionID, ctxSummary)
+		}
 	case "resume":
 		runSessionResume(h, pos, archive)
 	case "status":
@@ -87,6 +95,10 @@ func printSessionUsage() {
   handoff --progress P --next-prompt N [--knowledge K] [--session-id S]
           [--handoff-id ID] [--context-summary C]
           write the cleave bundle + session_handoffs row (session_handoff)
+  handoff --progress P --next-prompt N --usage F --watchdog
+          gate the handoff behind the context-limit watchdog: only hands off
+          when SKILLGRID_HANDOFF_WATCHDOG is set AND F >= the threshold
+          (off by default; invalid config fails closed) (session_watchdog)
   resume <handoff_id> [--archive]
           return the stored NEXT_PROMPT for a handoff (session_resume)
   status [--context-usage-percent N] [--cost-usd C]
@@ -150,6 +162,54 @@ func runSessionHandoff(h *service.ProjectHandle, progress, knowledge, nextPrompt
 	printJSON(map[string]any{
 		"handoff_id": id,
 		"paths":      paths,
+	})
+}
+
+// runSessionHandoffWatchdog is the CLI wiring for the step-05 context-limit
+// watchdog. It is the operator surface that turns relay.Check on: the handoff
+// is gated behind SKILLGRID_HANDOFF_WATCHDOG (+ _THRESHOLD) and only runs when
+// the caller-supplied --usage fraction is at/past the threshold. Off by
+// default (env unset -> no-op, never auto-hands-off); invalid config fails
+// closed (non-zero exit, no handoff). The usage fraction is caller-supplied
+// (0.0-1.0), matching the step-05 usage-signal decision (the CLI does not
+// compute tokens).
+func runSessionHandoffWatchdog(h *service.ProjectHandle, usage, progress, knowledge, nextPrompt, handoffID, sessionID, ctxSummary string) {
+	if strings.TrimSpace(progress) == "" {
+		fmt.Fprintln(os.Stderr, "error: session handoff --watchdog requires --progress")
+		os.Exit(2)
+	}
+	if strings.TrimSpace(nextPrompt) == "" {
+		fmt.Fprintln(os.Stderr, "error: session handoff --watchdog requires --next-prompt")
+		os.Exit(2)
+	}
+	frac, err := strconv.ParseFloat(usage, 64)
+	if err != nil || frac < 0 || frac > 1 {
+		fmt.Fprintf(os.Stderr, "error: bad --usage %q (need a fraction in [0,1])\n", usage)
+		os.Exit(2)
+	}
+	in := relay.Bundle{
+		Progress:       progress,
+		Knowledge:      knowledge,
+		NextPrompt:     nextPrompt,
+		SourceSession:  sessionID,
+		ContextSummary: ctxSummary,
+	}
+	res, err := relay.Check(hCtx(), h.Store().DB, h.ProjectID(), h.Root(), frac, in)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	if !res.HandedOff {
+		printJSON(map[string]any{
+			"handed_off": false,
+			"note":       "watchdog no-op (disabled, below threshold, or off by default)",
+		})
+		return
+	}
+	printJSON(map[string]any{
+		"handed_off": true,
+		"handoff_id": res.HandoffID,
+		"paths":      res.Paths,
 	})
 }
 

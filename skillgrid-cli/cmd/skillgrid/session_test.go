@@ -368,6 +368,172 @@ func TestSessionNoStore(t *testing.T) {
 	}
 }
 
+// TestSessionHandoffWatchdogPastThreshold wires the step-05 watchdog to the CLI:
+// with SKILLGRID_HANDOFF_WATCHDOG enabled and --usage at/past the threshold,
+// `session handoff --watchdog` runs the SAME Handoff path (a handoff row + 3
+// cleave files) and reports handed_off:true.
+func TestSessionHandoffWatchdogPastThreshold(t *testing.T) {
+	dataDir, proj, st := sessionCLIFixture(t)
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("SKILLGRID_HANDOFF_WATCHDOG", "1")
+	t.Setenv("SKILLGRID_HANDOFF_WATCHDOG_THRESHOLD", "0.8")
+
+	// The watchdog is an AUTO-trigger: it generates its own handoff id (the
+	// operator's --handoff-id is not used on the watchdog path), so assert the
+	// returned id + row by that id, not a fixed one.
+	out, code := runSessionCLI(t, dataDir, proj, cwd,
+		"handoff", "--watchdog", "--usage", "0.95",
+		"--progress", "watchdog: context full", "--next-prompt", "resume after overflow",
+		"--project", proj, "--dir", dataDir)
+	if code != 0 {
+		t.Fatalf("watchdog handoff (past threshold) exited non-zero: %d\n%s", code, out)
+	}
+	var wd struct {
+		HandedOff bool     `json:"handed_off"`
+		HandoffID string   `json:"handoff_id"`
+		Paths     []string `json:"paths"`
+	}
+	if err := json.Unmarshal([]byte(out), &wd); err != nil {
+		t.Fatalf("unmarshal watchdog handoff: %v (out %s)", err, out)
+	}
+	if !wd.HandedOff {
+		t.Fatalf("watchdog past threshold must hand off, got: %s", out)
+	}
+	if wd.HandoffID == "" {
+		t.Fatalf("watchdog handoff must return a generated handoff_id, got: %s", out)
+	}
+	if len(wd.Paths) != 3 {
+		t.Fatalf("watchdog handoff must return 3 cleave paths, got %v", wd.Paths)
+	}
+	// The SAME Handoff path ran: a row (by the generated id) + 3 cleave files exist.
+	var rows int
+	if err := st.DB.QueryRow(
+		"SELECT COUNT(*) FROM session_handoffs WHERE project=? AND handoff_id=?",
+		proj, wd.HandoffID).Scan(&rows); err != nil {
+		t.Fatalf("count handoff row: %v", err)
+	}
+	if rows != 1 {
+		t.Fatalf("expected 1 handoff row from the watchdog, got %d", rows)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(filepath.Join(wd.Paths[0], "..", "..")) })
+}
+
+// TestSessionHandoffWatchdogNoOp covers the off-by-default and below-threshold
+// cases: env unset (default) OR enabled-but-below-threshold -> no handoff row,
+// no cleave files, and the CLI reports handed_off:false (never auto-hands-off).
+func TestSessionHandoffWatchdogNoOp(t *testing.T) {
+	dataDir, proj, st := sessionCLIFixture(t)
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanupCleave := func() { _ = os.RemoveAll(filepath.Join(cwd, ".skillgrid", ".cleave")) }
+
+	// (a) Off by default: env unset -> no-op even at usage 0.999.
+	{
+		out, code := runSessionCLI(t, dataDir, proj, cwd,
+			"handoff", "--watchdog", "--usage", "0.999",
+			"--progress", "p", "--next-prompt", "n", "--handoff-id", "wd-default",
+			"--project", proj, "--dir", dataDir)
+		if code != 0 {
+			t.Fatalf("watchdog (env unset) should no-op with exit 0, got %d\n%s", code, out)
+		}
+		var wd struct {
+			HandedOff bool `json:"handed_off"`
+		}
+		if err := json.Unmarshal([]byte(out), &wd); err != nil {
+			t.Fatalf("unmarshal: %v (out %s)", err, out)
+		}
+		if wd.HandedOff {
+			t.Fatalf("watchdog must be a no-op when SKILLGRID_HANDOFF_WATCHDOG is unset, got: %s", out)
+		}
+		var rows int
+		if err := st.DB.QueryRow("SELECT COUNT(*) FROM session_handoffs WHERE project=? AND handoff_id=?", proj, "wd-default").Scan(&rows); err != nil {
+			t.Fatalf("count: %v", err)
+		}
+		if rows != 0 {
+			t.Fatalf("watchdog no-op must not write a handoff row, got %d", rows)
+		}
+	}
+
+	// (b) Enabled but below threshold -> no-op.
+	t.Setenv("SKILLGRID_HANDOFF_WATCHDOG", "1")
+	t.Setenv("SKILLGRID_HANDOFF_WATCHDOG_THRESHOLD", "0.8")
+	{
+		out, code := runSessionCLI(t, dataDir, proj, cwd,
+			"handoff", "--watchdog", "--usage", "0.5",
+			"--progress", "p", "--next-prompt", "n", "--handoff-id", "wd-below",
+			"--project", proj, "--dir", dataDir)
+		if code != 0 {
+			t.Fatalf("watchdog (below threshold) should no-op with exit 0, got %d\n%s", code, out)
+		}
+		var wd struct {
+			HandedOff bool `json:"handed_off"`
+		}
+		if err := json.Unmarshal([]byte(out), &wd); err != nil {
+			t.Fatalf("unmarshal: %v (out %s)", err, out)
+		}
+		if wd.HandedOff {
+			t.Fatalf("watchdog below threshold must not hand off, got: %s", out)
+		}
+		var rows int
+		if err := st.DB.QueryRow("SELECT COUNT(*) FROM session_handoffs WHERE project=? AND handoff_id=?", proj, "wd-below").Scan(&rows); err != nil {
+			t.Fatalf("count: %v", err)
+		}
+		if rows != 0 {
+			t.Fatalf("watchdog below threshold must not write a handoff row, got %d", rows)
+		}
+	}
+	t.Cleanup(cleanupCleave)
+}
+
+// TestSessionHandoffWatchdogInvalidConfig fails closed: an invalid threshold
+// (non-numeric) -> non-zero exit + a clear config error + NO handoff row. A bad
+// --usage fraction (out of [0,1]) also fails closed.
+func TestSessionHandoffWatchdogInvalidConfig(t *testing.T) {
+	dataDir, proj, st := sessionCLIFixture(t)
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// (a) Invalid (non-numeric) threshold -> fail closed, no handoff.
+	t.Setenv("SKILLGRID_HANDOFF_WATCHDOG", "1")
+	t.Setenv("SKILLGRID_HANDOFF_WATCHDOG_THRESHOLD", "not-a-number")
+	out, code := runSessionCLI(t, dataDir, proj, cwd,
+		"handoff", "--watchdog", "--usage", "0.95",
+		"--progress", "p", "--next-prompt", "n", "--handoff-id", "wd-invalid",
+		"--project", proj, "--dir", dataDir)
+	if code == 0 {
+		t.Fatalf("watchdog with an invalid threshold should fail closed (non-zero), got: %s", out)
+	}
+	if !strings.Contains(strings.ToUpper(out), "THRESHOLD") {
+		t.Fatalf("invalid-threshold watchdog should name the config error, got: %s", out)
+	}
+	var rows int
+	if err := st.DB.QueryRow("SELECT COUNT(*) FROM session_handoffs WHERE project=? AND handoff_id=?", proj, "wd-invalid").Scan(&rows); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if rows != 0 {
+		t.Fatalf("invalid-threshold watchdog must not hand off (no row), got %d", rows)
+	}
+
+	// (b) Bad --usage fraction (out of [0,1]) -> fail closed at arg validation.
+	out, code = runSessionCLI(t, dataDir, proj, cwd,
+		"handoff", "--watchdog", "--usage", "1.5",
+		"--progress", "p", "--next-prompt", "n", "--handoff-id", "wd-badusage",
+		"--project", proj, "--dir", dataDir)
+	if code == 0 {
+		t.Fatalf("watchdog with a bad --usage should fail closed (non-zero), got: %s", out)
+	}
+	if !strings.Contains(out, "--usage") {
+		t.Fatalf("bad --usage should name the flag in stderr, got: %s", out)
+	}
+}
+
 // TestSessionNoStoreResume is 04.3 [AFK] — resume/status also fail closed with
 // no usable store: non-zero exit + clear error.
 func TestSessionNoStoreResume(t *testing.T) {
