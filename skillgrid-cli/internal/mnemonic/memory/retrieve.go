@@ -95,6 +95,15 @@ func (s *Service) Retrieve(ctx context.Context, opts RetrieveOpts) ([]LayerHit, 
 // makes the layered path observable at a real entry point WITHOUT regressing
 // the step-01 per-owner visibility gate.
 func (s *Service) SearchOwnerScopedRetrieve(ctx context.Context, readerOwner, mode, query string, limit int) ([]LayerHit, error) {
+	return s.SearchOwnerScopedRetrieveFTS(ctx, readerOwner, mode, query, "", limit)
+}
+
+// SearchOwnerScopedRetrieveFTS is SearchOwnerScopedRetrieve with an FTS match
+// mode for the L1/L0 fact leg (change 014, step 02): "trigram" expands the
+// query into 3-character substrings and "prefix" appends a wildcard to each
+// term (both opt-in; the MCP path keeps the FTS-mode-less variant so its
+// contract is unchanged). An empty matchMode is the existing behavior.
+func (s *Service) SearchOwnerScopedRetrieveFTS(ctx context.Context, readerOwner, mode, query, matchMode string, limit int) ([]LayerHit, error) {
 	if s == nil || s.store == nil || s.store.DB == nil {
 		return nil, errors.New("memory service not initialized")
 	}
@@ -109,7 +118,7 @@ func (s *Service) SearchOwnerScopedRetrieve(ctx context.Context, readerOwner, mo
 	case "bootstrap":
 		return s.layerBootstrap(ctx, limit)
 	case "fact":
-		return s.rrfFallbackOwnerScoped(ctx, readerOwner, query, limit)
+		return s.rrfFallbackOwnerScopedFTS(ctx, readerOwner, query, matchMode, limit)
 	default:
 		return nil, fmt.Errorf("unknown retrieve mode %q (valid: bootstrap, fact)", m)
 	}
@@ -206,11 +215,22 @@ func (s *Service) rrfFallback(ctx context.Context, query string, limit int) ([]L
 // production CLI `mem search` uses so the per-owner visibility gate holds on
 // the layered read path WITHOUT regressing the existing RRF ranking.
 func (s *Service) rrfFallbackOwnerScoped(ctx context.Context, readerOwner, query string, limit int) ([]LayerHit, error) {
+	return s.rrfFallbackOwnerScopedFTS(ctx, readerOwner, query, "", limit)
+}
+
+// rrfFallbackOwnerScopedFTS is rrfFallbackOwnerScoped with an FTS match mode
+// for the FTS leg (change 014, step 02). The mode is validated up front so an
+// unknown mode fails before any read; the vector leg is unaffected by the
+// FTS mode (blending is orthogonal to FTS term expansion).
+func (s *Service) rrfFallbackOwnerScopedFTS(ctx context.Context, readerOwner, query, matchMode string, limit int) ([]LayerHit, error) {
+	if err := ValidateMatchMode(matchMode); err != nil {
+		return nil, err
+	}
 	query = strings.TrimSpace(query)
 	if query == "" {
 		return nil, nil
 	}
-	hits, err := s.BlendedSearch(ctx, query, "any", "", Vector{}, limit*3)
+	hits, err := s.BlendedSearch(ctx, query, matchMode, "", Vector{}, limit*3)
 	if err != nil {
 		return nil, err
 	}
