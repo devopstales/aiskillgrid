@@ -61,7 +61,9 @@ In interactive SDD mode, do not let the executor silently decide if the input is
 9. **Scope boundaries & non-goals** — what's in the first slice vs deferred
 10. **Business risk / tradeoff** — downside that matters if the direction is wrong
 
-Prefer 3–5 concrete questions per round. After answers, summarize resulting assumptions and ask: *correct anything, or another round?*
+Prefer 3–5 concrete questions per round, each carrying a recommended default so answering is cheap. GATE each round: post the cluster, then stop and wait — never ask and answer in the same breath, never roll into the next phase. Skip categories with nothing genuinely open; never manufacture questions. After answers, summarize resulting assumptions labeled `Verified / Inferred / Unknown` (Unknown carries the next-step check: code_search query or file to read) and ask: *correct anything, or another round?* Reflect a thin answer back once as the concrete choice it leaves open — never upgrade vagueness into a confident plan. If the user declines ("just write it"): name the guesses, ask only the 2–3 highest-leverage questions; everything unanswered ships as `TBD — needs validation` / `Assumed — <assumption>, confirm before execution`, and affected scope carries a `GOTCHA`. Trivial changes skip the round — one line (`Classification: trivial`) suffices.
+
+Question 4 (Product outcome) must yield the Hypothesis right/wrong block; question 9 (Scope boundaries) must yield the MVP + door check. No hypothesis ships without a wrong condition.
 
 The reusable `questioning` skill implements the shared clarification primitive (classify + design tree, frontier, rounds, recommendations, approval gate); invoke it when you need a deeper requirement-stress session before writing the proposal. If you cannot ask the user directly, embed a `## Proposal question round` section in the result with the questions and assumptions needing review.
 
@@ -111,7 +113,28 @@ docs/skillgrid/changes/{change-name}/
 - `<existing-capability-name>`: <what requirement is changing>
 
 ## Approach
-{High-level technical approach. Reference the recommended approach from exploration if available.}
+{High-level technical approach. Reference the recommended approach from exploration if available. Intent only — never decide engineering here (stack/versions, data model, security boundaries, testing arch, error handling, project structure); flag any such call as deferred to design.}
+
+## Hypothesis
+{We believe [change] will cause [these users] to [do Y], resulting in [outcome]. RIGHT if [signal] within [timeframe]. WRONG if [counter-signal]. No hypothesis ships without a wrong condition. Trivial: one line.}
+
+## MVP
+{Thinnest end-to-end slice proving the hypothesis right or wrong.}
+
+## Door check
+{Two-way → build; one-way → spike first with decision rule.}
+
+## Classification
+{`trivial | standard | risky` per `../_shared/conventions/task-classification.md`. Optional for trivial — one line suffices.}
+
+## Verification floor
+{`L1–L4` per `../_shared/conventions/verification-ladder.md` (trivial→L1 or omit, standard→L2, risky→L3/L4).}
+
+## Trust Boundaries
+{Actors, privileges, untrusted inputs, external systems, secrets, sensitive data — or one line: `No new trust boundary`. See `../_shared/conventions/trust-boundaries.md`.}
+
+## Security Assumptions
+{Stop-and-ask ambiguities (auth model, trust boundary, retention, secret handling) — or `None`. Never silently pick.}
 
 ## Affected Areas
 
@@ -179,7 +202,11 @@ Return to the orchestrator:
 **Intent**: {one-line intent}
 **Scope**: {N in, M out}
 **Approach**: {one-line approach}
+**Hypothesis**: {right-signal / wrong-signal} · **MVP**: {thinnest slice} · **Door**: {two-way → build | one-way → spike}
+**Classification**: {trivial | standard | risky} · **Verification floor**: {L1–L4 or omitted for trivial}
 **Risk Level**: Low/Medium/High
+**Assumptions (Inferred)**: {list, or "None"}
+**Residual Risk**: {what remains unproven, blocked, or risky}
 **Next**: sdd-design
 ```
 
@@ -190,6 +217,11 @@ Return to the orchestrator:
 - Every proposal MUST have success criteria.
 - The **Capabilities** section is the contract with `sdd-spec` — always fill it. Research `docs/skillgrid/specs/` for real capability names. If nothing changes at the spec level, write "None" under both sub-sections — do not leave template placeholders.
 - Use concrete file paths in **Affected Areas** when possible.
+- Choose the narrowest viable change; tie-break lighter for local edits, stricter if blast radius or uncertainty is material (`../_shared/conventions/task-classification.md`).
+- Minimum secure design: no extra configurability, fallback paths, or optional insecure modes unless explicitly required (`../_shared/conventions/trust-boundaries.md`).
+- Label assumptions `Verified / Inferred / Unknown`; never present inference as fact.
+- Intent only in propose; engineering decisions belong to design/spec — flag divergence instead of silently deciding.
+- Later phases inherit propose/design calls; if a phase must break one, flag it in Open Questions rather than silently diverging.
 - Apply any `rules.proposal` from `docs/skillgrid/config.yaml`.
 - **Size budget**: the proposal artifact MUST be under 450 words. Use bullets and tables over prose.
 - Recovery: `mem_search` returns 300-char previews only — always `mem_get_observation(id)` for full content before relying on it.

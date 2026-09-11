@@ -57,12 +57,13 @@ Reviewers are read-only and self-contained — crafted context only, never sessi
 
 ### Step 3: Triage via review-reception rules
 
-For every finding, verify against the codebase before accepting it:
+For every finding, verify against the codebase before accepting it. Findings arrive labeled `Verified` (evidence attached) or `Inferred` (reasoning only) — `Inferred` is suspect until you reproduce the evidence yourself:
 
-- **Critical** (bugs, security holes, data-loss risks, verify-evidence contradictions) → `BACK-TO-APPLY`, itemized with `file:line` + evidence.
-- **Important** (architecture, missing coverage, contract drift) → `BACK-TO-APPLY`, unless the change owner explicitly scopes it out with a logged reason — then it ships as a recorded warning.
-- **Minor / advisory quality-security warnings** → record in `## Review`, never block.
-- **Reviewer wrong** → push back with technical reasoning + test/code evidence; log the ruling, do not implement.
+- **Critical** (bugs, security holes, data-loss risks only — omit the section if none) → `BACK-TO-APPLY`, each item with `file:line` + what/why + evidence + fix code block.
+- **Important** (architecture, missing coverage, contract drift) → `BACK-TO-APPLY`, unless the change owner explicitly scopes it out with a logged reason — then it ships as a recorded warning. Each item with `file:line` + why it matters.
+- **Minor / advisory quality-security warnings** (cap 3, most impactful only) → record in `## Review`, never block.
+- **What looks good** → 1–2 specific callouts (not generic praise); short "ship it" is valid when solid.
+- **Reviewer wrong** → push back with technical reasoning + test/code evidence; log the ruling, do not implement. Never mark nitpicks as Critical.
 
 ### Step 4: Record the verdict in tasks.md
 
